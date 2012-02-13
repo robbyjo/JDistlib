@@ -189,7 +189,7 @@ public class MathFunctions {
 				S2 = 0.00079365079365079365079365,
 				S3 = 0.000595238095238095238095238,
 				S4 = 0.0008417508417508417508417508;
-		final double sferr_halves[] = new double[] {
+		final double sferr_halves[] = {
 			0.0, /* n=0 - wrong, place holder only */
 			0.1534264097200273452913848,  /* 0.5 */
 			0.0810614667953272582196702,  /* 1.0 */
@@ -238,7 +238,7 @@ public class MathFunctions {
 
 	public static final double gammafn(double x)
 	{
-		final double gamcs[] = new double[] {
+		final double gamcs[] = {
 				+.8571195590989331421920062399942e-2,
 				+.4415381324841006757191315771652e-2,
 				+.5685043681599363378632664588789e-1,
@@ -535,7 +535,7 @@ public class MathFunctions {
 
 	    /* coeffs[i] holds (zeta(i+2)-1)/(i+2) , i = 0:(N-1), N = 40 : */
 		final int N = 40;
-	    final double coeffs[] = new double[] {
+	    final double coeffs[] = {
 		0.3224670334241132182362075833230126e-0,/* = (zeta(2)-1)/2 */
 		0.6735230105319809513324605383715000e-1,/* = (zeta(3)-1)/3 */
 		0.2058080842778454787900092413529198e-1,

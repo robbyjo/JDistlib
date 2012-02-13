@@ -432,4 +432,68 @@ public class Normal {
 		y = aa + w;
 		return (s == 1.0) ? -y : y;
 	}
+
+	private static final double A =  2.216035867166471;
+	private static final double g(double x)
+	{
+		final double C1 = 0.398942280401433, C2 = 0.180025191068563;
+		return (C1*exp(-x*x/2.0)-C2*(A-x));
+	}
+
+	public static final double random_kinderman_ramage(double mu, double sigma, QRandomEngine random)
+	{
+		double u1, u2, u3, tt;
+		//* corrected version from Josef Leydold
+		u1 = random.nextDouble();
+		if(u1 < 0.884070402298758) {
+		    u2 = random.nextDouble();
+		    return A*(1.131131635444180*u1+u2-1);
+		}
+
+		if(u1 >= 0.973310954173898) { /* tail: */
+		    for(;;) {
+			u2 = random.nextDouble();
+			u3 = random.nextDouble();
+			tt = (A*A-2*log(u3));
+			if( u2*u2<(A*A)/tt )
+			    return (u1 < 0.986655477086949) ? sqrt(tt) : -sqrt(tt);
+		    }
+		}
+
+		if(u1 >= 0.958720824790463) { /* region3: */
+		    for(;;) {
+			u2 = random.nextDouble();
+			u3 = random.nextDouble();
+			tt = A - 0.630834801921960* min(u2,u3);
+			if(max(u2,u3) <= 0.755591531667601)
+			    return (u2<u3) ? tt : -tt;
+			if(0.034240503750111*abs(u2-u3) <= g(tt))
+			    return (u2<u3) ? tt : -tt;
+		    }
+		}
+
+		if(u1 >= 0.911312780288703) { /* region2: */
+		    for(;;) {
+			u2 = random.nextDouble();
+			u3 = random.nextDouble();
+			tt = 0.479727404222441+1.105473661022070*min(u2,u3);
+			if( max(u2,u3)<=0.872834976671790 )
+			    return (u2<u3) ? tt : -tt;
+			if( 0.049264496373128*abs(u2-u3)<=g(tt) )
+			    return (u2<u3) ? tt : -tt;
+		    }
+		}
+
+		/* ELSE	 region1: */
+		for(;;) {
+		    u2 = random.nextDouble();
+		    u3 = random.nextDouble();
+		    tt = 0.479727404222441-0.595507138015940*min(u2,u3);
+		    if (tt < 0.) continue;
+		    if(max(u2,u3) <= 0.805577924423817)
+			return (u2<u3) ? tt : -tt;
+	     	    if(0.053377549506886*abs(u2-u3) <= g(tt))
+			return (u2<u3) ? tt : -tt;
+		}
+	}
 }

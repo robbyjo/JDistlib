@@ -257,10 +257,8 @@ public class Gamma {
 			} while (abs (term) > DBL_EPSILON * sum);
 
 			return 1 / sum;
-		} else {
-			double d = Normal.density(x, 0, 1, false);
-			return d / exp (lp);
 		}
+		return Normal.density(x, 0, 1, false) / exp (lp);
 	}
 
 	/*

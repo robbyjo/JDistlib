@@ -89,7 +89,12 @@ most pronounced at the very extreme tail of the distribution.
 I translated the file as such. So, the resulting translation will also
 suffer from the same problem. In addition to that, further precision
 loss should be expected due to the "long double" problem above.
-3. I did only minimal testing. So, caveat emptor.
+3. I did not translate unused RNG routines in the normal distribution.
+R's current standard is by inversion. I did, however, translate the
+Ahrens-Dieter and Kinderman-Ramage methods as an option. I did not
+translate the Box-Muller found in the R source code because it is not
+as good as the others and it requires global state storage.
+4. I did only minimal testing. So, caveat emptor.
 
  
 February 12, 2012

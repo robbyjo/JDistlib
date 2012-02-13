@@ -271,7 +271,7 @@ public class Gamma {
 	 */
 	static final double ppois_asymp (double x, double lambda, boolean lower_tail, boolean log_p)
 	{
-		final double coefs_a[] = new double[] {
+		final double coefs_a[] = {
 				-1e99, /* placeholder used for 1-indexing */
 				2/3.,
 				-4/135.,
@@ -282,7 +282,7 @@ public class Gamma {
 				698752/1477701225.
 		};
 
-		final double coefs_b[] = new double[] {
+		final double coefs_b[] = {
 				-1e99, /* placeholder */
 				1/12.,
 				1/288.,

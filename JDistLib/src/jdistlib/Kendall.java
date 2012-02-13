@@ -60,7 +60,6 @@ public class Kendall {
 	 * <P>Two-sided test: min(1, 2*((q > n*(n-1)/4) ? 1-cumulative(x-1,n) : cumulative(x,n)));
 	 * <P>Greater test: 1-cumulative(x-1,n)
 	 * <P>Less test: cumulative(x,n)
-	 * <P>You need to cast x as an array
 	 * @param x
 	 * @param n
 	 * @return

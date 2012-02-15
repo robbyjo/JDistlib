@@ -38,7 +38,7 @@ import java.io.*;
 
 /** 
  * <h3>MersenneTwister and MersenneTwisterFast</h3>
- * <p><b>Version 13</b>, based on version MT199937(99/10/29)
+ * <p><b>Version 17</b>, based on version MT199937(99/10/29)
  * of the Mersenne Twister algorithm found at 
  * <a href="http://math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html">
  * The Mersenne Twister Home Page</a>, with the initialization
@@ -1221,5 +1221,4 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 		} while(bits - val + (n-1) < 0);
 		return val;
 	}
-
 }

@@ -95,16 +95,12 @@ public class DistributionTest {
 	 * Compute the P-value out of the D-score produced by <tt>kolmogorov_smirnov_statistic</tt>.
 	 * 
 	 * @param maxDiv
-	 * @param X
-	 * @param Y
+	 * @param lengthX
+	 * @param lengthY
 	 * @return
 	 */
-	public static final double kolmogorov_smirnov_pvalue(double maxDiv, double[] X, double[] Y)
+	public static final double kolmogorov_smirnov_pvalue(double maxDiv, int lengthX, int lengthY)
 	{
-		int
-			m = X.length,
-			n = Y.length;
-	
 		/*
 		Set<Double> set = new HashSet<Double>();
 		for (double x: X)
@@ -118,29 +114,29 @@ public class DistributionTest {
 		set = null;
 		//*/
 	
-		if (m > n)
+		if (lengthX > lengthY)
 		{
-			int temp = n;
-			n = m;
-			m = temp;
+			int temp = lengthY;
+			lengthY = lengthX;
+			lengthX = temp;
 		}
 	
 		double
-			q = floor(maxDiv * m * n - 1e-7) / (m * n),
-			u[] = new double[n + 1],
-			md = m,
-			nd = n;
+			q = floor(maxDiv * lengthX * lengthY - 1e-7) / (lengthX * lengthY),
+			u[] = new double[lengthY + 1],
+			md = lengthX,
+			nd = lengthY;
 	
-		for (int j = 0; j <= n; j++)
+		for (int j = 0; j <= lengthY; j++)
 			u[j] = (j / nd) > q ? 0: 1;
-		for(int i = 1; i <= m; i++)
+		for(int i = 1; i <= lengthX; i++)
 		{
-			double w = (double)(i) / ((double)(i + n));
+			double w = (double)(i) / ((double)(i + lengthY));
 			u[0] = (i / md) > q ? 0 : w * u[0];
-			for(int j = 1; j <= n; j++)
+			for(int j = 1; j <= lengthY; j++)
 				u[j] = abs(i / md - j / nd) > q ? 0 : w * u[j] + u[j - 1];
 		}
-		return 1 - u[n];
+		return 1 - u[lengthY];
 	}
 
 }

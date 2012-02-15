@@ -113,7 +113,13 @@ public class NormalityTest {
 		return 1 - w1;
 	}
 
-	public static final double shapiro_wilk_pvalue(double w, double[] X)
+	/**
+	 * 
+	 * @param w
+	 * @param n The length of the array
+	 * @return
+	 */
+	public static final double shapiro_wilk_pvalue(double w, int n)
 	{
 		final double kVerySmallValue = 1e-19;
 
@@ -124,7 +130,6 @@ public class NormalityTest {
 			c5 = {-1.5861, -0.31082, -0.083751, 0.0038915},
 			c6 = {-0.4803, -0.082676f, 0.0030302},
 			g = {-2.273, 0.459};
-		int n = X.length;
 
 		if (n < 3)
 			return 1;
@@ -190,9 +195,14 @@ public class NormalityTest {
 		return - n - sum / n;
 	}
 
-	public static final double anderson_darling_pvalue(double value, double[] X)
+	/**
+	 * 
+	 * @param value
+	 * @param n The length of the array
+	 * @return
+	 */
+	public static final double anderson_darling_pvalue(double value, int n)
 	{
-		int n = X.length;
 		double
 			aa = value * (1 + 0.75/n + 2.25 / (n*n)),
 			aasq = aa * aa;
@@ -241,9 +251,14 @@ public class NormalityTest {
 		return w;
 	}
 
-	public static final double cramer_vonmises_pvalue(double w, double[] X)
+	/**
+	 * 
+	 * @param w
+	 * @param n The length of the array
+	 * @return
+	 */
+	public static final double cramer_vonmises_pvalue(double w, int n)
 	{
-		int n = X.length;
 		double
 			ww = (1 + 0.5/n) * w,
 			ww2 = ww * ww;
@@ -408,6 +423,12 @@ public class NormalityTest {
 		return max;
 	}
 
+	/**
+	 * 
+	 * @param d
+	 * @param X The original array with which you invoked kolmogorov_smirnov_statistic
+	 * @return
+	 */
 	public static final double kolmogorov_smirnov_pvalue(double d, double[] X)
 	{
 		int n = X.length;
@@ -510,9 +531,14 @@ public class NormalityTest {
 	public static final double kolmogorov_lilliefors_statistic(double[] X)
 	{	return kolmogorov_smirnov_statistic(X); }
 
-	public static final double kolmogorov_lilliefors_pvalue(double k, double[] X)
+	/**
+	 * 
+	 * @param k
+	 * @param n The length of the array
+	 * @return
+	 */
+	public static final double kolmogorov_lilliefors_pvalue(double k, int n)
 	{
-		int n = X.length;
 		double
 			Kd = k,
 			nd = n;
@@ -578,12 +604,11 @@ public class NormalityTest {
 	/**
 	 * P-value of Shapiro-Francia normality test
 	 * @param w the result from ShapiroFrancia's statistic
-	 * @param X a sorted array of values
+	 * @param n the length of the original array
 	 * @return
 	 */
-	public static final double shapiro_francia_pvalue(double w, double[] X)
+	public static final double shapiro_francia_pvalue(double w, int n)
 	{
-		int n = X.length;
 		double
 			a = log(n),
 			b = log(a),

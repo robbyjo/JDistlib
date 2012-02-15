@@ -76,6 +76,20 @@ import java.io.*;
  *
  * <h3>About this Version</h3>
  *
+ * <p><b>Changes since V16:</b> Added nextDouble(includeZero, includeOne) and
+ * nextFloat(includeZero, includeOne) to allow for half-open, fully-closed, and
+ * fully-open intervals.
+ *
+ * <p><b>Changes Since V15:</b> Added serialVersionUID to quiet compiler warnings
+ * from Sun's overly verbose compilers as of JDK 1.5.
+ *
+ * <p><b>Changes Since V14:</b> made strictfp, with StrictMath.log and StrictMath.sqrt
+ * in nextGaussian instead of Math.log and Math.sqrt.  This is largely just to be safe,
+ * as it presently makes no difference in the speed, correctness, or results of the
+ * algorithm.
+ *
+ * <p><b>Changes Since V13:</b> clone() method CloneNotSupportedException removed.  
+ * 
  * <p><b>Changes Since V12:</b> clone() method added.  
  *
  * <p><b>Changes Since V11:</b> stateEquals(...) method added.  MersenneTwisterFast
@@ -174,7 +188,7 @@ import java.io.*;
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
  * POSSIBILITY OF SUCH DAMAGE.
  *
- @version 13
+ @version 17
  */
 
 // Note: this class is hard-inlined in all of its methods.  This makes some of
@@ -185,6 +199,9 @@ import java.io.*;
 
 public class QMersenneTwister extends QRandomEngine implements Serializable, Cloneable
 {
+	// Serialization
+	private static final long serialVersionUID = -8219700664442619525L;  // locked as of Version 15
+
 	// Period parameters
 	private static final int N = 624;
 	private static final int M = 397;
@@ -780,7 +797,7 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 	public final long nextLong(final long n)
 	{
 		if (n<=0)
-			throw new IllegalArgumentException("n must be > 0");
+			throw new IllegalArgumentException("n must be positive, got: " + n);
 
 		long bits, val;
 		do 
@@ -918,9 +935,29 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 		return ((((long)(y >>> 6)) << 27) + (z >>> 5)) / (double)(1L << 53);
 	}
 
+	/** Returns a double in the range from 0.0 to 1.0, possibly inclusive of 0.0 and 1.0 themselves.  Thus:
+    <p><table border=0>
+    <th><td>Expression<td>Interval
+    <tr><td>nextDouble(false, false)<td>(0.0, 1.0)
+    <tr><td>nextDouble(true, false)<td>[0.0, 1.0)
+    <tr><td>nextDouble(false, true)<td>(0.0, 1.0]
+    <tr><td>nextDouble(true, true)<td>[0.0, 1.0]
+    </table>
 
-
-
+    <p>This version preserves all possible random values in the double range.
+	 */
+	public double nextDouble(boolean includeZero, boolean includeOne)
+	{
+		double d = 0.0;
+		do
+		{
+			d = nextDouble();                           // grab a value, initially from half-open [0.0, 1.0)
+			if (includeOne && nextBoolean()) d += 1.0;  // if includeOne, with 1/2 probability, push to [1.0, 2.0)
+		} 
+		while ( (d > 1.0) ||                            // everything above 1.0 is always invalid
+				(!includeZero && d == 0.0));            // if we're not including zero, 0.0 is invalid
+		return d;
+	}
 
 	@Override
 	public final double nextGaussian()
@@ -1058,15 +1095,11 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 			- 1;
 			s = v1 * v1 + v2 * v2;
 		} while (s >= 1 || s==0);
-		double multiplier = /*Strict*/Math.sqrt(-2 * /*Strict*/Math.log(s)/s);
+		double multiplier = StrictMath.sqrt(-2 * StrictMath.log(s)/s);
 		__nextNextGaussian = v2 * multiplier;
 		__haveNextNextGaussian = true;
 		return v1 * multiplier;
 	}
-
-
-
-
 
 	/** Returns a random float in the half-open range from [0.0f,1.0f).  Thus 0.0f is a valid
 		result but 1.0f is not. */
@@ -1113,7 +1146,7 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 	public final int nextInt(final int n)
 	{
 		if (n<=0)
-			throw new IllegalArgumentException("n must be > 0");
+			throw new IllegalArgumentException("n must be positive, got: " + n);
 
 		if ((n & -n) == n)  // i.e., n is a power of 2
 		{

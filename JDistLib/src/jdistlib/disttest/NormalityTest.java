@@ -134,7 +134,7 @@ public class NormalityTest {
 		if (n < 3)
 			return 1;
 		if (n == 3) // exact P value :
-			return 1.909859 * (asin(sqrt(w)) - 1.047198);
+			return max(0, 1.90985931710274 * (asin(sqrt(w)) - 1.04719755119660));
 
 		double
 		y = log(1 - w),

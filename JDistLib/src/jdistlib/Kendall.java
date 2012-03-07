@@ -82,4 +82,53 @@ public class Kendall {
 		}
 		return p / gammafn(n + 1);
 	}
+
+	static final double do_search(double y, double[] z, double p, int x, double incr)
+	{
+		if(z[0] >= p) {
+			/* search to the left */
+			for(;;) {
+				double newz = cumulative(y - incr, x);
+				if(y == 0 || newz < p)
+					return y;
+				y = max(0, y - incr);
+				z[0] = newz;
+			}
+		}
+		else {		/* search to the right */
+			for(;;) {
+				y = y + incr;
+				if((z[0] = cumulative(y, x)) >= p)
+					return y;
+			}
+		}
+	}
+
+	/**
+	 * Quantile search by Cornish-Fisher expansion. WARNING: Untested!
+	 * @param p
+	 * @param x
+	 * @return
+	 */
+	public static final double quantile(double p, int x)
+	{
+		if (Double.isNaN(p) || Double.isInfinite(p)) return p;
+		if (p < 0 || p > 1) return Double.NaN;
+		double z[] = new double[1], y, mu, sigma;
+
+		/* y := approx.value (Cornish-Fisher expansion) :  */
+		z[0] = Normal.quantile(p, 0., 1., true, false);
+		mu = x * (x-1)/4.0;
+		sigma = sqrt(x * (x+1.0) * (2*x + 5.5) / 72);
+		y = sigma * z[0] + mu - 0.5;
+
+		z[0] = cumulative(y, x);
+		double incr = floor(y * 0.001), oldincr;
+		do {
+			oldincr = incr;
+			y = do_search(y, z, p, x, incr);
+			incr = max(1, floor(incr/100));
+		} while(oldincr > 1 && incr > x*1e-15);
+		return y;
+	}
 }

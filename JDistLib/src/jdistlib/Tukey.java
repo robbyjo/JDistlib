@@ -38,6 +38,8 @@ import jdistlib.rng.QRandomEngine;
  *    the two-way analysis of variance with fixed effects.
  *    Journal of Statistical Computation and Simulation,
  *    Vol.30, pp.1-15, 1988.
+ *    
+ *  RJ's Note: See Algorithm AS 190 by Lund and Lund
  */
 public class Tukey {
 	/*  wprob() :

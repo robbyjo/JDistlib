@@ -24,12 +24,12 @@ import static java.lang.Math.*;
 public class Spearman {
 	/**
 	 * Spearman cumulative distribution. (taken from src/library/stats/src/prho.c)
-	 * @param n
 	 * @param is
+	 * @param n
 	 * @param lower_tail
 	 * @return
 	 */
-	public static final double cumulative(int n, double is, boolean lower_tail)
+	public static final double cumulative(double is, int n, boolean lower_tail)
 	{
 		final double
 		c1 = .2274,

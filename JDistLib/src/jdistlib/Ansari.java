@@ -65,6 +65,11 @@ public class Ansari {
 		return result;
 	}
 
+	public static final double density(int x, int m, int n)
+	{
+		return cansari(x, m, n, new double[m+1][n+1][]) / choose(m + n, m);
+	}
+
 	public static final double[] cumulative(int[] x, int m, int n)
 	{
 		int i, j, l, u, len = x.length;
@@ -91,6 +96,26 @@ public class Ansari {
 			}
 		}
 		return result;
+	}
+
+	public static final double cumulative(int x, int m, int n)
+	{
+		int j, l, u;
+		double c, p;
+		double[][][] w = new double[m+1][n+1][];
+
+		l = (m + 1) * (m + 1) / 4;
+		u = l + m * n / 2;
+		c = choose(m + n, m);
+		if (x < l)
+			return 0;
+		else if (x > u)
+			return 1;
+		p = 0;
+		for (j = l; j <= x; j++) {
+			p += cansari(j, m, n, w);
+		}
+		return p / c;
 	}
 
 	public static final int[] quantile(double[] x, int m, int n)
@@ -127,5 +152,34 @@ public class Ansari {
 			}
 		}
 		return result;
+	}
+
+	public static final int quantile(double xi, int m, int n)
+	{
+		int l, u, q;
+		double c, p;
+		double[][][] w = new double[m+1][n+1][];
+
+		l = (m + 1) * (m + 1) / 4;
+		u = l + m * n / 2;
+		c = choose(m + n, m);
+		if(xi < 0 || xi > 1) {
+			//error(_("probabilities outside [0,1] in qansari()"));
+			System.err.println("probabilities outside [0,1] in Ansari.quantile");
+			return Integer.MIN_VALUE;
+		}
+		if(xi == 0)
+			return l;
+		else if(xi == 1)
+			return u;
+		p = 0;
+		q = 0;
+		for(;;) {
+			p += cansari(q, m, n, w) / c;
+			if (p >= xi)
+				break;
+			q++;
+		}
+		return q;
 	}
 }

@@ -182,7 +182,7 @@ public class PolyGamma
 		-1.92965793419400681e+16
 	};
 
-	public static double[] dpsifn(double x, int n, int kode, int m) 
+	public static final double[] dpsifn(double x, int n, int kode, int m) 
 	{
 		double ans[] = new double[n + 1];
 		int i, j, k, mm, mx, nn, np, nx, fn;

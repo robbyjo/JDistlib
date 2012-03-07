@@ -127,7 +127,7 @@ public class Binomial
 		}
 	}
 
-	static final double quantile(double p, double n, double pr, boolean lower_tail, boolean log_p)
+	public static final double quantile(double p, double n, double pr, boolean lower_tail, boolean log_p)
 	{
 		double q, mu, sigma, gamma, z, y;
 

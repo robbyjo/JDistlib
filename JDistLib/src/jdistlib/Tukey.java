@@ -22,6 +22,7 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.rng.QRandomEngine;
 
 /*
  *    Computes the probability and quantile that the maximum of rr studentized
@@ -561,4 +562,19 @@ public class Tukey {
 		return ans;
 	}
 
+	/**
+	 * Tukey RNG by inversion -- WARNING: Untested
+	 * @param rr
+	 * @param cc
+	 * @param df
+	 * @param random
+	 * @return
+	 */
+	public static final double random(double rr, double cc, double df, QRandomEngine random)
+	{
+		double u1 = random.nextDouble();
+		u1 = (int) (134217728 * u1) + random.nextDouble();
+		u1 = quantile(u1 / 134217728, rr, cc, df, true, false);
+		return u1;
+	}
 }

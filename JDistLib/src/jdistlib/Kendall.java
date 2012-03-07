@@ -21,6 +21,7 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.rng.QRandomEngine;
 
 public class Kendall {
 	static final double count(int k, int n, double w[][]) {
@@ -130,5 +131,19 @@ public class Kendall {
 			incr = max(1, floor(incr/100));
 		} while(oldincr > 1 && incr > x*1e-15);
 		return y;
+	}
+
+	/**
+	 * Kendall RNG by inversion -- WARNING: Untested
+	 * @param x
+	 * @param random
+	 * @return
+	 */
+	public static final double random(int x, QRandomEngine random)
+	{
+		double u1 = random.nextDouble();
+		u1 = (int) (134217728 * u1) + random.nextDouble();
+		u1 = quantile(u1 / 134217728, x);
+		return u1;
 	}
 }

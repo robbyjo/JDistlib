@@ -21,6 +21,7 @@ package jdistlib;
 
 import static java.util.Arrays.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.rng.QRandomEngine;
 
 /**
  * Ansari-Bradley test statistic
@@ -181,5 +182,20 @@ public class Ansari {
 			q++;
 		}
 		return q;
+	}
+
+	/**
+	 * Ansari RNG by inversion -- WARNING: Untested
+	 * @param m
+	 * @param n
+	 * @param random
+	 * @return
+	 */
+	public static final double random(int m, int n, QRandomEngine random)
+	{
+		double u1 = random.nextDouble();
+		u1 = (int) (134217728 * u1) + random.nextDouble();
+		u1 = quantile(u1 / 134217728, m, n);
+		return u1;
 	}
 }

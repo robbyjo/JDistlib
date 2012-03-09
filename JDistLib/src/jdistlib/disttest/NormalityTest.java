@@ -157,7 +157,7 @@ public class NormalityTest {
 			s = exp(poly(c6, xx));
 		}
 
-		return 1 - Normal.cumulative(y, m, s*s, true, false);
+		return Normal.cumulative(y, m, s*s, false, false);
 	}
 
 	public static final double anderson_darling_statistic(double[] X)

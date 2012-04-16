@@ -1,0 +1,13 @@
+What's new:
+
+Version 0.0.3:
+* Added Logarithmic distribution
+* Fixed visibility of Binomial.quantile to public (as opposed to package)
+* Increased constant precision on Shapiro-Wilk p-value computation
+* Modified density, cumulative, and quantile method signature of Ansari
+  distribution to allow single values (as opposed to arrays of values)
+* Added random number generation for Kendall and Tukey distributions
+* Added exact method for computing Spearman distribution
+* Finalize the method signature of PolyGamma.dpsifn
+* Added MathFunctions.log1px
+

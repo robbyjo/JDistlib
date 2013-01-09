@@ -810,16 +810,19 @@ public class MathFunctions {
 					//bgrat(b0, a0, y0, x0, w1, 15*eps, &ierr1);
 					//goto L_end_from_w1;
 					w1 = bgrat(b0, a0, y0, x0, w1, 15*eps /*, ierr1*/);
-					if(log_p) {
-						w  = log1p(-w1);
-						w1 = log(w1);
-					} else {
-						w = 0.5 - w1 + 0.5;
+					if (w1 > 0) {
+						if(log_p) {
+							w  = log1p(-w1);
+							w1 = log(w1);
+						} else {
+							w = 0.5 - w1 + 0.5;
+						}
+						if (do_swap) { /* swap */
+							double t = w; w = w1; w1 = t;
+						}
+						return new double[] {w, w1, ierr};
 					}
-					if (do_swap) { /* swap */
-						double t = w; w = w1; w1 = t;
-					}
-					return new double[] {w, w1, ierr};
+					kase = 110;
 				}
 			} else { /*  a, b <= 1 */
 				if (a0 >= min(0.2, b0) || pow(x0, a0) <= 0.9) {
@@ -838,16 +841,19 @@ public class MathFunctions {
 				//bgrat(b0, a0, y0, x0, w1, 15*eps, &ierr1);
 				//goto L_end_from_w1;
 				w1 = bgrat(b0, a0, y0, x0, w1, 15*eps /*, ierr1*/);
-				if(log_p) {
-					w  = log1p(-w1);
-					w1 = log(w1);
-				} else {
-					w = 0.5 - w1 + 0.5;
+				if (w1 > 0) {
+					if(log_p) {
+						w  = log1p(-w1);
+						w1 = log(w1);
+					} else {
+						w = 0.5 - w1 + 0.5;
+					}
+					if (do_swap) { /* swap */
+						double t = w; w = w1; w1 = t;
+					}
+					return new double[] {w, w1, ierr};
 				}
-				if (do_swap) { /* swap */
-					double t = w; w = w1; w1 = t;
-				}
-				return new double[] {w, w1, ierr};
+				kase = 110;
 			}
 		} else {
 			/*             PROCEDURE FOR a0 > 1 AND b0 > 1 */

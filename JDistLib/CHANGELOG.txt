@@ -1,5 +1,9 @@
 What's new:
 
+Version 0.0.4:
+* Fix for pt / pf distribution. See https://bugs.r-project.org/bugzilla3/show_bug.cgi?id=15162
+* Added Fretchet, GEV, Generalized Pareto, Gumbel, and Reverse Weibull distributions
+
 Version 0.0.3:
 * Added Logarithmic distribution
 * Fixed visibility of Binomial.quantile to public (as opposed to package)

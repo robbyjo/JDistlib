@@ -27,25 +27,39 @@ import jdistlib.rng.QRandomEngine;
 public class T {
 	public static final double density(double x, double n, boolean give_log)
 	{
-	    double t, u;
-	    if (Double.isNaN(x) || Double.isNaN(n))
-		return x + n;
+		if (Double.isNaN(x) || Double.isNaN(n))
+			return x + n;
 
-	    if (n <= 0) return Double.NaN;
-	    if(Double.isInfinite(x))
-		return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-	    if(Double.isInfinite(n))
-		return Normal.density(x, 0., 1., give_log);
+		if (n <= 0) return Double.NaN;
+		if(Double.isInfinite(x))
+			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if(Double.isInfinite(n))
+			return Normal.density(x, 0., 1., give_log);
 
-	    t = -bd0(n/2.,(n+1)/2.) + stirlerr((n+1)/2.) - stirlerr(n/2.);
-	    if ( x*x > 0.2*n )
-		u = log( 1+ x*x/n ) * n/2;
-	    else
-		u = -bd0(n/2.,(n+x*x)/2.) + x*x/2.;
+		double u, ax = abs(x),
+				t = -bd0(n/2.,(n+1)/2.) + stirlerr((n+1)/2.) - stirlerr(n/2.),
+				x2n = x*x/n, // in  [0, Inf]
+				l_x2n; // := log(sqrt(1 + x2n)) = log(1 + x2n)/2
+		boolean lrg_x2n =  (x2n > 1./DBL_EPSILON);
+		if (lrg_x2n) { // large x^2/n :
+			l_x2n = log(ax) - log(n)/2.; // = log(x2n)/2 = 1/2 * log(x^2 / n)
+			u = //  log(1 + x2n) * n/2 =  n * log(1 + x2n)/2 =
+				n * l_x2n;
+		}
+		else if (x2n > 0.2) {
+			l_x2n = log(1 + x2n)/2.;
+			u = n * l_x2n;
+		} else {
+			l_x2n = log1p(x2n)/2.;
+			u = -bd0(n/2.,(n+x*x)/2.) + x*x/2.;
+		}
 
-	    x = M_2PI*(1+x*x/n);
-	    t = t - u;
-	    return (give_log ? -0.5*log(x)+(t) : exp(t)/sqrt(x));
+		if(give_log)
+			return t-u - (M_LN_SQRT_2PI + l_x2n);
+
+		// else :  if(lrg_x2n) : sqrt(1 + 1/x2n) ='= sqrt(1) = 1
+		double I_sqrt_ = (lrg_x2n ? sqrt(n)/ax : exp(-l_x2n));
+		return exp(t-u) * M_1_SQRT_2PI * I_sqrt_;
 	}
 
 	public static final double cumulative(double x, double n, boolean lower_tail, boolean log_p)
@@ -61,38 +75,38 @@ public class T {
 
 		if(Double.isInfinite(x))
 			return (x < 0) ? (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) : (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
-		if(Double.isInfinite(n))
-			return Normal.cumulative(x, 0.0, 1.0, lower_tail, log_p);
+			if(Double.isInfinite(n))
+				return Normal.cumulative(x, 0.0, 1.0, lower_tail, log_p);
 
-		nx = 1 + (x/n)*x;
-		/* FIXME: This test is probably losing rather than gaining precision,
-		 * now that pbeta(*, log_p = TRUE) is much better.
-		 * Note however that a version of this test *is* needed for x*x > D_MAX */
-		if(nx > 1e100) { /* <==>  x*x > 1e100 * n  */
-			/* Danger of underflow. So use Abramowitz & Stegun 26.5.4
+			nx = 1 + (x/n)*x;
+			/* FIXME: This test is probably losing rather than gaining precision,
+			 * now that pbeta(*, log_p = TRUE) is much better.
+			 * Note however that a version of this test *is* needed for x*x > D_MAX */
+			if(nx > 1e100) { /* <==>  x*x > 1e100 * n  */
+				/* Danger of underflow. So use Abramowitz & Stegun 26.5.4
 		   pbeta(z, a, b) ~ z^a(1-z)^b / aB(a,b) ~ z^a / aB(a,b),
 		   with z = 1/nx,  a = n/2,  b= 1/2 :
-			 */
-			double lval;
-			lval = -0.5*n*(2*log(abs(x)) - log(n)) - lbeta(0.5*n, 0.5) - log(0.5*n);
-			val = log_p ? lval : exp(lval);
-		} else {
-			val = (n > x * x)
-					? Beta.cumulative (x * x / (n + x * x), 0.5, n / 2., lower_tail, log_p)
-					: Beta.cumulative (1. / nx,             n / 2., 0.5, !lower_tail, log_p);
-		}
+				 */
+				double lval;
+				lval = -0.5*n*(2*log(abs(x)) - log(n)) - lbeta(0.5*n, 0.5) - log(0.5*n);
+				val = log_p ? lval : exp(lval);
+			} else {
+				val = (n > x * x)
+						? Beta.cumulative (x * x / (n + x * x), 0.5, n / 2., lower_tail, log_p)
+								: Beta.cumulative (1. / nx,             n / 2., 0.5, !lower_tail, log_p);
+			}
 			/* Use "1 - v"  if	lower_tail  and	 x > 0 (but not both):*/
-		if(x <= 0.)
-			lower_tail = !lower_tail;
+			if(x <= 0.)
+				lower_tail = !lower_tail;
 			if(log_p) {
-			if(lower_tail) return log1p(-0.5*exp(val));
-			else return val - M_LN2; /* = log(.5* pbeta(....)) */
-		}
-		else {
-			val /= 2.;
-			//return R_D_Cval(val);
-			return (lower_tail ? (0.5 - (val) + 0.5) : (val));
-		}
+				if(lower_tail) return log1p(-0.5*exp(val));
+				else return val - M_LN2; /* = log(.5* pbeta(....)) */
+			}
+			else {
+				val /= 2.;
+				//return R_D_Cval(val);
+				return (lower_tail ? (0.5 - (val) + 0.5) : (val));
+			}
 	}
 
 	public static final double quantile(double p, double ndf, boolean lower_tail, boolean log_p)

@@ -143,6 +143,7 @@ public class MathFunctions {
 
 		y = abs(x);
 
+		if (y < 1e-306) return -log(x); // denormalized range, R change
 		if (y <= 10)
 			return log(abs(gammafn(x)));
 		if (y > xmax) {
@@ -453,7 +454,8 @@ public class MathFunctions {
 		}
 		else
 			/* p and q are small: p <= q < 10. */
-			return log(gammafn(p) * (gammafn(q) / gammafn(p + q)));
+			if (p < 1e-306) return lgammafn(p) + (lgammafn(q) - lgammafn(p+q));
+		return log(gammafn(p) * (gammafn(q) / gammafn(p + q)));
 	}
 
 	static final double

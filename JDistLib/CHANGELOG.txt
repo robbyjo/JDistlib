@@ -1,7 +1,14 @@
 What's new:
 
-Version 0.0.4:
-* Fix for pt / pf distribution. See https://bugs.r-project.org/bugzilla3/show_bug.cgi?id=15162
+Version 0.0.5 (Jan 09, 2013):
+* Synchronized with R's patched of the same date. Fixes the following bugs:
+-- qt(1e-12, 1.2) no longer gives NaN.
+-- dt(1e160, 1.2, log=TRUE) no longer gives -Inf.
+-- beta(a, b) could overflow to infinity in its calculations when one of a and b was less than one.  (PR#15075)
+-- lbeta(a, b) no longer gives NaN if a or b is very small (in the denormalized range).
+
+Version 0.0.4 (Jan 09, 2013):
+* Fix for pt / pf distribution. (PR#15162)
 * Added Fretchet, GEV, Generalized Pareto, Gumbel, and Reverse Weibull distributions
 
 Version 0.0.3:

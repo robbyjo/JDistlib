@@ -102,10 +102,10 @@ public class NonCentralBeta {
 		final int    itrmax = 10000;  /* 100 is not enough for pf(ncp=200)
 					     see PR#11277 */
 
-		double a0, ax, lbeta, c, errbd, temp, x0; //, tmp_c;
+		double a0, lbeta, c, errbd, temp, x0; //, tmp_c;
 		int j; //, ierr;
 
-		/*long*/ double ans, gx, q, sumq; // TODO long double
+		/*long*/ double ans, ax, gx, q, sumq; // TODO long double
 
 		if (ncp < 0. || a <= 0. || b <= 0.) return Double.NaN;
 

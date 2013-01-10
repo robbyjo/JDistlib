@@ -114,7 +114,6 @@ public class T {
 		final double eps = 1.e-12;
 
 		double P, q;
-		boolean neg;
 
 		if (Double.isNaN(p) || Double.isNaN(ndf)) return p + ndf;
 
@@ -185,7 +184,8 @@ public class T {
 		//P = R_D_qIv(p); /* if exp(p) underflows, we fix below */
 		P = (log_p ? exp(p) : (p));
 
-		neg = (!lower_tail || P < 0.5) && (lower_tail || P > 0.5);
+		boolean neg = (!lower_tail || P < 0.5) && (lower_tail || P > 0.5),
+			is_neg_lower = (lower_tail == neg); /* both TRUE or FALSE == !xor */;
 		if(neg)
 			P = 2 * (log_p ? (lower_tail ? P : -expm1(p)) : (lower_tail ? (p) : (0.5 - (p) + 0.5))); //R_D_Lval(p));
 		else
@@ -206,7 +206,7 @@ public class T {
 			}
 			else { /* P << 1, q = 1/sqrt(P) = ... */
 				if(log_p)
-					q = (lower_tail == neg) ? exp(- p/2) / M_SQRT_2 : 1/sqrt(-expm1(p));
+					q = is_neg_lower ? exp(- p/2) / M_SQRT_2 : 1/sqrt(-expm1(p));
 					else
 						q = Double.POSITIVE_INFINITY;
 			}
@@ -217,7 +217,7 @@ public class T {
 
 			else { /* P = 0, but maybe = 2*exp(p) ! */
 				if(log_p) /* 1/tan(e) ~ 1/e */
-					q = (lower_tail == neg) ? M_1_PI * exp(-p) : -1./(M_PI * expm1(p));
+					q = is_neg_lower ? M_1_PI * exp(-p) : -1./(M_PI * expm1(p));
 					else
 						q = Double.POSITIVE_INFINITY;
 			}
@@ -235,7 +235,7 @@ public class T {
 				P_ok = (y >= DBL_EPSILON);
 			}
 			if(!P_ok) { /* log_p && P very small */
-				log_P2 = (lower_tail == neg) ? p : (p > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))); //R_Log1_Exp(p); /* == log(P / 2) */
+				log_P2 = is_neg_lower ? p : (p > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))); //R_Log1_Exp(p); /* == log(P / 2) */
 				x = (log(d) + M_LN2 + log_P2) / ndf;
 				y = exp(2 * x);
 			}
@@ -255,18 +255,15 @@ public class T {
 						- y - 3) / b + 1) * x;
 				y = expm1(a * y * y);
 				q = sqrt(ndf * y);
-			} else { /* re-use 'y' from above */
-
-				if(!P_ok && x < - M_LN2 * DBL_MANT_DIG) {/* 0.5* log(DBL_EPSILON) */
-					/* y above might have underflown */
-					q = sqrt(ndf) * exp(-x);
-				}
-				else {
-					y = ((1 / (((ndf + 6) / (ndf * y) - 0.089 * d - 0.822)
-							* (ndf + 2) * 3) + 0.5 / (ndf + 4))
-							* y - 1) * (ndf + 1) / (ndf + 2) + 1 / y;
-					q = sqrt(ndf * y);
-				}
+			} else if(!P_ok && x < - M_LN2 * DBL_MANT_DIG) {/* 0.5* log(DBL_EPSILON) */
+				/* y above might have underflown */
+				q = sqrt(ndf) * exp(-x);
+			}
+			else {
+				y = ((1 / (((ndf + 6) / (ndf * y) - 0.089 * d - 0.822)
+						* (ndf + 2) * 3) + 0.5 / (ndf + 4))
+						* y - 1) * (ndf + 1) / (ndf + 2) + 1 / y;
+				q = sqrt(ndf * y);
 			}
 
 

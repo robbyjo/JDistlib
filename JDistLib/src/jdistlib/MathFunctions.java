@@ -2776,7 +2776,7 @@ public class MathFunctions {
 			return 0;
 
 		if (a + b < xmax) /* ~= 171.61 for IEEE */
-			return gammafn(a) * gammafn(b) / gammafn(a+b);
+			return (1 / gammafn(a+b)) * gammafn(a) * gammafn(b);
 		else {
 			double val = lbeta(a, b);
 			if (val < lnsml) {

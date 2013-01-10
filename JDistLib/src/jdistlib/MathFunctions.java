@@ -23,6 +23,20 @@ import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 
 public class MathFunctions {
+	/**
+	 * Log of multivariate gamma function
+	 * By: Roby Joehanes
+	 * @param a
+	 * @param p the order (or dimension)
+	 * @return
+	 */
+	public static final double lmvgammafn(double a, int p) {
+		double sum = 0;
+		for (int j = 1; j <= p; j++)
+			sum += lgammafn(a + (1-j)/2);
+		return sum + p*(p-1)/4 * M_LOG_PI;
+	}
+
 	public static final double trunc(double x)
 	{	return x >= 0 ? floor(x) : ceil(x); }
 

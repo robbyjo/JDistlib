@@ -1,6 +1,6 @@
 What's new:
 
-Version 0.0.6:
+Version 0.0.6 (Jan 11, 2013):
 Further R synchronization fixes the following bugs / adds the following features:
 * qgeom() could return -1 for extremely small q. (PR#14967.)
 * lgamma(x) for very small x (in the denormalized range) is no longer Inf with a warning.

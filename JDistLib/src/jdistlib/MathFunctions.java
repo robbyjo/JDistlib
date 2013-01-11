@@ -1649,7 +1649,8 @@ public class MathFunctions {
 		u = r * exp(-u);
 		if (u == 0.0) {
 			//ierr = 1;
-			return Double.NaN;
+			//return Double.NaN;
+			return 0;
 		}
 		double[] out = grat1(b, z, r, eps); /* -> (p,q)  {p + q = 1} */
 		p = out[0]; q = out[1];
@@ -1684,7 +1685,8 @@ public class MathFunctions {
 			sum += dj;
 			if (sum <= 0.0) {
 				//ierr = 1;
-				return Double.NaN;
+				//return Double.NaN;
+				return 0;
 			}
 			if (abs(dj) <= eps * (sum + l)) {
 				break;

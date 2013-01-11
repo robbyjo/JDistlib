@@ -1,10 +1,12 @@
 What's new:
 
 Version 0.0.6:
-Further R synchronization fixes the following bug / adds the following features:
+Further R synchronization fixes the following bugs / adds the following features:
 * qgeom() could return -1 for extremely small q. (PR#14967.)
+* lgamma(x) for very small x (in the denormalized range) is no longer Inf with a warning.
+* plogis(x, lower = FALSE, log.p = TRUE) no longer underflows early for large x (e.g. 800).
 * Imported the simplified logic for T.quantile from R
-* Added multivariate gamma function
+* Added multivariate gamma function (MathFunctions.lmvgammafn)
 * Added Wishart distribution sampling (random only)
 
 Version 0.0.5 (Jan 09, 2013):

@@ -697,7 +697,7 @@ public class MathFunctions {
 	public static final double[] bratio(double a, double b, double x, double y, boolean log_p)
 	{
 		boolean do_swap;
-		int n = 0, ierr, kase = 0;
+		int n = 0, kase = 0;
 		double z, a0, b0, x0, y0, eps, lambda = 0, w, w1;
 
 		/*  eps is a machine dependent constant: the smallest
@@ -707,49 +707,41 @@ public class MathFunctions {
 		/* ----------------------------------------------------------------------- */
 		w = w1 = (log_p ? Double.NEGATIVE_INFINITY : 0.);
 
-		if (a < 0.0 || b < 0.0)   { ierr = 1; return new double[] {w, w1, ierr}; }
-		if (a == 0.0 && b == 0.0) { ierr = 2; return new double[] {w, w1, ierr}; }
-		if (x < 0.0 || x > 1.0)   {	ierr = 3; return new double[] {w, w1, ierr}; }
-		if (y < 0.0 || y > 1.0)   { ierr = 4; return new double[] {w, w1, ierr}; }
+		if (a < 0.0 || b < 0.0)   return new double[] {w, w1, 1};
+		if (a == 0.0 && b == 0.0) return new double[] {w, w1, 2};
+		if (x < 0.0 || x > 1.0)   return new double[] {w, w1, 3};
+		if (y < 0.0 || y > 1.0)   return new double[] {w, w1, 4};
 
 		z = x + y - 0.5 - 0.5;
 
-		if (abs(z) > eps * 3.0) { ierr = 5; return new double[] {w, w1, ierr}; }
+		if (abs(z) > eps * 3.0) return new double[] {w, w1, 5};
 
-		ierr = 0;
 		if (x == 0.0)
 		{
-			if (a == 0.0) {
-				ierr = 6;
-				return new double[] {w, w1, ierr};
-			}
+			if (a == 0.0) return new double[] {w, w1, 6};
 			w  = (log_p ? Double.NEGATIVE_INFINITY : 0.);
 			w1 = (log_p ? 0. : 1.);
-			return new double[] {w, w1, ierr};
+			return new double[] {w, w1, 0};
 		}
 		if (y == 0.0)
 		{
-			if (b == 0.0) {
-				ierr = 7;
-				return new double[] {w, w1, ierr};
-			}
+			if (b == 0.0) return new double[] {w, w1, 7};
 			w  = (log_p ? 0. : 1.);
 			w1 = (log_p ? Double.NEGATIVE_INFINITY : 0.);
-			return new double[] {w, w1, ierr};
+			return new double[] {w, w1, 0};
 
 		}
-
 		if (a == 0.0)
 		{
 			w  = (log_p ? 0. : 1.);
 			w1 = (log_p ? Double.NEGATIVE_INFINITY : 0.);
-			return new double[] {w, w1, ierr};
+			return new double[] {w, w1, 0};
 		}
 		if (b == 0.0)
 		{
 			w  = (log_p ? Double.NEGATIVE_INFINITY : 0.);
 			w1 = (log_p ? 0. : 1.);
-			return new double[] {w, w1, ierr};
+			return new double[] {w, w1, 0};
 		}
 
 		eps = max(eps, 1e-15);
@@ -763,8 +755,9 @@ public class MathFunctions {
 				w	= b / (a + b);
 				w1 = a / (a + b);
 			}
-			return new double[] {w, w1, ierr};
+			return new double[] {w, w1, 0};
 		}
+		//ierr = 0;
 
 		if(min(a,b) <= 1.0) {
 			/*             PROCEDURE FOR a0 <= 1 OR b0 <= 1 */
@@ -784,11 +777,11 @@ public class MathFunctions {
 			if (b0 < min(eps, eps * a0)) { /* L80: */
 				w = fpser(a0, b0, x0, eps, log_p);
 				w1 = log_p ? ((w) > -M_LN2 ? log(-expm1(w)) : log1p(-exp(w))) : 0.5 - w + 0.5;
-				// goto L_end_after_log;
+				// goto L_end;
 				if (do_swap) { /* swap */
 					double t = w; w = w1; w1 = t;
 				}
-				return new double[] {w, w1, ierr};
+				return new double[] {w, w1, 0};
 			}
 
 			if (a0 < min(eps, eps * b0) && b0 * x0 <= 1.0) { /* L90: */
@@ -804,72 +797,74 @@ public class MathFunctions {
 				if (do_swap) { /* swap */
 					double t = w; w = w1; w1 = t;
 				}
-				return new double[] {w, w1, ierr};
+				return new double[] {w, w1, 0};
 			}
 
+			boolean did_bup = false;
 			if (max(a0,b0) > 1.0) { /* L20:  min(a,b) <= 1 < max(a,b)  */
 				if (b0 <= 1.0) {
-					kase = 100; // goto L100;
+					kase = 100; // goto L_w_bpser;
 				}
 				else if (x0 >= 0.29) {
-					kase = 110; // goto L110;
+					kase = 110; // goto L_w1_bpser;
 				}
-				else if (x0 < 0.1) {
-					if (pow(x0*b0, a0) <= 0.7) {
-						kase = 100; //goto L100;
-					}
-				}
-				if (kase == 0 && b0 > 15.0) {
+				else if (x0 < 0.1 && pow(x0*b0, a0) <= 0.7) {
+					kase = 100; //goto L_w_bpser;
+				} else if (b0 > 15.0) {
 					w1 = 0.;
 					// goto L131;
-					//L131:
-					//bgrat(b0, a0, y0, x0, w1, 15*eps, &ierr1);
-					//goto L_end_from_w1;
-					w1 = bgrat(b0, a0, y0, x0, w1, 15*eps /*, ierr1*/);
-					if (w1 > 0) {
-						if(log_p) {
-							w  = log1p(-w1);
-							w1 = log(w1);
-						} else {
-							w = 0.5 - w1 + 0.5;
-						}
-						if (do_swap) { /* swap */
-							double t = w; w = w1; w1 = t;
-						}
-						return new double[] {w, w1, ierr};
-					}
-					kase = 110;
+					kase = 131;
 				}
 			} else { /*  a, b <= 1 */
 				if (a0 >= min(0.2, b0) || pow(x0, a0) <= 0.9) {
-					kase = 100; // goto L100;
+					kase = 100; // goto L_w_bpser;
 				}
 				else if (x0 >= 0.3) {
-					kase = 110; // goto L110;
+					kase = 110; // goto L_w1_bpser;
 				}
 			}
 			if (kase == 0)
 			{
 				n = 20; //kase = 130; //goto L130;
-				w1 = bup(b0, a0, y0, x0, n, eps);
+				w1 = bup(b0, a0, y0, x0, n, eps, false); did_bup = true;
 				b0 += n;
+			}
+			if (kase == 0 || kase == 131) {
 				//L131:
-				//bgrat(b0, a0, y0, x0, w1, 15*eps, &ierr1);
+				//bgrat(b0, a0, y0, x0, w1, 15*eps, &ierr1, FALSE);
 				//goto L_end_from_w1;
-				w1 = bgrat(b0, a0, y0, x0, w1, 15*eps /*, ierr1*/);
-				if (w1 > 0) {
+				w1 = bgrat(b0, a0, y0, x0, w1, 15*eps /*, ierr1*/, false);
+				if (w1 == 0) { // "almost surely" from underflow, try more: [2013-03-04]
+					// FIXME: it is even better to do this in bgrat *directly* at least for the case
+					//  !did_bup, i.e., where *w1 = (0 or -Inf) on entry
+					w1 = did_bup // re-do that part on log scale:
+						? bup(b0-n, a0, y0, x0, n, eps, true) 
+						: Double.NEGATIVE_INFINITY;
+					w1 = bgrat(b0, a0, y0, x0, w1, 15*eps /*, ierr1*/, true);
+					//goto L_end_from_w1_log;
 					if(log_p) {
-						w  = log1p(-w1);
-						w1 = log(w1);
+						w = ((w1) > -M_LN2 ? log(-expm1(w1)) : log1p(-exp(w1)));
 					} else {
-						w = 0.5 - w1 + 0.5;
+						w  = /* 1 - exp(*w1) */ -expm1(w1);
+						w1 = exp(w1);
 					}
 					if (do_swap) { /* swap */
 						double t = w; w = w1; w1 = t;
 					}
-					return new double[] {w, w1, ierr};
+					return new double[] {w, w1, 0};
 				}
-				kase = 110;
+				//if(w1 < 0) MATHLIB_WARNING4("bratio(a=%g, b=%g, x=%g): bgrat() -> w1 = %g", a,b,x, w1);
+				//goto L_end_from_w1;
+				if(log_p) {
+					w  = log1p(-w1);
+					w1 = log(w1);
+				} else {
+					w = 0.5 - w1 + 0.5;
+				}
+				if (do_swap) { /* swap */
+					double t = w; w = w1; w1 = t;
+				}
+				return new double[] {w, w1, 0};
 			}
 		} else {
 			/*             PROCEDURE FOR a0 > 1 AND b0 > 1 */
@@ -892,18 +887,18 @@ public class MathFunctions {
 
 			if (b0 < 40.0) {
 				if (b0 * x0 <= 0.7 || (log_p && lambda > 650.))
-					kase = 100; // goto L100;
+					kase = 100; // goto L_w_bpser;
 				else
 					kase = 140; // goto L140;
 			}
 			else if (a0 > b0) { /* ----  a0 > b0 >= 40  ---- */
 				if (b0 <= 100.0 || lambda > b0 * 0.03) {
-					kase = 120; // goto L120;
+					kase = 120; // goto L_bfrac;
 				}
 			} else if (a0 <= 100.0) {
-				kase = 120; // goto L120;
+				kase = 120; // goto L_bfrac;
 			} else if (lambda > a0 * 0.03) {
-				kase = 120; // goto L120;
+				kase = 120; // goto L_bfrac;
 			}
 
 			/* else if none of the above    L180: */
@@ -915,7 +910,7 @@ public class MathFunctions {
 				if (do_swap) { /* swap */
 					double t = w; w = w1; w1 = t;
 				}
-				return new double[] {w, w1, ierr};
+				return new double[] {w, w1, 0};
 			}
 		}
 
@@ -926,26 +921,17 @@ public class MathFunctions {
 				w = bpser(a0, b0, x0, eps, log_p);
 				w1 = log_p ? ((w) > -M_LN2 ? log(-expm1(w)) : log1p(-exp(w))) : 0.5 - w + 0.5;
 				// goto L_end_after_log;
-				if (do_swap) { /* swap */
-					double t = w; w = w1; w1 = t;
-				}
-				return new double[] {w, w1, ierr};
+				break;
 			case 110:
 				w1 = bpser(b0, a0, y0, eps, log_p);
 				w  = log_p ? ((w1) > -M_LN2 ? log(-expm1(w1)) : log1p(-exp(w1))) : 0.5 - w1 + 0.5;
 				// goto L_end_after_log;
-				if (do_swap) { /* swap */
-					double t = w; w = w1; w1 = t;
-				}
-				return new double[] {w, w1, ierr};
+				break;
 			case 120:
 				w = bfrac(a0, b0, x0, y0, lambda, eps * 15.0, log_p);
 				w1 = log_p ? ((w) > -M_LN2 ? log(-expm1(w)) : log1p(-exp(w))) : 0.5 - w + 0.5;
 				// goto L_end_after_log;
-				if (do_swap) { /* swap */
-					double t = w; w = w1; w1 = t;
-				}
-				return new double[] {w, w1, ierr};
+				break;
 			case 140:
 				/* b0 := fractional_part( b0 )  in (0, 1]  */
 				n = (int) b0;
@@ -954,17 +940,14 @@ public class MathFunctions {
 					--n; b0 = 1.;
 				}
 
-				w = bup(b0, a0, y0, x0, n, eps);
+				w = bup(b0, a0, y0, x0, n, eps, false);
 				if (w < Double.MIN_VALUE && log_p) {
 					b0 += n;
 					// goto L100;
 					w = bpser(a0, b0, x0, eps, log_p);
 					w1 = log_p ? ((w) > -M_LN2 ? log(-expm1(w)) : log1p(-exp(w))) : 0.5 - w + 0.5;
 					// goto L_end_after_log;
-					if (do_swap) { /* swap */
-						double t = w; w = w1; w1 = t;
-					}
-					return new double[] {w, w1, ierr};
+					break;
 				}
 				if (x0 <= 0.7) {
 					/* log_p :  TODO:  w = bup(.) + bpser(.)  -- not so easy to use log-scale */
@@ -976,18 +959,15 @@ public class MathFunctions {
 					} else {
 						w1 = 0.5 - w + 0.5;
 					}
-					if (do_swap) { /* swap */
-						double t = w; w = w1; w1 = t;
-					}
-					return new double[] {w, w1, ierr};
+					break;
 				}
 				/* L150: */
 				if (a0 <= 15.0) {
 					n = 20;
-					w += bup(a0, b0, x0, y0, n, eps);
+					w += bup(a0, b0, x0, y0, n, eps, false);
 					a0 += n;
 				}
-				w = bgrat(a0, b0, x0, y0, w, 15*eps);
+				w = bgrat(a0, b0, x0, y0, w, 15*eps, false);
 				// goto L_end_from_w;
 				if(log_p) {
 					w1 = log1p(-w);
@@ -995,13 +975,14 @@ public class MathFunctions {
 				} else {
 					w1 = 0.5 - w + 0.5;
 				}
-				if (do_swap) { /* swap */
-					double t = w; w = w1; w1 = t;
-				}
-				return new double[] {w, w1, ierr};
+				break;
+			default:
+				throw new RuntimeException();
 		}
-
-		throw new RuntimeException();
+		if (do_swap) { /* swap */
+			double t = w; w = w1; w1 = t;
+		}
+		return new double[] {w, w1, 0};
 	}
 
 	public static final double fpser(double a, double b, double x, double eps, boolean log_p)
@@ -1185,14 +1166,15 @@ public class MathFunctions {
 			sum += w;
 		} while (abs(w) > tol);
 
-		if(log_p)
-			ans += log1p(a * sum);
-		else
+		if(log_p) {
+			if (a*sum > -1.0) ans += log1p(a * sum);
+			else ans = Double.NEGATIVE_INFINITY;
+		} else
 			ans *= a * sum + 1.0;
 		return ans;
 	} /* bpser */
 
-	public static final double bup(double a, double b, double x, double y, int n, double eps)
+	public static final double bup(double a, double b, double x, double y, int n, double eps, boolean give_log)
 	{
 		/* ----------------------------------------------------------------------- */
 		/*     EVALUATION OF I_x(A,B) - I_x(A+N,B) WHERE N IS A POSITIVE INT. */
@@ -1216,9 +1198,7 @@ public class MathFunctions {
 		{
 			mu = (int) abs(exparg(1));
 			k = (int) exparg(0);
-			if (k < mu) {
-				mu = k;
-			}
+			if (mu > k) mu = k;
 			t = mu;
 			d = exp(-t);
 		} else {
@@ -1226,8 +1206,10 @@ public class MathFunctions {
 			d = 1.0;
 		}
 
-		ret_val = brcmp1(mu, a, b, x, y) / a;
-		if (n == 1 || ret_val == 0.0)
+		ret_val = give_log
+			? brcmp1(mu, a, b, x, y, true) - log(a)
+			: brcmp1(mu, a, b, x, y, false)  / a;
+		if (n == 1 || (give_log && ret_val == Double.NEGATIVE_INFINITY) || (!give_log && ret_val == 0.))
 			return ret_val;
 		nm1 = n - 1;
 		w = d;
@@ -1259,7 +1241,7 @@ public class MathFunctions {
 				w += d;
 			}
 			if (k == nm1) // goto L50
-				return ret_val * w;
+				return give_log ? ret_val + log(w) : ret_val * w;
 		}
 
 		// L40:
@@ -1274,7 +1256,7 @@ public class MathFunctions {
 
 		// L50
 		/*               TERMINATE THE PROCEDURE */
-		return ret_val * w;
+		return give_log ? ret_val + log(w) : ret_val * w;
 	} /* bup */
 
 	public static final double bfrac(double a, double b, double x, double y, double lambda, double eps, boolean log_p)
@@ -1351,7 +1333,7 @@ public class MathFunctions {
 		 * ----------------------------------------------------------------------- */
 
 		int i, n;
-		double c, e, h, t, u, v, z, a0, b0, x0, y0, apb, lnx, lny;
+		double c, e, u, v, z, a0, b0, apb, lnx, lny, h, t, x0, y0;
 		double lambda;
 
 
@@ -1414,12 +1396,10 @@ public class MathFunctions {
 				c = (gam1(a) + 1.0) * (gam1(b) + 1.0) / z;
 				/* FIXME? log(a0*c)= log(a0)+ log(c) and that is improvable */
 				return (log_p
-						? e_z + log(a0 * c) - log1p(a0/b0)
-								: e_z * (a0 * c) / (a0 / b0 + 1.0));
+					? e_z + log(a0 * c) - log1p(a0/b0)
+					: e_z * (a0 * c) / (a0 / b0 + 1.0));
 			}
-			/* else : */
-
-			/*		  ALGORITHM FOR 1 < b0 < 8 */
+			/* else : ALGORITHM FOR 1 < b0 < 8 */
 
 			u = gamln1(a0);
 			n = (int) (b0 - 1.0);
@@ -1442,8 +1422,8 @@ public class MathFunctions {
 			}
 
 			return (log_p
-					? log(a0) + z + log1p(gam1(b0))  - log(t)
-					: a0 * exp(z) * (gam1(b0) + 1.0) / t);
+				? log(a0) + z + log1p(gam1(b0))  - log(t)
+				: a0 * exp(z) * (gam1(b0) + 1.0) / t);
 		}
 
 		// L100:
@@ -1481,137 +1461,146 @@ public class MathFunctions {
 			: M_1_SQRT_2PI * sqrt(b * x0) * z * exp(-bcorr(a, b)));
 	} /* brcomp */
 
-	public static final double brcmp1(int mu, double a, double b, double x, double y)
+	public static final double brcmp1(int mu, double a, double b, double x, double y, boolean give_log)
 	{
 		/* -----------------------------------------------------------------------
 		 *          EVALUATION OF  EXP(MU) * (X^A * Y^B / BETA(A,B))
 		 * ----------------------------------------------------------------------- */
 
-		/* R has  M_1_SQRT_2PI */
-
-		/* System generated locals */
-		double ret_val, r1;
-
-		/* Local variables */
-		double c, e, h;
-		int i, n;
-		double t, u, v, z, a0, b0, x0, y0, apb, lnx, lny;
-		double lambda;
+		double c, t, u, v, z, a0, b0, apb;
 
 		a0 = min(a,b);
 		if (a0 < 8.0) {
-			if (x > .375) {
-				if (y <= .375) {
-					lnx = alnrel(-y);
-					lny = log(y);
-				}
-				else  {
-					lnx = log(x);
-					lny = log(y);
-				}
-			}
-			else
-			{
+			double lnx, lny;
+			if (x <= .375) {
 				lnx = log(x);
 				lny = alnrel(-x);
+			} else if (y > .375) {
+				// L11:
+				lnx = log(x);
+				lny = log(y);
+			} else {
+				lnx = alnrel(-y);
+				lny = log(y);
 			}
-	
+
+			// L20:
 			z = a * lnx + b * lny;
-			if (a0 >= 1.0)
-			{
+			if (a0 >= 1.0) {
 				z -= betaln(a, b);
-				ret_val = esum(mu, z);
-				return ret_val;
+				return esum(mu, z, give_log);
 			}
+			// else :
 			/* ----------------------------------------------------------------------- */
 			/*              PROCEDURE FOR A < 1 OR B < 1 */
 			/* ----------------------------------------------------------------------- */
+			// L30:
 			b0 = max(a,b);
-			if (b0 >= 8.0) { // ALGORITHM FOR b0 >= 8
+			if (b0 >= 8.0) {
+				/* L80:                  ALGORITHM FOR b0 >= 8 */
 				u = gamln1(a0) + algdiv(a0, b0);
-				ret_val = a0 * esum(mu, z - u);
-				return ret_val;
-			}
-			if (b0 > 1.0) { // ALGORITHM FOR 1 < b0 < 8
-				u = gamln1(a0);
-				n = (int) (b0 - 1.0);
-				if (n >= 1) {
-					c = 1.0;
-					for (i = 1; i <= n; ++i) {
-						b0 += -1.0;
-						c *= b0 / (a0 + b0);
-					}
-					u = log(c) + u;
-				}
-	
-				z -= u;
-				b0 += -1.0;
-				apb = a0 + b0;
+				return give_log
+					? log(a0) + esum(mu, z - u, true)
+					:     a0  * esum(mu, z - u, false);
+
+			} else if (b0 <= 1.0) {
+				//                   a0 < 1, b0 <= 1
+				double ans = esum(mu, z, give_log);
+				if (ans == (give_log ? Double.NEGATIVE_INFINITY : 0.))
+					return ans;
+
+				apb = a + b;
 				if (apb > 1.0) {
-					u = a0 + b0 - 1.;
-					t = (gam1(u) + 1.0) / apb;
-				} else
-				{
-					t = gam1(apb) + 1.0;
+					// L40:
+					u = a + b - 1.;
+					z = (gam1(u) + 1.0) / apb;
+				} else {
+					z = gam1(apb) + 1.0;
 				}
-				ret_val = a0 * esum(mu, z) * (gam1(b0) + 1.0) / t;
-				return ret_val;
+				// L50:
+				c = give_log
+					? log1p(gam1(a)) + log1p(gam1(b)) - log(z)
+					: (gam1(a) + 1.0) * (gam1(b) + 1.0) / z;
+				return give_log
+					? ans + log(a0) + c - log1p(a0 / b0)
+					: ans * (a0 * c) / (a0 / b0 + 1.0);
 			}
-	
-			/*                   ALGORITHM FOR b0 <= 1 */
-	
-			ret_val = esum(mu, z);
-			if (ret_val == 0.0) {
-				return ret_val;
+			// else:               algorithm for	a0 < 1 < b0 < 8
+			// L60:
+			u = gamln1(a0);
+			int n = (int)(b0 - 1.0);
+			if (n >= 1) {
+				c = 1.0;
+				for (int i = 1; i <= n; ++i) {
+					b0 += -1.0;
+					c *= b0 / (a0 + b0);
+					/* L61: */
+				}
+				u += log(c); // TODO?: log(c) = log( prod(...) ) =  sum( log(...) )
 			}
-	
-			apb = a + b;
-			if (apb > 1.0) {
-				u = a + b - 1.;
-				z = (gam1(u) + 1.0) / apb;
-			} else
-				z = gam1(apb) + 1.0;
-	
-			c = (gam1(a) + 1.0) * (gam1(b) + 1.0) / z;
-			ret_val = ret_val * (a0 * c) / (a0 / b0 + 1.0);
-			return ret_val;
+			// L70:
+			z -= u;
+			b0 += -1.0;
+			apb = a0 + b0;
+			if (apb > 1.) {
+				// L71:
+				t = (gam1(apb - 1.) + 1.0) / apb;
+			} else {
+				t = gam1(apb) + 1.0;
+			}
+			// L72:
+			return give_log
+				? log(a0)+ esum(mu, z, true) + log1p(gam1(b0)) - log(t) // TODO? log(t) = log1p(..)
+				:     a0 * esum(mu, z, false) * (gam1(b0) + 1.0) / t;
+
+		} else {
+
+			/* ----------------------------------------------------------------------- */
+			/*              PROCEDURE FOR A >= 8 AND B >= 8 */
+			/* ----------------------------------------------------------------------- */
+			// L100:
+			double h, x0, y0, lambda;
+			if (a > b) {
+				// L101:
+				h = b / a;
+				x0 = 1.0 / (h + 1.0);// => lx0 := log(x0) = 0 - log1p(h)
+				y0 = h / (h + 1.0);
+				lambda = (a + b) * y - b;
+			} else {
+				h = a / b;
+				x0 = h / (h + 1.0);  // => lx0 := log(x0) = - log1p(1/h)
+				y0 = 1.0 / (h + 1.0);
+				lambda = a - (a + b) * x;
+			}
+			double lx0 = -log1p(b/a); // in both cases
+
+			// L110:
+			double e = -lambda / a;
+			if (abs(e) > 0.6) {
+				// L111:
+				u = e - log(x / x0);
+			} else {
+				u = rlog1(e);
+			}
+
+			// L120:
+			e = lambda / b;
+			if (abs(e) > 0.6) {
+				// L121:
+				v = e - log(y / y0);
+			} else {
+				v = rlog1(e);
+			}
+
+			// L130:
+			z = esum(mu, -(a * u + b * v), give_log);
+			return give_log
+				? log(M_1_SQRT_2PI)+ (log(b) + lx0)/2. + z      - bcorr(a, b)
+				:     M_1_SQRT_2PI * sqrt(b * x0)      * z * exp(-bcorr(a, b));
 		}
-
-		/* ----------------------------------------------------------------------- */
-		/*              PROCEDURE FOR A >= 8 AND B >= 8 */
-		/* ----------------------------------------------------------------------- */
-		if (a > b) {
-			h = b / a;
-			x0 = 1.0 / (h + 1.0);
-			y0 = h / (h + 1.0);
-			lambda = (a + b) * y - b;
-		}
-		else
-		{
-			h = a / b;
-			x0 = h / (h + 1.0);
-			y0 = 1.0 / (h + 1.0);
-			lambda = a - (a + b) * x;
-		}
-
-		e = -lambda / a;
-		if (abs(e) > 0.6)
-			u = e - log(x / x0);
-		else
-			u = rlog1(e);
-
-		e = lambda / b;
-		if (abs(e) > 0.6)
-			v = e - log(y / y0);
-		else
-			v = rlog1(e);
-		r1 = -(a * u + b * v);
-		z = esum(mu, r1);
-
-		return M_1_SQRT_2PI * sqrt(b * x0) * z * exp(-bcorr(a, b));
 	} /* brcmp1 */
 
-	public static final double bgrat(double a, double b, double x, double y, double w, double eps)
+	public static final double bgrat(double a, double b, double x, double y, double w, double eps, boolean log_w)
 	{
 		/* -----------------------------------------------------------------------
 		 *     Asymptotic Expansion for I_x(A,B)  when a is larger than b.
@@ -1622,168 +1611,178 @@ public class MathFunctions {
 		 * ----------------------------------------------------------------------- */
 
 		double c[] = new double[30], d[] = new double[30];
-		int i, n, nm1;
-		double j, l, p, q, r, s, t, u, v, z, n2, t2, dj, cn, nu, bm1;
-		double lnx, sum, bp2n, coef;
+		double bm1 = b - 0.5 - 0.5,
+			nu = a + bm1 * 0.5, /* nu = a + (b-1)/2 =: T, in (9.1) of Didonato & Morris(1992), p.362 */
+			lnx = (y > 0.375) ? log(x) : alnrel(-y),
+			z = -nu * lnx; // z =: u in (9.1) of D.&M.(1992)
 
-		bm1 = b - 0.5 - 0.5;
-		nu = a + bm1 * 0.5;
-		if (y > 0.375)
-			lnx = log(x);
-		else
-			lnx = alnrel(-y);
-
-		z = -nu * lnx;
-		if (b * z == 0.0) {
-			//ierr = 1;
-			return Double.NaN; /* should *never* happen */
+		if (b * z == 0.0) { /* should *never* happen */
+			/* L_Error:    THE EXPANSION CANNOT BE COMPUTED */
+			//*ierr = 1;
+			return w;
 		}
 
 		/*                 COMPUTATION OF THE EXPANSION */
+		double
+			/* r1 = b * (gam1(b) + 1.0) * exp(b * log(z)),// = b/gamma(b+1) z^b = z^b / gamma(b)
+			 * set r := exp(-z) * z^b / gamma(b) ;
+			 *          gam1(b) = 1/gamma(b+1) - 1 , b in [-1/2, 3/2] */
+			// exp(a*lnx) underflows for large (a * lnx); e.g. large a ==> using log_r := log(r):
+			// r = r1 * exp(a * lnx) * exp(bm1 * 0.5 * lnx);
+			// log(r)=log(b) + log1p(gam1(b)) + b * log(z) + (a * lnx) + (bm1 * 0.5 * lnx),
+			log_r = log(b) + log1p(gam1(b)) + b * log(z) + nu * lnx,
+			// FIXME work with  log_u = log(u)  also when log_p=FALSE  (??)
+			// u is 'factored out' from the expansion {and multiplied back, at the end}:
+			log_u = log_r - (algdiv(b, a) + b * log(nu)),// algdiv(b,a) = log(gamma(a)/gamma(a+b))
+			/* u = (log_p) ? log_r - u : exp(log_r-u); // =: M  in (9.2) of {reference above} */
+			/* u = algdiv(b, a) + b * log(nu);// algdiv(b,a) = log(gamma(a)/gamma(a+b)) */
+			// u = (log_p) ? log_u : exp(log_u); // =: M  in (9.2) of {reference above}
+			u = exp(log_u);
 
-		/* set r := exp(-z) * z^b / Gamma(b) */
-		r = b * (gam1(b) + 1.0) * exp(b * log(z));
-
-		r = r * exp(a * lnx) * exp(bm1 * 0.5 * lnx);
-		u = algdiv(b, a) + b * log(nu);
-		u = r * exp(-u);
-		if (u == 0.0) {
-			//ierr = 1;
-			//return Double.NaN;
-			return 0;
+		if (log_u == Double.NEGATIVE_INFINITY) {
+			/* L_Error:    THE EXPANSION CANNOT BE COMPUTED */
+			//*ierr = 2;
+			return w;
 		}
-		double[] out = grat1(b, z, r, eps); /* -> (p,q)  {p + q = 1} */
-		p = out[0]; q = out[1];
-		assert (p+q == 1);
 
-		v = 0.25 / (nu * nu);
-		t2 = lnx * 0.25 * lnx;
-		l = w / u;
-		j = q / r;
-		sum = j;
-		t = 1.0;
-		cn = 1.0;
-		n2 = 0.0;
-		for (n = 1; n <= 30; ++n) {
-			bp2n = b + n2;
+		boolean u_0 = (u == 0.); // underflow --> do work with log(u) == log_u !
+		double l = // := *w/u .. but with care: such that it also works when u underflows to 0:
+			log_w
+			? ((w == Double.NEGATIVE_INFINITY) ? 0. : exp(  w    - log_u))
+			: ((w == 0.)        ? 0. : exp(log(w) - log_u));
+
+		double
+			q_r = grat_r(b, z, log_r, eps), // = q/r of former grat1(b,z, r, &p, &q)
+			v = 0.25 / (nu * nu),
+			t2 = lnx * 0.25 * lnx,
+			j = q_r,
+			sum = j,
+			t = 1.0, cn = 1.0, n2 = 0.;
+		for (int n = 1; n <= 30; ++n) {
+			double bp2n = b + n2;
 			j = (bp2n * (bp2n + 1.0) * j + (z + bp2n + 1.0) * t) * v;
-			n2 += 2.0;
+			n2 += 2.;
 			t *= t2;
-			cn /= n2 * (n2 + 1.0);
-			nm1 = n - 1;
+			cn /= n2 * (n2 + 1.);
+			int nm1 = n - 1;
 			c[nm1] = cn;
-			s = 0.0;
+			double s = 0.0;
 			if (n > 1) {
-				coef = b - n;
-				for (i = 1; i <= nm1; ++i) {
+				double coef = b - n;
+				for (int i = 1; i <= nm1; ++i) {
 					s += coef * c[i - 1] * d[nm1 - i];
 					coef += b;
 				}
 			}
 			d[nm1] = bm1 * cn + s / n;
-			dj = d[nm1] * j;
+			double dj = d[nm1] * j;
 			sum += dj;
 			if (sum <= 0.0) {
-				//ierr = 1;
-				//return Double.NaN;
-				return 0;
+				/* L_Error:    THE EXPANSION CANNOT BE COMPUTED */
+				//*ierr = 3;
+				return w;
 			}
 			if (abs(dj) <= eps * (sum + l)) {
 				break;
+			} else if(n == 30) {
+				//MATHLIB_WARNING4("bgrat(a=%g, b=%g, x=%g,..): did *not* converge; rel.err=%g",
+				//a,b,x, abs(dj) /(sum + l));
 			}
 		}
 
-		// ADD THE RESULTS TO W
-		return w + u * sum;
+		/*                    ADD THE RESULTS TO W */
+		//*ierr = 0;
+		return log_w // *w is in log space already:
+			? logspace_add(w, log_u + log(sum))
+			: w + (u_0? exp(log_u + log(sum)) : u * sum);
 	} /* bgrat */
 
-	/**
-	 * -----------------------------------------------------------------------
-	 *        Evaluation of the incomplete gamma ratio functions
-	 *                      P(a,x) and Q(a,x)
-	 * 
+	/* -----------------------------------------------------------------------
+	 *        Scaled complement of incomplete gamma ratio function
+	 *                   grat_r(a,x,r) :=  Q(a,x) / r
+	 * where
+	 *               Q(a,x) = pgamma(x,a, lower.tail=FALSE)
+	 *     and            r = e^(-x)* x^a / Gamma(a) ==  exp(log_r)
+	 *
 	 *     It is assumed that a <= 1.  eps is the tolerance to be used.
-	 *     the input argument r has the value  r = e^(-x)* x^a / Gamma(a).
-	 * -----------------------------------------------------------------------
-	 */
-	public static final double[] grat1(double a, double x, double r, double eps)
+	 * ----------------------------------------------------------------------- */
+	public static final double grat_r(double a, double x, double log_r, double eps)
 	{
-		double c, g, h, j, l, t, w, z, an, am0, an0, a2n, b2n, cma, p, q;
-		double tol, sum, a2nm1, b2nm1;
-
-		// Special cases
 		if (a * x == 0.0) { /* L130: */
-			return x <= a ? new double[]{0.0, 1.0} : new double[]{1.0, 0.0};
-		}
-		else if (a == 0.5) {
-			if (x < 0.25) {
-				p = erf__(sqrt(x));
-				q = 0.5 - p + 0.5;
+			if (x <= a) {
+				/* L100: */ return exp(-log_r);
 			} else {
-				q = erfc1(0, sqrt(x));
-				p = 0.5 - q + 0.5;
+				/* L110:*/  return 0.;
 			}
-			return new double[] {p,q};
 		}
+		else if (a == 0.5) { // e.g. when called from pt()
+			/* L120: */
+			if (x < 0.25) {
+				double p = erf__(sqrt(x));
+				return (0.5 - p + 0.5)*exp(-log_r);
 
-		if (x < 1.1) { /* L10:  Taylor series for  P(a,x)/x^a */
+			} else { // 2013-02-27: improvement for "large" x: direct computation of q/r:
+				double sx = sqrt(x),
+						q_r = erfc1(1, sx)/sx * M_SQRT_PI;
+				return q_r;
+			}
 
-			an = 3.0;
-			c = x;
-			sum = x / (a + 3.0);
-			tol = eps * 0.1 / (a + 1.0);
+		} else if (x < 1.1) { /* L10:  Taylor series for  P(a,x)/x^a */
+
+			double an = 3.,
+					c = x,
+					sum = x / (a + 3.0),
+					tol = eps * 0.1 / (a + 1.0), t;
 			do {
-				an += 1.0;
-				c = -c * (x / an);
+				an += 1.;
+				c *= -(x / an);
 				t = c / (a + an);
 				sum += t;
 			} while (abs(t) > tol);
 
-			j = a * x * ((sum / 6.0 - 0.5 / (a + 2.0)) * x + 1.0 / (a + 1.0));
+			double j = a * x * ((sum/6. - 0.5/(a + 2.)) * x + 1./(a + 1.)),
+					z = a * log(x),
+					h = gam1(a),
+					g = h + 1.0;
 
-			z = a * log(x);
-			h = gam1(a);
-			g = h + 1.0;
+			if ((x >= 0.25 && (a < x / 2.59)) || (z > -0.13394)) {
+				// L40:
+					double l = rexpm1(z),
+					q = ((l + 0.5 + 0.5) * j - l) * g - h;
+					if (q <= 0.0) {
+						/* L110:*/ return 0.;
+					} else {
+						return q * exp(-log_r);
+					}
 
-			if ((x >= 0.25 && a < x / 2.59) || (x < 0.25 && z > -0.13394))
-			{
-				l = rexpm1(z);
-				w = l + 0.5 + 0.5;
-				q = (w * j - l) * g - h;
-				if (q < 0.0)
-					return new double[]{1.0, 0.0};
-				p = 0.5 - q + 0.5;
-				return new double[] {p,q};
+			} else {
+				double p = exp(z) * g * (0.5 - j + 0.5);
+				return /* q/r = */ (0.5 - p + 0.5) * exp(-log_r);
 			}
-			w = exp(z);
-			p = w * g * (0.5 - j + 0.5);
-			q = 0.5 - p + 0.5;
-			return new double[] {p,q};
+
+		} else {
+			/* L50: ----  (x >= 1.1)  ---- Continued Fraction Expansion */
+
+			double a2n_1 = 1.0,
+					a2n = 1.0,
+					b2n_1 = x,
+					b2n = x + (1.0 - a),
+					c = 1., am0, an0;
+
+			do {
+				a2n_1 = x * a2n + c * a2n_1;
+				b2n_1 = x * b2n + c * b2n_1;
+				am0 = a2n_1 / b2n_1;
+				c += 1.;
+				double c_a = c - a;
+				a2n = a2n_1 + c_a * a2n;
+				b2n = b2n_1 + c_a * b2n;
+				an0 = a2n / b2n;
+			} while (abs(an0 - am0) >= eps * an0);
+
+			return /* q/r = (r * an0)/r = */ an0;
 		}
-
-		/* L50: ----  (x >= 1.1)  ---- Continued Fraction Expansion */
-
-		a2nm1 = 1.0;
-		a2n = 1.0;
-		b2nm1 = x;
-		b2n = x + (1.0 - a);
-		c = 1.0;
-
-		do {
-			a2nm1 = x * a2n + c * a2nm1;
-			b2nm1 = x * b2n + c * b2nm1;
-			am0 = a2nm1 / b2nm1;
-			c += 1.0;
-			cma = c - a;
-			a2n = a2nm1 + cma * a2n;
-			b2n = b2nm1 + cma * b2n;
-			an0 = a2n / b2n;
-		} while (abs(an0 - am0) >= eps * an0);
-
-		q = r * an0;
-		p = 0.5 - q + 0.5;
-		return new double[] {p,q};
-	} /* grat1 */
+	} /* grat_r */
 
 	public static final double basym(double a, double b, double lambda, double eps, boolean log_p)
 	{
@@ -1799,7 +1798,7 @@ public class MathFunctions {
 		/*     ****** NUM IS THE MAXIMUM VALUE THAT N CAN TAKE IN THE DO LOOP */
 		/*            ENDING AT STATEMENT 50. IT IS REQUIRED THAT NUM BE EVEN. */
 		//#define num_IT 20
-		int
+		final int
 		num_IT = 20,
 		nip1 = num_IT+1;
 		/*            THE ARRAYS A0, B0, C, D HAVE DIMENSION NUM + 1. */
@@ -1815,7 +1814,7 @@ public class MathFunctions {
 		double f, h, r, s, t, u, w, z, j0, j1, h2, r0, r1, t0, t1, w0, z0, z2, hn, zn;
 		double sum, znm1, bsum, dsum;
 
-		int i, j, m, n, im1, mm1, np1, imj, mmj;
+		int i, j, m, n, im1, mm1, np1, mmj;
 
 		/* ------------------------ */
 
@@ -1858,7 +1857,7 @@ public class MathFunctions {
 		znm1 = z;
 		zn = z2;
 		for (n = 2; n <= num_IT; n += 2) {
-			hn = h2 * hn;
+			hn *= h2;
 			a0[n - 1] = r0 * 2.0 * (h * hn + 1.0) / (n + 2.0);
 			np1 = n + 1;
 			s += hn;
@@ -1874,26 +1873,25 @@ public class MathFunctions {
 						mmj = m - j;
 						bsum += (j * r - mmj) * a0[j - 1] * b0[mmj - 1];
 					}
-					b0[m - 1] = r * a0[m - 1] + bsum / m;
+					b0[mm1] = r * a0[mm1] + bsum / m;
 				}
-				c[i - 1] = b0[i - 1] / (i + 1.0);
+				im1 = i - 1;
+				c[im1] = b0[im1] / (i + 1.0);
 
 				dsum = 0.0;
-				im1 = i - 1;
 				for (j = 1; j <= im1; ++j) {
-					imj = i - j;
-					dsum += d[imj - 1] * c[j - 1];
+					dsum += d[im1 - j] * c[j - 1];
 				}
-				d[i - 1] = -(dsum + c[i - 1]);
+				d[im1] = -(dsum + c[im1]);
 			}
 
 			j0 = e1 * znm1 + (n - 1.0) * j0;
 			j1 = e1 * zn + n * j1;
 			znm1 = z2 * znm1;
 			zn = z2 * zn;
-			w = w0 * w;
+			w *= w0;
 			t0 = d[n - 1] * w * j0;
-			w = w0 * w;
+			w *= w0;
 			t1 = d[np1 - 1] * w * j1;
 			sum += t0 + t1;
 			if (abs(t0) + abs(t1) <= eps * sum) {
@@ -1922,13 +1920,7 @@ public class MathFunctions {
 	public static final double exparg(int l)
 	{
 		final double lnb = .69314718055995;
-		int m;
-
-		if (l == 0) {
-			m = DBL_MAX_EXP;
-			return m * lnb * .99999;
-		}
-		m = DBL_MIN_EXP - 1;
+		int m = l == 0 ? DBL_MAX_EXP : DBL_MIN_EXP - 1;
 		return m * lnb * .99999;
 	} /* exparg */
 
@@ -1937,29 +1929,19 @@ public class MathFunctions {
 	 *                    EVALUATION OF EXP(MU + X)
 	 * -----------------------------------------------------------------------
 	 */
-	public static final double esum(int mu, double x)
+	public static final double esum(int mu, double x, boolean give_log)
 	{
-		double w;
+	    if(give_log) return x + (double) mu;
 
-		if (x > 0.0) {
-			if (mu > 0) {
-				return exp(mu) * exp(x);
-			}
-			w = mu + x;
-			if (w < 0.0) {
-				return exp(mu) * exp(x);
-			}
-			return exp(w);
-		}
-
-		if (mu < 0) {
-			return exp(mu) * exp(x);
-		}
-		w = mu + x;
-		if (w > 0.0) {
-			return exp(mu) * exp(x);
-		}
-		return exp(w);
+        // else :
+	    double w = mu + x;
+	    if (x > 0.0) {
+	    	if (mu > 0 || w < 0.0)  return exp((double) mu) * exp(x);
+	    }
+	    else { /* x <= 0 */
+	    	if (mu < 0 || w > 0.0)  return exp((double) mu) * exp(x);
+	    }
+	    return exp(w);
 	} /* esum */
 
 	/**
@@ -1994,22 +1976,21 @@ public class MathFunctions {
 	 */
 	public static final double alnrel(double a)
 	{
-		final double p1 = -1.29418923021993;
-		final double p2 = .405303492862024;
-		final double p3 = -.0178874546012214;
-		final double q1 = -1.62752256355323;
-		final double q2 = .747811014037616;
-		final double q3 = -.0845104217945565;
+		if (abs(a) > 0.375) return log(1. + a);
+		final double
+		p1 = -1.29418923021993,
+		p2 = .405303492862024,
+		p3 = -.0178874546012214,
+		q1 = -1.62752256355323,
+		q2 = .747811014037616,
+		q3 = -.0845104217945565;
 
-		if (abs(a) <= 0.375) {
-			double t, t2, w;
-			t = a / (a + 2.0);
-			t2 = t * t;
-			w = (((p3 * t2 + p2) * t2 + p1) * t2 + 1.) /
-			(((q3 * t2 + q2) * t2 + q1) * t2 + 1.);
-			return t * 2.0 * w;
-		}
-		return log(a + 1.);
+		double t, t2, w;
+		t = a / (a + 2.0);
+		t2 = t * t;
+		w = (((p3 * t2 + p2) * t2 + p1) * t2 + 1.) /
+		(((q3 * t2 + q2) * t2 + q1) * t2 + 1.);
+		return t * 2.0 * w;
 	} /* alnrel */
 
 	/**
@@ -2156,7 +2137,7 @@ public class MathFunctions {
 				99.0191814623914,18.0124575948747 };
 
 		/* System generated locals */
-		double ret_val, d1;
+		double ret_val;
 
 		/* Local variables */
 		double e, t, w, ax, bot, top;
@@ -2197,8 +2178,7 @@ public class MathFunctions {
 			}
 
 			/* Computing 2nd power */
-			d1 = 1.0 / x;
-			t = d1 * d1;
+			t = 1. / (x * x);
 			top = (((r[0] * t + r[1]) * t + r[2]) * t + r[3]) * t + r[4];
 			bot = (((s[0] * t + s[1]) * t + s[2]) * t + s[3]) * t + 1.0;
 			ret_val = (c - t * top / bot) / ax;
@@ -2207,18 +2187,17 @@ public class MathFunctions {
 		/*                      FINAL ASSEMBLY */
 
 		//L40:
-		if (ind == 0) {
+		if (ind != 0) {
+			if (x < 0.0)
+				ret_val = exp(x * x) * 2.0 - ret_val;
+		} else {
+			// L41:  ind == 0 :
 			w = x * x;
 			t = w;
 			e = w - t;
 			ret_val = (0.5 - e + 0.5) * exp(-t) * ret_val;
-			if (x < 0.0) {
+			if (x < 0.0)
 				ret_val = 2.0 - ret_val;
-			}
-			return ret_val;
-		}
-		if (x < 0.0) {
-			ret_val = exp(x * x) * 2.0 - ret_val;
 		}
 		return ret_val;
 	} /* erfc1 */
@@ -2397,7 +2376,7 @@ public class MathFunctions {
 					return 0.;
 				}
 				/* --------------------------------------------------------------------- */
-				/*     0 < ABS(X) <= XSMALL.  USE 1/X AS A SUBSTITUTE */
+				/*     0 < |X| <= XSMALL.  USE 1/X AS A SUBSTITUTE */
 				/*     FOR  PI*COTAN(PI*X) */
 				/* --------------------------------------------------------------------- */
 				aug = -1.0 / x;
@@ -2511,79 +2490,94 @@ public class MathFunctions {
 	{
 		//double e = .918938533204673;/* e == 0.5*LN(2*PI) */
 
-		double a, b, c, h, u, v, w, z;
-		int i, n;
+		double
+			a = min(a0 ,b0),
+			b = max(a0, b0);
+		if (a < 8.0) {
+			if (a < 1.0) {
+				/* ----------------------------------------------------------------------- */
+				//	                        		A < 1
+				/* ----------------------------------------------------------------------- */
+				if (b < 8.0)
+					return gamln(a) + (gamln(b) - gamln(a+b));
+				else
+					return gamln(a) + algdiv(a, b);
+			}
+			/* else */
+			/* ----------------------------------------------------------------------- */
+			//	    				1 <= A < 8
+			/* ----------------------------------------------------------------------- */
+			double w;
+			if (a < 2.0) {
+				if (b <= 2.0) {
+					return gamln(a) + gamln(b) - gsumln(a, b);
+				}
+				/* else */
 
-		a = min(a0 ,b0);
-		b = max(a0, b0);
-		if (a >= 8.0) {
-			/* ----------------------------------------------------------------------- */
-			/*                   PROCEDURE WHEN A >= 8 */
-			/* ----------------------------------------------------------------------- */
+				w = 0.0;
+				if (b < 8.0) {
+					//goto L40;
+					int n = (int)(b - 1.0);
+					double z = 1.0;
+					for (int i = 1; i <= n; ++i) {
+						b += -1.0;
+						z *= b / (a + b);
+					}
+					return w + log(z) + (gamln(a) + (gamln(b) - gsumln(a, b)));
+				}
+				return gamln(a) + algdiv(a, b);
+			}
+			// else L30:    REDUCTION OF A WHEN B <= 1000
 
-			w = bcorr(a, b);
-			h = a / b;
-			c = h / (h + 1.0);
-			u = -(a - 0.5) * log(c);
-			v = b * alnrel(h);
-			if (u > v)
-				return log(b) * -0.5 + kLog1OverSqrt2Pi + w - v - u;
-			return log(b) * -0.5 + kLog1OverSqrt2Pi + w - u - v;
-		}
+			if (b <= 1e3) {
+				int n = (int)(a - 1.0);
+				w = 1.0;
+				for (int i = 1; i <= n; ++i) {
+					a += -1.0;
+					double h = a / b;
+					w *= h / (h + 1.0);
+				}
+				w = log(w);
 
-		if (a < 1.0) {
-			/* ----------------------------------------------------------------------- */
-			/*                   PROCEDURE WHEN A < 1 */
-			/* ----------------------------------------------------------------------- */
-			if (b < 8.0)
-				return gamln(a) + (gamln(b) - gamln(a+b));
-			return gamln(a) + algdiv(a, b);
-		}
-		/* else */
-		/* ----------------------------------------------------------------------- */
-		/*                PROCEDURE WHEN 1 <= A < 8 */
-		/* ----------------------------------------------------------------------- */
-		if (a > 2.0) {
-			//goto L30;
-			//L30:
-			n = (int) (a - 1.0);
-			w = 1.0;
-			if (b > 1e3) {
-				// REDUCTION OF A WHEN B > 1000
-				for (i = 1; i <= n; ++i) {
+				if (b >= 8.0)
+					return w + gamln(a) + algdiv(a, b);
+
+				// else
+				//L40:
+				// 		reduction of B when  B < 8
+				n = (int)(b - 1.0);
+				double z = 1.0;
+				for (int i = 1; i <= n; ++i) {
+					b += -1.0;
+					z *= b / (a + b);
+				}
+				return w + log(z) + (gamln(a) + (gamln(b) - gsumln(a, b)));
+			}
+			else { // L50:	reduction of A when  B > 1000
+				int n = (int)(a - 1.0);
+				w = 1.0;
+				for (int i = 1; i <= n; ++i) {
 					a += -1.0;
 					w *= a / (a / b + 1.0);
 				}
 				return log(w) - n * log(b) + (gamln(a) + algdiv(a, b));
 			}
-			// REDUCTION OF A WHEN B <= 1000
-			for (i = 1; i <= n; ++i) {
-				a += -1.0;
-				h = a / b;
-				w *= h / (h + 1.0);
-			}
-			w = log(w);
-			if (b >= 8.0)
-				return w + gamln(a) + algdiv(a, b);
-		}
-		else
-		{
-			if (b <= 2.0)
-				return gamln(a) + gamln(b) - gsumln(a, b);
-			if (b >= 8.0)
-				return gamln(a) + algdiv(a, b);
-			w = 0.0;
-		}
 
+		} else {
+			/* ----------------------------------------------------------------------- */
+			// L60:			A >= 8
+			/* ----------------------------------------------------------------------- */
 
-		// REDUCTION OF B WHEN B < 8
-		n = (int) (b - 1.0);
-		z = 1.0;
-		for (i = 1; i <= n; ++i) {
-			b += -1.0;
-			z *= b / (a + b);
+			double
+			w = bcorr(a, b),
+			h = a / b,
+			u = -(a - 0.5) * log(h / (h + 1.0)),
+			v = b * alnrel(h);
+			if (u > v)
+				return log(b) * -0.5 + kLog1OverSqrt2Pi + w - v - u;
+			else
+				return log(b) * -0.5 + kLog1OverSqrt2Pi + w - u - v;
 		}
-		return w + log(z) + (gamln(a) + (gamln(b) - gsumln(a, b)));
 	} /* betaln */
 
 	/**

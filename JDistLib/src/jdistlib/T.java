@@ -92,8 +92,8 @@ public class T {
 				val = log_p ? lval : exp(lval);
 			} else {
 				val = (n > x * x)
-						? Beta.cumulative (x * x / (n + x * x), 0.5, n / 2., lower_tail, log_p)
-								: Beta.cumulative (1. / nx,             n / 2., 0.5, !lower_tail, log_p);
+					? Beta.cumulative (x * x / (n + x * x), 0.5, n / 2., false, log_p)
+					: Beta.cumulative (1. / nx,             n / 2., 0.5, true, log_p);
 			}
 			/* Use "1 - v"  if	lower_tail  and	 x > 0 (but not both):*/
 			if(x <= 0.)

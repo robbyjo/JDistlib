@@ -22,6 +22,7 @@ package jdistlib;
 import static java.lang.Double.*;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import static jdistlib.MathFunctions.trunc;
 import jdistlib.rng.QRandomEngine;
 
 /**
@@ -121,7 +122,10 @@ public class Normal {
 			return NaN;
 		}
 
-		ccum = result = x = (x - mu) / sigma;
+		result = x = (x - mu) / sigma; ccum = 0;
+		// lower == lower_tail, upper == !lower_tail
+		// Entering pnorm_both
+
 		if(isInfinite(x))
 			return x < 0 ? (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) : (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 
@@ -141,7 +145,7 @@ public class Normal {
 			} else xnum = xden = 0.0;
 			temp = x * (xnum + a[3]) / (xden + b[3]);
 			if (lower_tail) {
-				ccum = log_p ? log(0.5+temp) : 0.5+temp;
+				result = log_p ? log(0.5+temp) : 0.5+temp;
 			} else {
 				ccum = log_p ? log(0.5-temp) : 0.5-temp;
 			}
@@ -154,7 +158,7 @@ public class Normal {
 				xden = (xden + d[i]) * y;
 			}
 			temp = (xnum + c[7]) / (xden + d[7]);
-			xsq = floor(y * SIXTEN) / SIXTEN;
+			xsq = trunc(y * SIXTEN) / SIXTEN;
 			del = (y - xsq) * (y + xsq);
 			if (log_p) {
 				result = (-xsq * xsq * 0.5) + (-del * 0.5) + log(temp);
@@ -183,8 +187,8 @@ public class Normal {
 			}
 			temp = xsq * (xnum + p[4]) / (xden + q[4]);
 			temp = (M_1_SQRT_2PI - temp) / y;
-			/*!* 	xsq = floor(x * SIXTEN) / SIXTEN; *!*/
-			xsq = floor(x * SIXTEN) / SIXTEN;
+			/*!* 	xsq = trunc(x * SIXTEN) / SIXTEN; *!*/
+			xsq = trunc(x * SIXTEN) / SIXTEN;
 			del = (x - xsq) * (x + xsq);
 			if (log_p) {
 				result = (-xsq * xsq * 0.5) + (-del * 0.5) + log(temp);
@@ -218,7 +222,7 @@ public class Normal {
 			if (result < min) result = 0.0;
 			if (ccum < min) ccum = 0.0;
 		}
-		return result;
+		return lower_tail ? result : ccum;
 	}
 
 	public static final double quantile(double p, double mu, double sigma, boolean lower_tail, boolean log_p)

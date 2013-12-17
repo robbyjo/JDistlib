@@ -150,7 +150,7 @@ public class MathFunctions {
 		if (x < 0 && (trunc(-x) % 2.) == 0)
 			if (sgn != null) sgn[0] = -1;
 
-		if (x <= 0 && x == floor(x)) { /* Negative integer argument */
+		if (x <= 0 && x == trunc(x)) { /* Negative integer argument */
 			//ML_ERROR(ME_RANGE, "lgamma");
 			return Double.POSITIVE_INFINITY;/* +Inf, since lgamma(x) = log|gamma(x)| */
 		}

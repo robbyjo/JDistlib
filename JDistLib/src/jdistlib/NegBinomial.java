@@ -87,6 +87,10 @@ public class NegBinomial {
 		if(Double.isInfinite(size) || Double.isInfinite(prob)) return Double.NaN;
 		if (size <= 0 || prob <= 0 || prob > 1)	return Double.NaN;
 
+		/* limiting case: point mass at zero */
+		if (size == 0)
+			return (x >= 0) ? (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.))
+				: (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		if (x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		if (Double.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		x = floor(x + 1e-7);
@@ -97,9 +101,14 @@ public class NegBinomial {
 	{
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(size)) return x + size + mu;
 		if(Double.isInfinite(size) || Double.isInfinite(mu)) return Double.NaN;
-		if (size <= 0 || mu < 0) return Double.NaN;
+		if (size < 0 || mu < 0) return Double.NaN;
 
-		if (x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
+		/* limiting case: point mass at zero */
+		if (size == 0)
+			return (x >= 0) ? (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.))
+				: (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
+
+			if (x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		if (Double.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		x = floor(x + 1e-7);
 		/* return
@@ -144,9 +153,14 @@ public class NegBinomial {
 		double P, Q, mu, sigma, gamma, z, y;
 
 		if (Double.isNaN(p) || Double.isNaN(size) || Double.isNaN(prob)) return p + size + prob;
-		if (prob <= 0 || prob > 1 || size <= 0) return Double.NaN;
-		/* FIXME: size = 0 is well defined ! */
-		if (prob == 1) return 0;
+		/* this happens if specified via mu, size, since
+	       prob == size/(size+mu)
+		 */
+		if (prob == 0 && size == 0) return 0;
+
+	    if (prob <= 0 || prob > 1 || size < 0) return Double.NaN;
+
+	    if (prob == 1 || size == 0) return 0;
 
 		// R_Q_P01_boundaries(p, 0, ML_POSINF);
 		if (log_p) {

@@ -143,12 +143,12 @@ public class MathFunctions {
 	public static final double lgammafn_sign(double x, int []sgn)
 	{
 		final double xmax = 2.5327372760800758e+305;
-		final double dxrel = 1.490116119384765696e-8;
+		final double dxrel = 1.490116119384765625e-8;
 		double ans, y, sinpiy;
 
 		if (sgn != null) sgn[0] = 1;
-		if (x < 0 && (trunc(-x) % 2.) == 0)
-			if (sgn != null) sgn[0] = -1;
+		if (sgn != null && x < 0 && (floor(-x) % 2.) == 0)
+			sgn[0] = -1;
 
 		if (x <= 0 && x == trunc(x)) { /* Negative integer argument */
 			//ML_ERROR(ME_RANGE, "lgamma");
@@ -157,7 +157,7 @@ public class MathFunctions {
 
 		y = abs(x);
 
-		if (y < 1e-306) return -log(x); // denormalized range, R change
+		if (y < 1e-306) return -log(y); // denormalized range, R change
 		if (y <= 10)
 			return log(abs(gammafn(x)));
 		if (y > xmax) {

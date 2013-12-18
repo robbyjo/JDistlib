@@ -21,9 +21,10 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class Weibull {
+public class Weibull extends GenericDistribution {
 	public static final double density(double x, double shape, double scale, boolean give_log)
 	{
 		double tmp1, tmp2;
@@ -95,5 +96,31 @@ public class Weibull {
 			return Double.NaN;
 		}
 		return scale * pow(-log(random.nextDouble()), 1.0 / shape);
+	}
+
+	protected double shape, scale;
+
+	public Weibull(double shape, double scale) {
+		this.shape = shape; this.scale = scale;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, shape, scale, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, shape, scale, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, shape, scale, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(shape, scale, random);
 	}
 }

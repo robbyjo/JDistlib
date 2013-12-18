@@ -22,6 +22,7 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 /**<pre>
@@ -45,7 +46,7 @@ import jdistlib.rng.QRandomEngine;
  * Wilcoxon distribution), I decided to make this class as dynamic. -- Roby Joehanes
  *  
  */
-public class Wilcoxon {
+public class Wilcoxon extends GenericDistribution {
 	protected QRandomEngine random;
 	protected double[][][] w;
 
@@ -254,5 +255,16 @@ public class Wilcoxon {
 		}
 		x = null; //free(x);
 		return(r - n * (n - 1) / 2);
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		if ((abs((x) - floor((x)+0.5)) > 1e-7)) return 0;
+		return density((int) x, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative((int) p, lower_tail, log_p);
 	}
 }

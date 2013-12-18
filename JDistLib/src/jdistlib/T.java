@@ -22,9 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class T {
+public class T extends GenericDistribution {
 	public static final double density(double x, double n, boolean give_log)
 	{
 		if (Double.isNaN(x) || Double.isNaN(n))
@@ -301,5 +302,29 @@ public class T {
 			double num = Normal.random_standard(random);
 			return num / sqrt(ChiSquare.random(df, random) / df);
 		}
+	}
+
+	protected double df;
+	public T(double df)
+	{	this.df = df; }
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, df, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, df, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, df, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(df, random);
 	}
 }

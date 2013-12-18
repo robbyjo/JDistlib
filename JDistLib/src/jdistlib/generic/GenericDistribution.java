@@ -25,7 +25,7 @@ import jdistlib.rng.QRandomEngine;
  */
 public abstract class GenericDistribution {
 	public abstract double density(double x, boolean log);
-	public abstract double cumulative(double p, boolean lower_tail);
-	public abstract double quantile(double q, boolean lower_tail);
+	public abstract double cumulative(double p, boolean lower_tail, boolean log_p);
+	public abstract double quantile(double q, boolean lower_tail, boolean log_p);
 	public abstract double random(QRandomEngine random);
 }

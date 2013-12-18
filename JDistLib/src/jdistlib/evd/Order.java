@@ -34,7 +34,7 @@ public class Order {
 		double dens = dist.density(x, true);
 		if (Double.isInfinite(dens))
 			return Double.NEGATIVE_INFINITY;
-		double cum = dist.cumulative(x, true);
+		double cum = dist.cumulative(x, true, log);
 		cum = (mlen - j) * log(cum) + (j - 1) * log (1 - cum);
 		x = lgammafn(mlen + 1) - lgammafn(j) - lgammafn(mlen - j + 1) + dens + cum;
 		return !log ? exp(x) : x;

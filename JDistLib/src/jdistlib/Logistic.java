@@ -21,9 +21,10 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class Logistic {
+public class Logistic extends GenericDistribution {
 	public static final double density(double x, double location, double scale, boolean give_log)
 	{
 	    double e, f;
@@ -111,5 +112,31 @@ public class Logistic {
 		if (scale == 0. || Double.isInfinite(location)) return location;
 		double u = random.nextDouble();
 		return location + scale * log(u / (1. - u));
+	}
+
+	protected double location, scale;
+
+	public Logistic(double location, double scale) {
+		this.location = location; this.scale = scale;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, location, scale, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, location, scale, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, location, scale, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(location, scale, random);
 	}
 }

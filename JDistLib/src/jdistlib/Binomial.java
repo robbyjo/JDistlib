@@ -22,10 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class Binomial
-{
+public class Binomial extends GenericDistribution {
 	public class RandomState {
 		public double c, fm, npq, p1, p2, p3, p4, qn;
 		public double xl, xll, xlr, xm, xr;
@@ -385,4 +385,31 @@ public class Binomial
 		}
 	}
 
+	protected double n, p;
+	protected RandomState state;
+
+	public Binomial(double n, double p) {
+		this.n = n; this.p = p;
+		state = create_random_state();
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, n, p, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, n, this.p, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, n, p, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(n, p, random, state);
+	}
 }

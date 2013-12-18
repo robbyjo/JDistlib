@@ -20,8 +20,10 @@
 package jdistlib;
 
 import static java.lang.Math.*;
+import jdistlib.generic.GenericDistribution;
+import jdistlib.rng.QRandomEngine;
 
-public class Spearman {
+public class Spearman extends GenericDistribution {
 	// From pspearman package
 	private static final double[][] spearmanArray = {
 		{0},
@@ -1224,5 +1226,32 @@ public class Spearman {
 	{
 		double r = 1 - (6.0 / n) * (is / (n * n - 1.0));
 		return T.cumulative(r / sqrt((1 - r * r) / (n - 2.0)), n-2, !lower_tail, false);
+	}
+
+	protected int n;
+
+	public Spearman(int n) {
+		this.n = n;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		throw new RuntimeException("Not implemented, sorry!");
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		p = cumulative(p, n, lower_tail);
+		return log_p ? log(p) : p;
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		throw new RuntimeException("Not implemented, sorry!");
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		throw new RuntimeException("Not implemented, sorry!");
 	}
 }

@@ -22,9 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class Gamma {
+public class Gamma extends GenericDistribution {
 	public static final double density(double x, double shape, double scale, boolean give_log)
 	{
 		double pr;
@@ -800,5 +801,31 @@ public class Gamma {
 		} /* repeat .. until  `t' is accepted */
 		x = s + 0.5 * t;
 		return scale * x * x;
+	}
+
+	protected double shape, scale;
+
+	public Gamma(double shape, double scale) {
+		this.shape = shape; this.scale = scale;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, shape, scale, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, shape, scale, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, shape, scale, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(shape, scale, random);
 	}
 }

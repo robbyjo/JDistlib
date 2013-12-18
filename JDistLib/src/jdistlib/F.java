@@ -21,9 +21,10 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class F {
+public class F extends GenericDistribution {
 	public static final double density(double x, double m, double n, boolean give_log)
 	{
 		double p, q, f, dens;
@@ -140,5 +141,31 @@ public class F {
 	    v1 = !Double.isInfinite(n1) ? (ChiSquare.random(n1, random) / n1) : 1;
 	    v2 = !Double.isInfinite(n2) ? (ChiSquare.random(n2, random) / n2) : 1;
 	    return v1 / v2;
+	}
+
+	protected double df1, df2;
+
+	public F(double df1, double df2) {
+		this.df1 = df1; this.df2 = df2;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, df1, df2, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, df1, df2, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, df1, df2, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(df1, df2, random);
 	}
 }

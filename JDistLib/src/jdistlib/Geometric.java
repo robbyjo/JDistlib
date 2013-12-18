@@ -21,9 +21,10 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class Geometric {
+public class Geometric extends GenericDistribution {
 	public static final double density(double x, double p, boolean give_log)
 	{ 
 		double prob;
@@ -95,5 +96,31 @@ public class Geometric {
 	{
 	    if (Double.isInfinite(p) || p <= 0 || p > 1) return Double.NaN;
 	    return Poisson.random(Exponential.random_standard(random) * ((1 - p) / p), random);
+	}
+
+	protected double p;
+
+	public Geometric(double p) {
+		this.p = p;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, p, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, this.p, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, p, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(p, random);
 	}
 }

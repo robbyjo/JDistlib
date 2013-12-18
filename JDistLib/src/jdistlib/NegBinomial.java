@@ -22,9 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class NegBinomial {
+public class NegBinomial extends GenericDistribution {
 	public static final double density(double x, double size, double prob, boolean give_log)
 	{
 		double ans, p;
@@ -233,5 +234,35 @@ public class NegBinomial {
 	    	/* prob = 1 is ok, PR#1218 */
 	    	return Double.NaN;
 	    return (prob == 1) ? 0 : Poisson.random(Gamma.random(size, (1 - prob) / prob, random), random);
+	}
+
+	protected double size, prob;
+
+	public NegBinomial(double size, double prob) {
+		this.size = size; this.prob = prob;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, size, prob, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, size, prob, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, size, prob, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(size, prob, random);
+	}
+
+	public static final NegBinomial create_instance_from_mu(double size, double mu) {
+		return new NegBinomial(size, size/(size + mu));
 	}
 }

@@ -15,15 +15,15 @@
 package jdistlib.evd;
 
 import jdistlib.Exponential;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
-
 import static java.lang.Math.*;
 
 /**
  * Generalized extreme value distribution.
  * Taken from EVD package of R
  */
-public class GEV {
+public class GEV extends GenericDistribution {
 	public static final double density(double x, double loc, double scale, double shape, boolean log)
 	{
 		if (scale <= 0)
@@ -63,5 +63,33 @@ public class GEV {
 		return shape == 0 ?
 			(loc - scale * log(Exponential.random_standard(random))) :
 			(loc + scale * ((pow(Exponential.random_standard(random), -shape) - 1) / shape) );
+	}
+
+	protected double loc, scale, shape;
+
+	public GEV(double loc, double scale, double shape) {
+		this.loc = loc; this.scale = scale; this.shape = shape;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, loc, scale, shape, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		p = cumulative(p, loc, scale, shape, lower_tail);
+		return log_p ? log(p) : p;
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		if (log_p) q = exp(q);
+		return quantile(q, loc, scale, shape, lower_tail);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(loc, scale, shape, random);
 	}
 }

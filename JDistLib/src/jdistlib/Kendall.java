@@ -21,9 +21,10 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class Kendall {
+public class Kendall extends GenericDistribution {
 	static final double count(int k, int n, double w[][]) {
 		int i, u;
 		double s;
@@ -145,5 +146,34 @@ public class Kendall {
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, x);
 		return u1;
+	}
+
+	protected int n;
+
+	public Kendall(int n) {
+		this.n = n;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return log ? log(density(x, n)) : density(x, n);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		p = cumulative(p, n);
+		return log_p ? log(lower_tail ? p : 1-p) : (lower_tail ? p : 1-p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		if (log_p) q = exp(q);
+		if (!lower_tail) q = 1 - q;
+		return quantile(q, n);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(n, random);
 	}
 }

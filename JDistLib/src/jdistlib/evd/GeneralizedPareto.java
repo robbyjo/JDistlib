@@ -16,6 +16,7 @@ package jdistlib.evd;
 
 import static java.lang.Math.*;
 import jdistlib.Exponential;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 /**
@@ -23,7 +24,7 @@ import jdistlib.rng.QRandomEngine;
  * Taken from EVD package of R
  *
  */
-public class GeneralizedPareto {
+public class GeneralizedPareto extends GenericDistribution {
 	public static final double density(double x, double loc, double scale, double shape, boolean log)
 	{
 		if (scale <= 0)
@@ -62,5 +63,33 @@ public class GeneralizedPareto {
 		return shape == 0 ?
 			(loc + scale * log(Exponential.random_standard(random))) :
 			(loc + scale * ((pow(random.nextDouble(), -shape) - 1) / shape) );
+	}
+
+	protected double loc, scale, shape;
+
+	public GeneralizedPareto(double loc, double scale, double shape) {
+		this.loc = loc; this.scale = scale; this.shape = shape;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, loc, scale, shape, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		p = cumulative(p, loc, scale, shape, lower_tail);
+		return log_p ? log(p) : p;
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		if (log_p) q = exp(q);
+		return quantile(q, loc, scale, shape, lower_tail);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(loc, scale, shape, random);
 	}
 }

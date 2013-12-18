@@ -23,11 +23,12 @@
  */
 package jdistlib;
 
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 
-public class Exponential {
+public class Exponential extends GenericDistribution {
 
 	public static final double density(double x, double scale, boolean give_log)
 	{
@@ -134,4 +135,29 @@ public class Exponential {
 		return a + umin * q[0];
 	}
 
+	protected double scale;
+
+	public Exponential(double scale) {
+		this.scale = scale;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, scale, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, scale, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, scale, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(scale, random);
+	}
 }

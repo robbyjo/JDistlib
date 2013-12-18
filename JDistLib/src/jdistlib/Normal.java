@@ -23,6 +23,7 @@ import static java.lang.Double.*;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.trunc;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 /**
@@ -30,7 +31,7 @@ import jdistlib.rng.QRandomEngine;
  * Manually translated from R's Distlib by Roby Joehanes
  *
  */
-public class Normal {
+public class Normal extends GenericDistribution {
 	public static final double density(double x, double mu, double sigma, boolean give_log)
 	{
 		if (isNaN(x) || isNaN(mu) || isNaN(sigma))
@@ -499,5 +500,32 @@ public class Normal {
 	     	    if(0.053377549506886*abs(u2-u3) <= g(tt))
 			return (u2<u3) ? tt : -tt;
 		}
+	}
+
+	public double mu, sigma;
+
+	public Normal(double mu, double sigma) {
+		this.mu = mu; this.sigma = sigma;
+		if (sigma <= 0) throw new RuntimeException("Sigma must be positive");
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, mu, sigma, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, mu, sigma, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, mu, sigma, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(mu, sigma, random);
 	}
 }

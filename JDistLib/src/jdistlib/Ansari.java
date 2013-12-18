@@ -19,8 +19,11 @@
  */
 package jdistlib;
 
+import static java.lang.Math.exp;
+import static java.lang.Math.log;
 import static java.util.Arrays.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 /**
@@ -28,7 +31,7 @@ import jdistlib.rng.QRandomEngine;
  * 
  *
  */
-public class Ansari {
+public class Ansari extends GenericDistribution {
 	static final double cansari(int k, int m, int n, double w[][][])
 	{
 		int l, u;
@@ -56,8 +59,7 @@ public class Ansari {
 		return(w[m][n][k]);
 	}
 
-	public static final double[] density(int[] x, int m, int n)
-	{
+	public static final double[] density(int[] x, int m, int n) {
 		int i, len = x.length;
 		double[][][] w = new double[m+1][n+1][];
 		double[] result = new double[len];
@@ -66,13 +68,11 @@ public class Ansari {
 		return result;
 	}
 
-	public static final double density(int x, int m, int n)
-	{
+	public static final double density(int x, int m, int n) {
 		return cansari(x, m, n, new double[m+1][n+1][]) / choose(m + n, m);
 	}
 
-	public static final double[] cumulative(int[] x, int m, int n)
-	{
+	public static final double[] cumulative(int[] x, int m, int n) {
 		int i, j, l, u, len = x.length;
 		double c, p;
 		double[][][] w = new double[m+1][n+1][];
@@ -99,8 +99,7 @@ public class Ansari {
 		return result;
 	}
 
-	public static final double cumulative(int x, int m, int n)
-	{
+	public static final double cumulative(int x, int m, int n) {
 		int j, l, u;
 		double c, p;
 		double[][][] w = new double[m+1][n+1][];
@@ -119,8 +118,7 @@ public class Ansari {
 		return p / c;
 	}
 
-	public static final int[] quantile(double[] x, int m, int n)
-	{
+	public static final int[] quantile(double[] x, int m, int n) {
 		int i, l, u, q, len = x.length;
 		double c, p, xi;
 		double[][][] w = new double[m+1][n+1][];
@@ -155,8 +153,7 @@ public class Ansari {
 		return result;
 	}
 
-	public static final int quantile(double xi, int m, int n)
-	{
+	public static final int quantile(double xi, int m, int n) {
 		int l, u, q;
 		double c, p;
 		double[][][] w = new double[m+1][n+1][];
@@ -191,11 +188,41 @@ public class Ansari {
 	 * @param random
 	 * @return
 	 */
-	public static final double random(int m, int n, QRandomEngine random)
-	{
+	public static final double random(int m, int n, QRandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, m, n);
 		return u1;
+	}
+
+	protected int m, n;
+
+	public Ansari(int m, int n) {
+		this.m = m; this.n = n;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density((int) x, m, n);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		p = cumulative((int) p, m, n);
+		p = lower_tail ? p : 1 - p;
+		return log_p ? log(p) : p;
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		if (log_p) q = exp(q);
+		if (log_p) q = exp(q);
+		if (!lower_tail) q = 1 - q;
+		return quantile(q, m, n);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(m, n, random);
 	}
 }

@@ -21,9 +21,10 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class LogNormal {
+public class LogNormal extends GenericDistribution{
 	public static final double density(double x, double meanlog, double sdlog, boolean give_log)
 	{
 		double y;
@@ -72,5 +73,31 @@ public class LogNormal {
 	{
 		if(Double.isNaN(meanlog) || Double.isInfinite(sdlog) || sdlog < 0.) return Double.NaN;
 		return exp(Normal.random(meanlog, sdlog, random));
+	}
+
+	protected double meanlog, sdlog;
+
+	public LogNormal(double meanlog, double sdlog) {
+		this.meanlog = meanlog; this.sdlog = sdlog;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, meanlog, sdlog, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, meanlog, sdlog, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, meanlog, sdlog, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(meanlog, sdlog, random);
 	}
 }

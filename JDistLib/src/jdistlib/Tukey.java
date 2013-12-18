@@ -22,6 +22,7 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 /*
@@ -41,7 +42,7 @@ import jdistlib.rng.QRandomEngine;
  *    
  *  RJ's Note: See Algorithm AS 190 by Lund and Lund
  */
-public class Tukey {
+public class Tukey extends GenericDistribution {
 	/*  wprob() :
 
 	This function calculates probability integral of Hartley's
@@ -578,5 +579,31 @@ public class Tukey {
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, rr, cc, df, true, false);
 		return u1;
+	}
+
+	protected double rr, cc, df;
+
+	public Tukey(double rr, double cc, double df) {
+		this.rr = rr; this.cc = cc; this.df = df;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		throw new RuntimeException("Not implemented, sorry!");
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, rr, cc, df, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, rr, cc, df, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(rr, cc, df, random);
 	}
 }

@@ -16,12 +16,13 @@
 package jdistlib;
 
 import static java.lang.Math.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 /**
  * @author Roby Joehanes
  */
-public class Logarithmic {
+public class Logarithmic extends GenericDistribution {
 	public static final double density(double x, double mu, boolean give_log)
 	{
 		if (Double.isNaN(x) || Double.isNaN(mu))
@@ -69,5 +70,31 @@ public class Logarithmic {
 	public static final double random(double mu, QRandomEngine random)
 	{
 		return quantile(random.nextDouble(), mu, false, false);
+	}
+
+	protected double mu;
+
+	public Logarithmic(double mu) {
+		this.mu = mu;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, mu, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, mu, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, mu, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(mu, random);
 	}
 }

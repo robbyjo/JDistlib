@@ -22,9 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class NonCentralBeta {
+public class NonCentralBeta extends GenericDistribution {
 	public static final double density(double x, double a, double b, double ncp, boolean give_log)
 	{
 		final double eps = 1.e-15;
@@ -241,5 +242,30 @@ public class NonCentralBeta {
 		double x = NonCentralChiSquare.random(2 * a, ncp, random);
 		x = x / (x + NonCentralChiSquare.random(2 * b, ncp, random));
 		return x;
+	}
+
+	protected double a, b, ncp;
+
+	public NonCentralBeta(double a, double b, double ncp) {
+		this.a = a; this.b = b; this.ncp = ncp;
+	}
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, a, b, ncp, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, a, b, ncp, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, a, b, ncp, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(a, b, ncp, random);
 	}
 }

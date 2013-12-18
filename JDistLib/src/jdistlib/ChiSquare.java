@@ -19,27 +19,50 @@
  */
 package jdistlib;
 
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class ChiSquare {
-	public static final double density(double x, double df, boolean give_log)
-	{
+public class ChiSquare extends GenericDistribution {
+	public static final double density(double x, double df, boolean give_log) {
 	    return Gamma.density(x, df / 2., 2., give_log);
 	}
 
-	public static final double cumulative(double x, double df, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double df, boolean lower_tail, boolean log_p) {
 	    return Gamma.cumulative(x, df/2., 2., lower_tail, log_p);
 	}
 
-	public static final double quantile(double p, double df, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double df, boolean lower_tail, boolean log_p) {
 	    return Gamma.quantile(p, 0.5 * df, 2.0, lower_tail, log_p);
 	}
 
-	public static final double random(double df, QRandomEngine random)
-	{
+	public static final double random(double df, QRandomEngine random) {
 	    if (Double.isInfinite(df) || df < 0.0) return Double.NaN;
 	    return Gamma.random(df / 2.0, 2.0, random);
+	}
+
+	protected double df;
+
+	public ChiSquare(double df) {
+		this.df = df;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, df, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, df, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, df, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(df, random);
 	}
 }

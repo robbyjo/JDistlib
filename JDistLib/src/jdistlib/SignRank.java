@@ -21,15 +21,16 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class SignRank {
+public class SignRank extends GenericDistribution {
 	protected double[] w;
 	protected int n;
 	protected QRandomEngine random;
 
 	public SignRank(int n) {
-		
+		init(n);
 	}
 
 	protected void init(int _n)
@@ -195,5 +196,15 @@ public class SignRank {
 			r += (++i) * floor(random.nextDouble() + 0.5);
 		}
 		return(r);
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density((int) x, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative((int) p, lower_tail, log_p);
 	}
 }

@@ -22,9 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class HyperGeometric {
+public class HyperGeometric extends GenericDistribution {
 	public class RandomState {
 		public int ks = -1;
 		public int n1s = -1, n2s = -1;
@@ -520,4 +521,31 @@ public class HyperGeometric {
 		return ix;
 	}
 
+	protected double r, b, n;
+	protected RandomState state;
+
+	public HyperGeometric(double r, double b, double n) {
+		this.r = r; this.b = b; this.n = n;
+		state = create_random_state();
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, r, b, n, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, r, b, n, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, r, b, n, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(r, b, n, random, state);
+	}
 }

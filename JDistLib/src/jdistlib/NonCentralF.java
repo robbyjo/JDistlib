@@ -20,9 +20,10 @@
 package jdistlib;
 
 import static java.lang.Math.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class NonCentralF {
+public class NonCentralF extends GenericDistribution {
 	/*
 	 * The density function of the non-central F distribution ---
 	 * obtained by differentiating the corresp. cumulative distribution function
@@ -126,5 +127,31 @@ public class NonCentralF {
 		if (ncp == 0)
 			return F.random(df1, df2, random);
 		return (NonCentralChiSquare.random(df1, ncp, random) / df1) / (NonCentralChiSquare.random(df2, ncp, random) / df2);
+	}
+
+	protected double df1, df2, ncp;
+
+	public NonCentralF(double df1, double df2, double ncp) {
+		this.df1 = df1; this.df2 = df2; this.ncp = ncp;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, df1, df2, ncp, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, df1, df2, ncp, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, df1, df2, ncp, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(df1, df2, ncp, random);
 	}
 }

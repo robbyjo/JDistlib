@@ -22,9 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class NonCentralChiSquare {
+public class NonCentralChiSquare extends GenericDistribution {
 	/*
 	 * The density of the noncentral chi-squared distribution with "df"
 	 * degrees of freedom and noncentrality parameter "ncp".
@@ -430,5 +431,30 @@ public class NonCentralChiSquare {
 		if (r > 0.)  r = ChiSquare.random(2. * r, random);
 		if (df > 0.) r += Gamma.random(df / 2., 2., random);
 		return r;
+	}
+
+	protected double df, ncp;
+	public NonCentralChiSquare(double df, double ncp) {
+		this.df = df; this.ncp = ncp;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, df, ncp, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, df, ncp, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, df, ncp, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(df, ncp, random);
 	}
 }

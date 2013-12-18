@@ -22,9 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class Beta {
+public class Beta extends GenericDistribution {
 
 	public static final double density(double x, double a, double b, boolean log_p)
 	{
@@ -340,6 +341,32 @@ public class Beta {
 
 			return (aa != a) ? b / (b + w) : w / (b + w);
 		}
+	}
+
+	protected double a, b;
+
+	public Beta(double a, double b) {
+		this.a = a; this.b = b;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, a, b, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, a, b, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, a, b, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(a, b, random);
 	}
 
 }

@@ -22,9 +22,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class NonCentralT {
+public class NonCentralT extends GenericDistribution {
 	/**<pre>
 	 *    The non-central t density is
 	 *
@@ -288,5 +289,31 @@ public class NonCentralT {
 		if (ncp == 0)
 			return T.random(df, random);
 		return Normal.random(ncp,1,random) / sqrt(ChiSquare.random(df, random)/df);
+	}
+
+	protected double df, ncp;
+
+	public NonCentralT(double df, double ncp) {
+		this.df = df; this.ncp = ncp;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, df, ncp, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, df, ncp, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, df, ncp, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(df, ncp, random);
 	}
 }

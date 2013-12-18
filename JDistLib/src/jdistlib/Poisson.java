@@ -25,9 +25,10 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
+import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
-public class Poisson {
+public class Poisson extends GenericDistribution {
 	public class RandomState {
 		/* These are static --- persistent between calls for same mu : */
 		int l, m;
@@ -383,5 +384,33 @@ public class Poisson {
 			}/* t > -.67.. */
 		}
 		return pois;
+	}
+
+	protected double lambda;
+	protected RandomState state;
+
+	public Poisson(double lambda) {
+		this.lambda = lambda;
+		state = create_random_state();
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, lambda, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		return cumulative(p, lambda, lower_tail, log_p);
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		return quantile(q, lambda, lower_tail, log_p);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(lambda, random, state);
 	}
 }

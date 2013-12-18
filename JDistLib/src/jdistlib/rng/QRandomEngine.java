@@ -37,6 +37,7 @@ public abstract class QRandomEngine
 
 	public abstract double nextGaussian();
 	public abstract double nextDouble();
+	public abstract float nextFloat();
 	public abstract int nextInt();
 	public abstract int nextInt(int n);
 	public abstract long nextLong();
@@ -44,4 +45,6 @@ public abstract class QRandomEngine
 
 	public double random()
 	{	return nextDouble(); }
+
+	public abstract QRandomEngine clone();
 }

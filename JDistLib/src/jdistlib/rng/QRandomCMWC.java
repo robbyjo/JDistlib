@@ -184,4 +184,12 @@ public class QRandomCMWC extends QRandomEngine
 		// --> in (0.0,1.0)
 		return nextDouble;
 	}
+
+	public float nextFloat() {
+		return (float) nextDouble();
+	}
+
+	public QRandomCMWC clone() {
+		return new QRandomCMWC();
+	}
 }

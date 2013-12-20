@@ -119,10 +119,10 @@ public class Kendall extends GenericDistribution {
 		double z[] = new double[1], y, mu, sigma;
 
 		/* y := approx.value (Cornish-Fisher expansion) :  */
-		z[0] = Normal.quantile(p, 0., 1., true, false);
 		mu = x * (x-1)/4.0;
 		sigma = sqrt(x * (x+1.0) * (2*x + 5.5) / 72);
-		y = sigma * z[0] + mu - 0.5;
+		z[0] = Normal.quantile(p, 0., 1., true, false);
+		y = sigma * z[0] + mu - 0.5; // This may be invalid
 
 		z[0] = cumulative(y, x);
 		double incr = floor(y * 0.001), oldincr;

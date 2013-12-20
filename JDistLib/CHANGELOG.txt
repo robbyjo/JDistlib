@@ -1,5 +1,11 @@
 What's new:
 
+Version 0.1.1 (Dec 20, 2013):
+* Order (no quantile) and Extreme (both maxima and minima) distributions for order statistics (from EVD package)
+* Added Box-Muller method to generate random normals
+* Added RandomSampler ripped from Colt. Handy for creating a permutation of list of objects.
+* The sources should be 100% compatible with JDK 1.5.
+
 Version 0.1.0 (Dec 19, 2013):
 * Distributions are now instantiable
 

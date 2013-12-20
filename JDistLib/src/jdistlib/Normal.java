@@ -32,8 +32,7 @@ import jdistlib.rng.QRandomEngine;
  *
  */
 public class Normal extends GenericDistribution {
-	public static final double density(double x, double mu, double sigma, boolean give_log)
-	{
+	public static final double density(double x, double mu, double sigma, boolean give_log) {
 		if (isNaN(x) || isNaN(mu) || isNaN(sigma))
 			return x + mu + sigma;
 		if (isInfinite(sigma))
@@ -53,8 +52,7 @@ public class Normal extends GenericDistribution {
 				: M_1_SQRT_2PI * exp(-0.5 * x * x) / sigma;
 	}
 
-	public static final double cumulative(double x, double mu, double sigma, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double mu, double sigma, boolean lower_tail, boolean log_p) {
 		final double SIXTEN = 16; /* Cutoff allowing exact "*" and "/" */
 		final double a[] = new double[] {
 			2.2352520354606839287,
@@ -226,8 +224,7 @@ public class Normal extends GenericDistribution {
 		return lower_tail ? result : ccum;
 	}
 
-	public static final double quantile(double p, double mu, double sigma, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double mu, double sigma, boolean lower_tail, boolean log_p) {
 		double q, r, val;
 
 		/*!* #ifdef IEEE_754 /*4!*/
@@ -310,21 +307,18 @@ public class Normal extends GenericDistribution {
 	 * @param random
 	 * @return
 	 */
-	public static final double random(double mu, double sigma, QRandomEngine random)
-	{
+	public static final double random(double mu, double sigma, QRandomEngine random) {
 		return mu + sigma * random_standard(random);
 	}
 
-	public static final double random_standard(QRandomEngine random)
-	{
+	public static final double random_standard(QRandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, 0, 1, true, false);
 		return u1;
 	}
 
-	public static final double random_ahrens_dieter(double mu, double sigma, QRandomEngine random)
-	{
+	public static final double random_ahrens_dieter(double mu, double sigma, QRandomEngine random) {
 	    final double a[] = new double[]
 	        {
 	    	0.0000000, 0.03917609, 0.07841241, 0.1177699,
@@ -439,14 +433,12 @@ public class Normal extends GenericDistribution {
 	}
 
 	private static final double A =  2.216035867166471;
-	private static final double g(double x)
-	{
+	private static final double g(double x) {
 		final double C1 = 0.398942280401433, C2 = 0.180025191068563;
 		return (C1*exp(-x*x/2.0)-C2*(A-x));
 	}
 
-	public static final double random_kinderman_ramage(double mu, double sigma, QRandomEngine random)
-	{
+	public static final double random_kinderman_ramage(double mu, double sigma, QRandomEngine random) {
 		double u1, u2, u3, tt;
 		//* corrected version from Josef Leydold
 		u1 = random.nextDouble();
@@ -500,6 +492,13 @@ public class Normal extends GenericDistribution {
 	     	    if(0.053377549506886*abs(u2-u3) <= g(tt))
 			return (u2<u3) ? tt : -tt;
 		}
+	}
+
+	public static final double random_box_muller(double mu, double sigma, QRandomEngine random) {
+		double
+			theta = 2 * PI * random.nextDouble(),
+			R = sqrt(-2 * log(random.nextDouble())) + 10*Double.MIN_VALUE;
+		return random.nextDouble() < 0.5 ? R * cos(theta) : R * sin(theta);
 	}
 
 	public double mu, sigma;

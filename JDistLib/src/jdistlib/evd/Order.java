@@ -14,7 +14,9 @@
  */
 package jdistlib.evd;
 
+import jdistlib.Beta;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.rng.QRandomEngine;
 
 import static java.lang.Math.*;
 import static jdistlib.MathFunctions.*;
@@ -25,8 +27,7 @@ import static jdistlib.MathFunctions.*;
  *
  */
 public class Order {
-	public static final double density(double x, GenericDistribution dist, int mlen, int j, boolean largest, boolean log)
-	{
+	public static final double density(double x, GenericDistribution dist, int mlen, int j, boolean largest, boolean log) {
 		if (mlen <= 0 || j <= 0 || j > mlen)
 			return Double.NaN;
 		if (!largest)
@@ -40,10 +41,24 @@ public class Order {
 		return !log ? exp(x) : x;
 	}
 
-	public static final double cumulative(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail)
-	{
+	public static final double cumulative(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail) {
 		if (mlen <= 0 || j <= 0 || j > mlen)
 			return Double.NaN;
-		return 0;
+		int from = largest ? mlen + 1 - j : 0;
+		double
+			distn = dist.cumulative(q, lower_tail, false),
+			sum = 0;
+		for (int k = 1; k <= j; k++) {
+			int sveck = from + k - 1;
+			sum += exp(lgammafn(mlen+1) - lgammafn(sveck+1) - lgammafn(mlen - sveck + 1)
+				+ sveck * log(distn) + (mlen - sveck) * log(1 - distn));
+		}
+		return largest != lower_tail ? 1 - sum : sum;
+	}
+
+	public static final double random(GenericDistribution dist, int mlen, int j, boolean largest, QRandomEngine random) {
+		if (!largest) j = mlen + 1 - j;
+		double value = Beta.random(mlen+1-j, j, random);
+		return dist.quantile(value, true, false);
 	}
 }

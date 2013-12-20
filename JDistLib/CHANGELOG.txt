@@ -1,5 +1,15 @@
 What's new:
 
+Version 0.1.0 (Dec 19, 2013):
+* Distributions are now instantiable
+
+Version 0.0.9 (Dec 17, 2013):
+* Proper fix for negative binomial distribution with size=0 (PR#15268)
+* Synced with R version 3.0.2
+
+Version 0.0.8 (Dec 17, 2013):
+* Fix for bug #6. Thanks, Roland Ewald!
+
 Version 0.0.7 (Mar 29, 2013):
 * Proper fix for pt / pf distribution (PR#15162)
 

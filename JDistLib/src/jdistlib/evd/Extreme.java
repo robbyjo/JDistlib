@@ -17,7 +17,6 @@ package jdistlib.evd;
 import jdistlib.Beta;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
-
 import static java.lang.Math.*;
 
 /**
@@ -25,7 +24,7 @@ import static java.lang.Math.*;
  * Taken from EVD package of R
  *
  */
-public class Extreme {
+public class Extreme extends GenericDistribution {
 	public static final double density(double x, GenericDistribution dist, int mlen, boolean largest, boolean log) {
 		if (mlen <= 0)
 			return Double.NaN;
@@ -60,5 +59,35 @@ public class Extreme {
 		return largest ?
 			dist.quantile(Beta.random(mlen, 1, random), true, false) :
 			dist.quantile(Beta.random(1, mlen, random), true, false);
+	}
+
+	protected int mlen;
+	protected boolean largest;
+	protected GenericDistribution dist;
+
+	public Extreme(GenericDistribution dist, int mlen, boolean largest) {
+		this.dist = dist; this.mlen = mlen; this.largest = largest;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, dist, mlen, largest, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		p = cumulative(p, dist, mlen, largest, lower_tail);
+		return log_p ? log(p) : p;
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		if (log_p) q = exp(q);
+		return quantile(q, dist, mlen, largest, lower_tail);
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(dist, mlen, largest, random);
 	}
 }

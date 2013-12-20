@@ -17,7 +17,6 @@ package jdistlib.evd;
 import jdistlib.Beta;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
-
 import static java.lang.Math.*;
 import static jdistlib.MathFunctions.*;
 
@@ -26,7 +25,7 @@ import static jdistlib.MathFunctions.*;
  * Taken from EVD package of R
  *
  */
-public class Order {
+public class Order extends GenericDistribution {
 	public static final double density(double x, GenericDistribution dist, int mlen, int j, boolean largest, boolean log) {
 		if (mlen <= 0 || j <= 0 || j > mlen)
 			return Double.NaN;
@@ -60,5 +59,34 @@ public class Order {
 		if (!largest) j = mlen + 1 - j;
 		double value = Beta.random(mlen+1-j, j, random);
 		return dist.quantile(value, true, false);
+	}
+
+	protected int mlen, j;
+	protected boolean largest;
+	protected GenericDistribution dist;
+
+	public Order(GenericDistribution dist, int mlen, int j, boolean largest) {
+		this.dist = dist; this.mlen = mlen; this.j = j; this.largest = largest;
+	}
+
+	@Override
+	public double density(double x, boolean log) {
+		return density(x, dist, mlen, j, largest, log);
+	}
+
+	@Override
+	public double cumulative(double p, boolean lower_tail, boolean log_p) {
+		p = cumulative(p, dist, mlen, j, largest, lower_tail);
+		return log_p ? log(p) : p;
+	}
+
+	@Override
+	public double quantile(double q, boolean lower_tail, boolean log_p) {
+		throw new RuntimeException("Not implemented, sorry!");
+	}
+
+	@Override
+	public double random(QRandomEngine random) {
+		return random(dist, mlen, j, largest, random);
 	}
 }

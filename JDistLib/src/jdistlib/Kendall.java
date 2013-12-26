@@ -24,15 +24,19 @@ import static jdistlib.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
+/**
+ * Kendall tau distribution
+ *
+ */
 public class Kendall extends GenericDistribution {
-	static final double count(int k, int n, double w[][]) {
+	static final long count(int k, int n, long w[][]) {
 		int i, u;
-		double s;
+		long sum;
 
 		u = (n * (n - 1) / 2);
 		if ((k < 0) || (k > u)) return(0);
 		if (w[n] == null) {
-			w[n] = new double[u+1]; // (double *) R_alloc(u + 1, sizeof(double));
+			w[n] = new long[u+1]; // (double *) R_alloc(u + 1, sizeof(double));
 			//memset(w[n], '\0', sizeof(double) * (u+1));
 			for (i = 0; i <= u; i++)
 				w[n][i] = -1;
@@ -41,19 +45,43 @@ public class Kendall extends GenericDistribution {
 			if (n == 1)
 				w[n][k] = (k == 0) ? 1 : 0;
 			else {
-				s = 0;
+				sum = 0;
 				for (i = 0; i < n; i++)
-					s += count(k - i, n - 1, w);
-				w[n][k] = s;
+					sum += count(k - i, n - 1, w);
+				w[n][k] = sum;
 			}
 		}
 		return(w[n][k]);
 	}
 
-	public static final double density(double x, int n){
-		double w[][] = new double[n+1][];
-		if (abs(x - floor(x + 0.5)) > 1e-7) return 0;
-		return count((int) x, (int) (n / gammafn(n + 1)), w);
+	public static final double calculate_tau(double x, int n) {
+		return (4 * x - 2) / (n * (n - 1)) - 1;
+	}
+
+	public static final double calculate_count(double tau, int n) {
+		return 0.5 + (1.0 + tau) * n * (n - 1) / 4.0;
+	}
+
+	/**
+	 * Density of Kendall distribution
+	 * @param x This is count, not tau!
+	 * @param n
+	 * @return
+	 */
+	public static final double density(double x, int n) {
+		long w[][] = new long[n+1][];
+		if (abs(x - floor(x + 0.5)) > 1e-7 || x < 0 || x > (n * (n - 1) / 2)) return 0;
+		return count((int) x, n, w) / gammafn(n + 1);
+	}
+
+	/**
+	 * Density of Kendall distribution
+	 * @param tau This is tau, not count!
+	 * @param n
+	 * @return
+	 */
+	public static final double density_tau(double tau, int n) {
+		return density(calculate_count(tau, n), n);
 	}
 
 	/**
@@ -62,16 +90,13 @@ public class Kendall extends GenericDistribution {
 	 * <P>Two-sided test: min(1, 2*((q > n*(n-1)/4) ? 1-cumulative(x-1,n) : cumulative(x,n)));
 	 * <P>Greater test: 1-cumulative(x-1,n)
 	 * <P>Less test: cumulative(x,n)
-	 * @param x
+	 * @param x This is count, not tau!
 	 * @param n
 	 * @return
 	 */
 	public static final double cumulative(double x, int n) {
 		double p, q;
-		double w[][] = new double[n+1][];
-
-		//w = (double **) R_alloc(*n + 1, sizeof(double *));
-		//memset(w, '\0', sizeof(double*) * (*n+1));
+		long w[][] = new long[n+1][];
 
 		q = floor(x + 1e-7);
 		if (q < 0)
@@ -82,69 +107,64 @@ public class Kendall extends GenericDistribution {
 		for (int j = 0; j <= q; j++) {
 			p += count(j, n, w);
 		}
-		return p / gammafn(n + 1);
-	}
-
-	static final double do_search(double y, double[] z, double p, int x, double incr)
-	{
-		if(z[0] >= p) {
-			/* search to the left */
-			for(;;) {
-				double newz = cumulative(y - incr, x);
-				if(y == 0 || newz < p)
-					return y;
-				y = max(0, y - incr);
-				z[0] = newz;
-			}
-		}
-		else {		/* search to the right */
-			for(;;) {
-				y = y + incr;
-				if((z[0] = cumulative(y, x)) >= p)
-					return y;
-			}
-		}
+		return exp(log(p) - lgammafn(n + 1));
 	}
 
 	/**
-	 * Quantile search by Cornish-Fisher expansion. WARNING: Untested!
-	 * @param p
-	 * @param x
+	 * Cumulative distribution of Kendall distribution
+	 * @param tau This is tau, not count!
+	 * @param n
 	 * @return
 	 */
-	public static final double quantile(double p, int x)
-	{
-		if (Double.isNaN(p) || Double.isInfinite(p)) return p;
-		if (p < 0 || p > 1) return Double.NaN;
-		double z[] = new double[1], y, mu, sigma;
-
-		/* y := approx.value (Cornish-Fisher expansion) :  */
-		mu = x * (x-1)/4.0;
-		sigma = sqrt(x * (x+1.0) * (2*x + 5.5) / 72);
-		z[0] = Normal.quantile(p, 0., 1., true, false);
-		y = sigma * z[0] + mu - 0.5; // This may be invalid
-
-		z[0] = cumulative(y, x);
-		double incr = floor(y * 0.001), oldincr;
-		do {
-			oldincr = incr;
-			y = do_search(y, z, p, x, incr);
-			incr = max(1, floor(incr/100));
-		} while(oldincr > 1 && incr > x*1e-15);
-		return y;
+	public static final double cumulative_tau(double tau, int n) {
+		return cumulative(calculate_count(tau, n), n);
 	}
 
 	/**
-	 * Kendall RNG by inversion -- WARNING: Untested
-	 * @param x
+	 * Quantile search.
+	 * @param p
+	 * @param n
+	 * @return count
+	 */
+	public static final double quantile(double p, int n)
+	{
+		if (Double.isNaN(p) || Double.isInfinite(p)) return p;
+		if (p < 0 || p > 1 || n < 2) return Double.NaN;
+		double mu, sigma;
+
+		mu = n * (n-1)/4.0;
+		sigma = sqrt((n * (2.0 * n + 1) * (n + 1) / 6.0 - n) / 12.0);
+		long k = (long) (sigma * Normal.quantile(p, 0., 1., true, false) + mu + 0.5);
+
+		if (p <= cumulative(k, n)) {
+			do {
+				k--;
+				if (p > cumulative(k, n)) return k + 1;
+			} while (k > 0);
+		} else {
+			do {
+				k++;
+				if (p <= cumulative(k, n)) return k;
+			} while (true);
+		}
+		return k;
+	}
+
+	public static final double quantile_tau(double p, int n) {
+		return (4.0 * quantile(p, n)) / (n * (n - 1.0)) - 1.0;
+	}
+
+	/**
+	 * Kendall RNG by inversion
+	 * @param n
 	 * @param random
 	 * @return
 	 */
-	public static final double random(int x, QRandomEngine random)
+	public static final double random(int n, QRandomEngine random)
 	{
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
-		u1 = quantile(u1 / 134217728, x);
+		u1 = quantile(u1 / 134217728, n);
 		return u1;
 	}
 
@@ -176,4 +196,21 @@ public class Kendall extends GenericDistribution {
 	public double random(QRandomEngine random) {
 		return random(n, random);
 	}
+
+	/*
+	public static final void main(String[] args) {
+		System.out.println(cumulative(26-1, 9));
+		System.out.println(cumulative_tau(0.36111111111111116045, 9));
+		System.out.println(quantile_tau(0.9402805335097011, 9));
+
+		System.out.println(density_tau(0, 10));
+		System.out.println(density_tau(1, 10));
+		System.out.println(cumulative_tau(0, 10));
+		System.out.println(cumulative_tau(0.42222222222222227650, 10));
+		System.out.println(cumulative_tau(0.26315789473684203514, 20));
+
+		System.out.println(quantile_tau(0.95, 10));
+		System.out.println(quantile_tau(0.95, 20));
+	}
+	//*/
 }

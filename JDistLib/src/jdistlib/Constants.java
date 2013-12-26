@@ -21,6 +21,8 @@
 
 package jdistlib;
 
+import static java.lang.Math.sqrt;
+
 /**
  * Class defining constants.
  */
@@ -78,6 +80,7 @@ public class Constants {
 	/* Difference between 1.0 and the minimum float/double greater than 1.0 */
 	public static final double FLT_EPSILON = 1.19209290e-07F;
 	public static final double DBL_EPSILON = 2.2204460492503131e-16; 
+	public static final double SQRT_DBL_EPSILON = sqrt(DBL_EPSILON); 
 
 	/* Number of decimal digits of precision in a float/double */
 	public static final int FLT_DIG = 6;
@@ -98,4 +101,11 @@ public class Constants {
 	public static final double d1mach3 = 0.5 * DBL_EPSILON;
 	public static final double d1mach4 = DBL_EPSILON;
 	public static final double kLog1OverSqrt2Pi = 0.918938533204672741780329736406; // log(2*pi)/2 == log(sqrt(2*pi))
+
+	/**
+	 * This is the squared inverse of the golden ratio ((3 - sqrt(5.0))/ 2).
+	 * Used in golden-ratio search.
+	 * Somehow inputting the number directly improves accuracy
+	 */
+	public static final double kInvGoldRatio = 0.38196601125010515179541316563436188227969082019423713786455;
 }

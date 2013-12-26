@@ -172,8 +172,8 @@ public class Optimization {
 	public static final strictfp double zeroin(UnivariateFunction f, double ax, double bx, double tol, int maxiter) {
 		double maxit = maxiter+1, a = ax, b = bx, c = a, fa = f.eval(ax), fb = f.eval(bx), fc = fa;
 		// First test if we have found a root at an endpoint
-		if (fa == 0) return fa;
-		if (fb == 0) return fb;
+		if (fa == 0) return a;
+		if (fb == 0) return b;
 		while(maxit-- > 0) // Main iteration loop
 		{
 			double prev_step = b-a; // Distance from the last but one to the last approximation

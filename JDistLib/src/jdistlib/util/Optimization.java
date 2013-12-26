@@ -239,6 +239,7 @@ public class Optimization {
 				x = x - 1/3.0; 
 				return x * x;
 			}
+			public void setParameters(double... params) {}
 		};
 		System.out.println(optimize(f, 0, 1, 0.0001, 1000));
 		System.out.println(optimize(f, 0, 1, 0, 1000));
@@ -247,6 +248,7 @@ public class Optimization {
 			public double eval(double x) {
 				return x * (x * x - 1) + 0.5;
 			}
+			public void setParameters(double... params) {}
 		};
 		System.out.println(zeroin(f, -2, 2, 0.0001, 1000));
 		System.out.println(zeroin(f, -2, 2, 1e-10, 1000));

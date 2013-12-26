@@ -21,7 +21,7 @@ package jdistlib.util;
  * Abstraction of a function with one parameter
  * @author Roby Joehanes
  */
-public interface UnivariateFunction
-{
+public interface UnivariateFunction {
 	public double eval(double x);
+	public void setParameters(double... params);
 }

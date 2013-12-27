@@ -139,19 +139,19 @@ public class Kendall extends GenericDistribution {
 		if (p <= cumulative(k, n)) {
 			do {
 				k--;
-				if (p > cumulative(k, n)) return k + 1;
+				if (p > cumulative(k, n)) return k + 1.5;
 			} while (k > 0);
 		} else {
 			do {
 				k++;
-				if (p <= cumulative(k, n)) return k;
+				if (p <= cumulative(k, n)) return k + 0.5;
 			} while (true);
 		}
-		return k;
+		return k + 0.5;
 	}
 
 	public static final double quantile_tau(double p, int n) {
-		return (4.0 * quantile(p, n)) / (n * (n - 1.0)) - 1.0;
+		return calculate_count(quantile(p, n), n);
 	}
 
 	/**

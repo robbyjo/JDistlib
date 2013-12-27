@@ -1,5 +1,9 @@
 What's new:
 
+Version 0.1.2 (Dec 26, 2013):
+* Added Rayleigh and Inverse Normal distributions
+* Bugfixes on Kendall distribution
+
 Version 0.1.1 (Dec 20, 2013):
 * Order (no quantile) and Extreme (both maxima and minima) distributions for order statistics (from EVD package)
 * Added Box-Muller method to generate random normals

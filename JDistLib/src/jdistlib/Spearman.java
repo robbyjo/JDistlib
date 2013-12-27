@@ -1099,8 +1099,7 @@ public class Spearman extends GenericDistribution {
 	 * @param lower_tail
 	 * @return
 	 */
-	public static final double cumulative(double is, int n, boolean lower_tail)
-	{
+	public static final double cumulative(double is, int n, boolean lower_tail) {
 		if (n > spearmanArray.length)
 			return cumulative_as89(is, n, lower_tail);
 		int m = n * (n * n - 1) / 6 + 1;
@@ -1131,8 +1130,7 @@ public class Spearman extends GenericDistribution {
 	 * @param lower_tail
 	 * @return
 	 */
-	public static final double cumulative_as89(double is, int n, boolean lower_tail)
-	{
+	public static final double cumulative_as89(double is, int n, boolean lower_tail) {
 		final double
 		c1 = .2274,
 		c2 = .2531,
@@ -1222,10 +1220,43 @@ public class Spearman extends GenericDistribution {
 	 * @param lower_tail
 	 * @return
 	 */
-	public static final double cumulative_t(double is, int n, boolean lower_tail)
-	{
+	public static final double cumulative_t(double is, int n, boolean lower_tail) {
 		double r = 1 - (6.0 / n) * (is / (n * n - 1.0));
 		return T.cumulative(r / sqrt((1 - r * r) / (n - 2.0)), n-2, !lower_tail, false);
+	}
+
+	public static final double density(double x, int r) {
+		if (r < 3) return Double.NaN;
+		double
+			m = r * (r * r - 1) / 3.0,
+			s = (m / 2.0) * (1.0 + x);
+		if (s > m) return Double.NaN;
+		s -= 2.0;
+		s = max(1, 2 * (((long) floor(s))/2)); // force s to be even, except when it is 
+		/*
+	if (CheckFriedmanExactF(r,n,X,&F,true,doRho)) {
+		return F;	 // Lower tail including X exactly
+	}
+		//*/
+		if (r > spearmanArray.length) {
+			double W = (s - 1.0) / (m + 2.0); // Corrected for continuity
+			double a = 0.5 * r - 1.0;
+			return Beta.cumulative(1.0 - W, a, a, true, false) - Beta.cumulative((1.0 - W) - 2.0, a, a, true, false);
+		}
+		int ss = (int) (0.5+((r*(r*r-1))/6.0)*(1.0+x));
+		if (r % 2 == 0) ss *= 4;
+		throw new RuntimeException("Not implemented, sorry!");
+	}
+
+	public static final double quantile(double q, int n) {
+		throw new RuntimeException("Not implemented, sorry!");
+	}
+
+	public static final double random(int n, QRandomEngine random) {
+		double u1 = random.nextDouble();
+		u1 = (int) (134217728 * u1) + random.nextDouble();
+		u1 = quantile(u1 / 134217728, n);
+		return u1;
 	}
 
 	protected int n;
@@ -1236,7 +1267,8 @@ public class Spearman extends GenericDistribution {
 
 	@Override
 	public double density(double x, boolean log) {
-		throw new RuntimeException("Not implemented, sorry!");
+		x = density(x, n);
+		return log ? log(x) : x;
 	}
 
 	@Override
@@ -1247,11 +1279,13 @@ public class Spearman extends GenericDistribution {
 
 	@Override
 	public double quantile(double q, boolean lower_tail, boolean log_p) {
-		throw new RuntimeException("Not implemented, sorry!");
+		if (log_p) q = exp(q);
+		if (!lower_tail) q = 1 - q;
+		return quantile(q, n);
 	}
 
 	@Override
 	public double random(QRandomEngine random) {
-		throw new RuntimeException("Not implemented, sorry!");
+		return random(n, random);
 	}
 }

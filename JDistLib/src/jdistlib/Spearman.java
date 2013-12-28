@@ -1238,14 +1238,14 @@ public class Spearman extends GenericDistribution {
 		return F;	 // Lower tail including X exactly
 	}
 		//*/
-		if (r > spearmanArray.length) {
+		//if (r > spearmanArray.length) {
 			double W = (s - 1.0) / (m + 2.0); // Corrected for continuity
 			double a = 0.5 * r - 1.0;
 			return Beta.cumulative(1.0 - W, a, a, true, false) - Beta.cumulative((1.0 - W) - 2.0/(m+2), a, a, true, false);
-		}
-		int ss = (int) (0.5+((r*(r*r-1))/6.0)*(1.0+x));
-		if (r % 2 == 0) ss *= 4;
-		throw new RuntimeException("Not implemented, sorry!");
+		//}
+		//int ss = (int) (0.5+((r*(r*r-1))/6.0)*(1.0+x));
+		//if (r % 2 == 0) ss *= 4;
+		//throw new RuntimeException("Not implemented, sorry!");
 	}
 
 	public static final double quantile(double q, int n) {

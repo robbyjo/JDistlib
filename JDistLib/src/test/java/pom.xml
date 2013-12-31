@@ -6,8 +6,5 @@
   <build>
     <sourceDirectory>src</sourceDirectory>
   </build>
-  <scm>
-  	<url>ssh://robbyjo@git.code.sf.net/p/jdistlib/code jdistlib-code</url>
-  	<developerConnection>robbyjo</developerConnection>
-  </scm>
+  <name>Test program</name>
 </project>

@@ -347,8 +347,8 @@ public class Gamma extends GenericDistribution {
 		double res;
 
 		//R_P_bounds_01(x, 0., ML_POSINF);
-		if(x <= 0) return 0;
-		if(x >= Double.POSITIVE_INFINITY) return 1;
+		if(x <= 0) return lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0) : (log_p ? 0 : 1);
+		if(x >= Double.POSITIVE_INFINITY) return lower_tail ? (log_p ? 0 : 1) : (log_p ? Double.NEGATIVE_INFINITY : 0);
 
 		if (x < 1) {
 			res = pgamma_smallx (x, alph, lower_tail, log_p);

@@ -43,7 +43,7 @@ public class TestDPQR {
 	}
 
 	static final boolean isEqual(double a, double b, double tol) {
-		return !Double.isNaN(a+b) && (abs(a - b) < tol);
+		return !Double.isNaN(a+b) && (a == b || abs(a - b) < tol);
 	}
 
 	@Test
@@ -163,10 +163,119 @@ public class TestDPQR {
 		return success;
 	}
 
+	@Test
+	public static final boolean test_poisson() {
+		System.out.println("##__ 5. Poisson __");
+		boolean success = true;
+
+		boolean cur_success = true;
+		for (int i = 0; i <= 5; i++) {
+			double dpois = Poisson.density(i, 0, false);
+			if (!isEqual(dpois, i == 0 ? 1 : 0)) {
+				System.err.println(String.format("Error: dpois = %g", dpois));
+				success = cur_success = false;
+			}
+		}
+		System.out.println(cur_success ? "[1] TRUE" : "[1] FALSE");
+
+		cur_success = true;
+		for (int i = 0; i <= 5; i++) {
+			double dpois = Poisson.density(i, 0, true);
+			if (!isEqual(dpois, i == 0 ? 0 : Double.NEGATIVE_INFINITY)) {
+				System.err.println(String.format("Error: log(dpois) = %g", dpois));
+				success = cur_success = false;
+			}
+		}
+		System.out.println(cur_success ? "[1] TRUE" : "[1] FALSE");
+
+		int n1 = 20, n2 = 16;
+		for (int i = 0; i < n1; i++) {
+			double lambda = Exponential.random(1, random);
+			for (int j = 0; j < n2; j++) {
+				int k = (int) Poisson.random(lambda, random);
+				double prev_dpois = 0;
+				cur_success = true;
+				for (int j2 = 0; j2 <= k; j2++) {
+					double comp_pchisq = 1 - ChiSquare.cumulative(2 * lambda, 2 * j2+ 2, true, false);
+					double dpois = prev_dpois + Poisson.density(j2, lambda, false);
+					prev_dpois = dpois;
+					if (!isEqual(comp_pchisq, dpois)) {
+						System.err.println(String.format("Error: comp. pchisq = %g, dpois = %g", comp_pchisq, dpois));
+						success = cur_success = false;
+					}
+					double ppois = Poisson.cumulative(j2, lambda, true, false);
+					if (!isEqual(ppois, dpois)) {
+						System.err.println(String.format("Error: ppois = %g, dpois = %g", ppois, dpois));
+						success = cur_success = false;
+					}
+					ppois = Poisson.cumulative(j2, lambda, false, false);
+					if (!isEqual(ppois, 1 - dpois)) {
+						System.err.println(String.format("Error: upper ppois = %g, dpois = %g", ppois, dpois));
+						success = cur_success = false;
+					}
+				}
+			}
+		}
+		return success;
+	}
+
+	@Test
+	public static final boolean test_signrank() {
+		System.out.println("##__ 6. SignRank __");
+		boolean success = true;
+		for (int i = 0; i < 32; i++) {
+			int n = (int) Poisson.random(8, random);
+			SignRank d = new SignRank(n);
+			double prev_dsignrank = 0;
+			for (int x = -1; x <= n + 4; x++) {
+				double psignrank = d.cumulative(x, true, false);
+				double dsignrank = prev_dsignrank + d.density(x, false);
+				prev_dsignrank = dsignrank;
+				if (!isEqual(psignrank, dsignrank)) {
+					System.err.println(String.format("Error: psignrank = %g, dsignrank = %g", psignrank, dsignrank));
+					success = false;
+				}
+			}
+		}
+		return success;
+	}
+
+	@Test
+	public static final boolean test_wilcox() {
+		System.out.println("##__ 7. Wilcoxon (symmetry & cumulative) __");
+		boolean success = true, is_sym = true;
+		for (int i = 0; i < 5; i++) {
+			int n = (int) Poisson.random(6, random);
+			for (int j = 0; j < 15; j++) {
+				int m = (int) Poisson.random(8, random);
+				Wilcoxon d = new Wilcoxon(n, m);
+				Wilcoxon d_sym = new Wilcoxon(m, n);
+				int limit = n*m + 1;
+				double cum_dwilcox = 0;
+				for (int x = -1; x <= limit; x++) {
+					double pwilcox = d.cumulative(x, true, false);
+					double dwilcox = d.density(x, false);
+					double dwilcox_sym = d_sym.density(x, false);
+					cum_dwilcox += dwilcox;
+					if (!isEqual(pwilcox, cum_dwilcox)) {
+						System.err.println(String.format("Error: pwilcox = %g, dwilcox = %g", pwilcox, cum_dwilcox));
+						success = false;
+					}
+					is_sym = is_sym & isEqual(dwilcox, dwilcox_sym);
+				}
+			}
+		}
+		System.out.println(is_sym ? "[1] TRUE" : "[1] FALSE");
+		return success;
+	}
+
 	public static final void main(String[] args) {
 		test_binom();
 		test_geom();
 		test_hyper();
 		test_negbin();
+		test_poisson();
+		test_signrank();
+		test_wilcox();
 	}
 }

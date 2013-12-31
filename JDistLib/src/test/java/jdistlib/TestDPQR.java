@@ -303,7 +303,7 @@ public class TestDPQR {
 					}
 					double d3 = 1.0 / (Ga * pow(sig, sh)) * pow(x, sh - 1.0) * exp(-x / sig);
 					if (!isEqual(d1, d3)) {
-						System.err.println(String.format("Error: scaled dgamma = %g, manually comp dgamma = %g", d1, d3));
+						System.err.println(String.format("Error: scaled dgamma = %3.18g, manually comp dgamma = %3.18g", d1, d3));
 						success = false;
 					}
 				}

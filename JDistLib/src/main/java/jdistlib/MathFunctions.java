@@ -41,6 +41,20 @@ public class MathFunctions {
 	{	return x >= 0 ? floor(x) : ceil(x); }
 
 	/**
+	 * Rounding to desired num places
+	 * @param val
+	 * @param places
+	 * @return rounded number
+	 */
+	public static final double round(double val, int places) {
+		double factor = pow(10, places);
+		return Math.round(val*factor)/factor;
+	}
+
+	public static final float round(float val, int places) 
+	{	return round(val, places); }
+
+	/**
 	 * Determine the number of terms for the
 	 * double precision orthogonal Chebyshev series "dos" needed to insure
 	 * the error is no larger than "eta".  Ordinarily eta will be

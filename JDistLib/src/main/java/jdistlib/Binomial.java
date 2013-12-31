@@ -201,9 +201,11 @@ public class Binomial extends GenericDistribution {
 		}
 	}
 
-	public static final double random(double nin, double pp, QRandomEngine random, RandomState state)
-	{
-		/* FIXME: These should become THREAD_specific globals : */
+	public static final double random(double nin, double pp, QRandomEngine random) {
+		return random(nin, pp, random, null);
+	}
+
+	public static final double random(double nin, double pp, QRandomEngine random, RandomState state) {
 		if (state == null) state = singleton.new RandomState();
 
 		double f, f1, f2, u, v, w, w2, x, x1, x2, z, z2;

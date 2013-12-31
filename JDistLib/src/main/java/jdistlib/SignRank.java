@@ -90,7 +90,6 @@ public class SignRank extends GenericDistribution {
 
 	public double cumulative(int x, boolean lower_tail, boolean log_p)
 	{
-		int n = w.length - 1;
 		int i;
 		double f, p;
 

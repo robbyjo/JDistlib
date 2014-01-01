@@ -299,11 +299,13 @@ public class TestDPQR {
 					double d2 = Gamma.density(x/sig, sh, 1, false) / sig;
 					if (!isEqual(d1, d2)) {
 						System.err.println(String.format("Error: scaled dgamma = %g, manually scaled dgamma = %g", d1, d2));
+						System.err.println(String.format("x = %g, sh = %g, sig = %g, Ga(sh) = %g", x, sh, sig, Ga));
 						success = false;
 					}
 					double d3 = 1.0 / (Ga * pow(sig, sh)) * pow(x, sh - 1.0) * exp(-x / sig);
 					if (!isEqual(d1, d3)) {
 						System.err.println(String.format("Error: scaled dgamma = %3.18g, manually comp dgamma = %3.18g", d1, d3));
+						System.err.println(String.format("x = %g, sh = %g, sig = %g, Ga(sh) = %3.30g", x, sh, sig, Ga));
 						success = false;
 					}
 				}

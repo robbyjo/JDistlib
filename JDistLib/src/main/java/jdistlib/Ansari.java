@@ -32,8 +32,7 @@ import jdistlib.rng.QRandomEngine;
  *
  */
 public class Ansari extends GenericDistribution {
-	static final double cansari(int k, int m, int n, double w[][][])
-	{
+	static final double cansari(int k, int m, int n, double w[][][]) {
 		int l, u;
 
 		l = (m + 1) * (m + 1) / 4;
@@ -68,15 +67,23 @@ public class Ansari extends GenericDistribution {
 		return result;
 	}
 
+	static final double density(int x, int m, int n, double[][][] w) {
+		return cansari(x, m, n, w) / choose(m + n, m);
+	}
+
 	public static final double density(int x, int m, int n) {
 		return cansari(x, m, n, new double[m+1][n+1][]) / choose(m + n, m);
 	}
 
 	public static final double[] cumulative(int[] x, int m, int n) {
+		return cumulative(x, m, n, null);
+	}
+
+	static final double[] cumulative(int[] x, int m, int n, double[][][] w) {
 		int i, j, l, u, len = x.length;
 		double c, p;
-		double[][][] w = new double[m+1][n+1][];
 		double[] result = new double[len];
+		if (w == null) w = new double[m+1][n+1][];
 
 		l = (m + 1) * (m + 1) / 4;
 		u = l + m * n / 2;
@@ -100,9 +107,13 @@ public class Ansari extends GenericDistribution {
 	}
 
 	public static final double cumulative(int x, int m, int n) {
+		return cumulative(x, m, n, null);
+	}
+
+	public static final double cumulative(int x, int m, int n, double[][][] w) {
 		int j, l, u;
 		double c, p;
-		double[][][] w = new double[m+1][n+1][];
+		if (w == null) w = new double[m+1][n+1][];
 
 		l = (m + 1) * (m + 1) / 4;
 		u = l + m * n / 2;
@@ -119,10 +130,14 @@ public class Ansari extends GenericDistribution {
 	}
 
 	public static final int[] quantile(double[] x, int m, int n) {
+		return quantile(x, m, n, null);
+	}
+
+	public static final int[] quantile(double[] x, int m, int n, double[][][] w) {
 		int i, l, u, q, len = x.length;
 		double c, p, xi;
-		double[][][] w = new double[m+1][n+1][];
 		int[] result = new int[len];
+		if (w == null) w = new double[m+1][n+1][];
 
 		l = (m + 1) * (m + 1) / 4;
 		u = l + m * n / 2;
@@ -153,10 +168,14 @@ public class Ansari extends GenericDistribution {
 		return result;
 	}
 
-	public static final int quantile(double xi, int m, int n) {
+	public static final int quantile(double x, int m, int n) {
+		return quantile(x, m, n, new double[m+1][n+1][]);
+	}
+
+	public static final int quantile(double xi, int m, int n, double[][][] w) {
 		int l, u, q;
 		double c, p;
-		double[][][] w = new double[m+1][n+1][];
+		if (w == null) w = new double[m+1][n+1][];
 
 		l = (m + 1) * (m + 1) / 4;
 		u = l + m * n / 2;
@@ -195,20 +214,45 @@ public class Ansari extends GenericDistribution {
 		return u1;
 	}
 
+	public static final double random(int m, int n, double[][][] w, QRandomEngine random) {
+		double u1 = random.nextDouble();
+		u1 = (int) (134217728 * u1) + random.nextDouble();
+		u1 = quantile(u1 / 134217728, m, n, w);
+		return u1;
+	}
+	public static final double[] random(int count, int m, int n, QRandomEngine random) {
+		return random(count, m, n, null, random);
+	}
+
+	public static final double[] random(int count, int m, int n, double[][][] w, QRandomEngine random) {
+		double[] rand = new double[count];
+		for (int i = 0; i < count; i++) {
+			double u1 = random.nextDouble();
+			u1 = ((int) (134217728 * u1) + random.nextDouble()) / 134217728;
+			rand[i] = u1;
+		}
+		int[] q = quantile(rand, m, n, w);
+		for (int i = 0; i < count; i++)
+			rand[i] = q[i];
+		return rand;
+	}
+
 	protected int m, n;
+	protected double[][][] w;
 
 	public Ansari(int m, int n) {
 		this.m = m; this.n = n;
+		w = new double[m+1][n+1][];
 	}
 
 	@Override
 	public double density(double x, boolean log) {
-		return density((int) x, m, n);
+		return density((int) x, m, n, w);
 	}
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		p = cumulative((int) p, m, n);
+		p = cumulative((int) p, m, n, w);
 		p = lower_tail ? p : 1 - p;
 		return log_p ? log(p) : p;
 	}
@@ -218,11 +262,11 @@ public class Ansari extends GenericDistribution {
 		if (log_p) q = exp(q);
 		if (log_p) q = exp(q);
 		if (!lower_tail) q = 1 - q;
-		return quantile(q, m, n);
+		return quantile(q, m, n, w);
 	}
 
 	@Override
 	public double random(QRandomEngine random) {
-		return random(m, n, random);
+		return random(m, n, w, random);
 	}
 }

@@ -23,9 +23,11 @@ import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import static java.lang.Math.log1p;
 import static java.lang.Math.pow;
+import static jdistlib.MathFunctions.isInfinite;
 import static jdistlib.MathFunctions.round;
 import static jdistlib.MathFunctions.gammafn;
 import static jdistlib.Constants.DBL_EPSILON;
+import static jdistlib.util.Utilities.*;
 
 /**
  * Ported tests/d-p-q-r-tests.R plus some more.
@@ -49,7 +51,7 @@ public class TestDPQR {
 	}
 
 	static final boolean isEqual(double a, double b, double tol) {
-		return !Double.isNaN(a+b) && (a == b || abs(a - b) < tol);
+		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) < tol);
 	}
 
 	static final void printBool(boolean b) {
@@ -62,6 +64,27 @@ public class TestDPQR {
 		for (int i = 0; i < b.length; i++)
 			System.out.print(b[i] ? " TRUE" : " FALSE");
 		System.out.println();
+	}
+
+	static final double[] pows(double x, double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = pow(x, e[i]);
+		return v;
+	}
+
+	static final double[] pows(double x, int[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = pow(x, e[i]);
+		return v;
+	}
+
+	static final double[] mins(double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = -e[i];
+		return v;
 	}
 
 	@Test
@@ -354,7 +377,263 @@ public class TestDPQR {
 		return success;
 	}
 
+	@Test
+	public static final boolean test_noncentralchisq() {
+		System.out.println("##-- non central Chi^2 :");
+		boolean success = true, cur_success;
+		for (double df : new double[] { 0.1, 1, 10 }) {
+			for (double ncp : new double[] { 0, 1, 10, 100 }) {
+				for (double xB : new double [] { 2000, 1e6, 1e50, Double.POSITIVE_INFINITY}) {
+					if (!isEqual(NonCentralChiSquare.cumulative(xB, df, ncp, true, false), 1)) {
+						System.err.println(String.format("Error: pchisq(x=%g, df=%g, ncp=%g) = %3.18g. Correct answer = 1", xB, df, ncp));
+						success = false;
+					}
+				}
+			}
+		}
+		double cor_val = 49.77662465605547481573; // This is the value I took from R
+		//double cor_val = 49.7766246561514; // This is the value given in d-p-q-r-test.R
+		double val = NonCentralChiSquare.quantile(0.025, 31, 1, false, false); // Inf. loop PR#875
+		if (!isEqual(val, cor_val, 1e-11)) {
+			System.err.println(String.format("Error: qchisq(x=0.025, df=31, ncp=1) = %3.18g. Correct answer = %3.18", val, cor_val));
+			success = false;
+		}
+
+		for (double df : new double[] {0.1, 0.5, 1.5, 4.7, 10, 20, 50, 100}) {
+			System.out.print("df =" + df);
+			cur_success = true;
+			double dtol = 1e-12 * (2 < df && df <= 50 ? 64 : (df > 50 ? 20000 : 501));
+			for (double xx : new double[] {1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.9, 1.2, df+3, df+7, df+20, df+30, df+35, df+38}) {
+				double pval = NonCentralChiSquare.cumulative(xx, df, 1, true, false);
+				double qval = NonCentralChiSquare.quantile(pval, df, 1, true, false);
+				if (!isEqual(qval, xx, dtol)) {
+					System.err.println(String.format("Error: xx=%g, df=%g, ncp=1, pchisq = %3.18g, qchisq = %3.18g != xx", xx, df, pval, qval));
+					success = cur_success = false;
+				}
+			}
+			printBool(cur_success);
+		}
+
+		// ## p ~= 1 (<==> 1-p ~= 0) -- gave infinite loop in R <= 1.8.1 -- PR#6421
+		cur_success = true;
+		boolean cur_success2 = true;
+		for (int i = 10; i <= 54; i++) {
+			double psml = pow(2, -i);
+			double q0 = NonCentralChiSquare.quantile(psml, 1.2, 10, false, false);
+			double q1 = NonCentralChiSquare.quantile(1-psml, 1.2, 10, true, false);
+			double p0 = NonCentralChiSquare.cumulative(q0, 1.2, 10, false, false);
+			double p1 = NonCentralChiSquare.cumulative(q1, 1.2, 10, false, false);
+			// R code: up to 54, but only the first 30 is tested for accuracy
+			if (i < 29 & !isEqual(q0, q1, 1e-5)) {
+				System.err.println(String.format("Error: psml=%g, q0=%3.18g, q1 = %3.18g", psml, q0, q1));
+				success = cur_success = false;
+			}
+			if (i < 29 & !isEqual(p0, psml)) {
+				System.err.println(String.format("Error: psml=%g, p0=%3.18g", psml, q0));
+				success = cur_success2 = false;
+			}
+			if (p1 > 0) {}; // To mute the compilation warning
+		}
+		printBool(cur_success);
+		printBool(cur_success2);
+		return success;
+	}
+
+	@Test
+	public static final boolean test_beta() {
+		System.out.println("##--- Beta (need more):");
+		boolean success = true;
+		for (int i = 0; i < 20; i++) {
+			double a = LogNormal.random(5.5, 1, random);
+			for (int j = 0; j < 20; j++) {
+				double b = LogNormal.random(6.6, 1, random);
+				for (int k = 0; k <= 10; k++) {
+					double p = k/10.0;
+					double v1 = Beta.density(p, a, b, false);
+					double v2log = Beta.density(p, a, b, true);
+					double v2 = exp(v2log);
+					//System.out.println(String.format("Debug: p=%g, a=%3.18g, b=%3.18g, dbeta(p,a,b) = %3.18g, dbeta(p,a,b,TRUE) = %3.18g", p, a, b, v1, v2log));
+					if (!isEqual(v1, v2, 1e-11)) {
+						System.err.println(String.format("Error: p=%g, a=%3.18g, b=%3.18g, dbeta(p,a,b) = %3.18g, exp(dbeta(p,a,b,TRUE)) = %3.18g", p, a, b, v1, v2));
+						success = false;
+					}
+				}
+			}
+		}
+		return success;
+	}
+
+	@Test
+	public static final boolean test_normal() {
+		// Includes T disribution apparently
+		System.out.println("##--- Normal (& Lognormal) :");
+		boolean success = Normal.quantile(0, 1, 0, true, false) == Double.NEGATIVE_INFINITY
+			&& Normal.quantile(Double.NEGATIVE_INFINITY, 1, 0, true, true) == Double.NEGATIVE_INFINITY;
+		printBool(success);
+		success &= Normal.quantile(1, 1, 0, true, false) == Double.POSITIVE_INFINITY
+			&& Normal.quantile(0, 1, 0, true, true) == Double.POSITIVE_INFINITY;
+		printBool(success);
+		success &= Double.isNaN(Normal.quantile(1.1, 1, 0, true, false))
+			&& Double.isNaN(Normal.quantile(-0.1, 1, 0, true, false));
+		printBool(success);
+
+		double[] xx = new double[] {Double.NEGATIVE_INFINITY, -1e100, 1,2,3,4,5,6, 1e200, Double.POSITIVE_INFINITY};
+		double val;
+		System.out.print("d.s0");
+		for (int i = 0; i < xx.length; i++) {
+			val = Normal.density(xx[i], 3, 0, false);
+			System.out.print(" " + val);
+			success &= (val == (i == 4 ? Double.POSITIVE_INFINITY : 0));
+		}
+		System.out.println();
+		System.out.print("p.s0");
+		for (int i = 0; i < xx.length; i++) {
+			val = Normal.cumulative(xx[i], 3, 0, true, false);
+			System.out.print(" " + val);
+			success &= (val == (i >= 4 ? 1 : 0));
+		}
+		System.out.println();
+		System.out.print("d.sI");
+		for (int i = 0; i < xx.length; i++) {
+			val = Normal.density(xx[i], 3, Double.POSITIVE_INFINITY, false);
+			System.out.print(" " + val);
+			success &= (val == 0);
+		}
+		System.out.println();
+		System.out.print("p.sI");
+		for (int i = 0; i < xx.length; i++) {
+			val = Normal.cumulative(xx[i], 3, Double.POSITIVE_INFINITY, true, false);
+			System.out.print(" " + val);
+			success &= (val == (i == 0 ? 0 : i == 9 ? 1 : 0.5));
+		}
+		System.out.println();
+		// ## 3 Test data from Wichura (1988) :
+		double
+			q1 = Normal.quantile(0.25, 0, 1, true, false),
+			q2 = Normal.quantile(0.001, 0, 1, true, false),
+			q3 = Normal.quantile(1e-20, 0, 1, true, false);
+		// Supplied values from d-p-q-r-tests.R seem to be lacking precision
+//		boolean cur_success = isEqual(q1, -0.6744897501960817, 1e-15) &&
+//			isEqual(q2, -3.090232306167814, 1e-15) &&
+//			isEqual(q3, -9.262340089798408, 1e-15);
+		// These figures are taken from R console
+		boolean cur_success = isEqual(q1, -0.6744897501960817054467, 1e-15) &&
+			isEqual(q2, -3.0902323061678131921326, 1e-15) &&
+			isEqual(q3, -9.2623400897984051738376, 1e-15);
+		success &= cur_success;
+		printBool(cur_success);
+		q1 = Normal.quantile(-1e5, 0, 1, true, true);
+		// Supplied value from d-p-q-r-tests.R seems to be lacking precision
+		//cur_success = isEqual(q1, -447.1974945);
+		// This figure is taken from R console
+		cur_success = isEqual(q1, -447.1974944650480097152);
+		success &= cur_success;
+		printBool(cur_success);
+
+		cur_success = true;
+		for (int i = 0; i < 1000; i++) {
+			double z = Normal.random_standard(random);
+			double pz = Normal.cumulative(z, 0, 1, true, false);
+			double pz_comp = 1-Normal.cumulative(-z, 0, 1, true, false);
+			if (!isEqual(pz, pz_comp, 1e-15)) {
+				System.err.println(String.format("Error: z=%3.18g, pnorm(z) = %3.18g, 1-pnorm(-z) = %3.18g", z, pz, pz_comp));
+				success = cur_success = false;
+			}
+		}
+		printBool(cur_success);
+		boolean cur_success2 = true, cur_success3 = true, cur_success4 = true, cur_success5 = true, cur_success6 = true;
+		StringBuilder buf = new StringBuilder();
+		StringBuilder buf2 = new StringBuilder();
+		// Java does not have NA
+		for (int i = 0; i < 1003; i++) {
+			double z = (i == 0 ? Double.NEGATIVE_INFINITY : i == 1 ? Double.POSITIVE_INFINITY : i == 2 ? Double.NaN :
+				T.random(2, random));
+			for (int df = 1; df <= 10; df++) {
+				double pt = T.cumulative(z, df, true, false);
+				double pt_comp = 1 - T.cumulative(-z, df, true, false);
+				if (!isEqual(pt, pt_comp, 1e-15)) {
+					System.err.println(String.format("Error: z=%3.18g, df=%d, pt(z,df) = %3.18g, 1-pt(-z,df) = %3.18g", z, df, pt, pt_comp));
+					success = cur_success = false;
+				}
+			}
+			double pz = Normal.cumulative(z, 0, 1, true, false);
+			double pz_comp = 1-Normal.cumulative(z, 0, 1, false, false);
+			if (!isEqual(pz, pz_comp)) {
+				System.err.println(String.format("Error: z=%3.18g, pnorm(z) = %3.18g, 1-pnorm(z, lower=FALSE) = %3.18g", z, pz, pz_comp));
+				success = cur_success2 = false;
+			}
+			double pz_comp2 = Normal.cumulative(-z, 0, 1, false, false);
+			if (!isEqual(pz, pz_comp2)) {
+				System.err.println(String.format("Error: z=%3.18g, pnorm(z) = %3.18g, pnorm(-z, lower=FALSE) = %3.18g", z, pz, pz_comp2));
+				success = cur_success3 = false;
+			}
+			if (isInfinite(z) || z > -37.5) {
+				double log_pz = log(pz);
+				pz_comp = Normal.cumulative(z, 0, 1, true, true);
+				if (!isEqual(log_pz, pz_comp)) {
+					System.err.println(String.format("Error: z=%3.18g, log(pnorm(z)) = %3.18g, pnorm(z, log=TRUE) = %3.18g", z, log_pz, pz_comp));
+					success = cur_success4 = false;
+				}
+			}
+			double plnorm_exp_z = LogNormal.cumulative(exp(z), 0, 1, true, false);
+			if (!isEqual(pz, plnorm_exp_z)) {
+				buf.append(String.format("Error: z=%3.18g, pnorm(z) = %3.18g, plnorm(exp(z)) = %3.18g", z, pz, plnorm_exp_z) + "\n");
+				success = cur_success5 = false;
+			}
+			if (1e-5 < pz && pz < 1 - 1e-5) {
+				double qnorm_pz = Normal.quantile(pz, 0, 1, true, false);
+				if (!isEqual(z, qnorm_pz, 1e-12)) {
+					buf2.append(String.format("Error: z=%3.18g, qnorm(pnorm(z)) = %3.18g", z, qnorm_pz) + "\n");
+					success = cur_success6 = false;
+				}
+			}
+		}
+		printBool(cur_success);
+		printBool(cur_success2);
+		printBool(cur_success3);
+		printBool(cur_success4);
+
+		for (int y = -70; y <= 0; y += 10) {
+			double log_pnorm_y = log(Normal.cumulative(y, 0, 1, true, false));
+			double pnorm_y_log = Normal.cumulative(y, 0, 1, true, true);
+			System.out.println(String.format("y=%d, log(pnorm(y)) = %3.18g, pnorm(y, log=TRUE) = %3.18g", y, log_pnorm_y, pnorm_y_log));
+		}
+
+		System.out.println();
+		for (int y: c(colon(1,15), seq(20,40,5))) {
+			double log_pnorm_y = log(Normal.cumulative(y, 0, 1, true, false));
+			double pnorm_y_log = Normal.cumulative(y, 0, 1, true, true);
+			double log_pnorm_min_y = log(Normal.cumulative(-y, 0, 1, true, false));
+			double pnorm_min_y_log = Normal.cumulative(-y, 0, 1, true, true);
+			System.out.println(String.format("y=%d, log(pnorm(y)) = %3.18g, pnorm(y, log=TRUE) = %3.18g, log(pnorm(-y)) = %3.18g, pnorm(-y, log=TRUE) = %3.18g", y, log_pnorm_y, pnorm_y_log, log_pnorm_min_y, pnorm_min_y_log));
+		}
+		double[] yy = c(colon(1., 50), pows(10, c(colon(3,10), c(20,50,150,250))));
+		yy = c(mins(yy), new double[] {0}, yy);
+		for (double y: yy) {
+			double py_minus = Normal.cumulative(-y, 0, 1, true, false);
+			double py_plus = Normal.cumulative(+y, 0, 1, false, false);
+			if (py_plus != py_minus) {
+				System.err.println(String.format("y=%d, pnorm(-y) = %3.18g, pnorm(y, lower=FALSE)", y, py_minus, py_plus));
+				success = false;
+			}
+			py_minus = Normal.cumulative(-y, 0, 1, true, true);
+			py_plus = Normal.cumulative(+y, 0, 1, false, true);
+			if (py_plus != py_minus) {
+				System.err.println(String.format("y=%d, pnorm(-y, log=TRUE) = %3.18g, pnorm(y, lower=FALSE, log=TRUE)", y, py_minus, py_plus));
+				success = false;
+			}
+		}
+		printBool(cur_success5);
+		if (!cur_success5)
+			System.err.println(buf.toString());
+		printBool(cur_success6);
+		if (!cur_success6)
+			System.err.println(buf2.toString());
+		return success;
+	}
+
 	public static final void main(String[] args) {
+		
 		test_binom();
 		test_geom();
 		test_hyper();
@@ -363,5 +642,8 @@ public class TestDPQR {
 		test_signrank();
 		test_wilcox();
 		test_gamma();
+		test_noncentralchisq();
+		test_beta();
+		test_normal();
 	}
 }

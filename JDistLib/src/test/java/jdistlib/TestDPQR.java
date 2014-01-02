@@ -633,7 +633,6 @@ public class TestDPQR {
 	}
 
 	public static final void main(String[] args) {
-		
 		test_binom();
 		test_geom();
 		test_hyper();

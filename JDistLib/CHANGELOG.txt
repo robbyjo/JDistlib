@@ -1,12 +1,13 @@
 What's new:
 
-Version 0.1.3 (?):
+Version 0.1.3 (Jan 2, 2014):
 * Fixed bugs on SignRank.cumulative. The variable n was set incorrectly.
 * Fixed bugs on Gamma.cumulative when the scale is +Inf.
 * Added some code from d-p-q-r-tests.R for unit testing.
 * Noted some precision loss on Gamma.cumulative
 * Noted some precision loss on NonCentralChiSquare
 * Fixed bugs on most distributions for boundary cases dealing with infinity
+* Converted project to Maven
 
 Version 0.1.2 (Dec 26, 2013):
 * Added Rayleigh and Inverse Normal distributions

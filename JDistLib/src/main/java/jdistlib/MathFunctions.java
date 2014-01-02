@@ -58,6 +58,9 @@ public class MathFunctions {
 	public static final boolean isFinite(double x)
 	{	return !Double.isNaN(x) && (x != Double.POSITIVE_INFINITY) && (x != Double.NEGATIVE_INFINITY); }
 
+	public static final boolean isInfinite(double x)
+	{	return Double.isNaN(x) || (x == Double.POSITIVE_INFINITY) || (x == Double.NEGATIVE_INFINITY); }
+
 	/**
 	 * Determine the number of terms for the
 	 * double precision orthogonal Chebyshev series "dos" needed to insure

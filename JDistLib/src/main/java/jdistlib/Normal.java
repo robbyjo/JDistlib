@@ -19,9 +19,14 @@
  */
 package jdistlib;
 
-import static java.lang.Double.*;
+import static java.lang.Double.isNaN;
+import static java.lang.Double.MIN_VALUE;
+import static java.lang.Double.NaN;
+import static java.lang.Double.NEGATIVE_INFINITY;
+import static java.lang.Double.POSITIVE_INFINITY;
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import static jdistlib.MathFunctions.isInfinite;
 import static jdistlib.MathFunctions.trunc;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
@@ -116,17 +121,18 @@ public class Normal extends GenericDistribution {
 		if(isNaN(x) || isNaN(mu) || isNaN(sigma))
 			return x + mu + sigma;
 		if (sigma <= 0) {
-			if (sigma == 0)
-				return x < mu ? (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) : (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
-			return NaN;
+			if (sigma < 0) return NaN;
+			// return (x < mu) ? R_DT_0 : R_DT_1;
+			return x < mu ? (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) : (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		}
 
-		result = x = (x - mu) / sigma; ccum = 0;
+		result = (x - mu) / sigma; ccum = 0;
 		// lower == lower_tail, upper == !lower_tail
 		// Entering pnorm_both
 
-		if(isInfinite(x))
-			return x < 0 ? (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) : (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if(isInfinite(result)) // return (x < mu) ? R_DT_0 : R_DT_1;
+			return x < mu ? (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) : (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		x = result;
 
 		eps = DBL_EPSILON * 0.5;
 		min = MIN_VALUE;

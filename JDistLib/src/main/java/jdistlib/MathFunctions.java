@@ -54,6 +54,10 @@ public class MathFunctions {
 	public static final float round(float val, int places) 
 	{	return round(val, places); }
 
+	// R's finite is not the same as Java's !Double.isInfinite
+	public static final boolean isFinite(double x)
+	{	return !Double.isNaN(x) && (x != Double.POSITIVE_INFINITY) && (x != Double.NEGATIVE_INFINITY); }
+
 	/**
 	 * Determine the number of terms for the
 	 * double precision orthogonal Chebyshev series "dos" needed to insure

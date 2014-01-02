@@ -231,8 +231,16 @@ public class Normal extends GenericDistribution {
 		if (isNaN(p) || isNaN(mu) || isNaN(sigma))
 			return p + mu + sigma;
 		/*!* #endif /*4!*/
-		if (p < 0.0 || p > 1.0)
-			return NaN;
+		// R_Q_P01_boundaries(p, ML_NEGINF, ML_POSINF);
+		if (log_p) {
+			if (p > 0) return NaN;
+			if (p == 0) return lower_tail ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
+			if (p == Double.NEGATIVE_INFINITY) return lower_tail ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+		} else {
+			if (p < 0 || p > 1) return NaN;
+			if (p == 0) return lower_tail ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+			if (p == 1) return lower_tail ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
+		}
 
 		if (sigma < 0)
 			return NaN;

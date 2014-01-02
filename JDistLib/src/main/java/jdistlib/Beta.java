@@ -190,7 +190,7 @@ public class Beta extends GenericDistribution {
 
 		for (i_pb=0; i_pb < 1000; i_pb++) {
 			y = cumulative_raw(xinbta, pp, qq, /*lower_tail = */ true, false);
-			if(Double.isInfinite(y))
+			if(isInfinite(y))
 				return Double.NaN;
 
 			y = (y - a) *
@@ -235,13 +235,13 @@ public class Beta extends GenericDistribution {
 		//double olda = -1.0;
 		//double oldb = -1.0;
 
-		if (aa <= 0. || bb <= 0. || (Double.isInfinite(aa) && Double.isInfinite(bb)))
+		if (aa <= 0. || bb <= 0. || (isInfinite(aa) && isInfinite(bb)))
 			return Double.NaN;
 
-		if (Double.isInfinite(aa))
+		if (isInfinite(aa))
 			return 1.0;
 
-		if (Double.isInfinite(bb))
+		if (isInfinite(bb))
 			return 0.0;
 
 		/* Test if we need new "initializing" */
@@ -287,7 +287,7 @@ public class Beta extends GenericDistribution {
 						v = beta * log(u1 / (1.0 - u1));
 						if (v <= expmax) {
 							w = b * exp(v);
-							if(Double.isInfinite(w)) w = Double.MAX_VALUE;
+							if(isInfinite(w)) w = Double.MAX_VALUE;
 						} else
 							w = Double.MAX_VALUE;
 						break;
@@ -300,7 +300,7 @@ public class Beta extends GenericDistribution {
 				v = beta * log(u1 / (1.0 - u1));
 				if (v <= expmax) {
 					w = b * exp(v);
-					if(Double.isInfinite(w)) w = Double.MAX_VALUE;
+					if(isInfinite(w)) w = Double.MAX_VALUE;
 				} else
 					w = Double.MAX_VALUE;
 
@@ -324,7 +324,7 @@ public class Beta extends GenericDistribution {
 				v = beta * log(u1 / (1.0 - u1));
 				if (v <= expmax) {
 					w = a * exp(v);
-					if(Double.isInfinite(w)) w = Double.MAX_VALUE;
+					if(isInfinite(w)) w = Double.MAX_VALUE;
 				} else
 					w = Double.MAX_VALUE;
 

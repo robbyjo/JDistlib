@@ -128,7 +128,7 @@ public class Kendall extends GenericDistribution {
 	 */
 	public static final double quantile(double p, int n)
 	{
-		if (Double.isNaN(p) || Double.isInfinite(p)) return p;
+		if (Double.isNaN(p) || MathFunctions.isInfinite(p)) return p;
 		if (p < 0 || p > 1 || n < 2) return Double.NaN;
 		double mu, sigma;
 

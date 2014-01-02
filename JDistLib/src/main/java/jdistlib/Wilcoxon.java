@@ -141,7 +141,7 @@ public class Wilcoxon extends GenericDistribution {
 		double c, p;
 
 		if (Double.isNaN(q) || Double.isNaN(m) || Double.isNaN(n)) return(q + m + n);
-		if (Double.isInfinite(m) || Double.isInfinite(n)) return Double.NaN;
+		if (MathFunctions.isInfinite(m) || MathFunctions.isInfinite(n)) return Double.NaN;
 		//m = floor(m + 0.5);
 		//n = floor(n + 0.5);
 		if (m <= 0 || n <= 0) return Double.NaN;
@@ -175,7 +175,7 @@ public class Wilcoxon extends GenericDistribution {
 		double c, p;
 
 		if (Double.isNaN(x) || Double.isNaN(m) || Double.isNaN(n)) return(x + m + n);
-		if(Double.isInfinite(x) || Double.isInfinite(m) || Double.isInfinite(n)) return Double.NaN;
+		if(MathFunctions.isInfinite(x) || MathFunctions.isInfinite(m) || MathFunctions.isInfinite(n)) return Double.NaN;
 		//R_Q_P01_check(x);
 		if ((log_p && x > 0) || (!log_p && (x < 0 || x > 1)) ) return Double.NaN;
 

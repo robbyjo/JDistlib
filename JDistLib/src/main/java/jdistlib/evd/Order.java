@@ -15,6 +15,7 @@
 package jdistlib.evd;
 
 import jdistlib.Beta;
+import jdistlib.MathFunctions;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 import static java.lang.Math.*;
@@ -32,7 +33,7 @@ public class Order extends GenericDistribution {
 		if (!largest)
 			j = mlen + 1 - j;
 		double dens = dist.density(x, true);
-		if (Double.isInfinite(dens))
+		if (MathFunctions.isInfinite(dens))
 			return Double.NEGATIVE_INFINITY;
 		double cum = dist.cumulative(x, true, log);
 		cum = (mlen - j) * log(cum) + (j - 1) * log (1 - cum);

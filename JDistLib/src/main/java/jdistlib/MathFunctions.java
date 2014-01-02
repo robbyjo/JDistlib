@@ -437,7 +437,7 @@ public class MathFunctions {
 		double ej, s, s1, v;
 		int j;
 
-		if(Double.isInfinite(x) || Double.isInfinite(np) || np == 0.0) return Double.NaN;
+		if(isInfinite(x) || isInfinite(np) || np == 0.0) return Double.NaN;
 
 		if (abs(x-np) < 0.1*(x+np)) {
 			v = (x-np)/(x+np);
@@ -471,7 +471,7 @@ public class MathFunctions {
 		else if (p == 0) {
 			return Double.POSITIVE_INFINITY;
 		}
-		else if (Double.isInfinite(q)) { /* q == +Inf */
+		else if (isInfinite(q)) { /* q == +Inf */
 			return Double.NEGATIVE_INFINITY;
 		}
 
@@ -2803,7 +2803,7 @@ public class MathFunctions {
 			return Double.NaN;
 		if (a == 0 || b == 0)
 			return Double.POSITIVE_INFINITY;
-		if (Double.isInfinite(a) || Double.isInfinite(b))
+		if (isInfinite(a) || isInfinite(b))
 			return 0;
 
 		if (a + b < xmax) /* ~= 171.61 for IEEE */

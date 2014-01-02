@@ -46,7 +46,7 @@ public class Poisson extends GenericDistribution {
 
 	public static final double density_raw(double x, double lambda, boolean give_log) {
 		if (lambda == 0) return( (x == 0) ? (give_log ? 0. : 1.) : (give_log ? Double.NEGATIVE_INFINITY : 0.) );
-		if (Double.isInfinite(lambda)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (MathFunctions.isInfinite(lambda)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (x < 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (x <= lambda * Double.MIN_VALUE) return(give_log ? -lambda : exp(-lambda) );
 		if (lambda < x * Double.MIN_VALUE) {
@@ -63,7 +63,7 @@ public class Poisson extends GenericDistribution {
 		if(Double.isNaN(x) || Double.isNaN(lambda)) return x + lambda;
 		if (lambda < 0) return Double.NaN;
 		if (abs((x) - floor((x)+0.5)) > 1e-7) return (give_log ? Double.NEGATIVE_INFINITY : 0.); // Non integer
-		if (x < 0 || Double.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		return( density_raw(floor((x) + 0.5),lambda,give_log) );
 	}
 
@@ -74,7 +74,7 @@ public class Poisson extends GenericDistribution {
 		if(lambda < 0.) return Double.NaN;
 		if (x < 0)		return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		if (lambda == 0.)	return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
-		if (Double.isInfinite(x))	return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if (MathFunctions.isInfinite(x))	return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		x = floor(x + 1e-7);
 
 		return Gamma.cumulative(lambda, x + 1, 1., !lower_tail, log_p);
@@ -112,7 +112,7 @@ public class Poisson extends GenericDistribution {
 		double mu, sigma, gamma, z[] = new double[1], y;
 		if (Double.isNaN(p) || Double.isNaN(lambda))
 			return p + lambda;
-		if(Double.isInfinite(lambda))
+		if(MathFunctions.isInfinite(lambda))
 			return Double.NaN;
 		if(lambda < 0) return Double.NaN;
 		if(lambda == 0) return 0;
@@ -208,7 +208,7 @@ public class Poisson extends GenericDistribution {
 		int k;
 		boolean kflag = true, big_mu, new_big_mu = false;
 
-		if (Double.isInfinite(mu) || mu < 0)
+		if (MathFunctions.isInfinite(mu) || mu < 0)
 			return Double.NaN;
 
 		if (mu <= 0.)

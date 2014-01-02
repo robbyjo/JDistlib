@@ -36,7 +36,7 @@ public class Geometric extends GenericDistribution {
 			//MATHLIB_WARNING("non-integer x = %f", x);
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
-		if (x < 0 || Double.isInfinite(x) || p == 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (x < 0 || MathFunctions.isInfinite(x) || p == 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		//x = R_D_forceint(x);
 		x = floor((x) + 0.5);
 		/* prob = (1-p)^x, stable for small p */
@@ -50,7 +50,7 @@ public class Geometric extends GenericDistribution {
 		if (p <= 0 || p > 1) return Double.NaN;
 
 		if (x < 0.) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
-		if (Double.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if (MathFunctions.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		x = floor(x +1e-7);
 
 		if(p == 1.) { /* we cannot assume IEEE */
@@ -94,7 +94,7 @@ public class Geometric extends GenericDistribution {
 
 	public static final double random(double p, QRandomEngine random)
 	{
-	    if (Double.isInfinite(p) || p <= 0 || p > 1) return Double.NaN;
+	    if (MathFunctions.isInfinite(p) || p <= 0 || p > 1) return Double.NaN;
 	    return Poisson.random(Exponential.random_standard(random) * ((1 - p) / p), random);
 	}
 

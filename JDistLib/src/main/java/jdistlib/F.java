@@ -33,11 +33,11 @@ public class F extends GenericDistribution {
 		if (m <= 0 || n <= 0) return Double.NaN;
 		if (x < 0.)  return((give_log ? Double.NEGATIVE_INFINITY : 0.));
 		if (x == 0.) return(m > 2 ? (give_log ? Double.NEGATIVE_INFINITY : 0.) : (m == 2 ? (give_log ? 0. : 1.) : Double.POSITIVE_INFINITY));
-		if (Double.isInfinite(m) && Double.isInfinite(n)) { /* both +Inf */
+		if (MathFunctions.isInfinite(m) && MathFunctions.isInfinite(n)) { /* both +Inf */
 			if(x == 1.) return Double.POSITIVE_INFINITY;
 			/* else */  return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
-		if (Double.isInfinite(n)) /* must be +Inf by now */
+		if (MathFunctions.isInfinite(n)) /* must be +Inf by now */
 			return(Gamma.density(x, m/2, 2./m, give_log));
 		if (m > 1e14) {/* includes +Inf: code below is inaccurate there */
 			dens = Gamma.density(1./x, n/2, 2./n, give_log);
@@ -120,7 +120,7 @@ public class F extends GenericDistribution {
 		 */
 
 		if (df1 <= df2 && df2 > 4e5) {
-			if(Double.isInfinite(df1)) /* df1 == df2 == Inf : */
+			if(MathFunctions.isInfinite(df1)) /* df1 == df2 == Inf : */
 				return 1.;
 			/* else */
 			return ChiSquare.quantile(p, df1, lower_tail, log_p) / df1;
@@ -138,8 +138,8 @@ public class F extends GenericDistribution {
 	{
 	    double v1, v2;
 	    if (Double.isNaN(n1) || Double.isNaN(n2) || n1 <= 0. || n2 <= 0.) return Double.NaN;
-	    v1 = !Double.isInfinite(n1) ? (ChiSquare.random(n1, random) / n1) : 1;
-	    v2 = !Double.isInfinite(n2) ? (ChiSquare.random(n2, random) / n2) : 1;
+	    v1 = MathFunctions.isFinite(n1) ? (ChiSquare.random(n1, random) / n1) : 1;
+	    v2 = MathFunctions.isFinite(n2) ? (ChiSquare.random(n2, random) / n2) : 1;
 	    return v1 / v2;
 	}
 

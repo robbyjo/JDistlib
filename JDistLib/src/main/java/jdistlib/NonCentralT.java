@@ -61,13 +61,13 @@ public class NonCentralT extends GenericDistribution {
 		if(ncp == 0.0) return T.density(x, df, give_log);
 
 		/* If x is infinite then return 0 */
-		if(Double.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if(MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 
 		/* If infinite df then the density is identical to a
 	       normal distribution with mean = ncp.  However, the formula
 	       loses a lot of accuracy around df=1e9
 		 */
-		if(Double.isInfinite(df) || df > 1e8)
+		if(MathFunctions.isInfinite(df) || df > 1e8)
 			return Normal.density(x, ncp, 1., give_log);
 
 		/* Do calculations on log scale to stabilize */
@@ -120,7 +120,7 @@ public class NonCentralT extends GenericDistribution {
 		if (df <= 0.0) return Double.NaN;
 		if(ncp == 0.0) return T.cumulative(t, df, lower_tail, log_p);
 
-		if(Double.isInfinite(t)) {
+		if(MathFunctions.isInfinite(t)) {
 			return (t < 0) ?
 				(lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) :
 				(lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
@@ -231,7 +231,7 @@ public class NonCentralT extends GenericDistribution {
 		double ux, lx, nx, pp;
 
 		if (Double.isNaN(p) || Double.isNaN(df) || Double.isNaN(ncp)) return p + df + ncp;
-		if (Double.isInfinite(df)) return Double.NaN;
+		if (MathFunctions.isInfinite(df)) return Double.NaN;
 
 		/* Was
 		 * df = floor(df + 0.5);

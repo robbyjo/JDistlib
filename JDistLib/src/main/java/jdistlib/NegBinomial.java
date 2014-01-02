@@ -38,7 +38,7 @@ public class NegBinomial extends GenericDistribution {
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
 
-		if (x < 0 || Double.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		//x = R_D_forceint(x);
 		x = floor((x) + 0.5);
 
@@ -62,7 +62,7 @@ public class NegBinomial extends GenericDistribution {
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
 
-		if (x < 0 || Double.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		//x = R_D_forceint(x);
 		x = floor((x) + 0.5);
 		if(x == 0) { /* be accurate, both for n << mu, and n >> mu :*/
@@ -85,7 +85,7 @@ public class NegBinomial extends GenericDistribution {
 	public static final double cumulative(double x, double size, double prob, boolean lower_tail, boolean log_p)
 	{
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(prob)) return x + size + prob;
-		if(Double.isInfinite(size) || Double.isInfinite(prob)) return Double.NaN;
+		if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(prob)) return Double.NaN;
 		if (size <= 0 || prob <= 0 || prob > 1)	return Double.NaN;
 
 		/* limiting case: point mass at zero */
@@ -93,7 +93,7 @@ public class NegBinomial extends GenericDistribution {
 			return (x >= 0) ? (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.))
 				: (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		if (x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
-		if (Double.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if (MathFunctions.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		x = floor(x + 1e-7);
 		return Beta.cumulative(prob, size, x + 1, lower_tail, log_p);
 	}
@@ -101,7 +101,7 @@ public class NegBinomial extends GenericDistribution {
 	public static final double cumulative_mu(double x, double size, double mu, boolean lower_tail, boolean log_p)
 	{
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(size)) return x + size + mu;
-		if(Double.isInfinite(size) || Double.isInfinite(mu)) return Double.NaN;
+		if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(mu)) return Double.NaN;
 		if (size < 0 || mu < 0) return Double.NaN;
 
 		/* limiting case: point mass at zero */
@@ -110,7 +110,7 @@ public class NegBinomial extends GenericDistribution {
 				: (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 
 			if (x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
-		if (Double.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if (MathFunctions.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		x = floor(x + 1e-7);
 		/* return
 		 * pbeta(pr, size, x + 1, lower_tail, log_p);  pr = size/(size + mu), 1-pr = mu/(size+mu)
@@ -230,7 +230,7 @@ public class NegBinomial extends GenericDistribution {
 
 	public static final double random(double size, double prob, QRandomEngine random)
 	{
-	    if(Double.isInfinite(size) || Double.isInfinite(prob) || size <= 0 || prob <= 0 || prob > 1)
+	    if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(prob) || size <= 0 || prob <= 0 || prob > 1)
 	    	/* prob = 1 is ok, PR#1218 */
 	    	return Double.NaN;
 	    return (prob == 1) ? 0 : Poisson.random(Gamma.random(size, (1 - prob) / prob, random), random);

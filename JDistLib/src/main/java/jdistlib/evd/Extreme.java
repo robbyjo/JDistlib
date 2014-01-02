@@ -15,6 +15,7 @@
 package jdistlib.evd;
 
 import jdistlib.Beta;
+import jdistlib.MathFunctions;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 import static java.lang.Math.*;
@@ -29,7 +30,7 @@ public class Extreme extends GenericDistribution {
 		if (mlen <= 0)
 			return Double.NaN;
 		double dens = dist.density(x, true);
-		if (Double.isInfinite(dens))
+		if (MathFunctions.isInfinite(dens))
 			return Double.NEGATIVE_INFINITY;
 		double cum = dist.cumulative(x, true, log);
 		if (!largest) cum = 1 - cum;

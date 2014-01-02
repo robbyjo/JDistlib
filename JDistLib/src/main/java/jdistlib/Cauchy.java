@@ -21,6 +21,7 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.Constants.*;
+import static jdistlib.MathFunctions.isInfinite;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
@@ -45,7 +46,7 @@ public class Cauchy extends GenericDistribution {
 
 		x = (x - location) / scale;
 		if (Double.isNaN(x)) return Double.NaN;
-		if(Double.isInfinite(x)) {
+		if(isInfinite(x)) {
 			if(x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 			else return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		}
@@ -69,7 +70,7 @@ public class Cauchy extends GenericDistribution {
 			return p + location + scale;
 		//R_Q_P01_check(p);
 		if ((log_p	&& p > 0) || (!log_p && (p < 0 || p > 1)) ) return Double.NaN;
-		if (scale <= 0 || Double.isInfinite(scale)) {
+		if (scale <= 0 || isInfinite(scale)) {
 			if (scale == 0) return location;
 			/* else */ return Double.NaN;
 		}
@@ -96,8 +97,8 @@ public class Cauchy extends GenericDistribution {
 
 	public static final double random(double location, double scale, QRandomEngine random)
 	{
-		if (Double.isNaN(location) || Double.isInfinite(scale) || scale < 0) return Double.NaN;
-		if (scale == 0. || Double.isInfinite(location)) return location;
+		if (Double.isNaN(location) || isInfinite(scale) || scale < 0) return Double.NaN;
+		if (scale == 0. || isInfinite(location)) return location;
 		return location + scale * tan(M_PI * random.nextDouble());
 	}
 

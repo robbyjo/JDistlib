@@ -79,7 +79,7 @@ public class Exponential extends GenericDistribution {
 
 	public static final double random(double scale, QRandomEngine random)
 	{
-		if (Double.isInfinite(scale) || scale <= 0.0) {
+		if (MathFunctions.isInfinite(scale) || scale <= 0.0) {
 			if(scale == 0.) return 0.;
 			return Double.NaN;
 		}

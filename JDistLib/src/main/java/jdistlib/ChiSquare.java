@@ -19,6 +19,7 @@
  */
 package jdistlib;
 
+import static jdistlib.MathFunctions.isInfinite;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
@@ -36,7 +37,7 @@ public class ChiSquare extends GenericDistribution {
 	}
 
 	public static final double random(double df, QRandomEngine random) {
-	    if (Double.isInfinite(df) || df < 0.0) return Double.NaN;
+	    if (isInfinite(df) || df < 0.0) return Double.NaN;
 	    return Gamma.random(df / 2.0, 2.0, random);
 	}
 

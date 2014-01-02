@@ -32,7 +32,7 @@ public class Weibull extends GenericDistribution {
 		if (shape <= 0 || scale <= 0) return Double.NaN;
 
 		if (x < 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		if (Double.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		/* need to handle x == 0 separately */
 		if(x == 0 && shape < 1) return Double.POSITIVE_INFINITY;
 		tmp1 = pow(x / scale, shape - 1);
@@ -90,7 +90,7 @@ public class Weibull extends GenericDistribution {
 
 	public static final double random(double shape, double scale, QRandomEngine random)
 	{
-		if (Double.isInfinite(shape) || Double.isInfinite(scale) || shape <= 0. || scale <= 0.) {
+		if (MathFunctions.isInfinite(shape) || MathFunctions.isInfinite(scale) || shape <= 0. || scale <= 0.) {
 			if(scale == 0.) return 0.;
 			/* else */
 			return Double.NaN;

@@ -127,7 +127,7 @@ public class SignRank extends GenericDistribution {
 		int q;
 
 		if (Double.isNaN(x)) return(x + n);
-		if (Double.isInfinite(x)) return Double.NaN;
+		if (MathFunctions.isInfinite(x)) return Double.NaN;
 		//R_Q_P01_check(x);
 		if ((log_p	&& x > 0) || (!log_p && (x < 0 || x > 1)) ) return Double.NaN;
 

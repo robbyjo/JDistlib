@@ -51,7 +51,7 @@ public class Gamma extends GenericDistribution {
 
 	static final double dpois_wrap (double x_plus_1, double lambda, boolean give_log)
 	{
-		if (Double.isInfinite(lambda)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (MathFunctions.isInfinite(lambda)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (x_plus_1 > 1)
 			return Poisson.density_raw(x_plus_1 - 1, lambda, give_log);
 		if (lambda > abs(x_plus_1 - 1) * M_cutoff) {
@@ -531,7 +531,7 @@ public class Gamma extends GenericDistribution {
 		/*----- Phase I : Starting Approximation */
 		ch = qchisq_appr(p, /* nu= 'df' =  */ 2*alpha, /* lgamma(nu/2)= */ g,
 				lower_tail, log_p, /* tol= */ EPS1);
-		if(Double.isInfinite(ch)) {
+		if(MathFunctions.isInfinite(ch)) {
 			/* forget about all iterations! */
 			max_it_Newton = 0; //goto END;
 		} else {
@@ -557,7 +557,7 @@ public class Gamma extends GenericDistribution {
 						q = ch;
 						p1 = 0.5*ch;
 						p2 = p_ - pgamma_raw(p1, alpha, /*lower_tail*/true, /*log_p*/false);
-						if(Double.isInfinite(p2) || ch <= 0)
+						if(MathFunctions.isInfinite(p2) || ch <= 0)
 						{ ch = ch0; max_it_Newton = 27; break; }/*was  return ML_NAN;*/
 
 						t = p2*exp(alpha*M_LN2+g+p1-c*log(ch));
@@ -676,7 +676,7 @@ public class Gamma extends GenericDistribution {
 		double s, s2, d;    /* no. 1 (step 1) */
 		double q0, b, si, c;/* no. 2 (step 4) */
 
-		if (Double.isInfinite(a) || Double.isInfinite(scale) || a < 0.0 || scale <= 0.0) {
+		if (MathFunctions.isInfinite(a) || MathFunctions.isInfinite(scale) || a < 0.0 || scale <= 0.0) {
 			if(scale == 0.) return 0.;
 			return Double.NaN;
 		}

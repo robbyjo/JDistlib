@@ -57,7 +57,7 @@ public class Logistic extends GenericDistribution {
 		x = (x - location) / scale;
 		if (Double.isNaN(x)) return Double.NaN;
 		//R_P_bounds_Inf_01(x);
-		if(Double.isInfinite(x)) {
+		if(MathFunctions.isInfinite(x)) {
 			if (x > 0) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 			/* x < 0 */return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		}
@@ -108,8 +108,8 @@ public class Logistic extends GenericDistribution {
 
 	public static final double random(double location, double scale, QRandomEngine random)
 	{
-		if (Double.isNaN(location) || Double.isInfinite(scale)) return Double.NaN;
-		if (scale == 0. || Double.isInfinite(location)) return location;
+		if (Double.isNaN(location) || MathFunctions.isInfinite(scale)) return Double.NaN;
+		if (scale == 0. || MathFunctions.isInfinite(location)) return location;
 		double u = random.nextDouble();
 		return location + scale * log(u / (1. - u));
 	}

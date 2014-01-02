@@ -51,7 +51,7 @@ public class Normal extends GenericDistribution {
 		}
 
 		x = (x - mu) / sigma;
-		if (Double.isInfinite(x)) return (give_log ? NEGATIVE_INFINITY : 0.);
+		if (MathFunctions.isInfinite(x)) return (give_log ? NEGATIVE_INFINITY : 0.);
 		return give_log ?
 				-(M_LN_SQRT_2PI + 0.5 * x * x + log(sigma))
 				: M_1_SQRT_2PI * exp(-0.5 * x * x) / sigma;

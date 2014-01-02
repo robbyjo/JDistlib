@@ -32,9 +32,9 @@ public class T extends GenericDistribution {
 			return x + n;
 
 		if (n <= 0) return Double.NaN;
-		if(Double.isInfinite(x))
+		if(MathFunctions.isInfinite(x))
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		if(Double.isInfinite(n))
+		if(MathFunctions.isInfinite(n))
 			return Normal.density(x, 0., 1., give_log);
 
 		double u, ax = abs(x),
@@ -74,9 +74,9 @@ public class T extends GenericDistribution {
 		if (Double.isNaN(x) || Double.isNaN(n)) return x + n;
 		if (n <= 0.0) return Double.NaN;
 
-		if(Double.isInfinite(x))
+		if(MathFunctions.isInfinite(x))
 			return (x < 0) ? (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) : (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
-			if(Double.isInfinite(n))
+			if(MathFunctions.isInfinite(n))
 				return Normal.cumulative(x, 0.0, 1.0, lower_tail, log_p);
 
 			nx = 1 + (x/n)*x;
@@ -278,7 +278,7 @@ public class T extends GenericDistribution {
 			if(P_ok1) {
 				int it=0;
 				while(it++ < 10 && (y = density(q, ndf, false)) > 0 &&
-						!Double.isInfinite(x = (cumulative(q, ndf, false, false) - P/2) / y) &&
+						MathFunctions.isFinite(x = (cumulative(q, ndf, false, false) - P/2) / y) &&
 						abs(x) > 1e-14*abs(q))
 					/* Newton (=Taylor 1 term):
 					 *  q += x;
@@ -294,7 +294,7 @@ public class T extends GenericDistribution {
 	{
 		if (Double.isNaN(df) || df <= 0.0) return Double.NaN;
 
-		if(Double.isInfinite(df))
+		if(MathFunctions.isInfinite(df))
 			return Normal.random_standard(random);
 		else {
 			/* Some compilers (including MW6) evaluated this from right to left

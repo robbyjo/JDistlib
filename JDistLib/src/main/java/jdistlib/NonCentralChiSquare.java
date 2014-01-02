@@ -40,7 +40,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		if (Double.isNaN(x) || Double.isNaN(df) || Double.isNaN(ncp)) return x + df + ncp;
 		if (ncp < 0 || df <= 0) return Double.NaN;
 
-		if (Double.isInfinite(df) || Double.isInfinite(ncp))
+		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp))
 			return Double.NaN;
 
 		if(x < 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
@@ -55,7 +55,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		/* find max element of sum */
 		imax = ceil((-(2+df) +sqrt((2-df) * (2-df) + 4 * ncp * x))/4);
 		if (imax < 0) imax = 0;
-		if(!Double.isInfinite(imax)) {
+		if(MathFunctions.isFinite(imax)) {
 			dfmid = df + 2 * imax;
 			mid = Poisson.density_raw(imax, ncp2, false) * ChiSquare.density(x, dfmid, false);
 		} else /* imax = Inf */
@@ -119,8 +119,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 				/* x < 0  or {x==0, f > 0} */
 				return lower_tail ? 0. : 1.;
 		}
-		if(Double.isInfinite(x))	return lower_tail ? 1. : 0.;
-
+		if(MathFunctions.isInfinite(x)) return lower_tail ? 1. : 0.;
 
 		if(theta < 80) { /* use 110 for Inf, as ppois(110, 80/2, lower.tail=FALSE) is 2e-20 */
 			/* long */ double sum = 0, sum2 = 0, lambda = 0.5*theta, pr = exp(-lambda); // TODO long double
@@ -253,7 +252,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 	{
 		double ans;
 		if (Double.isNaN(x) || Double.isNaN(df) || Double.isNaN(ncp)) return x + df + ncp;
-		if (Double.isInfinite(df) || Double.isInfinite(ncp)) return Double.NaN;
+		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp)) return Double.NaN;
 
 		if (df < 0. || ncp < 0.) return Double.NaN;
 
@@ -288,7 +287,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		double ux, lx, ux0, nx, pp;
 
 		if (Double.isNaN(p) || Double.isNaN(df) || Double.isNaN(ncp)) return p + df + ncp;
-		if (Double.isInfinite(df)) return Double.NaN;
+		if (MathFunctions.isInfinite(df)) return Double.NaN;
 
 		/* Was
 		 * df = floor(df + 0.5);
@@ -420,7 +419,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 	 */
 	public static final double random(double df, double lambda, QRandomEngine random)
 	{
-		if (Double.isInfinite(df) || Double.isInfinite(lambda) || df < 0. || lambda < 0.)
+		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(lambda) || df < 0. || lambda < 0.)
 			return Double.NaN;
 
 		if(lambda == 0.) {

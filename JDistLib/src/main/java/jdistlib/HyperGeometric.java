@@ -134,7 +134,7 @@ public class HyperGeometric extends GenericDistribution {
 		NB = floor((NB) + 0.5); // NB = R_D_forceint(NB);
 		n = floor((n) + 0.5);  // n  = R_D_forceint(n);
 
-		if (NR < 0 || NB < 0 || Double.isInfinite(NR + NB) || n < 0 || n > NR + NB)
+		if (NR < 0 || NB < 0 || MathFunctions.isInfinite(NR + NB) || n < 0 || n > NR + NB)
 			return Double.NaN;
 
 		if (x * (NR + NB) > n * NR) {
@@ -170,7 +170,7 @@ public class HyperGeometric extends GenericDistribution {
 		double N, xstart, xend, xr, xb, sum, term;
 		boolean small_N;
 		if(Double.isNaN(p) || Double.isNaN(NR) || Double.isNaN(NB) || Double.isNaN(n)) return p + NR + NB + n;
-		if(Double.isInfinite(p) || Double.isInfinite(NR) || Double.isInfinite(NB) || Double.isInfinite(n))
+		if(MathFunctions.isInfinite(p) || MathFunctions.isInfinite(NR) || MathFunctions.isInfinite(NB) || MathFunctions.isInfinite(n))
 			return Double.NaN;
 		NR = floor(NR + 0.5);
 		NB = floor(NB + 0.5);
@@ -286,7 +286,7 @@ public class HyperGeometric extends GenericDistribution {
 
 		/* check parameter validity */
 
-		if(Double.isInfinite(nn1in) || Double.isInfinite(nn2in) || Double.isInfinite(kkin))
+		if(MathFunctions.isInfinite(nn1in) || MathFunctions.isInfinite(nn2in) || MathFunctions.isInfinite(kkin))
 			return Double.NaN;
 
 		nn1 = (int) floor(nn1in+0.5);

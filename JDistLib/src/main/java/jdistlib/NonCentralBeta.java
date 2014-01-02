@@ -37,7 +37,7 @@ public class NonCentralBeta extends GenericDistribution {
 		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b) || Double.isNaN(ncp)) return x + a + b + ncp;
 		if (ncp < 0 || a <= 0 || b <= 0) return Double.NaN;
 
-		if (Double.isInfinite(a) || Double.isInfinite(b) || Double.isInfinite(ncp))
+		if (MathFunctions.isInfinite(a) || MathFunctions.isInfinite(b) || MathFunctions.isInfinite(ncp))
 			return Double.NaN;
 
 		if (x < 0 || x > 1) return(give_log ? Double.NEGATIVE_INFINITY : 0.);
@@ -59,7 +59,7 @@ public class NonCentralBeta extends GenericDistribution {
 		/* The starting "middle term" --- first look at it's log scale: */
 		term = Beta.density(x, a + kMax, b, /* log = */ true);
 		p_k = Poisson.density_raw(kMax, ncp2,true);
-		if(x == 0. || Double.isInfinite(term) || Double.isInfinite(p_k)) /* if term = +Inf */
+		if(x == 0. || MathFunctions.isInfinite(term) || MathFunctions.isInfinite(p_k)) /* if term = +Inf */
 			//return R_D_exp(p_k + term);
 			return (give_log ? (p_k + term) : exp(p_k + term));
 
@@ -194,7 +194,7 @@ public class NonCentralBeta extends GenericDistribution {
 
 		if (Double.isNaN(p) || Double.isNaN(a) || Double.isNaN(b) || Double.isNaN(ncp))
 			return p + a + b + ncp;
-		if (Double.isInfinite(a)) return Double.NaN;
+		if (MathFunctions.isInfinite(a)) return Double.NaN;
 
 		if (ncp < 0. || a <= 0. || b <= 0.) return Double.NaN;
 

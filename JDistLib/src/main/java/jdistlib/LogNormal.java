@@ -71,7 +71,7 @@ public class LogNormal extends GenericDistribution{
 
 	public static final double random(double meanlog, double sdlog, QRandomEngine random)
 	{
-		if(Double.isNaN(meanlog) || Double.isInfinite(sdlog) || sdlog < 0.) return Double.NaN;
+		if(Double.isNaN(meanlog) || MathFunctions.isInfinite(sdlog) || sdlog < 0.) return Double.NaN;
 		return exp(Normal.random(meanlog, sdlog, random));
 	}
 

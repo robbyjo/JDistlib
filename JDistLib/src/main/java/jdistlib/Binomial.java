@@ -83,7 +83,7 @@ public class Binomial extends GenericDistribution {
 	    //R_D_nonint_check(x);
 	    if((abs((x) - floor((x)+0.5)) > 1e-7))
 	    	return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-	    if (x < 0 || Double.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+	    if (x < 0 || isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 
 	    n = floor((n) + 0.5);
 	    x = floor((x) + 0.5);
@@ -94,7 +94,7 @@ public class Binomial extends GenericDistribution {
 	public static final double cumulative(double x, double n, double p, boolean lower_tail, boolean log_p)
 	{
 		if (Double.isNaN(x) || Double.isNaN(n) || Double.isNaN(p)) return x + n + p;
-		if (Double.isInfinite(n) || Double.isInfinite(p)) return Double.NaN;
+		if (isInfinite(n) || isInfinite(p)) return Double.NaN;
 		if((abs((n) - floor((n)+0.5)) > 1e-7)) return Double.NaN;
 		n = floor((n) + 0.5);
 		/* PR#8560: n=0 is a valid value */
@@ -132,9 +132,9 @@ public class Binomial extends GenericDistribution {
 		double q, mu, sigma, gamma, z, y;
 
 		if (Double.isNaN(p) || Double.isNaN(n) || Double.isNaN(pr)) return p + n + pr;
-		if(Double.isInfinite(n) || Double.isInfinite(pr)) return Double.NaN;
+		if(isInfinite(n) || isInfinite(pr)) return Double.NaN;
 		/* if log_p is true, p = -Inf is a legitimate value */
-		if(Double.isInfinite(p) && !log_p) return Double.NaN;
+		if(isInfinite(p) && !log_p) return Double.NaN;
 
 		if(n != floor(n + 0.5)) return Double.NaN;
 		if (pr < 0 || pr > 1 || n < 0) return Double.NaN;
@@ -212,10 +212,10 @@ public class Binomial extends GenericDistribution {
 		double p, q, np, g, r, al, alv, amaxp, ffm, ynorm;
 		int i,ix,k, n;
 
-		if (Double.isInfinite(nin)) return Double.NaN;
+		if (isInfinite(nin)) return Double.NaN;
 		r = floor(nin + 0.5);
 		if (r != nin) return Double.NaN;
-		if (Double.isInfinite(pp) ||
+		if (isInfinite(pp) ||
 				/* n=0, p=0, p=1 are not errors <TSL>*/
 				r < 0 || pp < 0. || pp > 1.)	return Double.NaN;
 

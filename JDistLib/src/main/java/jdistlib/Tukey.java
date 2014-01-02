@@ -304,7 +304,7 @@ public class Tukey extends GenericDistribution {
 		double ans, f2, f21, f2lf, ff4, otsum=0, qsqz, rotsum, t1, twa1, ulen, wprb;
 		int i, j, jj;
 
-		if (Double.isInfinite(q) || Double.isInfinite(rr) || Double.isInfinite(cc) || Double.isInfinite(df)) return Double.NaN;
+		if (MathFunctions.isInfinite(q) || MathFunctions.isInfinite(rr) || MathFunctions.isInfinite(cc) || MathFunctions.isInfinite(df)) return Double.NaN;
 
 		if (q <= 0)
 			return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
@@ -314,7 +314,7 @@ public class Tukey extends GenericDistribution {
 
 		if (df < 2 || rr < 1 || cc < 2) return Double.NaN;
 
-		if(Double.isInfinite(q))
+		if(MathFunctions.isInfinite(q))
 			return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 
 		if (df > dlarg) {

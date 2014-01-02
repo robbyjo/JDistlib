@@ -43,18 +43,18 @@ public class NonCentralF extends GenericDistribution {
 
 		if (df1 <= 0. || df2 <= 0. || ncp < 0) return Double.NaN;
 		if (x < 0.)	 return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		if (Double.isInfinite(ncp)) /* ncp = +Inf -- FIXME?: in some cases, limit exists */
+		if (MathFunctions.isInfinite(ncp)) /* ncp = +Inf -- FIXME?: in some cases, limit exists */
 			return Double.NaN;
 
 		/* This is not correct for  df1 == 2, ncp > 0 - and seems unneeded:
 		 *  if (x == 0.) return(df1 > 2 ? R_D__0 : (df1 == 2 ? R_D__1 : ML_POSINF));
 		 */
-		if (Double.isInfinite(df1) && Double.isInfinite(df2)) { /* both +Inf */
+		if (MathFunctions.isInfinite(df1) && MathFunctions.isInfinite(df2)) { /* both +Inf */
 			/* PR: not sure about this (taken from  ncp==0)  -- FIXME ? */
 			if(x == 1.) return Double.POSITIVE_INFINITY;
 			/* else */  return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
-		if (Double.isInfinite(df2)) /* i.e.  = +Inf */
+		if (MathFunctions.isInfinite(df2)) /* i.e.  = +Inf */
 			return df1* NonCentralChiSquare.density(x*df1, df1, ncp, give_log);
 		/*	 ==  dngamma(x, df1/2, 2./df1, ncp, give_log)  -- but that does not exist */
 		if (df1 > 1e14 && ncp < 1e7) {
@@ -76,8 +76,8 @@ public class NonCentralF extends GenericDistribution {
 		double y;
 		if (Double.isNaN(x) || Double.isNaN(df1) || Double.isNaN(df2) || Double.isNaN(ncp)) return x + df2 + df1 + ncp;
 		if (df1 <= 0. || df2 <= 0. || ncp < 0) return Double.NaN;
-		if (Double.isInfinite(ncp)) return Double.NaN;
-		if (Double.isInfinite(df1) && Double.isInfinite(df2)) /* both +Inf */
+		if (MathFunctions.isInfinite(ncp)) return Double.NaN;
+		if (MathFunctions.isInfinite(df1) && MathFunctions.isInfinite(df2)) /* both +Inf */
 			return Double.NaN;
 
 		//R_P_bounds_01(x, 0., ML_POSINF);
@@ -96,8 +96,8 @@ public class NonCentralF extends GenericDistribution {
 		double y;
 		if (Double.isNaN(p) || Double.isNaN(df1) || Double.isNaN(df2) || Double.isNaN(ncp)) return p + df1 + df2 + ncp;
 		if (df1 <= 0. || df2 <= 0. || ncp < 0) return Double.NaN;
-		if (Double.isInfinite(ncp)) return Double.NaN;
-		if (Double.isInfinite(df1) && Double.isInfinite(df2)) return Double.NaN;
+		if (MathFunctions.isInfinite(ncp)) return Double.NaN;
+		if (MathFunctions.isInfinite(df1) && MathFunctions.isInfinite(df2)) return Double.NaN;
 		//R_Q_P01_boundaries(p, 0, ML_POSINF);
 		if (log_p) {
 			if(p > 0)

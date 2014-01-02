@@ -102,6 +102,13 @@ public class Cauchy extends GenericDistribution {
 		return location + scale * tan(M_PI * random.nextDouble());
 	}
 
+	public static final double[] random(int n, double location, double scale, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(location, scale, random);
+		return rand;
+	}
+
 	protected double location, scale;
 
 	public Cauchy(double location, double scale) {

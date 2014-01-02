@@ -387,6 +387,14 @@ public class Binomial extends GenericDistribution {
 		}
 	}
 
+	public static final double[] random(int n, double nin, double pp, QRandomEngine random) {
+		RandomState state = singleton.new RandomState();
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(nin, pp, random, state);
+		return rand;
+	}
+
 	protected double n, p;
 	protected RandomState state;
 

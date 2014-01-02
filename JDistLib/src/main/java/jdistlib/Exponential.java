@@ -135,6 +135,20 @@ public class Exponential extends GenericDistribution {
 		return a + umin * q[0];
 	}
 
+	public static final double[] random(int n, double scale, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(scale, random);
+		return rand;
+	}
+
+	public static final double[] random_standard(int n, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random_standard(random);
+		return rand;
+	}
+
 	protected double scale;
 
 	public Exponential(double scale) {

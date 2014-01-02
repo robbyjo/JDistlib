@@ -41,6 +41,13 @@ public class ChiSquare extends GenericDistribution {
 	    return Gamma.random(df / 2.0, 2.0, random);
 	}
 
+	public static final double[] random(int n, double df, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(df, random);
+		return rand;
+	}
+
 	protected double df;
 
 	public ChiSquare(double df) {

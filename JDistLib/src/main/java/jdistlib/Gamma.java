@@ -803,6 +803,13 @@ public class Gamma extends GenericDistribution {
 		return scale * x * x;
 	}
 
+	public static final double[] random(int n, double a, double scale, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(a, scale, random);
+		return rand;
+	}
+
 	protected double shape, scale;
 
 	public Gamma(double shape, double scale) {

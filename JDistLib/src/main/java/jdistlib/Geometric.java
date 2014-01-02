@@ -98,6 +98,13 @@ public class Geometric extends GenericDistribution {
 	    return Poisson.random(Exponential.random_standard(random) * ((1 - p) / p), random);
 	}
 
+	public static final double[] random(int n, double p, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(p, random);
+		return rand;
+	}
+
 	protected double p;
 
 	public Geometric(double p) {

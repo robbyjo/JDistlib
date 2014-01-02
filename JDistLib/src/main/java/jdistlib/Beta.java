@@ -343,6 +343,13 @@ public class Beta extends GenericDistribution {
 		}
 	}
 
+	public static final double[] random(int n, double aa, double bb, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(aa, bb, random);
+		return rand;
+	}
+
 	protected double a, b;
 
 	public Beta(double a, double b) {

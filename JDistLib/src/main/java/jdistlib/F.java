@@ -143,6 +143,13 @@ public class F extends GenericDistribution {
 	    return v1 / v2;
 	}
 
+	public static final double[] random(int n, double n1, double n2, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(n1, n2, random);
+		return rand;
+	}
+
 	protected double df1, df2;
 
 	public F(double df1, double df2) {

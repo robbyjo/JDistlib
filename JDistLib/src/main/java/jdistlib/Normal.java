@@ -332,6 +332,20 @@ public class Normal extends GenericDistribution {
 		return u1;
 	}
 
+	public static final double[] random(int n, double mu, double sigma, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(mu, sigma, random);
+		return rand;
+	}
+
+	public static final double[] random_standard(int n, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random_standard(random);
+		return rand;
+	}
+
 	public static final double random_ahrens_dieter(double mu, double sigma, QRandomEngine random) {
 	    final double a[] = new double[]
 	        {
@@ -538,7 +552,7 @@ public class Normal extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(mu, sigma, random);
 	}
 }

@@ -266,7 +266,7 @@ public class Ansari extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(m, n, w, random);
 	}
 }

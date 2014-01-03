@@ -62,6 +62,13 @@ public class Extreme extends GenericDistribution {
 			dist.quantile(Beta.random(1, mlen, random), true, false);
 	}
 
+	public static final double[] random(int n, GenericDistribution dist, int mlen, boolean largest, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(dist, mlen, largest, random);
+		return rand;
+	}
+
 	protected int mlen;
 	protected boolean largest;
 	protected GenericDistribution dist;
@@ -88,7 +95,7 @@ public class Extreme extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(dist, mlen, largest, random);
 	}
 }

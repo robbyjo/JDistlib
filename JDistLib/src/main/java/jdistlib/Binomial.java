@@ -388,7 +388,11 @@ public class Binomial extends GenericDistribution {
 	}
 
 	public static final double[] random(int n, double nin, double pp, QRandomEngine random) {
-		RandomState state = singleton.new RandomState();
+		return random(n, nin, pp, random, create_random_state());
+	}
+
+	public static final double[] random(int n, double nin, double pp, QRandomEngine random, RandomState state) {
+		if (state == null) state = create_random_state();
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(nin, pp, random, state);
@@ -419,7 +423,12 @@ public class Binomial extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(n, p, random, state);
+	}
+
+	@Override
+	public double[] random(int ct) {
+		return random(ct, n, p, random, state);
 	}
 }

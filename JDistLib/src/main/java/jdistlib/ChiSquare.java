@@ -70,7 +70,7 @@ public class ChiSquare extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(df, random);
 	}
 }

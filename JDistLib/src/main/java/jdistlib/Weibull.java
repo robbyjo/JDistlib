@@ -25,8 +25,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 public class Weibull extends GenericDistribution {
-	public static final double density(double x, double shape, double scale, boolean give_log)
-	{
+	public static final double density(double x, double shape, double scale, boolean give_log) {
 		double tmp1, tmp2;
 		if (Double.isNaN(x) || Double.isNaN(shape) || Double.isNaN(scale)) return x + shape + scale;
 		if (shape <= 0 || scale <= 0) return Double.NaN;
@@ -43,8 +42,7 @@ public class Weibull extends GenericDistribution {
 				shape * tmp1 * exp(-tmp2) / scale;
 	}
 
-	public static final double cumulative(double x, double shape, double scale, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double shape, double scale, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(shape) || Double.isNaN(scale)) return x + shape + scale;
 		if (shape <= 0 || scale <= 0) return Double.NaN;
 
@@ -60,8 +58,7 @@ public class Weibull extends GenericDistribution {
 		return (log_p ? (x) : exp(x));
 	}
 
-	public static final double quantile(double p, double shape, double scale, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double shape, double scale, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(p) || Double.isNaN(shape) || Double.isNaN(scale)) return p + shape + scale;
 		if (shape <= 0 || scale <= 0) return Double.NaN;
 
@@ -88,14 +85,20 @@ public class Weibull extends GenericDistribution {
 		return scale * pow(-p, 1./shape) ;
 	}
 
-	public static final double random(double shape, double scale, QRandomEngine random)
-	{
+	public static final double random(double shape, double scale, QRandomEngine random) {
 		if (MathFunctions.isInfinite(shape) || MathFunctions.isInfinite(scale) || shape <= 0. || scale <= 0.) {
 			if(scale == 0.) return 0.;
 			/* else */
 			return Double.NaN;
 		}
 		return scale * pow(-log(random.nextDouble()), 1.0 / shape);
+	}
+
+	public static final double[] random(int n, double shape, double scale, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(shape, scale, random);
+		return rand;
 	}
 
 	protected double shape, scale;
@@ -120,7 +123,7 @@ public class Weibull extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(shape, scale, random);
 	}
 }

@@ -171,7 +171,7 @@ public class Exponential extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(scale, random);
 	}
 }

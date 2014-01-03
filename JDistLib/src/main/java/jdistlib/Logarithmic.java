@@ -23,8 +23,7 @@ import jdistlib.rng.QRandomEngine;
  * @author Roby Joehanes
  */
 public class Logarithmic extends GenericDistribution {
-	public static final double density(double x, double mu, boolean give_log)
-	{
+	public static final double density(double x, double mu, boolean give_log) {
 		if (Double.isNaN(x) || Double.isNaN(mu))
 			return x + mu;
 		if (mu <= 0 || mu >= 1)
@@ -33,8 +32,7 @@ public class Logarithmic extends GenericDistribution {
 		return give_log ? logfy : exp(logfy);
 	}
 
-	public static final double cumulative(double q, double mu, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double q, double mu, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(q) || Double.isNaN(mu))
 			return q + mu;
 		if (mu <= 0 || mu >= 1 || q <= 0)
@@ -46,11 +44,11 @@ public class Logarithmic extends GenericDistribution {
 		return log_p ? log(sum) : sum;
 	}
 
-	public static final double quantile(double p, double mu, boolean lower_tail, boolean log_p)
-	{	return quantile(p, mu, lower_tail, log_p, 10000); }
+	public static final double quantile(double p, double mu, boolean lower_tail, boolean log_p) {
+		return quantile(p, mu, lower_tail, log_p, 10000);
+	}
 
-	public static final double quantile(double p, double mu, boolean lower_tail, boolean log_p, int max_value)
-	{
+	public static final double quantile(double p, double mu, boolean lower_tail, boolean log_p, int max_value) {
 		if (Double.isNaN(p) || Double.isNaN(mu))
 			return p + mu;
 		if (mu <= 0 || mu >= 1)
@@ -67,9 +65,18 @@ public class Logarithmic extends GenericDistribution {
 		return Double.POSITIVE_INFINITY;
 	}
 
-	public static final double random(double mu, QRandomEngine random)
-	{
-		return quantile(random.nextDouble(), mu, false, false);
+	public static final double random(double mu, QRandomEngine random) {
+		double u1 = random.nextDouble();
+		u1 = (int) (134217728 * u1) + random.nextDouble();
+		u1 = quantile(u1 / 134217728, mu, true, false);
+		return u1;
+	}
+
+	public static final double[] random(int n, double mu, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(mu, random);
+		return rand;
 	}
 
 	protected double mu;
@@ -94,7 +101,7 @@ public class Logarithmic extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(mu, random);
 	}
 }

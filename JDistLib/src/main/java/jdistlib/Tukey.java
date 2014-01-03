@@ -573,12 +573,18 @@ public class Tukey extends GenericDistribution {
 	 * @param random
 	 * @return
 	 */
-	public static final double random(double rr, double cc, double df, QRandomEngine random)
-	{
+	public static final double random(double rr, double cc, double df, QRandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, rr, cc, df, true, false);
 		return u1;
+	}
+
+	public static final double[] random(int n, double rr, double cc, double df, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(rr, cc, df, random);
+		return rand;
 	}
 
 	protected double rr, cc, df;
@@ -603,7 +609,7 @@ public class Tukey extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(rr, cc, df, random);
 	}
 }

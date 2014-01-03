@@ -126,8 +126,7 @@ public class Kendall extends GenericDistribution {
 	 * @param n
 	 * @return count
 	 */
-	public static final double quantile(double p, int n)
-	{
+	public static final double quantile(double p, int n) {
 		if (Double.isNaN(p) || MathFunctions.isInfinite(p)) return p;
 		if (p < 0 || p > 1 || n < 2) return Double.NaN;
 		double mu, sigma;
@@ -160,12 +159,18 @@ public class Kendall extends GenericDistribution {
 	 * @param random
 	 * @return
 	 */
-	public static final double random(int n, QRandomEngine random)
-	{
+	public static final double random(int n, QRandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, n);
 		return u1;
+	}
+
+	public static final double[] random(int count, int n, QRandomEngine random) {
+		double[] rand = new double[count];
+		for (int i = 0; i < count; i++)
+			rand[i] = random(n, random);
+		return rand;
 	}
 
 	protected int n;
@@ -193,7 +198,7 @@ public class Kendall extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(n, random);
 	}
 

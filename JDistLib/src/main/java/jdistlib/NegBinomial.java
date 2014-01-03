@@ -26,8 +26,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 public class NegBinomial extends GenericDistribution {
-	public static final double density(double x, double size, double prob, boolean give_log)
-	{
+	public static final double density(double x, double size, double prob, boolean give_log) {
 		double ans, p;
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(prob)) return x + size + prob;
 
@@ -47,8 +46,7 @@ public class NegBinomial extends GenericDistribution {
 		return((give_log) ? log(p) + ans : p * ans);
 	}
 
-	public static final double density_mu(double x, double size, double mu, boolean give_log)
-	{
+	public static final double density_mu(double x, double size, double mu, boolean give_log) {
 		/* originally, just set  prob :=  size / (size + mu)  and called dbinom_raw(),
 		 * but that suffers from cancellation when   mu << size  */
 		double ans, p;
@@ -82,8 +80,7 @@ public class NegBinomial extends GenericDistribution {
 		return((give_log) ? log(p) + ans : p * ans);
 	}
 
-	public static final double cumulative(double x, double size, double prob, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double size, double prob, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(prob)) return x + size + prob;
 		if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(prob)) return Double.NaN;
 		if (size <= 0 || prob <= 0 || prob > 1)	return Double.NaN;
@@ -98,8 +95,7 @@ public class NegBinomial extends GenericDistribution {
 		return Beta.cumulative(prob, size, x + 1, lower_tail, log_p);
 	}
 
-	public static final double cumulative_mu(double x, double size, double mu, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative_mu(double x, double size, double mu, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(size)) return x + size + mu;
 		if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(mu)) return Double.NaN;
 		if (size < 0 || mu < 0) return Double.NaN;
@@ -129,8 +125,7 @@ public class NegBinomial extends GenericDistribution {
 		}
 	}
 
-	static final double do_search(double y, double []z, double p, double n, double pr, double incr)
-	{
+	static final double do_search(double y, double []z, double p, double n, double pr, double incr) {
 		if(z[0] >= p) {
 			/* search to the left */
 			for(;;) {
@@ -149,8 +144,7 @@ public class NegBinomial extends GenericDistribution {
 		}
 	}
 
-	public static final double quantile(double p, double size, double prob, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double size, double prob, boolean lower_tail, boolean log_p) {
 		double P, Q, mu, sigma, gamma, z, y;
 
 		if (Double.isNaN(p) || Double.isNaN(size) || Double.isNaN(prob)) return p + size + prob;
@@ -158,9 +152,7 @@ public class NegBinomial extends GenericDistribution {
 	       prob == size/(size+mu)
 		 */
 		if (prob == 0 && size == 0) return 0;
-
 	    if (prob <= 0 || prob > 1 || size < 0) return Double.NaN;
-
 	    if (prob == 1 || size == 0) return 0;
 
 		// R_Q_P01_boundaries(p, 0, ML_POSINF);
@@ -222,18 +214,23 @@ public class NegBinomial extends GenericDistribution {
 		}
 	}
 
-	public static final double quantile_mu(double p, double size, double mu, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile_mu(double p, double size, double mu, boolean lower_tail, boolean log_p) {
 		/* FIXME!  Implement properly!! (not losing accuracy for very large size (prob ~= 1)*/
 		return quantile(p, size, /* prob = */ size/(size+mu), lower_tail, log_p);
 	}
 
-	public static final double random(double size, double prob, QRandomEngine random)
-	{
+	public static final double random(double size, double prob, QRandomEngine random) {
 	    if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(prob) || size <= 0 || prob <= 0 || prob > 1)
 	    	/* prob = 1 is ok, PR#1218 */
 	    	return Double.NaN;
 	    return (prob == 1) ? 0 : Poisson.random(Gamma.random(size, (1 - prob) / prob, random), random);
+	}
+
+	public static final double[] random(int n, double size, double prob, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(size, prob, random);
+		return rand;
 	}
 
 	protected double size, prob;
@@ -258,7 +255,7 @@ public class NegBinomial extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(size, prob, random);
 	}
 

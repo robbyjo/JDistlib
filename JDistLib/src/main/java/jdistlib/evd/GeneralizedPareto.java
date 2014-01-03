@@ -25,8 +25,7 @@ import jdistlib.rng.QRandomEngine;
  *
  */
 public class GeneralizedPareto extends GenericDistribution {
-	public static final double density(double x, double loc, double scale, double shape, boolean log)
-	{
+	public static final double density(double x, double loc, double scale, double shape, boolean log) {
 		if (scale <= 0)
 			return Double.NaN;
 		x = (x - loc) / scale;
@@ -36,8 +35,7 @@ public class GeneralizedPareto extends GenericDistribution {
 		return !log ? exp(x) : x;
 	}
 
-	public static final double cumulative(double q, double loc, double scale, double shape, boolean lower_tail)
-	{
+	public static final double cumulative(double q, double loc, double scale, double shape, boolean lower_tail) {
 		if (scale <= 0)
 			return Double.NaN;
 		q = max(q - loc, 0) / scale;
@@ -45,8 +43,7 @@ public class GeneralizedPareto extends GenericDistribution {
 		return !lower_tail ? 1 - q : q;
 	}
 
-	public static final double quantile(double p, double loc, double scale, double shape, boolean lower_tail)
-	{
+	public static final double quantile(double p, double loc, double scale, double shape, boolean lower_tail) {
 		if (p <= 0 || p >= 1 || scale < 0)
 			return Double.NaN;
 		if (!lower_tail)
@@ -56,13 +53,19 @@ public class GeneralizedPareto extends GenericDistribution {
 			(loc + scale * (pow(p, -shape) - 1) / shape);
 	}
 
-	public static final double random(double loc, double scale, double shape, QRandomEngine random)
-	{
+	public static final double random(double loc, double scale, double shape, QRandomEngine random) {
 		if (scale < 0)
 			return Double.NaN;
 		return shape == 0 ?
 			(loc + scale * log(Exponential.random_standard(random))) :
 			(loc + scale * ((pow(random.nextDouble(), -shape) - 1) / shape) );
+	}
+
+	public static final double[] random(int n, double loc, double scale, double shape, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(loc, scale, shape, random);
+		return rand;
 	}
 
 	protected double loc, scale, shape;
@@ -89,7 +92,7 @@ public class GeneralizedPareto extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(loc, scale, shape, random);
 	}
 }

@@ -24,8 +24,7 @@ import static java.lang.Math.*;
  * Taken from EVD package of R
  */
 public class ReverseWeibull extends GenericDistribution {
-	public static final double density(double x, double loc, double scale, double shape, boolean log)
-	{
+	public static final double density(double x, double loc, double scale, double shape, boolean log) {
 		if (scale <= 0 || shape <= 0)
 			return Double.NaN;
 		x = (x - loc) / scale;
@@ -35,16 +34,14 @@ public class ReverseWeibull extends GenericDistribution {
 		return !log ? exp(x) : x;
 	}
 
-	public static final double cumulative(double q, double loc, double scale, double shape, boolean lower_tail)
-	{
+	public static final double cumulative(double q, double loc, double scale, double shape, boolean lower_tail) {
 		if (scale <= 0 || shape <= 0)
 			return Double.NaN;
 		q = exp(-pow(-min((q - loc) / scale, 0), shape));
 		return !lower_tail ? 1 - q : q;
 	}
 
-	public static final double quantile(double p, double loc, double scale, double shape, boolean lower_tail)
-	{
+	public static final double quantile(double p, double loc, double scale, double shape, boolean lower_tail) {
 		if (p <= 0 || p >= 1 || scale < 0 || shape <= 0)
 			return Double.NaN;
 		if (!lower_tail)
@@ -52,11 +49,17 @@ public class ReverseWeibull extends GenericDistribution {
 		return loc - scale * pow(-log(p), 1.0 / shape);
 	}
 
-	public static final double random(double loc, double scale, double shape, QRandomEngine random)
-	{
+	public static final double random(double loc, double scale, double shape, QRandomEngine random) {
 		if (scale < 0 || shape <= 0)
 			return Double.NaN;
 		return loc - scale * pow(Exponential.random_standard(random), 1.0 / shape);
+	}
+
+	public static final double[] random(int n, double loc, double scale, double shape, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(loc, scale, shape, random);
+		return rand;
 	}
 
 	protected double loc, scale, shape;
@@ -83,7 +86,7 @@ public class ReverseWeibull extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(loc, scale, shape, random);
 	}
 }

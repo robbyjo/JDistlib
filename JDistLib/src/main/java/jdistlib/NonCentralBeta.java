@@ -26,8 +26,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 public class NonCentralBeta extends GenericDistribution {
-	public static final double density(double x, double a, double b, double ncp, boolean give_log)
-	{
+	public static final double density(double x, double a, double b, double ncp, boolean give_log) {
 		final double eps = 1.e-15;
 
 		int kMax;
@@ -93,8 +92,7 @@ public class NonCentralBeta extends GenericDistribution {
 		return (give_log ? (p_k + log(sum)) : exp(p_k + log(sum)));
 	}
 
-	public static final double cumulative_raw (double x, double o_x, double a, double b, double ncp)
-	{
+	public static final double cumulative_raw (double x, double o_x, double a, double b, double ncp) {
 		/* o_x  == 1 - x  but maybe more accurate */
 
 		/* change errmax and itrmax if desired;
@@ -175,8 +173,7 @@ public class NonCentralBeta extends GenericDistribution {
 		return log_p ? log1p(-ans) : (1 - ans);
 	}
 
-	public static final double cumulative(double x, double a, double b, double ncp, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double a, double b, double ncp, boolean lower_tail, boolean log_p) {
 	    if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b) || Double.isNaN(ncp)) return x + a + b + ncp;
 	    // R_P_bounds_01(x, 0., 1.);
 	    if(x <= 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
@@ -185,8 +182,7 @@ public class NonCentralBeta extends GenericDistribution {
 	    return pnbeta2(x, 1-x, a, b, ncp, lower_tail, log_p);
 	}
 
-	public static final double quantile(double p, double a, double b, double ncp, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double a, double b, double ncp, boolean lower_tail, boolean log_p) {
 		final double accu = 1e-15;
 		final double Eps = 1e-14; /* must be > accu */
 
@@ -235,13 +231,19 @@ public class NonCentralBeta extends GenericDistribution {
 		return 0.5 * (ux + lx);
 	}
 
-	public static final double random(double a, double b, double ncp, QRandomEngine random)
-	{
+	public static final double random(double a, double b, double ncp, QRandomEngine random) {
 		if (ncp == 0)
 			return Beta.random(a, b, random);
 		double x = NonCentralChiSquare.random(2 * a, ncp, random);
 		x = x / (x + NonCentralChiSquare.random(2 * b, ncp, random));
 		return x;
+	}
+
+	public static final double[] random(int n, double a, double b, double ncp, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(a, b, ncp, random);
+		return rand;
 	}
 
 	protected double a, b, ncp;
@@ -265,7 +267,7 @@ public class NonCentralBeta extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(a, b, ncp, random);
 	}
 }

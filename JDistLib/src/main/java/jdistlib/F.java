@@ -172,7 +172,7 @@ public class F extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(df1, df2, random);
 	}
 }

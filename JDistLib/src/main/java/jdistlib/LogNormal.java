@@ -25,8 +25,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 public class LogNormal extends GenericDistribution{
-	public static final double density(double x, double meanlog, double sdlog, boolean give_log)
-	{
+	public static final double density(double x, double meanlog, double sdlog, boolean give_log) {
 		double y;
 		if (Double.isNaN(x) || Double.isNaN(meanlog) || Double.isNaN(sdlog)) return x + meanlog + sdlog;
 		if(sdlog <= 0) return Double.NaN;
@@ -38,16 +37,14 @@ public class LogNormal extends GenericDistribution{
 		/* M_1_SQRT_2PI = 1 / sqrt(2 * pi) */
 	}
 
-	public static final double cumulative(double x, double meanlog, double sdlog, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double meanlog, double sdlog, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(meanlog) || Double.isNaN(sdlog)) return x + meanlog + sdlog;
 		if(sdlog <= 0) return Double.NaN;
 		if (x > 0) return Normal.cumulative(log(x), meanlog, sdlog, lower_tail, log_p);
 		return (log_p ? Double.NEGATIVE_INFINITY : 0.);
 	}
 
-	public static final double quantile(double p, double meanlog, double sdlog, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double meanlog, double sdlog, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(p) || Double.isNaN(meanlog) || Double.isNaN(sdlog)) return p + meanlog + sdlog;
 		//R_Q_P01_boundaries(p, 0, ML_POSINF);
 		if (log_p) {
@@ -69,10 +66,16 @@ public class LogNormal extends GenericDistribution{
 		return exp(Normal.quantile(p, meanlog, sdlog, lower_tail, log_p));
 	}
 
-	public static final double random(double meanlog, double sdlog, QRandomEngine random)
-	{
+	public static final double random(double meanlog, double sdlog, QRandomEngine random) {
 		if(Double.isNaN(meanlog) || MathFunctions.isInfinite(sdlog) || sdlog < 0.) return Double.NaN;
 		return exp(Normal.random(meanlog, sdlog, random));
+	}
+
+	public static final double[] random(int n, double meanlog, double sdlog, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(meanlog, sdlog, random);
+		return rand;
 	}
 
 	protected double meanlog, sdlog;
@@ -97,7 +100,7 @@ public class LogNormal extends GenericDistribution{
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(meanlog, sdlog, random);
 	}
 }

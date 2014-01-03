@@ -58,8 +58,7 @@ public class Poisson extends GenericDistribution {
 		return give_log ? -0.5*log(x)+lambda : exp(lambda)/sqrt(x);
 	}
 
-	public static final double density(double x, double lambda, boolean give_log)
-	{
+	public static final double density(double x, double lambda, boolean give_log) {
 		if(Double.isNaN(x) || Double.isNaN(lambda)) return x + lambda;
 		if (lambda < 0) return Double.NaN;
 		if (abs((x) - floor((x)+0.5)) > 1e-7) return (give_log ? Double.NEGATIVE_INFINITY : 0.); // Non integer
@@ -67,8 +66,7 @@ public class Poisson extends GenericDistribution {
 		return( density_raw(floor((x) + 0.5),lambda,give_log) );
 	}
 
-	public static final double cumulative (double x, double lambda, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative (double x, double lambda, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(lambda))
 			return x + lambda;
 		if(lambda < 0.) return Double.NaN;
@@ -86,8 +84,7 @@ public class Poisson extends GenericDistribution {
 	 *	1 or 2.	 A search is then conducted of values close to
 	 *	this initial start point.
 	 */
-	static final double do_search(double y, double []z, double p, double lambda, double incr)
-	{
+	static final double do_search(double y, double []z, double p, double lambda, double incr) {
 		if(z[0] >= p) {
 			/* search to the left */
 			for(;;) {
@@ -107,8 +104,7 @@ public class Poisson extends GenericDistribution {
 		}
 	}
 
-	public static final double quantile(double p, double lambda, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double lambda, boolean lower_tail, boolean log_p) {
 		double mu, sigma, gamma, z[] = new double[1], y;
 		if (Double.isNaN(p) || Double.isNaN(lambda))
 			return p + lambda;
@@ -178,17 +174,19 @@ public class Poisson extends GenericDistribution {
 	public static final double random(double mu, QRandomEngine random)
 	{	return random(mu, random, null); }
 
-	public static final double[] random(int n, double mu, QRandomEngine random)
-	{
-		RandomState state = singleton.new RandomState();
+	public static final double[] random(int n, double mu, QRandomEngine random) {
+		return random(n, mu, random, create_random_state());
+	}
+
+	public static final double[] random(int n, double mu, QRandomEngine random, RandomState state) {
+		if (state == null) state = create_random_state();
 		double[] result = new double[n];
 		for (int i = 0; i < n; i++)
 			result[i] = random(mu, random, state);
 		return result;
 	}
 
-	public static final double random(double mu, QRandomEngine random, RandomState state)
-	{
+	public static final double random(double mu, QRandomEngine random, RandomState state) {
 		final double
 		a0 = -0.5,
 		a1 = 0.3333333,
@@ -410,7 +408,12 @@ public class Poisson extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(lambda, random, state);
+	}
+
+	@Override
+	public double[] random(int n) {
+		return random(n, lambda, random, state);
 	}
 }

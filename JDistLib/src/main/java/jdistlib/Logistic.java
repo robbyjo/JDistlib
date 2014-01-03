@@ -25,8 +25,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 public class Logistic extends GenericDistribution {
-	public static final double density(double x, double location, double scale, boolean give_log)
-	{
+	public static final double density(double x, double location, double scale, boolean give_log) {
 	    double e, f;
 	    if (Double.isNaN(x) || Double.isNaN(location) || Double.isNaN(scale)) return x + location + scale;
 	    if (scale <= 0.0) return Double.NaN;
@@ -49,8 +48,7 @@ public class Logistic extends GenericDistribution {
 	    return x + exp(-x);
 	}
 
-	public static final double cumulative(double x, double location, double scale, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double location, double scale, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(location) || Double.isNaN(scale)) return x + location + scale;
 		if (scale <= 0.0) return Double.NaN;
 
@@ -67,8 +65,7 @@ public class Logistic extends GenericDistribution {
 			1 / (1 + exp(lower_tail ? -x : x));
 	}
 
-	public static final double quantile(double p, double location, double scale, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double location, double scale, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(p) || Double.isNaN(location) || Double.isNaN(scale)) return p + location + scale;
 		//R_Q_P01_boundaries(p, ML_NEGINF, ML_POSINF);
 		if (log_p) {
@@ -90,7 +87,6 @@ public class Logistic extends GenericDistribution {
 
 		if (scale <	 0.) return Double.NaN;
 		if (scale == 0.) return location;
-
 		/* p := logit(p) = log( p / (1-p) )	 : */
 		if(log_p) {
 			if(lower_tail)
@@ -102,16 +98,21 @@ public class Logistic extends GenericDistribution {
 		}
 		else
 			p = log(lower_tail ? (p / (1. - p)) : ((1. - p) / p));
-
 		return location + scale * p;
 	}
 
-	public static final double random(double location, double scale, QRandomEngine random)
-	{
+	public static final double random(double location, double scale, QRandomEngine random) {
 		if (Double.isNaN(location) || MathFunctions.isInfinite(scale)) return Double.NaN;
 		if (scale == 0. || MathFunctions.isInfinite(location)) return location;
 		double u = random.nextDouble();
 		return location + scale * log(u / (1. - u));
+	}
+
+	public static final double[] random(int n, double location, double scale, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(location, scale, random);
+		return rand;
 	}
 
 	protected double location, scale;
@@ -136,7 +137,7 @@ public class Logistic extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(location, scale, random);
 	}
 }

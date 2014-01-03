@@ -50,8 +50,7 @@ public class NonCentralT extends GenericDistribution {
 	 *    All calculations are done on log-scale to increase stability.
 	 * </pre>
 	 */
-	public static final double density(double x, double df, double ncp, boolean give_log)
-	{
+	public static final double density(double x, double df, double ncp, boolean give_log) {
 		double u;
 		if (Double.isNaN(x) || Double.isNaN(df)) return x + df;
 
@@ -106,8 +105,7 @@ public class NonCentralT extends GenericDistribution {
 	 *    M_SQRT_2dPI  = 1/ {gamma(1.5) * sqrt(2)} = sqrt(2 / pi)
 	 *    M_LN_SQRT_PI = ln(sqrt(pi)) = ln(pi)/2
 	 */
-	public static final double cumulative(double t, double df, double ncp, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double t, double df, double ncp, boolean lower_tail, boolean log_p) {
 		double albeta, a, b, del, errbd, lambda, rxb, tt, x;
 		/* long */ double geven, godd, p, q, s, tnc, xeven, xodd; // TODO long double
 		int it; boolean negdel;
@@ -223,8 +221,7 @@ public class NonCentralT extends GenericDistribution {
 		return (lower_tail ? (log_p ? log(tnc) : (tnc))  : (log_p	? log1p(-(tnc)) : (0.5 - (tnc) + 0.5)));
 	}
 
-	public static final double quantile(double p, double df, double ncp, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double df, double ncp, boolean lower_tail, boolean log_p) {
 		final double accu = 1e-13;
 		final double Eps = 1e-11; /* must be > accu */
 
@@ -284,11 +281,17 @@ public class NonCentralT extends GenericDistribution {
 		return 0.5 * (lx + ux);
 	}
 
-	public static final double random(double df, double ncp, QRandomEngine random)
-	{
+	public static final double random(double df, double ncp, QRandomEngine random) {
 		if (ncp == 0)
 			return T.random(df, random);
 		return Normal.random(ncp,1,random) / sqrt(ChiSquare.random(df, random)/df);
+	}
+
+	public static final double[] random(int n, double df, double ncp, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(df, ncp, random);
+		return rand;
 	}
 
 	protected double df, ncp;
@@ -313,7 +316,7 @@ public class NonCentralT extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(df, ncp, random);
 	}
 }

@@ -26,8 +26,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 public class T extends GenericDistribution {
-	public static final double density(double x, double n, boolean give_log)
-	{
+	public static final double density(double x, double n, boolean give_log) {
 		if (Double.isNaN(x) || Double.isNaN(n))
 			return x + n;
 
@@ -63,8 +62,7 @@ public class T extends GenericDistribution {
 		return exp(t-u) * M_1_SQRT_2PI * I_sqrt_;
 	}
 
-	public static final double cumulative(double x, double n, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double n, boolean lower_tail, boolean log_p) {
 		/* return  P[ T <= x ]	where
 		 * T ~ t_{n}  (t distrib. with n degrees of freedom).
 
@@ -110,8 +108,7 @@ public class T extends GenericDistribution {
 			}
 	}
 
-	public static final double quantile(double p, double ndf, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double ndf, boolean lower_tail, boolean log_p) {
 		final double eps = 1.e-12;
 
 		double P, q;
@@ -290,8 +287,7 @@ public class T extends GenericDistribution {
 		return q;
 	}
 
-	public static final double random(double df, QRandomEngine random)
-	{
+	public static final double random(double df, QRandomEngine random) {
 		if (Double.isNaN(df) || df <= 0.0) return Double.NaN;
 
 		if(MathFunctions.isInfinite(df))
@@ -302,6 +298,13 @@ public class T extends GenericDistribution {
 			double num = Normal.random_standard(random);
 			return num / sqrt(ChiSquare.random(df, random) / df);
 		}
+	}
+
+	public static final double[] random(int n, double df, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(df, random);
+		return rand;
 	}
 
 	protected double df;
@@ -324,7 +327,7 @@ public class T extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(df, random);
 	}
 }

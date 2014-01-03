@@ -131,7 +131,7 @@ public class Cauchy extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(location, scale, random);
 	}
 }

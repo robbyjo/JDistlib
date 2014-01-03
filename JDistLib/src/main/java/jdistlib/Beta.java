@@ -372,7 +372,7 @@ public class Beta extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(a, b, random);
 	}
 

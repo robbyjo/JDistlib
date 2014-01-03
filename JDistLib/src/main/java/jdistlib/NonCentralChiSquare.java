@@ -30,8 +30,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 	 * The density of the noncentral chi-squared distribution with "df"
 	 * degrees of freedom and noncentrality parameter "ncp".
 	 */
-	public static final double density(double x, double df, double ncp, boolean give_log)
-	{
+	public static final double density(double x, double df, double ncp, boolean give_log) {
 		final double eps = 5e-15;
 
 		double i, ncp2, q, mid, dfmid = 0, imax;
@@ -102,8 +101,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 	}
 
 	@SuppressWarnings("unused")
-	public static final double cumulative_raw(double x, double f, double theta, double errmax, double reltol, int itrmax, boolean lower_tail)
-	{
+	public static final double cumulative_raw(double x, double f, double theta, double errmax, double reltol, int itrmax, boolean lower_tail) {
 		double lam, x2, f2, term, bound, f_x_2n, f_2n;
 		double l_lam = -1., l_x = -1.; /* initialized for -Wall */
 		int n;
@@ -248,8 +246,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 	 *    Algorithm AS275: Computing the non-central chi-squared
 	 *    distribution function. Appl.Statist., 41, 478-482.
 	 */
-	public static final double cumulative(double x, double df, double ncp, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double df, double ncp, boolean lower_tail, boolean log_p) {
 		double ans;
 		if (Double.isNaN(x) || Double.isNaN(df) || Double.isNaN(ncp)) return x + df + ncp;
 		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp)) return Double.NaN;
@@ -276,8 +273,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		return log1p(-ans);
 	}
 
-	public static final double quantile(double p, double df, double ncp, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double df, double ncp, boolean lower_tail, boolean log_p) {
 		final double accu = 1e-13;
 		final double racc = 4*DBL_EPSILON;
 		/* these two are for the "search" loops, can have less accuracy: */
@@ -417,8 +413,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		else rchisq0(n, ncp) + .Internal(rchisq(n, df))
 	    }</pre>
 	 */
-	public static final double random(double df, double lambda, QRandomEngine random)
-	{
+	public static final double random(double df, double lambda, QRandomEngine random) {
 		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(lambda) || df < 0. || lambda < 0.)
 			return Double.NaN;
 
@@ -430,6 +425,13 @@ public class NonCentralChiSquare extends GenericDistribution {
 		if (r > 0.)  r = ChiSquare.random(2. * r, random);
 		if (df > 0.) r += Gamma.random(df / 2., 2., random);
 		return r;
+	}
+
+	public static final double[] random(int n, double df, double lambda, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(df, lambda, random);
+		return rand;
 	}
 
 	protected double df, ncp;
@@ -453,7 +455,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(df, ncp, random);
 	}
 }

@@ -23,7 +23,6 @@ import static java.lang.Math.*;
 import static jdistlib.Constants.*;
 import static jdistlib.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
 
 /**<pre>
   SYNOPSIS
@@ -47,16 +46,10 @@ import jdistlib.rng.QRandomEngine;
  *  
  */
 public class Wilcoxon extends GenericDistribution {
-	protected QRandomEngine random;
 	protected double[][][] w;
 
 	public Wilcoxon(int m, int n) {
-		init(m,n);
-	}
-
-	protected void init(int m, int n) {
 	    int i;
-
 	    if (m > n) {
 	    	i = n; n = m; m = i;
 	    }
@@ -69,8 +62,7 @@ public class Wilcoxon extends GenericDistribution {
 	public int getN()
 	{	return w[0].length - 1; }
 
-	protected double count(int k, int m, int n)
-	{
+	protected double count(int k, int m, int n) {
 		int c, u, i, j, l;
 
 		u = m * n;
@@ -110,8 +102,7 @@ public class Wilcoxon extends GenericDistribution {
 		return(w[i][j][k]);
 	}
 
-	public double density(int x, boolean give_log)
-	{
+	public double density(int x, boolean give_log) {
 		int m = w.length - 1, n = w[0].length - 1;
 	    double d;
 
@@ -130,12 +121,10 @@ public class Wilcoxon extends GenericDistribution {
 	    d = give_log ?
 		log(count((int) x, (int) m, (int) n)) - lchoose(m + n, n) :
 			count((int) x, (int) m, (int) n)  /	 choose(m + n, n);
-
 	    return(d);
 	}
 
-	public double cumulative(int q, boolean lower_tail, boolean log_p)
-	{
+	public double cumulative(int q, boolean lower_tail, boolean log_p) {
 		int m = w.length - 1, n = w[0].length - 1;
 		int i;
 		double c, p;
@@ -169,8 +158,7 @@ public class Wilcoxon extends GenericDistribution {
 		return (lower_tail ? (log_p ? log(p) : (p)) : (log_p ? log1p(-(p)) : (0.5 - (p) + 0.5)));
 	}
 
-	public double quantile(double x, boolean lower_tail, boolean log_p)
-	{
+	public double quantile(double x, boolean lower_tail, boolean log_p) {
 		int m = w.length - 1, n = w[0].length - 1, q;
 		double c, p;
 
@@ -218,17 +206,7 @@ public class Wilcoxon extends GenericDistribution {
 		return(q);
 	}
 
-	public void setRandomEngine(QRandomEngine rand)
-	{	random = rand; }
-
-	public QRandomEngine getRandomEngine()
-	{	return random; }
-
-	public double random()
-	{	return random(random); }
-
-	public double random(QRandomEngine random)
-	{
+	public double random() {
 		int m = w.length - 1, n = w[0].length - 1;
 		int i, j, k, x[];
 		double r;

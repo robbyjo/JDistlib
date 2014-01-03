@@ -127,7 +127,7 @@ public class Geometric extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(p, random);
 	}
 }

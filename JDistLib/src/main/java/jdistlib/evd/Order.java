@@ -62,6 +62,13 @@ public class Order extends GenericDistribution {
 		return dist.quantile(value, true, false);
 	}
 
+	public static final double[] random(int n, GenericDistribution dist, int mlen, int j, boolean largest, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(dist, mlen, j, largest, random);
+		return rand;
+	}
+
 	protected int mlen, j;
 	protected boolean largest;
 	protected GenericDistribution dist;
@@ -87,7 +94,7 @@ public class Order extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(dist, mlen, j, largest, random);
 	}
 }

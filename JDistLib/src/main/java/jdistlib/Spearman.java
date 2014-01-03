@@ -1259,6 +1259,13 @@ public class Spearman extends GenericDistribution {
 		return u1;
 	}
 
+	public static final double[] random(int count, int n, QRandomEngine random) {
+		double[] rand = new double[count];
+		for (int i = 0; i < count; i++)
+			rand[i] = random(n, random);
+		return rand;
+	}
+
 	protected int n;
 
 	public Spearman(int n) {
@@ -1285,7 +1292,7 @@ public class Spearman extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(n, random);
 	}
 }

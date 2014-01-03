@@ -30,8 +30,7 @@ public class NonCentralF extends GenericDistribution {
 	 * using dnbeta.
 	 * For df1 < 2, since the F density has a singularity as x -> Inf.
 	 */
-	public static final double density(double x, double df1, double df2, double ncp, boolean give_log)
-	{
+	public static final double density(double x, double df1, double df2, double ncp, boolean give_log) {
 		double y, z, f;
 
 		if (Double.isNaN(x) || Double.isNaN(df1) || Double.isNaN(df2) || Double.isNaN(ncp))
@@ -71,8 +70,7 @@ public class NonCentralF extends GenericDistribution {
 				z * (df1 / df2) /(1 + y) / (1 + y);
 	}
 
-	public static final double cumulative(double x, double df1, double df2, double ncp, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double df1, double df2, double ncp, boolean lower_tail, boolean log_p) {
 		double y;
 		if (Double.isNaN(x) || Double.isNaN(df1) || Double.isNaN(df2) || Double.isNaN(ncp)) return x + df2 + df1 + ncp;
 		if (df1 <= 0. || df2 <= 0. || ncp < 0) return Double.NaN;
@@ -91,8 +89,7 @@ public class NonCentralF extends GenericDistribution {
 		return NonCentralBeta.pnbeta2(y/(1. + y), 1./(1. + y), df1 / 2., df2 / 2., ncp, lower_tail, log_p);
 	}
 
-	public static final double quantile(double p, double df1, double df2, double ncp, boolean lower_tail,  boolean log_p)
-	{
+	public static final double quantile(double p, double df1, double df2, double ncp, boolean lower_tail,  boolean log_p) {
 		double y;
 		if (Double.isNaN(p) || Double.isNaN(df1) || Double.isNaN(df2) || Double.isNaN(ncp)) return p + df1 + df2 + ncp;
 		if (df1 <= 0. || df2 <= 0. || ncp < 0) return Double.NaN;
@@ -122,11 +119,17 @@ public class NonCentralF extends GenericDistribution {
 		return y/(1-y) * (df2/df1);
 	}
 
-	public static final double random(double df1, double df2, double ncp, QRandomEngine random)
-	{
+	public static final double random(double df1, double df2, double ncp, QRandomEngine random) {
 		if (ncp == 0)
 			return F.random(df1, df2, random);
 		return (NonCentralChiSquare.random(df1, ncp, random) / df1) / (NonCentralChiSquare.random(df2, ncp, random) / df2);
+	}
+
+	public static final double[] random(int n, double df1, double df2, double ncp, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(df1, df2, ncp, random);
+		return rand;
 	}
 
 	protected double df1, df2, ncp;
@@ -151,7 +154,7 @@ public class NonCentralF extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(df1, df2, ncp, random);
 	}
 }

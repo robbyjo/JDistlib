@@ -85,6 +85,13 @@ public class InvNormal extends GenericDistribution {
 		return quantile(random.nextDouble(), mu, sigma, true, false);
 	}
 
+	public static final double[] random(int n, double mu, double sigma, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(mu, sigma, random);
+		return rand;
+	}
+
 	protected double mu, sigma;
 
 	public InvNormal(double mu, double sigma) {
@@ -107,7 +114,7 @@ public class InvNormal extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(mu, sigma, random);
 	}
 

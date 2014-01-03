@@ -24,8 +24,38 @@ import jdistlib.rng.QRandomEngine;
  *
  */
 public abstract class GenericDistribution {
+	protected QRandomEngine random;
 	public abstract double density(double x, boolean log);
 	public abstract double cumulative(double p, boolean lower_tail, boolean log_p);
 	public abstract double quantile(double q, boolean lower_tail, boolean log_p);
-	public abstract double random(QRandomEngine random);
+	public abstract double random();
+
+	public double[] random(int n) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random();
+		return rand;
+	}
+
+	public void setRandomEngine(QRandomEngine r) {
+		random = r;
+	}
+
+	public QRandomEngine getRandomEngine() {
+		return random;
+	}
+
+	/**
+	 * Old RNG API
+	 * @deprecated
+	 * @param r random number generator
+	 * @return Random number for the distribution
+	 */
+	public double random(QRandomEngine r) {
+		QRandomEngine temp = random;
+		random = r;
+		double v = random();
+		random = temp;
+		return v;
+	}
 }

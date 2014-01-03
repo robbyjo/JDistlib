@@ -24,8 +24,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 
 public class Uniform extends GenericDistribution {
-	public static final double density(double x, double a, double b, boolean give_log)
-	{
+	public static final double density(double x, double a, double b, boolean give_log) {
 		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
 		if (b <= a) return Double.NaN;
 
@@ -33,8 +32,7 @@ public class Uniform extends GenericDistribution {
 		return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 	}
 
-	public static final double cumulative(double x, double a, double b, boolean lower_tail, boolean log_p)
-	{
+	public static final double cumulative(double x, double a, double b, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
 		if (b < a || MathFunctions.isInfinite(a) || MathFunctions.isInfinite(b)) return Double.NaN;
 		if (x >= b) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
@@ -47,8 +45,7 @@ public class Uniform extends GenericDistribution {
 		return (log_p ? log(x) : (x));
 	}
 
-	public static final double quantile(double p, double a, double b, boolean lower_tail, boolean log_p)
-	{
+	public static final double quantile(double p, double a, double b, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(p) || Double.isNaN(a) || Double.isNaN(b)) return p + a + b;
 		//R_Q_P01_check(p);
 		if ((log_p	&& p > 0) || (!log_p && (p < 0 || p > 1)) ) return Double.NaN;
@@ -60,8 +57,7 @@ public class Uniform extends GenericDistribution {
 		return a + p * (b - a);
 	}
 
-	public static final double random(double a, double b, QRandomEngine random)
-	{
+	public static final double random(double a, double b, QRandomEngine random) {
 		if (MathFunctions.isInfinite(a) || MathFunctions.isInfinite(b) || b < a) return Double.NaN;
 		if (a == b)
 			return a;
@@ -71,6 +67,13 @@ public class Uniform extends GenericDistribution {
 			do {u = random.nextDouble();} while (u <= 0 || u >= 1);
 			return a + (b - a) * u;
 		}
+	}
+
+	public static final double[] random(int n, double a, double b, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(a, b, random);
+		return rand;
 	}
 
 	protected double a, b;
@@ -94,7 +97,7 @@ public class Uniform extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(a, b, random);
 	}
 }

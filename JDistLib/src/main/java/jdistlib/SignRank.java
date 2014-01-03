@@ -30,18 +30,12 @@ public class SignRank extends GenericDistribution {
 	protected QRandomEngine random;
 
 	public SignRank(int n) {
-		init(n);
-	}
-
-	protected void init(int _n)
-	{
-		n = _n;
+		this.n = n;
 	    int c = (n * (n + 1) / 4);
 		w = new double[c+1];
 	}
 
-	protected double count(int k, int n)
-	{
+	protected double count(int k, int n) {
 		int c, u, j;
 
 		u = n * (n + 1) / 2;
@@ -68,8 +62,7 @@ public class SignRank extends GenericDistribution {
 		return w[k];
 	}
 
-	public double density(int x, boolean give_log)
-	{
+	public double density(int x, boolean give_log) {
 	    double d;
 
 	    /* NaNs propagated correctly */
@@ -88,8 +81,7 @@ public class SignRank extends GenericDistribution {
 	    return (give_log ? (d) : exp(d));
 	}
 
-	public double cumulative(int x, boolean lower_tail, boolean log_p)
-	{
+	public double cumulative(int x, boolean lower_tail, boolean log_p) {
 		int i;
 		double f, p;
 
@@ -120,8 +112,7 @@ public class SignRank extends GenericDistribution {
 		return (lower_tail ? (log_p ? log(p) : (p))  : (log_p ? log1p(-(p)) : (0.5 - (p) + 0.5)));
 	}
 
-	public double quantile(double x, boolean lower_tail, boolean log_p)
-	{
+	public double quantile(double x, boolean lower_tail, boolean log_p) {
 		int n = w.length - 1;
 		double f, p;//, q;
 		int q;
@@ -179,22 +170,19 @@ public class SignRank extends GenericDistribution {
 	public double random()
 	{	return random(random); }
 
-	public double random(QRandomEngine random)
-	{
-		int i, k;
-		double r;
+	public double random(QRandomEngine rr) {
+		if (n == 0) return 0;
+		double r = 0.0;
+		for (int i = 0; i < n; )
+			r += (++i) * floor(rr.nextDouble() + 0.5);
+		return r;
+	}
 
-		//n = floor(n + 0.5);
-		//if (n < 0) ML_ERR_return_NAN;
-
-		if (n == 0)
-			return(0);
-		r = 0.0;
-		k = (int) n;
-		for (i = 0; i < k; ) {
-			r += (++i) * floor(random.nextDouble() + 0.5);
-		}
-		return(r);
+	public double[] random(int n, QRandomEngine r) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(r);
+		return rand;
 	}
 
 	@Override

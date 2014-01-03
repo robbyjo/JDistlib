@@ -53,6 +53,13 @@ public class Rayleigh extends GenericDistribution {
 		return scale <= 0 ? Double.NaN : scale * sqrt(-2 * log(random.nextDouble()));
 	}
 
+	public static final double[] random(int n, double scale, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(scale, random);
+		return rand;
+	}
+
 	protected double scale;
 
 	public Rayleigh(double scale) {
@@ -77,7 +84,7 @@ public class Rayleigh extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(scale, random);
 	}
 }

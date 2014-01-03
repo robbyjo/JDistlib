@@ -832,7 +832,7 @@ public class Gamma extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(shape, scale, random);
 	}
 }

@@ -521,6 +521,18 @@ public class HyperGeometric extends GenericDistribution {
 		return ix;
 	}
 
+	public static final double[] random(int n, double nn1in, double nn2in, double kkin, QRandomEngine random, RandomState state) {
+		if (state == null) state = create_random_state();
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(nn1in, nn2in, kkin, random, state);
+		return rand;
+	}
+
+	public static final double[] random(int n, double nn1in, double nn2in, double kkin, QRandomEngine random) {
+		return random(n, nn1in, nn2in, kkin, random, create_random_state());
+	}
+
 	protected double r, b, n;
 	protected RandomState state;
 
@@ -545,7 +557,12 @@ public class HyperGeometric extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(r, b, n, random, state);
+	}
+
+	@Override
+	public double[] random(int ct) {
+		return random(ct, r, b, n, random, state);
 	}
 }

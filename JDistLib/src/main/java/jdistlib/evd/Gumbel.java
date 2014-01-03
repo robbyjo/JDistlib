@@ -37,6 +37,13 @@ public class Gumbel extends GenericDistribution {
 	public static final double random(double loc, double scale, QRandomEngine random)
 	{	return GEV.random(loc, scale, 0, random); }
 
+	public static final double[] random(int n, double loc, double scale, QRandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random(loc, scale, random);
+		return rand;
+	}
+
 	protected double loc, scale;
 
 	public Gumbel(double loc, double scale) {
@@ -61,7 +68,7 @@ public class Gumbel extends GenericDistribution {
 	}
 
 	@Override
-	public double random(QRandomEngine random) {
+	public double random() {
 		return random(loc, scale, random);
 	}
 }

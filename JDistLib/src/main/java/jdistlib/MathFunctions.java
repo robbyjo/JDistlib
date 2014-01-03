@@ -61,6 +61,10 @@ public class MathFunctions {
 	public static final boolean isInfinite(double x)
 	{	return Double.isNaN(x) || (x == Double.POSITIVE_INFINITY) || (x == Double.NEGATIVE_INFINITY); }
 
+	public static final double ldexp(double x, double ex) {
+		return exp(log(x) + ex * Constants.M_LN_2);
+	}
+
 	/**
 	 * Determine the number of terms for the
 	 * double precision orthogonal Chebyshev series "dos" needed to insure

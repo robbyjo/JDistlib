@@ -36,7 +36,7 @@ import java.util.Arrays;
  * <li>k is modified Bessel function of the second kind.</li>
  * </ul>
  *
- * <P>WARNING: NOT YET TESTED!
+ * <P>WARNING: STILL BUGGY!
  */
 public class Bessel {
 	/* *******************************************************************

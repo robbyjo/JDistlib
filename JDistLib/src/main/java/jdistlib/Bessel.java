@@ -138,7 +138,7 @@ public class Bessel {
 	 VAX G-Format (D.P.)	1e4  1e8  706.728  1e-8	 2.23e-308  8.98e307   16.
 
 	*/
-	public static final double
+	private static final double
 		nsig_BESS = 16,
 		ensig_BESS = 1e16,
 		rtnsig_BESS = 1e-4,
@@ -241,7 +241,7 @@ public class Bessel {
 		int nb = 1 + na;
 		alpha -= (nb - 1);
 		double[] by = new double[nb];
-		int ncalc = j(x, alpha, by);
+		int ncalc = j_internal(x, alpha, by);
 		if (ncalc != nb) {
 			if (ncalc < 0)
 				System.err.println(String.format("bessel_j(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
@@ -343,7 +343,7 @@ public class Bessel {
 		int nb = 1 + na;
 		alpha -= (nb - 1);
 		double[] by = new double[nb];
-		int ncalc = y(x, alpha, by);
+		int ncalc = y_internal(x, alpha, by);
 		if (ncalc != nb) {
 			if (ncalc == -1)
 				return Double.POSITIVE_INFINITY;
@@ -459,7 +459,7 @@ public class Bessel {
 		int nb = 1 + na;
 		alpha -= (nb - 1);
 		double[] bi = new double[nb];
-		int ncalc = i(x, alpha, expo, bi);
+		int ncalc = i_internal(x, alpha, expo, bi);
 		if (ncalc != nb) {
 			if (ncalc < 0)
 				System.err.println(String.format("bessel_i(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
@@ -565,7 +565,7 @@ public class Bessel {
 		int nb = 1 + (int) floor(alpha);
 		alpha -= (nb - 1);
 		double[] bk = new double[nb];
-		int ncalc = k(x, alpha, expo, bk);
+		int ncalc = k_internal(x, alpha, expo, bk);
 		if (ncalc != nb) {
 			if (ncalc < 0)
 				System.err.println(String.format("bessel_k(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
@@ -576,7 +576,7 @@ public class Bessel {
 	}
 
 
-	private static final int j(double x, double alpha, double[] b) {
+	private static final int j_internal(double x, double alpha, double[] b) {
 		/* ---------------------------------------------------------------------
 		  Mathematical constants
 
@@ -975,7 +975,7 @@ public class Bessel {
 		return ncalc;
 	}
 
-	private static final int y(double x, double alpha, double[] by) {
+	private static final int y_internal(double x, double alpha, double[] by) {
 		/* ----------------------------------------------------------------------
 		  Mathematical constants
 		    FIVPI = 5*PI
@@ -1269,7 +1269,7 @@ public class Bessel {
 		return ncalc;
 	}
 
-	private static final int i(double x, double alpha, boolean expo, double[] bi) {
+	private static final int i_internal(double x, double alpha, boolean expo, double[] bi) {
 		/*-------------------------------------------------------------------
 	      Mathematical constants
 	      -------------------------------------------------------------------*/
@@ -1610,7 +1610,7 @@ public class Bessel {
 		return ncalc;
 	}
 
-	private static final int k(double x, double alpha, boolean expo, double[] bk) {
+	private static final int k_internal(double x, double alpha, boolean expo, double[] bk) {
 		/*---------------------------------------------------------------------
 		 * Mathematical constants
 		 *	A = LOG(2) - Euler's constant

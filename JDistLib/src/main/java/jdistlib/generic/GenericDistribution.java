@@ -14,6 +14,7 @@
  */
 package jdistlib.generic;
 
+import jdistlib.rng.QMersenneTwister;
 import jdistlib.rng.QRandomEngine;
 
 /**
@@ -24,7 +25,7 @@ import jdistlib.rng.QRandomEngine;
  *
  */
 public abstract class GenericDistribution {
-	protected QRandomEngine random;
+	protected QRandomEngine random = new QMersenneTwister();
 	public abstract double density(double x, boolean log);
 	public abstract double cumulative(double p, boolean lower_tail, boolean log_p);
 	public abstract double quantile(double q, boolean lower_tail, boolean log_p);

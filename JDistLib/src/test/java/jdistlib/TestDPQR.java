@@ -833,7 +833,7 @@ public class TestDPQR {
 			Ppois = pois.cumulative(Rpois, lower_tail, log_p),
 			Psignrank = signrank.cumulative(Rsignrank, lower_tail, log_p),
 			Pt = t.cumulative(Rt, lower_tail, log_p),
-			Pt2 = t.cumulative(Rt2, lower_tail, log_p),
+			Pt2 = t2.cumulative(Rt2, lower_tail, log_p),
 			Punif = unif.cumulative(Runif, lower_tail, log_p),
 			Pweibull = weibull.cumulative(Rweibull, lower_tail, log_p),
 			Pwilcox = wilcox.cumulative(Rwilcox, lower_tail, log_p);
@@ -897,7 +897,7 @@ public class TestDPQR {
 			Dpois = pois.density(Rpois, false),
 			Dsignrank = signrank.density(Rsignrank, false),
 			Dt = t.density(Rt, false),
-			Dt2 = t.density(Rt2, false),
+			Dt2 = t2.density(Rt2, false),
 			Dunif = unif.density(Runif, false),
 			Dweibull = weibull.density(Rweibull, false),
 			Dwilcox = wilcox.density(Rwilcox, false);
@@ -961,7 +961,7 @@ public class TestDPQR {
 			Qpois = pois.quantile(Ppois, lower_tail, log_p),
 			Qsignrank = signrank.quantile(Psignrank, lower_tail, log_p),
 			Qt = t.quantile(Pt, lower_tail, log_p),
-			Qt2 = t.quantile(Pt2, lower_tail, log_p),
+			Qt2 = t2.quantile(Pt2, lower_tail, log_p),
 			Qunif = unif.quantile(Punif, lower_tail, log_p),
 			Qweibull = weibull.quantile(Pweibull, lower_tail, log_p),
 			Qwilcox = wilcox.quantile(Pwilcox, lower_tail, log_p);
@@ -1025,7 +1025,7 @@ public class TestDPQR {
 		Qpois = pois.quantile(comps(Ppois), lower_tail, log_p);
 		Qsignrank = signrank.quantile(comps(Psignrank), lower_tail, log_p);
 		Qt = t.quantile(comps(Pt), lower_tail, log_p);
-		Qt2 = t.quantile(comps(Pt2), lower_tail, log_p);
+		Qt2 = t2.quantile(comps(Pt2), lower_tail, log_p);
 		Qunif = unif.quantile(comps(Punif), lower_tail, log_p);
 		Qweibull = weibull.quantile(comps(Pweibull), lower_tail, log_p);
 		Qwilcox = wilcox.quantile(comps(Pwilcox), lower_tail, log_p);
@@ -1089,7 +1089,7 @@ public class TestDPQR {
 		Qpois = pois.quantile(logs(Ppois), lower_tail, log_p);
 		Qsignrank = signrank.quantile(logs(Psignrank), lower_tail, log_p);
 		Qt = t.quantile(logs(Pt), lower_tail, log_p);
-		Qt2 = t.quantile(logs(Pt2), lower_tail, log_p);
+		Qt2 = t2.quantile(logs(Pt2), lower_tail, log_p);
 		Qunif = unif.quantile(logs(Punif), lower_tail, log_p);
 		Qweibull = weibull.quantile(logs(Pweibull), lower_tail, log_p);
 		Qwilcox = wilcox.quantile(logs(Pwilcox), lower_tail, log_p);
@@ -1153,7 +1153,7 @@ public class TestDPQR {
 		Qpois = pois.quantile(log1pComps(Ppois), lower_tail, log_p);
 		Qsignrank = signrank.quantile(log1pComps(Psignrank), lower_tail, log_p);
 		Qt = t.quantile(log1pComps(Pt), lower_tail, log_p);
-		Qt2 = t.quantile(log1pComps(Pt2), lower_tail, log_p);
+		Qt2 = t2.quantile(log1pComps(Pt2), lower_tail, log_p);
 		Qunif = unif.quantile(log1pComps(Punif), lower_tail, log_p);
 		Qweibull = weibull.quantile(log1pComps(Pweibull), lower_tail, log_p);
 		Qwilcox = wilcox.quantile(log1pComps(Pwilcox), lower_tail, log_p);
@@ -1218,7 +1218,7 @@ public class TestDPQR {
 			_Ppois = pois.cumulative(Rpois, lower_tail, log_p),
 			_Psignrank = signrank.cumulative(Rsignrank, lower_tail, log_p),
 			_Pt = t.cumulative(Rt, lower_tail, log_p),
-			_Pt2 = t.cumulative(Rt2, lower_tail, log_p),
+			_Pt2 = t2.cumulative(Rt2, lower_tail, log_p),
 			_Punif = unif.cumulative(Runif, lower_tail, log_p),
 			_Pweibull = weibull.cumulative(Rweibull, lower_tail, log_p),
 			_Pwilcox = wilcox.cumulative(Rwilcox, lower_tail, log_p);

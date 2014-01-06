@@ -31,6 +31,30 @@ public abstract class GenericDistribution {
 	public abstract double quantile(double q, boolean lower_tail, boolean log_p);
 	public abstract double random();
 
+	public double[] density(double[] x, boolean log) {
+		int n = x.length;
+		double[] v = new double[n];
+		for (int i = 0; i < n; i++)
+			v[i] = density(x[i], log);
+		return v;
+	}
+
+	public double[] cumulative(double[] p, boolean lower_tail, boolean log_p) {
+		int n = p.length;
+		double[] v = new double[n];
+		for (int i = 0; i < n; i++)
+			v[i] = cumulative(p[i], lower_tail, log_p);
+		return v;
+	}
+
+	public double[] quantile(double[] q, boolean lower_tail, boolean log_p) {
+		int n = q.length;
+		double[] v = new double[n];
+		for (int i = 0; i < n; i++)
+			v[i] = quantile(q[i], lower_tail, log_p);
+		return v;
+	}
+
 	public double[] random(int n) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)

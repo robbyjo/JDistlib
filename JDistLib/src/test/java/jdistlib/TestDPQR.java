@@ -88,8 +88,21 @@ public class TestDPQR {
 		boolean v = allEqual(a, b, tol);
 		printBool(v);
 		if (!v) {
-			System.out.print("True values: "); printDetails(a);
-			System.out.print("Results: "); printDetails(b);
+			int n = a.length;
+			boolean[] vv = new boolean[n];
+			for (int i = 0; i < a.length; i++)
+				vv[i] = isEqual(a[i], b[i], tol);
+			System.out.print("True values: ");
+			for (int i = 0; i < n; i++)
+				if (!vv[i])
+					System.out.print(a[i]+ " ");
+			System.out.println();
+
+			System.out.print("Results: ");
+			for (int i = 0; i < n; i++)
+				if (!vv[i])
+					System.out.print(b[i]+ " ");
+			System.out.println();
 		}
 	}
 
@@ -144,14 +157,6 @@ public class TestDPQR {
 		for (int i = 0; i < n; i++) {
 			System.out.print(String.format(" %g", val[i]));
 			if ((i + 1) % 6 == 0) System.out.println();
-		}
-		System.out.println();
-	}
-
-	static final void printDetails(double[] val) {
-		int n = val.length;
-		for (int i = 0; i < n; i++) {
-			System.out.print(val[i]+ " ");
 		}
 		System.out.println();
 	}

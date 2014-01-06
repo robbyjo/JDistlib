@@ -114,7 +114,6 @@ public class SignRank extends GenericDistribution {
 	}
 
 	public double quantile(double x, boolean lower_tail, boolean log_p) {
-		int n = w.length - 1;
 		double f, p;//, q;
 		int q;
 

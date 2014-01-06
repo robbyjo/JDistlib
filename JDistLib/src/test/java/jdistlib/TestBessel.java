@@ -15,6 +15,8 @@
  */
 package jdistlib;
 
+import jdistlib.math.Bessel;
+
 public class TestBessel {
 	public static final void main(String[] args) {
 		System.out.println(Bessel.i(0, 0, false));

@@ -21,6 +21,7 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.QRandomEngine;
 
 public class Uniform extends GenericDistribution {

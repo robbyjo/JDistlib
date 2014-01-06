@@ -21,7 +21,7 @@
 package jdistlib.util;
 
 import static java.lang.Math.*;
-import static jdistlib.Constants.*;
+import static jdistlib.math.Constants.*;
 
 /**
  * Function optimization routines. Currently only Brent's minimization routine.

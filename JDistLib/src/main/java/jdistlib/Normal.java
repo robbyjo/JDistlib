@@ -25,10 +25,11 @@ import static java.lang.Double.NaN;
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.POSITIVE_INFINITY;
 import static java.lang.Math.*;
-import static jdistlib.Constants.*;
-import static jdistlib.MathFunctions.isInfinite;
-import static jdistlib.MathFunctions.trunc;
+import static jdistlib.math.Constants.*;
+import static jdistlib.math.MathFunctions.isInfinite;
+import static jdistlib.math.MathFunctions.trunc;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.QRandomEngine;
 
 /**

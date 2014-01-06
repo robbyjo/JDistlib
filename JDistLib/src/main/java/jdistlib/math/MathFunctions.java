@@ -17,10 +17,10 @@
  *  along with this program; if not, a copy is available at
  *  http://www.r-project.org/Licenses/
  */
-package jdistlib;
+package jdistlib.math;
 
 import static java.lang.Math.*;
-import static jdistlib.Constants.*;
+import static jdistlib.math.Constants.*;
 
 public class MathFunctions {
 	/**
@@ -497,10 +497,10 @@ public class MathFunctions {
 		return log(gammafn(p) * (gammafn(q) / gammafn(p + q)));
 	}
 
-	static final double
+	protected static final double
 		bigx = 4294967296.0,
-		scalefactor = bigx * bigx * bigx * bigx * bigx * bigx * bigx * bigx,
-		M_cutoff = M_LN2 * DBL_MAX_EXP / DBL_EPSILON;
+		scalefactor = bigx * bigx * bigx * bigx * bigx * bigx * bigx * bigx;
+		//;
 
 	/* Continued fraction for calculation of
 	 *    1/i + x/(i+d) + x^2/(i+2*d) + x^3/(i+3*d) + ... = sum_{k=0}^Inf x^k/(i+k*d)
@@ -3139,4 +3139,116 @@ public class MathFunctions {
 			res = fact / res;
 		return res;
 	}
+
+	public static final double pd_upper_series (double x, double y, boolean log_p)
+	{
+		double term = x / y;
+		double sum = term;
+	
+		do {
+			y++;
+			term *= x / y;
+			sum += term;
+		} while (term > sum * DBL_EPSILON);
+	
+		/* sum =  \sum_{n=1}^ oo  x^n     / (y*(y+1)*...*(y+n-1))
+		 *	   =  \sum_{n=0}^ oo  x^(n+1) / (y*(y+1)*...*(y+n))
+		 *	   =  x/y * (1 + \sum_{n=1}^oo	x^n / ((y+1)*...*(y+n)))
+		 *	   ~  x/y +  o(x/y)   {which happens when alph -> Inf}
+		 */
+		return log_p ? log (sum) : sum;
+	}
+
+	/* Continued fraction for calculation of
+	 *    scaled upper-tail F_{gamma}
+	 *  ~=  (y / d) * [1 +  (1-y)/d +  O( ((1-y)/d)^2 ) ]
+	 */
+	public static final double pd_lower_cf (double y, double d)
+	{
+		double f= 0.0 /* -Wall */, of, f0;
+		double i, c2, c3, c4,  a1, b1,  a2, b2;
+		final int max_it = 200000;
+		if (y == 0) return 0;
+	
+		f0 = y/d;
+		/* Needed, e.g. for  pgamma(10^c(100,295), shape= 1.1, log=TRUE): */
+		if(abs(y - 1) < abs(d) * DBL_EPSILON) { /* includes y < d = Inf */
+			return (f0);
+		}
+	
+		if(f0 > 1.) f0 = 1.;
+		c2 = y;
+		c4 = d; /* original (y,d), *not* potentially scaled ones!*/
+	
+		a1 = 0; b1 = 1;
+		a2 = y; b2 = d;
+		while (b2 > scalefactor) {
+			a1 /= scalefactor;
+			b1 /= scalefactor;
+			a2 /= scalefactor;
+			b2 /= scalefactor;
+		}
+	
+		i = 0; of = -1.; /* far away */
+		while (i < max_it) {
+	
+			i++;	c2--;	c3 = i * c2;	c4 += 2;
+			/* c2 = y - i,  c3 = i(y - i),  c4 = d + 2i,  for i odd */
+			a1 = c4 * a2 + c3 * a1;
+			b1 = c4 * b2 + c3 * b1;
+	
+			i++;	c2--;	c3 = i * c2;	c4 += 2;
+			/* c2 = y - i,  c3 = i(y - i),  c4 = d + 2i,  for i even */
+			a2 = c4 * a1 + c3 * a2;
+			b2 = c4 * b1 + c3 * b2;
+	
+			if (b2 > scalefactor) {
+				a1 /= scalefactor;
+				b1 /= scalefactor;
+				a2 /= scalefactor;
+				b2 /= scalefactor;
+			}
+	
+			if (b2 != 0) {
+				f = a2 / b2;
+				/* convergence check: relative; "absolute" for very small f : */
+				if (abs (f - of) <= DBL_EPSILON * max(f0, abs(f))) {
+					return f;
+				}
+				of = f;
+			}
+		}
+	
+		//MATHLIB_WARNING(" ** NON-convergence in pgamma()'s pd_lower_cf() f= %g.\n", f);
+		return f;/* should not happen ... */
+	}
+
+	public static final double pd_lower_series (double lambda, double y)
+	{
+		double term = 1, sum = 0;
+	
+		while (y >= 1 && term > sum * DBL_EPSILON) {
+			term *= y / lambda;
+			sum += term;
+			y--;
+		}
+		/* sum =  \sum_{n=0}^ oo  y*(y-1)*...*(y - n) / lambda^(n+1)
+		 *	   =  y/lambda * (1 + \sum_{n=1}^Inf  (y-1)*...*(y-n) / lambda^n)
+		 *	   ~  y/lambda + o(y/lambda)
+		 */
+	
+		if (y != floor (y)) {
+			/*
+			 * The series does not converge as the terms start getting
+			 * bigger (besides flipping sign) for y < -lambda.
+			 */
+			double f;
+			/* FIXME: in quite few cases, adding  term*f  has no effect (f too small)
+			 *	  and is unnecessary e.g. for pgamma(4e12, 121.1) */
+			f = pd_lower_cf (y, lambda + 1 - y);
+			sum += term * f;
+		}
+	
+		return sum;
+	} /* pd_lower_series() */
 }

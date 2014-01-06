@@ -1,4 +1,4 @@
-package jdistlib;
+package jdistlib.math;
 
 import static java.lang.Math.*;
 

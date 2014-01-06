@@ -23,10 +23,10 @@ import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import static java.lang.Math.log1p;
 import static java.lang.Math.pow;
-import static jdistlib.MathFunctions.isInfinite;
-import static jdistlib.MathFunctions.round;
-import static jdistlib.MathFunctions.gammafn;
-import static jdistlib.Constants.DBL_EPSILON;
+import static jdistlib.math.Constants.DBL_EPSILON;
+import static jdistlib.math.MathFunctions.gammafn;
+import static jdistlib.math.MathFunctions.isInfinite;
+import static jdistlib.math.MathFunctions.round;
 import static jdistlib.util.Utilities.*;
 
 /**

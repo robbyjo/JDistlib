@@ -20,8 +20,9 @@
 package jdistlib;
 
 import static java.lang.Math.*;
-import static jdistlib.Constants.*;
+import static jdistlib.math.Constants.*;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.QRandomEngine;
 
 public class SignRank extends GenericDistribution {

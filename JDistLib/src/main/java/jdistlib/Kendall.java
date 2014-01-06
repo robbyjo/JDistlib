@@ -20,8 +20,9 @@
 package jdistlib;
 
 import static java.lang.Math.*;
-import static jdistlib.MathFunctions.*;
+import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.QRandomEngine;
 
 /**

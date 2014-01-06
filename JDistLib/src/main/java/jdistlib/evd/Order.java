@@ -15,11 +15,11 @@
 package jdistlib.evd;
 
 import jdistlib.Beta;
-import jdistlib.MathFunctions;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.QRandomEngine;
 import static java.lang.Math.*;
-import static jdistlib.MathFunctions.*;
+import static jdistlib.math.MathFunctions.*;
 
 /**
  * Order distribution.

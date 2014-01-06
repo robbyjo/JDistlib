@@ -17,13 +17,13 @@
  *  along with this program; if not, a copy is available at
  *  http://www.r-project.org/Licenses/
  */
-package jdistlib;
+package jdistlib.math;
 
 import static java.lang.Math.*;
-import static jdistlib.Constants.*;
-import static jdistlib.MathFunctions.gamma_cody;
-import static jdistlib.MathFunctions.ldexp;
-import static jdistlib.MathFunctions.trunc;
+import static jdistlib.math.Constants.*;
+import static jdistlib.math.MathFunctions.gamma_cody;
+import static jdistlib.math.MathFunctions.ldexp;
+import static jdistlib.math.MathFunctions.trunc;
 
 import java.util.Arrays;
 

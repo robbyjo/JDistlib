@@ -19,7 +19,7 @@
  */
 package jdistlib;
 
-import static jdistlib.MathFunctions.isInfinite;
+import static jdistlib.math.MathFunctions.isInfinite;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 

@@ -22,7 +22,7 @@ package jdistlib;
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import static java.util.Arrays.*;
-import static jdistlib.MathFunctions.*;
+import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.QRandomEngine;
 

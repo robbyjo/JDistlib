@@ -24,9 +24,10 @@
 package jdistlib;
 
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.QRandomEngine;
 import static java.lang.Math.*;
-import static jdistlib.Constants.*;
+import static jdistlib.math.Constants.*;
 
 public class Exponential extends GenericDistribution {
 

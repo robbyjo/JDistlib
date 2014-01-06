@@ -19,7 +19,7 @@
  * script version 0.00
  */
 
-package jdistlib;
+package jdistlib.math;
 
 import static java.lang.Math.sqrt;
 

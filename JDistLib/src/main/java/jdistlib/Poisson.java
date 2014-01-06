@@ -326,7 +326,13 @@ public class Poisson extends GenericDistribution {
 		}
 
 		t = 0;
+		int num_iter = 0; boolean fail = false;
 		for(;;) {
+			if (num_iter == 1000) {
+				fail = true;
+				break;
+			}
+			num_iter++;
 			/* Step E. Exponential Sample */
 
 			if (!kflag) {
@@ -382,6 +388,9 @@ public class Poisson extends GenericDistribution {
 						break;
 			}/* t > -.67.. */
 		}
+		// Anti hang patch
+		if (fail)
+			return random(mu, random, null);
 		return pois;
 	}
 

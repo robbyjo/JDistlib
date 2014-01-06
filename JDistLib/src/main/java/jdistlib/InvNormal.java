@@ -20,9 +20,9 @@
 package jdistlib;
 
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.Optimization;
+import jdistlib.math.UnivariateFunction;
 import jdistlib.rng.QRandomEngine;
-import jdistlib.util.Optimization;
-import jdistlib.util.UnivariateFunction;
 import static java.lang.Math.*;
 
 /**

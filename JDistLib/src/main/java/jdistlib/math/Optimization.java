@@ -18,7 +18,7 @@
 /**
  * 
  */
-package jdistlib.util;
+package jdistlib.math;
 
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;

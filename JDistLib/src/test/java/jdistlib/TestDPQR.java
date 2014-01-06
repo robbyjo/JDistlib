@@ -16,6 +16,8 @@
 package jdistlib;
 
 import jdistlib.rng.QMersenneTwister;
+import jdistlib.rng.QRandomEngine;
+
 import org.junit.Test;
 
 import static java.lang.Math.abs;
@@ -35,8 +37,12 @@ import static jdistlib.util.Utilities.*;
  *
  */
 public class TestDPQR {
-	static final QMersenneTwister random = new QMersenneTwister(123L);
+	static QRandomEngine random = new QMersenneTwister(123L);
 	static final double defaultNumericalError = DBL_EPSILON * 64;
+
+	public static final void setRandomEngine(QRandomEngine rng) {
+		random = rng;
+	}
 
 	static final double rErr(double approx, double truval) {
 		return rErr(approx, truval, 1e-30);
@@ -54,6 +60,18 @@ public class TestDPQR {
 		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) < tol);
 	}
 
+	static final boolean allEqual(double[] a, double[] b, double tol) {
+		int n = a.length;
+		if (n != b.length) throw new RuntimeException();
+		for (int i = 0; i < n; i++)
+			if (!isEqual(a[i], b[i], tol)) return false;
+		return true;
+	}
+
+	static final boolean allEqual(double[] a, double[] b) {
+		return allEqual(a, b, defaultNumericalError);
+	}
+
 	static final void printBool(boolean b) {
 		System.out.println(b ? "[1] TRUE" : "[1] FALSE");
 	}
@@ -64,6 +82,19 @@ public class TestDPQR {
 		for (int i = 0; i < b.length; i++)
 			System.out.print(b[i] ? " TRUE" : " FALSE");
 		System.out.println();
+	}
+
+	static final void printAllEqual(double[] a, double[] b, double tol) {
+		boolean v = allEqual(a, b, tol);
+		printBool(v);
+		if (!v) {
+			System.out.print("True values: "); printDetails(a);
+			System.out.print("Results: "); printDetails(b);
+		}
+	}
+
+	static final void printAllEqual(double[] a, double[] b) {
+		printAllEqual(a, b, defaultNumericalError);
 	}
 
 	static final double[] pows(double x, double[] e) {
@@ -85,6 +116,44 @@ public class TestDPQR {
 		for (int i = 0; i < e.length; i++)
 			v[i] = -e[i];
 		return v;
+	}
+
+	static final double[] comps(double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = 1-e[i];
+		return v;
+	}
+
+	static final double[] logs(double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = log(e[i]);
+		return v;
+	}
+
+	static final double[] log1pComps(double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = log1p(-e[i]);
+		return v;
+	}
+
+	static final void print(double[] val) {
+		int n = val.length;
+		for (int i = 0; i < n; i++) {
+			System.out.print(String.format(" %g", val[i]));
+			if ((i + 1) % 6 == 0) System.out.println();
+		}
+		System.out.println();
+	}
+
+	static final void printDetails(double[] val) {
+		int n = val.length;
+		for (int i = 0; i < n; i++) {
+			System.out.print(val[i]+ " ");
+		}
+		System.out.println();
 	}
 
 	@Test
@@ -632,6 +701,567 @@ public class TestDPQR {
 		return success;
 	}
 
+	@Test
+	public static final void test_random() {
+		// Set up the instances to ensure proper parameterization
+		Beta beta = new Beta(0.8, 2);
+		beta.setRandomEngine(random);
+		Binomial binom = new Binomial(25, Math.PI/16.0);
+		binom.setRandomEngine(random);
+		Cauchy cauchy = new Cauchy(12, 2);
+		cauchy.setRandomEngine(random);
+		ChiSquare chisq = new ChiSquare(3);
+		chisq.setRandomEngine(random);
+		Exponential exp = new Exponential(1/2.0);
+		exp.setRandomEngine(random);
+		F f = new F(12, 6);
+		f.setRandomEngine(random);
+		Gamma gamma = new Gamma(2, 5);
+		gamma.setRandomEngine(random);
+		Geometric geom = new Geometric(Math.PI/16);
+		geom.setRandomEngine(random);
+		HyperGeometric hyper = new HyperGeometric(40, 30, 20);
+		hyper.setRandomEngine(random);
+		LogNormal lnorm = new LogNormal(-1, 3);
+		lnorm.setRandomEngine(random);
+		Logistic logis = new Logistic(12, 2);
+		logis.setRandomEngine(random);
+		NegBinomial nbinom = new NegBinomial(7, 0.01);
+		nbinom.setRandomEngine(random);
+		Normal norm = new Normal(-1, 3);
+		norm.setRandomEngine(random);
+		Poisson pois = new Poisson(12);
+		pois.setRandomEngine(random);
+		SignRank signrank = new SignRank(47);
+		signrank.setRandomEngine(random);
+		T t = new T(11);
+		t.setRandomEngine(random);
+		Uniform unif = new Uniform(0.2, 2);
+		unif.setRandomEngine(random);
+		Weibull weibull = new Weibull(3, 2);
+		weibull.setRandomEngine(random);
+		Wilcoxon wilcox = new Wilcoxon(13, 17);
+		wilcox.setRandomEngine(random);
+		T t2 = new T(1.01);
+		t2.setRandomEngine(random);
+
+		int n = 20;
+		String pi_str = String.format("%1.5f", Math.PI/16);
+		double[]
+			Rbeta = beta.random(n),
+			Rbinom = binom.random(n),
+			Rcauchy = cauchy.random(n),
+			Rchisq = chisq.random(n),
+			Rexp = exp.random(n),
+			Rf = f.random(n),
+			Rgamma = gamma.random(n),
+			Rgeom = geom.random(n),
+			Rhyper = hyper.random(n),
+			Rlnorm = lnorm.random(n),
+			Rlogis = logis.random(n),
+			Rnbinom = nbinom.random(n),
+			Rnorm = norm.random(n),
+			Rpois = pois.random(n),
+			Rsignrank = signrank.random(n),
+			Rt = t.random(n),
+			Runif = unif.random(n),
+			Rweibull = weibull.random(n),
+			Rwilcox = wilcox.random(n),
+			Rt2 = t2.random(n);
+
+		System.out.println();
+		System.out.println("Random beta(0.8, 2)");
+		print(Rbeta);
+		System.out.println("Random binomial(25, "+pi_str+")");
+		print(Rbinom);
+		System.out.println("Random cauchy(12, 2)");
+		print(Rcauchy);
+		System.out.println("Random chisq(3)");
+		print(Rchisq);
+		System.out.println("Random exp(rate = 2.0)");
+		print(Rexp);
+		System.out.println("Random f(12, 6)");
+		print(Rf);
+		System.out.println("Random gamma(2, 5)");
+		print(Rgamma);
+		System.out.println("Random geom("+pi_str+")");
+		print(Rgeom);
+		System.out.println("Random hyper(40, 30, 20)");
+		print(Rhyper);
+		System.out.println("Random lnorm(-1, 3)");
+		print(Rlnorm);
+		System.out.println("Random logis(12, 2)");
+		print(Rlogis);
+		System.out.println("Random nbinom(7, 0.01)");
+		print(Rnbinom);
+		System.out.println("Random norm(-1, 3)");
+		print(Rnorm);
+		System.out.println("Random pois(12)");
+		print(Rpois);
+		System.out.println("Random signrank(47)");
+		print(Rsignrank);
+		System.out.println("Random t(11)");
+		print(Rt);
+		System.out.println("Random t(1.01)");
+		print(Rt2);
+		System.out.println("Random unif(0.2, 2)");
+		print(Runif);
+		System.out.println("Random weibull(3, 2)");
+		print(Rweibull);
+		System.out.println("Random wilcox(13, 17)");
+		print(Rwilcox);
+
+		boolean lower_tail = true, log_p = false;
+		double[]
+			Pbeta = beta.cumulative(Rbeta, lower_tail, log_p),
+			Pbinom = binom.cumulative(Rbinom, lower_tail, log_p),
+			Pcauchy = cauchy.cumulative(Rcauchy, lower_tail, log_p),
+			Pchisq = chisq.cumulative(Rchisq, lower_tail, log_p),
+			Pexp = exp.cumulative(Rexp, lower_tail, log_p),
+			Pf = f.cumulative(Rf, lower_tail, log_p),
+			Pgamma = gamma.cumulative(Rgamma, lower_tail, log_p),
+			Pgeom = geom.cumulative(Rgeom, lower_tail, log_p),
+			Phyper = hyper.cumulative(Rhyper, lower_tail, log_p),
+			Plnorm = lnorm.cumulative(Rlnorm, lower_tail, log_p),
+			Plogis = logis.cumulative(Rlogis, lower_tail, log_p),
+			Pnbinom = nbinom.cumulative(Rnbinom, lower_tail, log_p),
+			Pnorm = norm.cumulative(Rnorm, lower_tail, log_p),
+			Ppois = pois.cumulative(Rpois, lower_tail, log_p),
+			Psignrank = signrank.cumulative(Rsignrank, lower_tail, log_p),
+			Pt = t.cumulative(Rt, lower_tail, log_p),
+			Pt2 = t.cumulative(Rt2, lower_tail, log_p),
+			Punif = unif.cumulative(Runif, lower_tail, log_p),
+			Pweibull = weibull.cumulative(Rweibull, lower_tail, log_p),
+			Pwilcox = wilcox.cumulative(Rwilcox, lower_tail, log_p);
+
+		System.out.println();
+		System.out.println("Cumulative beta(0.8, 2)");
+		print(Pbeta);
+		System.out.println("Cumulative binomial(25, "+pi_str+")");
+		print(Pbinom);
+		System.out.println("Cumulative cauchy(12, 2)");
+		print(Pcauchy);
+		System.out.println("Cumulative chisq(3)");
+		print(Pchisq);
+		System.out.println("Cumulative exp(rate = 2.0)");
+		print(Pexp);
+		System.out.println("Cumulative f(12, 6)");
+		print(Pf);
+		System.out.println("Cumulative gamma(2, 5)");
+		print(Pgamma);
+		System.out.println("Cumulative geom("+pi_str+")");
+		print(Pgeom);
+		System.out.println("Cumulative hyper(40, 30, 20)");
+		print(Phyper);
+		System.out.println("Cumulative lnorm(-1, 3)");
+		print(Plnorm);
+		System.out.println("Cumulative logis(12, 2)");
+		print(Plogis);
+		System.out.println("Cumulative nbinom(7, 0.01)");
+		print(Pnbinom);
+		System.out.println("Cumulative norm(-1, 3)");
+		print(Pnorm);
+		System.out.println("Cumulative pois(12)");
+		print(Ppois);
+		System.out.println("Cumulative signrank(47)");
+		print(Psignrank);
+		System.out.println("Cumulative t(11)");
+		print(Pt);
+		System.out.println("Cumulative t(1.01)");
+		print(Pt2);
+		System.out.println("Cumulative unif(0.2, 2)");
+		print(Punif);
+		System.out.println("Cumulative weibull(3, 2)");
+		print(Pweibull);
+		System.out.println("Cumulative wilcox(13, 17)");
+		print(Pwilcox);
+
+		double[]
+			Dbeta = beta.density(Rbeta, false),
+			Dbinom = binom.density(Rbinom, false),
+			Dcauchy = cauchy.density(Rcauchy, false),
+			Dchisq = chisq.density(Rchisq, false),
+			Dexp = exp.density(Rexp, false),
+			Df = f.density(Rf, false),
+			Dgamma = gamma.density(Rgamma, false),
+			Dgeom = geom.density(Rgeom, false),
+			Dhyper = hyper.density(Rhyper, false),
+			Dlnorm = lnorm.density(Rlnorm, false),
+			Dlogis = logis.density(Rlogis, false),
+			Dnbinom = nbinom.density(Rnbinom, false),
+			Dnorm = norm.density(Rnorm, false),
+			Dpois = pois.density(Rpois, false),
+			Dsignrank = signrank.density(Rsignrank, false),
+			Dt = t.density(Rt, false),
+			Dt2 = t.density(Rt2, false),
+			Dunif = unif.density(Runif, false),
+			Dweibull = weibull.density(Rweibull, false),
+			Dwilcox = wilcox.density(Rwilcox, false);
+
+		System.out.println();
+		System.out.println("Density beta(0.8, 2)");
+		print(Dbeta);
+		System.out.println("Density binomial(25, "+pi_str+")");
+		print(Dbinom);
+		System.out.println("Density cauchy(12, 2)");
+		print(Dcauchy);
+		System.out.println("Density chisq(3)");
+		print(Dchisq);
+		System.out.println("Density exp(rate = 2.0)");
+		print(Dexp);
+		System.out.println("Density f(12, 6)");
+		print(Df);
+		System.out.println("Density gamma(2, 5)");
+		print(Dgamma);
+		System.out.println("Density geom("+pi_str+")");
+		print(Dgeom);
+		System.out.println("Density hyper(40, 30, 20)");
+		print(Dhyper);
+		System.out.println("Density lnorm(-1, 3)");
+		print(Dlnorm);
+		System.out.println("Density logis(12, 2)");
+		print(Dlogis);
+		System.out.println("Density nbinom(7, 0.01)");
+		print(Dnbinom);
+		System.out.println("Density norm(-1, 3)");
+		print(Dnorm);
+		System.out.println("Density pois(12)");
+		print(Dpois);
+		System.out.println("Density signrank(47)");
+		print(Dsignrank);
+		System.out.println("Density t(11)");
+		print(Dt);
+		System.out.println("Density t(1.01)");
+		print(Dt2);
+		System.out.println("Density unif(0.2, 2)");
+		print(Dunif);
+		System.out.println("Density weibull(3, 2)");
+		print(Dweibull);
+		System.out.println("Density wilcox(13, 17)");
+		print(Dwilcox);
+
+		double[]
+			Qbeta = beta.quantile(Pbeta, lower_tail, log_p),
+			Qbinom = binom.quantile(Pbinom, lower_tail, log_p),
+			Qcauchy = cauchy.quantile(Pcauchy, lower_tail, log_p),
+			Qchisq = chisq.quantile(Pchisq, lower_tail, log_p),
+			Qexp = exp.quantile(Pexp, lower_tail, log_p),
+			Qf = f.quantile(Pf, lower_tail, log_p),
+			Qgamma = gamma.quantile(Pgamma, lower_tail, log_p),
+			Qgeom = geom.quantile(Pgeom, lower_tail, log_p),
+			Qhyper = hyper.quantile(Phyper, lower_tail, log_p),
+			Qlnorm = lnorm.quantile(Plnorm, lower_tail, log_p),
+			Qlogis = logis.quantile(Plogis, lower_tail, log_p),
+			Qnbinom = nbinom.quantile(Pnbinom, lower_tail, log_p),
+			Qnorm = norm.quantile(Pnorm, lower_tail, log_p),
+			Qpois = pois.quantile(Ppois, lower_tail, log_p),
+			Qsignrank = signrank.quantile(Psignrank, lower_tail, log_p),
+			Qt = t.quantile(Pt, lower_tail, log_p),
+			Qt2 = t.quantile(Pt2, lower_tail, log_p),
+			Qunif = unif.quantile(Punif, lower_tail, log_p),
+			Qweibull = weibull.quantile(Pweibull, lower_tail, log_p),
+			Qwilcox = wilcox.quantile(Pwilcox, lower_tail, log_p);
+
+		System.out.println();
+		System.out.println("Lower tail equality beta(0.8, 2)");
+		printAllEqual(Rbeta, Qbeta);
+		System.out.println("Lower tail equality binomial(25, "+pi_str+")");
+		printAllEqual(Rbinom, Qbinom);
+		System.out.println("Lower tail equality cauchy(12, 2)");
+		printAllEqual(Rcauchy, Qcauchy);
+		System.out.println("Lower tail equality chisq(3)");
+		printAllEqual(Rchisq, Qchisq);
+		System.out.println("Lower tail equality exp(rate = 2.0)");
+		printAllEqual(Rexp, Qexp);
+		System.out.println("Lower tail equality f(12, 6)");
+		printAllEqual(Rf, Qf);
+		System.out.println("Lower tail equality gamma(2, 5)");
+		printAllEqual(Rgamma, Qgamma);
+		System.out.println("Lower tail equality geom("+pi_str+")");
+		printAllEqual(Rgeom, Qgeom);
+		System.out.println("Lower tail equality hyper(40, 30, 20)");
+		printAllEqual(Rhyper, Qhyper);
+		System.out.println("Lower tail equality lnorm(-1, 3)");
+		printAllEqual(Rlnorm, Qlnorm);
+		System.out.println("Lower tail equality logis(12, 2)");
+		printAllEqual(Rlogis, Qlogis);
+		System.out.println("Lower tail equality nbinom(7, 0.01)");
+		printAllEqual(Rnbinom, Qnbinom);
+		System.out.println("Lower tail equality norm(-1, 3)");
+		printAllEqual(Rnorm, Qnorm);
+		System.out.println("Lower tail equality pois(12)");
+		printAllEqual(Rpois, Qpois);
+		System.out.println("Lower tail equality signrank(47)");
+		printAllEqual(Rsignrank, Qsignrank);
+		System.out.println("Lower tail equality t(11)");
+		printAllEqual(Rt, Qt);
+		System.out.println("Lower tail equality t(1.01)");
+		printAllEqual(Rt2, Qt2);
+		System.out.println("Lower tail equality unif(0.2, 2)");
+		printAllEqual(Runif, Qunif);
+		System.out.println("Lower tail equality weibull(3, 2)");
+		printAllEqual(Rweibull, Qweibull);
+		System.out.println("Lower tail equality wilcox(13, 17)");
+		printAllEqual(Rwilcox, Qwilcox);
+
+		lower_tail = false; log_p = false;
+		Qbeta = beta.quantile(comps(Pbeta), lower_tail, log_p);
+		Qbinom = binom.quantile(comps(Pbinom), lower_tail, log_p);
+		Qcauchy = cauchy.quantile(comps(Pcauchy), lower_tail, log_p);
+		Qchisq = chisq.quantile(comps(Pchisq), lower_tail, log_p);
+		Qexp = exp.quantile(comps(Pexp), lower_tail, log_p);
+		Qf = f.quantile(comps(Pf), lower_tail, log_p);
+		Qgamma = gamma.quantile(comps(Pgamma), lower_tail, log_p);
+		Qgeom = geom.quantile(comps(Pgeom), lower_tail, log_p);
+		Qhyper = hyper.quantile(comps(Phyper), lower_tail, log_p);
+		Qlnorm = lnorm.quantile(comps(Plnorm), lower_tail, log_p);
+		Qlogis = logis.quantile(comps(Plogis), lower_tail, log_p);
+		Qnbinom = nbinom.quantile(comps(Pnbinom), lower_tail, log_p);
+		Qnorm = norm.quantile(comps(Pnorm), lower_tail, log_p);
+		Qpois = pois.quantile(comps(Ppois), lower_tail, log_p);
+		Qsignrank = signrank.quantile(comps(Psignrank), lower_tail, log_p);
+		Qt = t.quantile(comps(Pt), lower_tail, log_p);
+		Qt2 = t.quantile(comps(Pt2), lower_tail, log_p);
+		Qunif = unif.quantile(comps(Punif), lower_tail, log_p);
+		Qweibull = weibull.quantile(comps(Pweibull), lower_tail, log_p);
+		Qwilcox = wilcox.quantile(comps(Pwilcox), lower_tail, log_p);
+
+		System.out.println();
+		System.out.println("Upper tail equality beta(0.8, 2)");
+		printAllEqual(Rbeta, Qbeta);
+		System.out.println("Upper tail equality binomial(25, "+pi_str+")");
+		printAllEqual(Rbinom, Qbinom);
+		System.out.println("Upper tail equality cauchy(12, 2)");
+		printAllEqual(Rcauchy, Qcauchy);
+		System.out.println("Upper tail equality chisq(3)");
+		printAllEqual(Rchisq, Qchisq);
+		System.out.println("Upper tail equality exp(rate = 2.0)");
+		printAllEqual(Rexp, Qexp);
+		System.out.println("Upper tail equality f(12, 6)");
+		printAllEqual(Rf, Qf);
+		System.out.println("Upper tail equality gamma(2, 5)");
+		printAllEqual(Rgamma, Qgamma);
+		System.out.println("Upper tail equality geom("+pi_str+")");
+		printAllEqual(Rgeom, Qgeom);
+		System.out.println("Upper tail equality hyper(40, 30, 20)");
+		printAllEqual(Rhyper, Qhyper);
+		System.out.println("Upper tail equality lnorm(-1, 3)");
+		printAllEqual(Rlnorm, Qlnorm);
+		System.out.println("Upper tail equality logis(12, 2)");
+		printAllEqual(Rlogis, Qlogis);
+		System.out.println("Upper tail equality nbinom(7, 0.01)");
+		printAllEqual(Rnbinom, Qnbinom);
+		System.out.println("Upper tail equality norm(-1, 3)");
+		printAllEqual(Rnorm, Qnorm);
+		System.out.println("Upper tail equality pois(12)");
+		printAllEqual(Rpois, Qpois);
+		System.out.println("Upper tail equality signrank(47)");
+		printAllEqual(Rsignrank, Qsignrank);
+		System.out.println("Upper tail equality t(11)");
+		printAllEqual(Rt, Qt);
+		System.out.println("Upper tail equality t(1.01)");
+		printAllEqual(Rt2, Qt2);
+		System.out.println("Upper tail equality unif(0.2, 2)");
+		printAllEqual(Runif, Qunif);
+		System.out.println("Upper tail equality weibull(3, 2)");
+		printAllEqual(Rweibull, Qweibull);
+		System.out.println("Upper tail equality wilcox(13, 17)");
+		printAllEqual(Rwilcox, Qwilcox);
+
+		lower_tail = true; log_p = true;
+		Qbeta = beta.quantile(logs(Pbeta), lower_tail, log_p);
+		Qbinom = binom.quantile(logs(Pbinom), lower_tail, log_p);
+		Qcauchy = cauchy.quantile(logs(Pcauchy), lower_tail, log_p);
+		Qchisq = chisq.quantile(logs(Pchisq), lower_tail, log_p);
+		Qexp = exp.quantile(logs(Pexp), lower_tail, log_p);
+		Qf = f.quantile(logs(Pf), lower_tail, log_p);
+		Qgamma = gamma.quantile(logs(Pgamma), lower_tail, log_p);
+		Qgeom = geom.quantile(logs(Pgeom), lower_tail, log_p);
+		Qhyper = hyper.quantile(logs(Phyper), lower_tail, log_p);
+		Qlnorm = lnorm.quantile(logs(Plnorm), lower_tail, log_p);
+		Qlogis = logis.quantile(logs(Plogis), lower_tail, log_p);
+		Qnbinom = nbinom.quantile(logs(Pnbinom), lower_tail, log_p);
+		Qnorm = norm.quantile(logs(Pnorm), lower_tail, log_p);
+		Qpois = pois.quantile(logs(Ppois), lower_tail, log_p);
+		Qsignrank = signrank.quantile(logs(Psignrank), lower_tail, log_p);
+		Qt = t.quantile(logs(Pt), lower_tail, log_p);
+		Qt2 = t.quantile(logs(Pt2), lower_tail, log_p);
+		Qunif = unif.quantile(logs(Punif), lower_tail, log_p);
+		Qweibull = weibull.quantile(logs(Pweibull), lower_tail, log_p);
+		Qwilcox = wilcox.quantile(logs(Pwilcox), lower_tail, log_p);
+
+		System.out.println();
+		System.out.println("Lower tail, log equality beta(0.8, 2)");
+		printAllEqual(Rbeta, Qbeta);
+		System.out.println("Lower tail, log equality binomial(25, "+pi_str+")");
+		printAllEqual(Rbinom, Qbinom);
+		System.out.println("Lower tail, log equality cauchy(12, 2)");
+		printAllEqual(Rcauchy, Qcauchy);
+		System.out.println("Lower tail, log equality chisq(3)");
+		printAllEqual(Rchisq, Qchisq);
+		System.out.println("Lower tail, log equality exp(rate = 2.0)");
+		printAllEqual(Rexp, Qexp);
+		System.out.println("Lower tail, log equality f(12, 6)");
+		printAllEqual(Rf, Qf);
+		System.out.println("Lower tail, log equality gamma(2, 5)");
+		printAllEqual(Rgamma, Qgamma);
+		System.out.println("Lower tail, log equality geom("+pi_str+")");
+		printAllEqual(Rgeom, Qgeom);
+		System.out.println("Lower tail, log equality hyper(40, 30, 20)");
+		printAllEqual(Rhyper, Qhyper);
+		System.out.println("Lower tail, log equality lnorm(-1, 3)");
+		printAllEqual(Rlnorm, Qlnorm);
+		System.out.println("Lower tail, log equality logis(12, 2)");
+		printAllEqual(Rlogis, Qlogis);
+		System.out.println("Lower tail, log equality nbinom(7, 0.01)");
+		printAllEqual(Rnbinom, Qnbinom);
+		System.out.println("Lower tail, log equality norm(-1, 3)");
+		printAllEqual(Rnorm, Qnorm);
+		System.out.println("Lower tail, log equality pois(12)");
+		printAllEqual(Rpois, Qpois);
+		System.out.println("Lower tail, log equality signrank(47)");
+		printAllEqual(Rsignrank, Qsignrank);
+		System.out.println("Lower tail, log equality t(11)");
+		printAllEqual(Rt, Qt);
+		System.out.println("Lower tail, log equality t(1.01)");
+		printAllEqual(Rt2, Qt2);
+		System.out.println("Lower tail, log equality unif(0.2, 2)");
+		printAllEqual(Runif, Qunif);
+		System.out.println("Lower tail, log equality weibull(3, 2)");
+		printAllEqual(Rweibull, Qweibull);
+		System.out.println("Lower tail, log equality wilcox(13, 17)");
+		printAllEqual(Rwilcox, Qwilcox);
+
+		lower_tail = false; log_p = true;
+		Qbeta = beta.quantile(log1pComps(Pbeta), lower_tail, log_p);
+		Qbinom = binom.quantile(log1pComps(Pbinom), lower_tail, log_p);
+		Qcauchy = cauchy.quantile(log1pComps(Pcauchy), lower_tail, log_p);
+		Qchisq = chisq.quantile(log1pComps(Pchisq), lower_tail, log_p);
+		Qexp = exp.quantile(log1pComps(Pexp), lower_tail, log_p);
+		Qf = f.quantile(log1pComps(Pf), lower_tail, log_p);
+		Qgamma = gamma.quantile(log1pComps(Pgamma), lower_tail, log_p);
+		Qgeom = geom.quantile(log1pComps(Pgeom), lower_tail, log_p);
+		Qhyper = hyper.quantile(log1pComps(Phyper), lower_tail, log_p);
+		Qlnorm = lnorm.quantile(log1pComps(Plnorm), lower_tail, log_p);
+		Qlogis = logis.quantile(log1pComps(Plogis), lower_tail, log_p);
+		Qnbinom = nbinom.quantile(log1pComps(Pnbinom), lower_tail, log_p);
+		Qnorm = norm.quantile(log1pComps(Pnorm), lower_tail, log_p);
+		Qpois = pois.quantile(log1pComps(Ppois), lower_tail, log_p);
+		Qsignrank = signrank.quantile(log1pComps(Psignrank), lower_tail, log_p);
+		Qt = t.quantile(log1pComps(Pt), lower_tail, log_p);
+		Qt2 = t.quantile(log1pComps(Pt2), lower_tail, log_p);
+		Qunif = unif.quantile(log1pComps(Punif), lower_tail, log_p);
+		Qweibull = weibull.quantile(log1pComps(Pweibull), lower_tail, log_p);
+		Qwilcox = wilcox.quantile(log1pComps(Pwilcox), lower_tail, log_p);
+
+		System.out.println();
+		System.out.println("Upper tail, log equality beta(0.8, 2)");
+		printAllEqual(Rbeta, Qbeta);
+		System.out.println("Upper tail, log equality binomial(25, "+pi_str+")");
+		printAllEqual(Rbinom, Qbinom);
+		System.out.println("Upper tail, log equality cauchy(12, 2)");
+		printAllEqual(Rcauchy, Qcauchy);
+		System.out.println("Upper tail, log equality chisq(3)");
+		printAllEqual(Rchisq, Qchisq);
+		System.out.println("Upper tail, log equality exp(rate = 2.0)");
+		printAllEqual(Rexp, Qexp);
+		System.out.println("Upper tail, log equality f(12, 6)");
+		printAllEqual(Rf, Qf);
+		System.out.println("Upper tail, log equality gamma(2, 5)");
+		printAllEqual(Rgamma, Qgamma);
+		System.out.println("Upper tail, log equality geom("+pi_str+")");
+		printAllEqual(Rgeom, Qgeom);
+		System.out.println("Upper tail, log equality hyper(40, 30, 20)");
+		printAllEqual(Rhyper, Qhyper);
+		System.out.println("Upper tail, log equality lnorm(-1, 3)");
+		printAllEqual(Rlnorm, Qlnorm);
+		System.out.println("Upper tail, log equality logis(12, 2)");
+		printAllEqual(Rlogis, Qlogis);
+		System.out.println("Upper tail, log equality nbinom(7, 0.01)");
+		printAllEqual(Rnbinom, Qnbinom);
+		System.out.println("Upper tail, log equality norm(-1, 3)");
+		printAllEqual(Rnorm, Qnorm);
+		System.out.println("Upper tail, log equality pois(12)");
+		printAllEqual(Rpois, Qpois);
+		System.out.println("Upper tail, log equality signrank(47)");
+		printAllEqual(Rsignrank, Qsignrank);
+		System.out.println("Upper tail, log equality t(11)");
+		printAllEqual(Rt, Qt);
+		System.out.println("Upper tail, log equality t(1.01)");
+		printAllEqual(Rt2, Qt2);
+		System.out.println("Upper tail, log equality unif(0.2, 2)");
+		printAllEqual(Runif, Qunif);
+		System.out.println("Upper tail, log equality weibull(3, 2)");
+		printAllEqual(Rweibull, Qweibull);
+		System.out.println("Upper tail, log equality wilcox(13, 17)");
+		printAllEqual(Rwilcox, Qwilcox);
+
+		lower_tail = false; log_p = true;
+		double[]
+			_Pbeta = beta.cumulative(Rbeta, lower_tail, log_p),
+			_Pbinom = binom.cumulative(Rbinom, lower_tail, log_p),
+			_Pcauchy = cauchy.cumulative(Rcauchy, lower_tail, log_p),
+			_Pchisq = chisq.cumulative(Rchisq, lower_tail, log_p),
+			_Pexp = exp.cumulative(Rexp, lower_tail, log_p),
+			_Pf = f.cumulative(Rf, lower_tail, log_p),
+			_Pgamma = gamma.cumulative(Rgamma, lower_tail, log_p),
+			_Pgeom = geom.cumulative(Rgeom, lower_tail, log_p),
+			_Phyper = hyper.cumulative(Rhyper, lower_tail, log_p),
+			_Plnorm = lnorm.cumulative(Rlnorm, lower_tail, log_p),
+			_Plogis = logis.cumulative(Rlogis, lower_tail, log_p),
+			_Pnbinom = nbinom.cumulative(Rnbinom, lower_tail, log_p),
+			_Pnorm = norm.cumulative(Rnorm, lower_tail, log_p),
+			_Ppois = pois.cumulative(Rpois, lower_tail, log_p),
+			_Psignrank = signrank.cumulative(Rsignrank, lower_tail, log_p),
+			_Pt = t.cumulative(Rt, lower_tail, log_p),
+			_Pt2 = t.cumulative(Rt2, lower_tail, log_p),
+			_Punif = unif.cumulative(Runif, lower_tail, log_p),
+			_Pweibull = weibull.cumulative(Rweibull, lower_tail, log_p),
+			_Pwilcox = wilcox.cumulative(Rwilcox, lower_tail, log_p);
+
+		System.out.println();
+		System.out.println("Upper tail cumulative equality beta(0.8, 2)");
+		printAllEqual(log1pComps(Pbeta), _Pbeta);
+		System.out.println("Upper tail cumulative equality binomial(25, "+pi_str+")");
+		printAllEqual(log1pComps(Pbinom), _Pbinom);
+		System.out.println("Upper tail cumulative equality cauchy(12, 2)");
+		printAllEqual(log1pComps(Pcauchy), _Pcauchy);
+		System.out.println("Upper tail cumulative equality chisq(3)");
+		printAllEqual(log1pComps(Pchisq), _Pchisq);
+		System.out.println("Upper tail cumulative equality exp(rate = 2.0)");
+		printAllEqual(log1pComps(Pexp), _Pexp);
+		System.out.println("Upper tail cumulative equality f(12, 6)");
+		printAllEqual(log1pComps(Pf), _Pf);
+		System.out.println("Upper tail cumulative equality gamma(2, 5)");
+		printAllEqual(log1pComps(Pgamma), _Pgamma);
+		System.out.println("Upper tail cumulative equality geom("+pi_str+")");
+		printAllEqual(log1pComps(Pgeom), _Pgeom);
+		System.out.println("Upper tail cumulative equality hyper(40, 30, 20)");
+		printAllEqual(log1pComps(Phyper), _Phyper);
+		System.out.println("Upper tail cumulative equality lnorm(-1, 3)");
+		printAllEqual(log1pComps(Plnorm), _Plnorm);
+		System.out.println("Upper tail cumulative equality logis(12, 2)");
+		printAllEqual(log1pComps(Plogis), _Plogis);
+		System.out.println("Upper tail cumulative equality nbinom(7, 0.01)");
+		printAllEqual(log1pComps(Pnbinom), _Pnbinom);
+		System.out.println("Upper tail cumulative equality norm(-1, 3)");
+		printAllEqual(log1pComps(Pnorm), _Pnorm);
+		System.out.println("Upper tail cumulative equality pois(12)");
+		printAllEqual(log1pComps(Ppois), _Ppois);
+		System.out.println("Upper tail cumulative equality signrank(47)");
+		printAllEqual(log1pComps(Psignrank), _Psignrank);
+		System.out.println("Upper tail cumulative equality t(11)");
+		printAllEqual(log1pComps(Pt), _Pt);
+		System.out.println("Upper tail cumulative equality t(1.01)");
+		printAllEqual(log1pComps(Pt2), _Pt2);
+		System.out.println("Upper tail cumulative equality unif(0.2, 2)");
+		printAllEqual(log1pComps(Punif), _Punif);
+		System.out.println("Upper tail cumulative equality weibull(3, 2)");
+		printAllEqual(log1pComps(Pweibull), _Pweibull);
+		System.out.println("Upper tail cumulative equality wilcox(13, 17)");
+		printAllEqual(log1pComps(Pwilcox), _Pwilcox);
+	}
+
 	public static final void main(String[] args) {
 		test_binom();
 		test_geom();
@@ -644,5 +1274,6 @@ public class TestDPQR {
 		test_noncentralchisq();
 		test_beta();
 		test_normal();
+		test_random();
 	}
 }

@@ -751,7 +751,6 @@ public class TestDPQR {
 		t2.setRandomEngine(random);
 
 		int n = 20;
-		String pi_str = String.format("%1.5f", Math.PI/16);
 		double[]
 			Rbeta = beta.random(n),
 			Rbinom = binom.random(n),
@@ -777,7 +776,7 @@ public class TestDPQR {
 		System.out.println();
 		System.out.println("Random beta(0.8, 2)");
 		print(Rbeta);
-		System.out.println("Random binomial(25, "+pi_str+")");
+		System.out.println("Random binomial(25, pi/16.0)");
 		print(Rbinom);
 		System.out.println("Random cauchy(12, 2)");
 		print(Rcauchy);
@@ -789,7 +788,7 @@ public class TestDPQR {
 		print(Rf);
 		System.out.println("Random gamma(2, 5)");
 		print(Rgamma);
-		System.out.println("Random geom("+pi_str+")");
+		System.out.println("Random geom(pi/16.0)");
 		print(Rgeom);
 		System.out.println("Random hyper(40, 30, 20)");
 		print(Rhyper);
@@ -842,7 +841,7 @@ public class TestDPQR {
 		System.out.println();
 		System.out.println("Cumulative beta(0.8, 2)");
 		print(Pbeta);
-		System.out.println("Cumulative binomial(25, "+pi_str+")");
+		System.out.println("Cumulative binomial(25, pi/16.0)");
 		print(Pbinom);
 		System.out.println("Cumulative cauchy(12, 2)");
 		print(Pcauchy);
@@ -854,7 +853,7 @@ public class TestDPQR {
 		print(Pf);
 		System.out.println("Cumulative gamma(2, 5)");
 		print(Pgamma);
-		System.out.println("Cumulative geom("+pi_str+")");
+		System.out.println("Cumulative geom(pi/16.0)");
 		print(Pgeom);
 		System.out.println("Cumulative hyper(40, 30, 20)");
 		print(Phyper);
@@ -906,7 +905,7 @@ public class TestDPQR {
 		System.out.println();
 		System.out.println("Density beta(0.8, 2)");
 		print(Dbeta);
-		System.out.println("Density binomial(25, "+pi_str+")");
+		System.out.println("Density binomial(25, pi/16.0)");
 		print(Dbinom);
 		System.out.println("Density cauchy(12, 2)");
 		print(Dcauchy);
@@ -918,7 +917,7 @@ public class TestDPQR {
 		print(Df);
 		System.out.println("Density gamma(2, 5)");
 		print(Dgamma);
-		System.out.println("Density geom("+pi_str+")");
+		System.out.println("Density geom(pi/16.0)");
 		print(Dgeom);
 		System.out.println("Density hyper(40, 30, 20)");
 		print(Dhyper);
@@ -970,7 +969,7 @@ public class TestDPQR {
 		System.out.println();
 		System.out.println("Lower tail equality beta(0.8, 2)");
 		printAllEqual(Rbeta, Qbeta);
-		System.out.println("Lower tail equality binomial(25, "+pi_str+")");
+		System.out.println("Lower tail equality binomial(25, pi/16.0)");
 		printAllEqual(Rbinom, Qbinom);
 		System.out.println("Lower tail equality cauchy(12, 2)");
 		printAllEqual(Rcauchy, Qcauchy);
@@ -982,7 +981,7 @@ public class TestDPQR {
 		printAllEqual(Rf, Qf);
 		System.out.println("Lower tail equality gamma(2, 5)");
 		printAllEqual(Rgamma, Qgamma);
-		System.out.println("Lower tail equality geom("+pi_str+")");
+		System.out.println("Lower tail equality geom(pi/16.0)");
 		printAllEqual(Rgeom, Qgeom);
 		System.out.println("Lower tail equality hyper(40, 30, 20)");
 		printAllEqual(Rhyper, Qhyper);
@@ -1034,7 +1033,7 @@ public class TestDPQR {
 		System.out.println();
 		System.out.println("Upper tail equality beta(0.8, 2)");
 		printAllEqual(Rbeta, Qbeta);
-		System.out.println("Upper tail equality binomial(25, "+pi_str+")");
+		System.out.println("Upper tail equality binomial(25, pi/16.0)");
 		printAllEqual(Rbinom, Qbinom);
 		System.out.println("Upper tail equality cauchy(12, 2)");
 		printAllEqual(Rcauchy, Qcauchy);
@@ -1046,7 +1045,7 @@ public class TestDPQR {
 		printAllEqual(Rf, Qf);
 		System.out.println("Upper tail equality gamma(2, 5)");
 		printAllEqual(Rgamma, Qgamma);
-		System.out.println("Upper tail equality geom("+pi_str+")");
+		System.out.println("Upper tail equality geom(pi/16.0)");
 		printAllEqual(Rgeom, Qgeom);
 		System.out.println("Upper tail equality hyper(40, 30, 20)");
 		printAllEqual(Rhyper, Qhyper);
@@ -1098,7 +1097,7 @@ public class TestDPQR {
 		System.out.println();
 		System.out.println("Lower tail, log equality beta(0.8, 2)");
 		printAllEqual(Rbeta, Qbeta);
-		System.out.println("Lower tail, log equality binomial(25, "+pi_str+")");
+		System.out.println("Lower tail, log equality binomial(25, pi/16.0)");
 		printAllEqual(Rbinom, Qbinom);
 		System.out.println("Lower tail, log equality cauchy(12, 2)");
 		printAllEqual(Rcauchy, Qcauchy);
@@ -1110,7 +1109,7 @@ public class TestDPQR {
 		printAllEqual(Rf, Qf);
 		System.out.println("Lower tail, log equality gamma(2, 5)");
 		printAllEqual(Rgamma, Qgamma);
-		System.out.println("Lower tail, log equality geom("+pi_str+")");
+		System.out.println("Lower tail, log equality geom(pi/16.0)");
 		printAllEqual(Rgeom, Qgeom);
 		System.out.println("Lower tail, log equality hyper(40, 30, 20)");
 		printAllEqual(Rhyper, Qhyper);
@@ -1162,7 +1161,7 @@ public class TestDPQR {
 		System.out.println();
 		System.out.println("Upper tail, log equality beta(0.8, 2)");
 		printAllEqual(Rbeta, Qbeta);
-		System.out.println("Upper tail, log equality binomial(25, "+pi_str+")");
+		System.out.println("Upper tail, log equality binomial(25, pi/16.0)");
 		printAllEqual(Rbinom, Qbinom);
 		System.out.println("Upper tail, log equality cauchy(12, 2)");
 		printAllEqual(Rcauchy, Qcauchy);
@@ -1174,7 +1173,7 @@ public class TestDPQR {
 		printAllEqual(Rf, Qf);
 		System.out.println("Upper tail, log equality gamma(2, 5)");
 		printAllEqual(Rgamma, Qgamma);
-		System.out.println("Upper tail, log equality geom("+pi_str+")");
+		System.out.println("Upper tail, log equality geom(pi/16.0)");
 		printAllEqual(Rgeom, Qgeom);
 		System.out.println("Upper tail, log equality hyper(40, 30, 20)");
 		printAllEqual(Rhyper, Qhyper);
@@ -1227,7 +1226,7 @@ public class TestDPQR {
 		System.out.println();
 		System.out.println("Upper tail cumulative equality beta(0.8, 2)");
 		printAllEqual(log1pComps(Pbeta), _Pbeta);
-		System.out.println("Upper tail cumulative equality binomial(25, "+pi_str+")");
+		System.out.println("Upper tail cumulative equality binomial(25, pi/16.0)");
 		printAllEqual(log1pComps(Pbinom), _Pbinom);
 		System.out.println("Upper tail cumulative equality cauchy(12, 2)");
 		printAllEqual(log1pComps(Pcauchy), _Pcauchy);
@@ -1239,7 +1238,7 @@ public class TestDPQR {
 		printAllEqual(log1pComps(Pf), _Pf);
 		System.out.println("Upper tail cumulative equality gamma(2, 5)");
 		printAllEqual(log1pComps(Pgamma), _Pgamma);
-		System.out.println("Upper tail cumulative equality geom("+pi_str+")");
+		System.out.println("Upper tail cumulative equality geom(pi/16.0)");
 		printAllEqual(log1pComps(Pgeom), _Pgeom);
 		System.out.println("Upper tail cumulative equality hyper(40, 30, 20)");
 		printAllEqual(log1pComps(Phyper), _Phyper);

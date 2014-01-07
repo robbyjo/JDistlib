@@ -15,6 +15,7 @@
  */
 package jdistlib;
 
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.QMersenneTwister;
 import jdistlib.rng.QRandomEngine;
 
@@ -60,6 +61,14 @@ public class TestDPQR {
 		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) <= tol);
 	}
 
+	static final boolean isEqualScaled(double a, double b) {
+		return isEqualScaled(a, b, defaultNumericalError);
+	}
+
+	static final boolean isEqualScaled(double a, double b, double tol) {
+		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b)/(Double.isNaN(a) ? 0 : a) <= tol);
+	}
+
 	static final boolean allEqual(double[] a, double[] b, double tol) {
 		int n = a.length;
 		if (n != b.length) throw new RuntimeException();
@@ -72,48 +81,97 @@ public class TestDPQR {
 		return allEqual(a, b, defaultNumericalError);
 	}
 
-	static final void printBool(boolean b) {
+	static final boolean allEqualScaled(double[] a, double[] b, double tol) {
+		int n = a.length;
+		if (n != b.length) throw new RuntimeException();
+		for (int i = 0; i < n; i++)
+			if (!isEqualScaled(a[i], b[i], tol)) return false;
+		return true;
+	}
+
+	static final boolean allEqualScaled(double[] a, double[] b) {
+		return allEqualScaled(a, b, defaultNumericalError);
+	}
+
+	static final boolean printBool(boolean b) {
 		System.out.println(b ? "[1] TRUE" : "[1] FALSE");
+		return b;
 	}
 
-	static final void printBool(boolean... b) {
-		if (b == null || b.length == 0) return;
+	static final boolean printBool(boolean... b) {
+		if (b == null || b.length == 0) return false;
 		System.out.print("[1]");
-		for (int i = 0; i < b.length; i++)
+		boolean bb = true;
+		for (int i = 0; i < b.length; i++) {
 			System.out.print(b[i] ? " TRUE" : " FALSE");
+			bb = bb & b[i];
+		}
 		System.out.println();
+		return bb;
 	}
 
-	static final void printAllEqual(double[] a, double[] b, double tol) {
+	static final boolean printAllEqual(double[] a, double[] b, double tol) {
 		boolean v = allEqual(a, b, tol);
 		printBool(v);
-		if (!v) {
-			int n = a.length;
-			boolean[] vv = new boolean[n];
-			for (int i = 0; i < a.length; i++)
-				vv[i] = isEqual(a[i], b[i], tol);
-			System.out.print("True values: ");
-			for (int i = 0; i < n; i++)
-				if (!vv[i])
-					System.out.print(a[i]+ " ");
-			System.out.println();
+		if (v) return true;
+		int n = a.length;
+		boolean[] vv = new boolean[n];
+		for (int i = 0; i < a.length; i++)
+			vv[i] = isEqual(a[i], b[i], tol);
+		System.out.print("True values: ");
+		for (int i = 0; i < n; i++)
+			if (!vv[i])
+				System.out.print(a[i]+ " ");
+		System.out.println();
 
-			System.out.print("Results: ");
-			for (int i = 0; i < n; i++)
-				if (!vv[i])
-					System.out.print(b[i]+ " ");
-			System.out.println();
+		System.out.print("Results: ");
+		for (int i = 0; i < n; i++)
+			if (!vv[i])
+				System.out.print(b[i]+ " ");
+		System.out.println();
 
-			System.out.print("|Diff|: ");
-			for (int i = 0; i < n; i++)
-				if (!vv[i])
-					System.out.print(abs(a[i]-b[i])+ " ");
-			System.out.println();
-		}
+		System.out.print("|Diff|: ");
+		for (int i = 0; i < n; i++)
+			if (!vv[i])
+				System.out.print(abs(a[i]-b[i])+ " ");
+		System.out.println();
+		return false;
 	}
 
-	static final void printAllEqual(double[] a, double[] b) {
-		printAllEqual(a, b, defaultNumericalError);
+	static final boolean printAllEqual(double[] a, double[] b) {
+		return printAllEqual(a, b, defaultNumericalError);
+	}
+
+	static final boolean printAllEqualScaled(double[] a, double[] b, double tol) {
+		boolean v = allEqualScaled(a, b, tol);
+		printBool(v);
+		if (v) return true;
+		int n = a.length;
+		boolean[] vv = new boolean[n];
+		for (int i = 0; i < a.length; i++)
+			vv[i] = isEqualScaled(a[i], b[i], tol);
+		System.out.print("True values: ");
+		for (int i = 0; i < n; i++)
+			if (!vv[i])
+				System.out.print(a[i]+ " ");
+		System.out.println();
+
+		System.out.print("Results: ");
+		for (int i = 0; i < n; i++)
+			if (!vv[i])
+				System.out.print(b[i]+ " ");
+		System.out.println();
+
+		System.out.print("Relative Diff: ");
+		for (int i = 0; i < n; i++)
+			if (!vv[i])
+				System.out.print(abs(a[i]-b[i])/a[i]+ " ");
+		System.out.println();
+		return false;
+	}
+
+	static final boolean printAllEqualScaled(double[] a, double[] b) {
+		return printAllEqualScaled(a, b, defaultNumericalError);
 	}
 
 	static final double[] pows(double x, double[] e) {
@@ -137,10 +195,31 @@ public class TestDPQR {
 		return v;
 	}
 
+	static final double[] mins(double[] a, double[] b) {
+		double[] v = new double[a.length];
+		for (int i = 0; i < a.length; i++)
+			v[i] = a[i]-b[i];
+		return v;
+	}
+
+	static final double[] times(double a, double[] b) {
+		double[] v = new double[b.length];
+		for (int i = 0; i < b.length; i++)
+			v[i] = a*b[i];
+		return v;
+	}
+
 	static final double[] comps(double[] e) {
 		double[] v = new double[e.length];
 		for (int i = 0; i < e.length; i++)
 			v[i] = 1-e[i];
+		return v;
+	}
+
+	static final double[] exps(double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = exp(e[i]);
 		return v;
 	}
 
@@ -158,13 +237,38 @@ public class TestDPQR {
 		return v;
 	}
 
-	static final void print(double[] val) {
+	static final double[] rec(double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = 1.0/e[i];
+		return v;
+	}
+
+	static final double[] rev(double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[e.length - i - 1] = e[i];
+		return v;
+	}
+
+	static final void print(double... val) {
+		print(" %g", val);
+	}
+
+	static final void print(String format, double... val) {
 		int n = val.length;
 		for (int i = 0; i < n; i++) {
-			System.out.print(String.format(" %g", val[i]));
+			System.out.print(String.format(format, val[i]));
 			if ((i + 1) % 6 == 0) System.out.println();
 		}
 		System.out.println();
+	}
+
+	static final boolean allFinite(double[] e) {
+		for (double _e : e)
+			if (MathFunctions.isInfinite(_e))
+				return false;
+		return true;
 	}
 
 	@Test
@@ -1273,6 +1377,167 @@ public class TestDPQR {
 		printAllEqual(log1pComps(Pwilcox), _Pwilcox);
 	}
 
+	@Test
+	public static final boolean test_extreme() {
+		System.out.println("### (Extreme) tail tests added more recently:");
+		boolean success = true;
+		success = printBool(isEqual(1, -1e-17/Exponential.cumulative(Exponential.quantile(-1e-17, 1, true, true), 1, true, true)));
+		success &= printBool(isEqual(abs(Gamma.cumulative(30, 100, 1, false, true)), 7.3384686328784e-24, 1e-36));
+		success &= printBool(isEqual(1, Cauchy.cumulative(-1e20, 0, 1, true, false) / 3.18309886183791e-21));
+		success &= printBool(isEqual(1, Cauchy.cumulative(+1e15, 0, 1, true, true) / -3.18309886183791e-16)); // PR#6756
+
+		Cauchy cauchy = new Cauchy(0, 1);
+		double[] ex = new double[] {1,2,5,10,15,20,25,50,100,200,300, Double.POSITIVE_INFINITY};
+		double[] x = pows(10, ex);
+		for (double _x : x)
+			if (_x > 1e10)
+				printBool(isEqual(T.cumulative(-_x, 1, true, false), cauchy.cumulative(-_x), 1e-15));
+		System.out.println("## for PR#7902:");
+		double[] rec_x = rec(x), mins_x = mins(x);
+		success &= printAllEqualScaled(mins_x, cauchy.quantile(cauchy.cumulative(mins_x)));
+		success &= printAllEqualScaled(x, cauchy.quantile(cauchy.cumulative(x, true, true), true, true));
+		success &= printAllEqual(rec_x, cauchy.quantile(cauchy.cumulative(rec_x)));
+		ex = mins(c(rev(rec_x), ex));
+		success &= printAllEqualScaled(ex, cauchy.quantile(cauchy.cumulative(ex, true, true), true, true));
+
+		double neginf = Double.NEGATIVE_INFINITY, inf = Double.POSITIVE_INFINITY;
+		x = new double[] { 0, 1};
+		ex = new double[] { neginf, inf };
+		if (!allEqual(cauchy.cumulative(ex), x) ||
+			!allEqual(cauchy.quantile(x), ex) ||
+			!allEqual(cauchy.quantile(new double[] {neginf, 0}, true, true), ex)) {
+			System.err.println("Boundary exception error in Cauchy distribution");
+			success = false;
+		}
+
+		System.out.println("## PR#6757:");
+		if (!isEqualScaled(pow(1e-23, 12), Binomial.cumulative(11, 12, 1e-23, false, false), 1e-12)) {
+			System.err.println("Extreme tail error in Binomial.cumulative");
+			success = false;
+		}
+
+		System.out.println("## PR#6792:");
+		double val = Geometric.cumulative(1, 1e-17, true, false);
+		if (!isEqualScaled(2*1e-17, val)) {
+			System.err.println("Extreme tail error in Geometric.cumulative");
+			success = false;
+		}
+
+		x = pows(10, colon(100, 295));
+		for (double v : new double[] {1e-250, 1e-25, 0.9, 1.1, 101, 1e10, 1e100}) {
+			Gamma pgamma = new Gamma(v, 1);
+			success &= printAllEqualScaled(mins(x), pgamma.cumulative(x, false, true));
+		}
+		x = pows(2, colon(-1022, -900));
+		Gamma g = new Gamma(10, 1);
+		success &= printAllEqual(mins(g.cumulative(x, true, true), times(10, logs(x))), rep(-15.104412573076, x.length), 1e-12);
+		g = new Gamma(0.1, 1);
+		success &= printAllEqual(mins(g.cumulative(x, true, true), times(0.1, logs(x))), rep(0.0498724412598364, x.length), 1e-13);
+
+		Poisson pois = new Poisson(3e-308);
+		success &= printAllEqualScaled(c(-7096.080376108055133955, -14204.287543530712355278), pois.density(c(10.0,20.0), true));
+		val = Poisson.density(1e20, 1e-290, true);
+		success &= printBool(isEqualScaled(-71280137882815411781632.0, val));
+
+		x = c(1.0/Math.PI, 1.0, Math.PI);
+		F f1 = new F(3, 1e6), f2 = new F(3, inf);
+		String fmt = " %3.18g";
+		System.out.println("## Inf df in pf etc.");
+		print(fmt, f1.density(x));
+		print(fmt, f2.density(x));
+		print(fmt, f1.cumulative(x));
+		print(fmt, f2.cumulative(x));
+
+		f1 = new F(1e6, 5); f2 = new F(inf, 5);
+		print(fmt, f1.density(x));
+		print(fmt, f2.density(x));
+		print(fmt, f1.cumulative(x));
+		print(fmt, f2.cumulative(x));
+
+		f1 = new F(inf, inf);
+		print(f1.density(x));
+		print(f1.cumulative(x));
+
+		f1 = new F(5, inf);
+		print(fmt, f1.cumulative(x));
+
+		NonCentralF ncf = new NonCentralF(5, 1e6, 1);
+		success &= printAllEqualScaled(c(0.06593319432457067641451, 0.47087998660583602061891, 0.97887586737053189356317),
+			ncf.cumulative(x));
+		ncf = new NonCentralF(5, 1e7, 1);
+		success &= printAllEqualScaled(c(0.06593308950344137220334, 0.47088028378103324866899, 0.97887640681761456384891),
+			ncf.cumulative(x));
+		ncf = new NonCentralF(5, 1e8, 1);
+		success &= printAllEqualScaled(c(0.06593307522941961595908, 0.47088029999414682258418, 0.97887645916474952390018),
+			ncf.cumulative(x));
+		ncf = new NonCentralF(5, inf, 1);
+		print(fmt, ncf.cumulative(x));
+		print(fmt, T.density(1, inf, false));
+		print(fmt, NonCentralT.density(1, inf, 0, false));
+		print(fmt, NonCentralT.density(1, inf, 1, false));
+		print(fmt, NonCentralT.density(1, 1e6, 1, false));
+		print(fmt, NonCentralT.density(1, 1e7, 1, false));
+		print(fmt, NonCentralT.density(1, 1e8, 1, false));
+		print(fmt, NonCentralT.density(1, 1e10, 1, false));
+
+		for (double _x : new double[] {1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-100, 0}) {
+			System.out.println(String.format("%3.18g %3.18g", _x, NonCentralT.density(_x, 2, 1, false)));
+		}
+
+		x = rep(pows(10, c(colon(-3.,2.), colon(6.,9.), times(10, colon(2.,30.)))), 12);
+		boolean cur_success = true;
+		for (double nu : new double[] {0.75, 1.2, 4.5, 999, 1e50}) {
+			T t = new T(nu);
+			double[] lfx = t.density(x, true);
+			cur_success &= allFinite(lfx);
+			cur_success &= allEqual(exps(lfx), t.density(x));
+		}
+		success &= cur_success;
+		if (!cur_success)
+			System.err.println("Error at extreme values of T density");
+
+		val = ChiSquare.cumulative(1, 1, true, false);
+		double[] nus = pows(2, seq(25, 34, 0.5));
+		for (int i = 0; i < nus.length; i++) {
+			double nu = nus[i];
+			double _f = F.cumulative(1, 1, inf, true, false);
+			if (!isEqual(_f, val)) {
+				System.err.println(String.format("Error: target=%3.18g, pf(1,1,Inf) = %3.18g", val, _f));
+				success = false;
+			}
+			double y = F.cumulative(1, 1, nu, true, false);
+			double y_next = i == nus.length - 1 ? val : F.cumulative(1, 1, nus[i+1], true, false);
+			if (y_next < y) {
+				System.err.println(String.format("Not monotonic increasing: %3.18g %3.18g", y, y_next));
+				success = false;
+			}
+			if (i == 0 && abs(y - (val - 7.21129e-9)) > 1e-11) {
+				System.err.println(String.format("Precision error: %3.18g", y));
+				success = false;
+			}
+		}
+
+		if (Gamma.cumulative(inf, 1.1, 1, true, false) != 1) {
+			System.err.println("Error at Gamma.cumulative(Inf, 1.1, 1, true, false)!");
+			success = false;
+		}
+
+		System.out.println("## qgamma(q, *) should give {0,Inf} for q={0,1}");
+		for (double sh : new double[] { 1.1, 0.5, 0.2, 0.15, 1e-2, 1e-10}) {
+			if (Gamma.quantile(1, sh, 1, true, false) != inf) {
+				System.err.println(String.format("Error at Gamma.cumulative(1, %f, 1, true, false)!", sh));
+				success = false;
+			}
+			if (Gamma.quantile(0, sh, 1, true, false) != 0) {
+				System.err.println(String.format("Error at Gamma.cumulative(0, %f, 1, true, false)!", sh));
+				success = false;
+			}
+		}
+
+		System.out.println("## In extreme left tail {PR#11030}");
+		return success;
+	}
+
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
 		test_binom();
@@ -1287,5 +1552,6 @@ public class TestDPQR {
 		test_beta();
 		test_normal();
 		test_random();
+		test_extreme();
 	}
 }

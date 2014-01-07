@@ -48,6 +48,15 @@ public abstract class GenericDistribution {
 		return v;
 	}
 
+	/**
+	 * Assume non-log
+	 * @param x
+	 * @return density
+	 */
+	public double[] density(double[] x) {
+		return density(x, false);
+	}
+
 	public double[] cumulative(double[] p, boolean lower_tail, boolean log_p) {
 		int n = p.length;
 		double[] v = new double[n];

@@ -1,5 +1,7 @@
 package jdistlib.util;
 
+import java.util.Arrays;
+
 /**
  * Utility functions to mimic R
  * @author Roby Joehanes
@@ -7,10 +9,11 @@ package jdistlib.util;
  */
 public class Utilities {
 	public static final int[] colon(int from, int to) {
-		int n = (to - from) + 1;
+		int n = Math.abs(to - from) + 1;
 		int[] d = new int[n];
+		int inc = to > from ? 1 : -1;
 		for (int i = 0 ; i < n; i++)
-			d[i] = from + i;
+			d[i] = from + i*inc;
 		return d;
 	}
 
@@ -66,5 +69,22 @@ public class Utilities {
 			w += x[i].length;
 		}
 		return v;
+	}
+
+	public static final double[] c(double... x) {
+		return x;
+	}
+
+	public static final double[] rep(double v, int n) {
+		double[] r = new double[n];
+		Arrays.fill(r, v);
+		return r;
+	}
+
+	public static final double[] rep(double[] v, int n) {
+		double[] r = new double[n * v.length];
+		for (int i = 0; i < n; i++)
+			System.arraycopy(v, 0, r, i * n, v.length);
+		return r;
 	}
 }

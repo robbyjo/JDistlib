@@ -334,8 +334,12 @@ public class MathFunctions {
 			dxrel = sqrt(DBL_EPSILON);
 		}
 		/*/
-		int ngam = 22;
-		double xmin = -170.5674972726612, xmax = 171.61447887182298, xsml = 2.2474362225598545e-308, dxrel = 1.490116119384765696e-8;
+		final int ngam = 22;
+		final double
+			xmin = -170.5674972726612,
+			xmax = 171.61447887182298,
+			xsml = 2.2474362225598545e-308,
+			dxrel = 1.490116119384765696e-8;
 		//*/
 
 		if(Double.isNaN(x)) return x;
@@ -360,46 +364,34 @@ public class MathFunctions {
 
 				/* The answer is less than half precision */
 				/* because x too near a negative integer. */
-				/*!* 	    if (x < -0.5 && fabs(x - (int)(x - 0.5) / x) < dxrel) { *!*/
-				if (x < -0.5 && abs(x - (int)(x - 0.5) / x) < dxrel) {
+				if (x < -0.5 && abs(x - (int)(x - 0.5) / x) < dxrel)
 					throw new ArithmeticException("Math Error: PRECISION");
-				}
 
 				/* The argument is so close to 0 that the result would overflow. */
-				if (y < xsml) {
-					if(x > 0) return Double.POSITIVE_INFINITY;
-					return Double.NEGATIVE_INFINITY;
-				}
+				if (y < xsml)
+					return x > 0 ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
 				n = -n;
-				for (i = 0; i < n; i++) {
+				for (i = 0; i < n; i++)
 					value /= (x + i);
-				}
 				return value;
-			}
-			else {
+			} else {
 				/* gamma(x) for 2 <= x <= 10 */
-
-				for (i = 1; i <= n; i++) {
+				for (i = 1; i <= n; i++)
 					value *= (y + i);
-				}
 				return value;
 			}
-		}
-		else {
+		} else {
 			/* gamma(x) for	 y = |x| > 10. */
-			if (x > xmax) {			/* Overflow */
+			if (x > xmax)			/* Overflow */
 				return Double.POSITIVE_INFINITY;
-			}
 
-			if (x < xmin) {			/* Underflow */
+			if (x < xmin)			/* Underflow */
 				return 0.;
-			}
 
 			if(y <= 50 && y == (int)y) { /* compute (n - 1)! */
 				value = 1.;
 				for (i = 2; i < y; i++) value *= i;
-			}
-			else { /* normal case */
+			} else { /* normal case */
 				value = exp((y - 0.5) * log(y) - y + M_LN_SQRT_2PI +
 						((2*y == (int)2*y)? stirlerr(y) : lgammacor(y)));
 			}
@@ -407,16 +399,11 @@ public class MathFunctions {
 			if (x > 0)
 				return value;
 
-			/*!* 	if (fabs((x - (int)(x - 0.5))/x) < dxrel){ *!*/
-			if (abs((x - (int)(x - 0.5))/x) < dxrel){
-
+			if (abs((x - (int)(x - 0.5))/x) < dxrel)
 				/* The answer is less than half precision because */
 				/* the argument is too near a negative integer. */
-
 				throw new ArithmeticException("Math Error: PRECISION");
-			}
 
-			/*!* 	sinpiy = sin(M_PI * y); *!*/
 			double sinpiy = sin(M_PI * y);
 			if (sinpiy == 0)		/* Negative integer arg - overflow */
 				return Double.POSITIVE_INFINITY;

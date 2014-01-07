@@ -55,7 +55,7 @@ public class Cauchy extends GenericDistribution {
 		/* for large x, the standard formula suffers from cancellation.
 		 * This is from Morten Welinder thanks to  Ian Smith's  atan(1/x) : */
 		if (abs(x) > 1) {
-			double y = atan(1/x) / M_PI;
+			double y = atan(1.0/x) / M_PI;
 			//return (x > 0) ? R_D_Clog(y) : R_D_val(-y);
 			return (x > 0) ? (log_p	? log1p(-(y)) : (0.5 - (y) + 0.5)) : (log_p	? log(-y) : (-y));
 		}
@@ -134,4 +134,20 @@ public class Cauchy extends GenericDistribution {
 	public double random() {
 		return random(location, scale, random);
 	}
+
+	/*
+	public static final void main(String[] args) {
+		double x;
+		x = 25.24006759446327;
+		x = atan(1.0/((x - 12.0) / 2.0)) / M_PI ;
+		System.out.println(String.format("%3.18g", x));
+		// R's value    = 0.04772202611746988870634
+		// Java's value = 0.0477220261174698900
+
+		x = 0.04772202611746988870634;
+		// R's value    = 25.24006759446326952911
+		// Java's value = 25.240067594463270
+		System.out.println(String.format("%3.18g", 12 + 2 / tan(M_PI * x)));
+	}
+	//*/
 }

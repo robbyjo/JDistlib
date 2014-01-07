@@ -539,7 +539,7 @@ public class TestDPQR {
 
 	@Test
 	public static final boolean test_normal() {
-		// Includes T disribution apparently
+		// Includes T distribution apparently
 		System.out.println("##--- Normal (& Lognormal) :");
 		boolean success = Normal.quantile(0, 1, 0, true, false) == Double.NEGATIVE_INFINITY
 			&& Normal.quantile(Double.NEGATIVE_INFINITY, 1, 0, true, true) == Double.NEGATIVE_INFINITY;

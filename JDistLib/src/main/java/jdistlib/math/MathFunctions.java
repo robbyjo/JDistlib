@@ -444,7 +444,7 @@ public class MathFunctions {
 			}
 		}
 		/* else:  | x - np |  is not too small */
-		return(x*log(x/np)+np-x);
+		return(x*(log(x) - log(np))+np-x);
 	}
 
 	public static final double lbeta(double a, double b)

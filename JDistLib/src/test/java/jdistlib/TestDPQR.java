@@ -103,6 +103,12 @@ public class TestDPQR {
 				if (!vv[i])
 					System.out.print(b[i]+ " ");
 			System.out.println();
+
+			System.out.print("|Diff|: ");
+			for (int i = 0; i < n; i++)
+				if (!vv[i])
+					System.out.print(abs(a[i]-b[i])+ " ");
+			System.out.println();
 		}
 	}
 

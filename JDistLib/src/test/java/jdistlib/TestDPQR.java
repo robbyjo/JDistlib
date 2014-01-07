@@ -57,7 +57,7 @@ public class TestDPQR {
 	}
 
 	static final boolean isEqual(double a, double b, double tol) {
-		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) < tol);
+		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) <= tol);
 	}
 
 	static final boolean allEqual(double[] a, double[] b, double tol) {
@@ -644,7 +644,8 @@ public class TestDPQR {
 			if (isInfinite(z) || z > -37.5) {
 				double log_pz = log(pz);
 				pz_comp = Normal.cumulative(z, 0, 1, true, true);
-				if (!isEqual(log_pz, pz_comp)) {
+				if (!isEqual(log_pz, pz_comp, 2 * defaultNumericalError)) {
+					// Special allowance. See bug #10
 					System.err.println(String.format("Error: z=%3.18g, log(pnorm(z)) = %3.18g, pnorm(z, log=TRUE) = %3.18g", z, log_pz, pz_comp));
 					success = cur_success4 = false;
 				}

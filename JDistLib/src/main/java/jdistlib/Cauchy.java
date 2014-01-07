@@ -52,8 +52,8 @@ public class Cauchy extends GenericDistribution {
 		}
 		if (!lower_tail)
 			x = -x;
-		/* for large x, the standard formula suffers from cancellation.
-		 * This is from Morten Welinder thanks to  Ian Smith's  atan(1/x) : */
+		// for large x, the standard formula suffers from cancellation.
+		// This is from Morten Welinder thanks to  Ian Smith's  atan(1/x) :
 		if (abs(x) > 1) {
 			double y = atan(1.0/x) / M_PI;
 			//return (x > 0) ? R_D_Clog(y) : R_D_val(-y);

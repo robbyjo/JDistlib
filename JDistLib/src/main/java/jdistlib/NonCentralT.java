@@ -179,6 +179,7 @@ public class NonCentralT extends GenericDistribution {
 			geven = tnc * rxb;
 			tnc = p * xodd + q * xeven;
 
+			boolean conv = false;
 			/* repeat until convergence or iteration limit */
 			for(it = 1; it <= itrmax; it++) {
 				a += 1.;
@@ -197,12 +198,13 @@ public class NonCentralT extends GenericDistribution {
 					//goto finis;
 					break;
 				}
-				if(s <= 0 && it > 1) break; // goto finis;
+				if(s <= 0 && it > 1) { conv = true; break; } // goto finis;
 				errbd = 2. * s * (xodd - godd);
-				if(abs(errbd) < errmax) break; //goto finis;/*convergence*/
+				if(abs(errbd) < errmax) { conv = true; break; } //goto finis;/*convergence*/
 			}
 			/* non-convergence:*/
 			//ML_ERROR(ME_NOCONV, "pnt");
+			if (!conv)
 			System.err.println("Non-convergence error in NonCentralT.cumulative");
 		} else { /* x = t = 0 */
 			tnc = 0.;

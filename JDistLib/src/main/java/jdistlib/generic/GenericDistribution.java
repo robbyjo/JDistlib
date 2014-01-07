@@ -31,6 +31,15 @@ public abstract class GenericDistribution {
 	public abstract double quantile(double q, boolean lower_tail, boolean log_p);
 	public abstract double random();
 
+	/**
+	 * Assume lower tail and non-log
+	 * @param p
+	 * @return cdf
+	 */
+	public double cumulative(double p) {
+		return cumulative(p, true, false);
+	}
+
 	public double[] density(double[] x, boolean log) {
 		int n = x.length;
 		double[] v = new double[n];
@@ -47,12 +56,39 @@ public abstract class GenericDistribution {
 		return v;
 	}
 
+	/**
+	 * Assume lower tail and non-log
+	 * @param p
+	 * @return cdf
+	 */
+	public double[] cumulative(double[] p) {
+		return cumulative(p, true, false);
+	}
+
 	public double[] quantile(double[] q, boolean lower_tail, boolean log_p) {
 		int n = q.length;
 		double[] v = new double[n];
 		for (int i = 0; i < n; i++)
 			v[i] = quantile(q[i], lower_tail, log_p);
 		return v;
+	}
+
+	/**
+	 * Assume lower tail and non-log
+	 * @param q
+	 * @return quantile
+	 */
+	public double[] quantile(double[] q) {
+		return quantile(q, true, false);
+	}
+
+	/**
+	 * Assume lower tail and non-log
+	 * @param q
+	 * @return quantile
+	 */
+	public double quantile(double q) {
+		return quantile(q, true, false);
 	}
 
 	public double[] random(int n) {

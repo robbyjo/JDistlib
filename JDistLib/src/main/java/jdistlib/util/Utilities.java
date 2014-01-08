@@ -116,4 +116,139 @@ public class Utilities {
 		}
 		System.out.println();
 	}
+
+	/**
+	 * Sort data using radix sort
+	 * @param data
+	 */
+	public static final void sort(double[] data) {
+		// N=5*10^8: Radix = 9919, Quick = 16971 (ms).
+		int
+			n = data.length,
+			numBins = (int) Math.max(4,Math.min(10, Math.round(Math.log(n) / (2 * Math.log(2)))));
+		long[]
+			a = new long[n],
+			b = new long[n];
+		for (int i = 0; i < n; i++)
+			a[i] = Double.doubleToLongBits(data[i]);
+		for (long mask = ~(-1L << numBins), rshift = 0L; mask != 0; mask <<= numBins, rshift += numBins) {
+			int[] cntarray = new int[1 << numBins];
+			for (int p = 0; p < n; ++p)
+				++cntarray[(int) ((a[p] & mask) >>> rshift)];
+			for (int i = 1; i < cntarray.length; ++i)
+				cntarray[i] += cntarray[i-1];
+			for (int p = n-1; p >= 0; --p) {
+				int key = (int) ((a[p] & mask) >>> rshift);
+				--cntarray[key];
+				b[cntarray[key]] = a[p];
+			}
+			long[] temp = b; b = a; a = temp;
+		}
+
+		int numNegs = 0;
+		// Negatives are always placed at the end of the array in the reverse order.
+		// So, scan to find the point
+		if (a[n - 1] < 0)
+			for (int i = n - 1; a[i] < 0; i--)
+				data[numNegs++] = Double.longBitsToDouble(a[i]);
+		if (numNegs > 0)
+			for (int i = numNegs; i < n; i++)
+				data[i] = Double.longBitsToDouble(a[i - numNegs]);
+		else
+			for (int i = 0; i < n; i++)
+				data[i] = Double.longBitsToDouble(a[i]);
+	}
+
+	/**
+	 * Sort using radix sort
+	 * @param data
+	 * @param idx an index of data, of the same length, useful to sort an entire table
+	 */
+	public static final void sort(double[] data, int[] idx) {
+		// N=5*10^8: Radix = 9919, Quick = 16971 (ms).
+		int
+			n = data.length,
+			numBins = (int) Math.max(4,Math.min(10, Math.round(Math.log(n) / (2 * Math.log(2)))));
+		long[]
+			a = new long[n],
+			b = new long[n];
+		int[]
+			idx_a = new int[n],
+			idx_b = new int[n];
+		for (int i = 0; i < n; i++) {
+			a[i] = Double.doubleToLongBits(data[i]);
+			idx_a[i] = idx[i];
+		}
+		for (long mask = ~(-1L << numBins), rshift = 0L; mask != 0; mask <<= numBins, rshift += numBins) {
+			int[] cntarray = new int[1 << numBins];
+			for (int p = 0; p < n; ++p)
+				++cntarray[(int) ((a[p] & mask) >>> rshift)];
+			for (int i = 1; i < cntarray.length; ++i)
+				cntarray[i] += cntarray[i-1];
+			for (int p = n-1; p >= 0; --p) {
+				int key = (int) ((a[p] & mask) >>> rshift);
+				--cntarray[key];
+				b[cntarray[key]] = a[p];
+				idx_b[cntarray[key]] = idx_a[p];
+			}
+			long[] temp = b; b = a; a = temp;
+			int[] temp_idx = idx_b; idx_b = idx_a; idx_a = temp_idx;
+		}
+
+		int numNegs = 0;
+		// Negatives are always placed at the end of the array in the reverse order.
+		// So, scan to find the point
+		if (a[n - 1] < 0)
+			for (int i = n - 1; a[i] < 0; i--) {
+				data[numNegs] = Double.longBitsToDouble(a[i]);
+				idx[numNegs++] = idx_a[i];
+			}
+		if (numNegs > 0)
+			for (int i = numNegs; i < n; i++) {
+				data[i] = Double.longBitsToDouble(a[i - numNegs]);
+				idx[i] = idx_a[i - numNegs];
+			}
+		else
+			for (int i = 0; i < n; i++) {
+				data[i] = Double.longBitsToDouble(a[i]);
+				idx[i] = idx_a[i];
+			}
+	}
+
+	/**
+	 * Radix sort
+	 * @param a
+	 */
+	public static final void sort(int[] a) {
+		int
+			n = a.length,
+			// Roby's modification: Optimum number of bins
+			numBins = (int) Math.max(4,Math.min(10, Math.round(Math.log(n) / (2 * Math.log(2))))),
+			b[] = new int[n],
+			b_orig[] = b;
+		for (int mask = ~(-1 << numBins), rshift = 0; mask != 0; mask <<= numBins, rshift += numBins) {
+			int[] cntarray = new int[1 << numBins];
+			for (int p = 0; p < n; ++p)
+				++cntarray[(a[p] & mask) >>> rshift]; // RJ's fix to handle negatives
+			for (int i = 1; i < cntarray.length; ++i)
+				cntarray[i] += cntarray[i-1];
+			for (int p = n-1; p >= 0; --p) {
+				int key = (a[p] & mask) >>> rshift; // RJ's fix to handle negatives
+				--cntarray[key];
+				b[cntarray[key]] = a[p];
+			}
+			int[] temp = b; b = a; a = temp;
+		}
+		if (a == b_orig)
+			System.arraycopy(a, 0, b, 0, n);
+		int numNegs = 0;
+		// Negatives are always placed at the end of the array in the correct order.
+		// So, scan to find the point
+		for (int i = n - 1; a[i] < 0; i--, numNegs++) ;
+		if (numNegs > 0) {
+			System.arraycopy(a, n - numNegs, b, 0, numNegs);
+			System.arraycopy(a, 0, a, numNegs, n - numNegs);
+			System.arraycopy(b, 0, a, 0, numNegs);
+		}
+	}
 }

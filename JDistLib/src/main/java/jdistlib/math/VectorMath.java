@@ -222,4 +222,31 @@ public class VectorMath {
 				return false;
 		return true;
 	}
+
+	/**
+	 * Find quantile given a sorted data of array (Definition 7)
+	 * @param sortedData
+	 * @param quantile must be 0 <= quantile <= 1
+	 * @return
+	 */
+	public static final double quantile(double[] sortedData, double quantile) {
+		double index = (sortedData.length - 1) * quantile;
+		int
+			lo = (int) Math.floor(index),
+			hi = (int) Math.ceil(index);
+		if (lo <= 0)
+			return 0;
+		double
+			h = index - lo,
+			lowerQ = sortedData[lo],
+			result = h == 0 ? lowerQ : (1 - h) * lowerQ + h * sortedData[hi];
+		return result;
+	}
+
+	public static final double[] quantile(double[] sortedData, double[] quantile) {
+		double[] v = new double[quantile.length];
+		for (int i = 0; i < quantile.length; i++)
+			v[i] = quantile(sortedData, quantile[i]);
+		return v;
+	}
 }

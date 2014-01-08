@@ -18,10 +18,11 @@ public class Utilities {
 	}
 
 	public static final double[] colon(double from, double to) {
-		int n = (int) ((to - from) + 1);
+		int n = (int) (Math.abs(to - from) + 1);
 		double[] d = new double[n];
+		int inc = to > from ? 1 : -1;
 		for (int i = 0 ; i < n; i++)
-			d[i] = from + i;
+			d[i] = from + i*inc;
 		return d;
 	}
 

@@ -19,6 +19,7 @@ import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.Math.pow;
+import static java.lang.Math.sqrt;
 import static jdistlib.math.Constants.DBL_EPSILON;
 import jdistlib.Normal;
 
@@ -1372,6 +1373,18 @@ public class Integrate {
 		};
 		IntegrationResult result = dqagie(f, 0, 1, DBL_EPSILON*64, DBL_EPSILON*64, 100);
 		System.out.println(result.result);
-		System.out.println("Error = " + result.abserr);
+		System.out.println("Error = " + result.abserr); // Should be precisely 0.5
+
+		f = new UnivariateFunction() {
+			public void setParameters(double... params) {
+			}
+			
+			public double eval(double x) {
+				return 1/((x+1) * sqrt(x));
+			}
+		};
+		result = dqagie(f, 0, 1, DBL_EPSILON*64, DBL_EPSILON*64, 100);
+		System.out.println(result.result);
+		System.out.println("Error = " + result.abserr); // Should be precisely pi
 	}
 }

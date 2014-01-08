@@ -288,4 +288,12 @@ public class VectorMath {
 		}
 		return (n * sumsq - sum * sum) * (n / (n - 1));
 	}
+
+	public static final double sum(double[] e) {
+		double sum = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			sum += e[i];
+		return sum;
+	}
 }

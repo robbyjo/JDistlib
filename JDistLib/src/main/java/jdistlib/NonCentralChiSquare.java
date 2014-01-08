@@ -341,12 +341,12 @@ public class NonCentralChiSquare extends GenericDistribution {
 			if(p > 1 - DBL_EPSILON) return Double.POSITIVE_INFINITY;
 			pp = min(1 - DBL_EPSILON, p * (1 + Eps));
 			for(/*ux = ux*/;
-					ux < Double.MAX_VALUE &&
+					ux < DBL_MAX &&
 					cumulative_raw(ux, df, ncp, Eps, rEps, 10000, true) < pp;
 					ux *= 2);
 			pp = p * (1 - Eps);
-			for(lx = min(ux0, Double.MAX_VALUE);
-					lx > Double.MIN_VALUE &&
+			for(lx = min(ux0, DBL_MAX);
+					lx > DBL_MIN &&
 					cumulative_raw(lx, df, ncp, Eps, rEps, 10000, true) > pp;
 					lx *= 0.5);
 		}
@@ -354,12 +354,12 @@ public class NonCentralChiSquare extends GenericDistribution {
 			if(p > 1 - DBL_EPSILON) return 0.0;
 			pp = min(1 - DBL_EPSILON, p * (1 + Eps));
 			for(/*ux = ux*/;
-					ux < Double.MAX_VALUE &&
+					ux < DBL_MAX &&
 					cumulative_raw(ux, df, ncp, Eps, rEps, 10000, false) > pp;
 					ux *= 2);
 			pp = p * (1 - Eps);
-			for(lx = min(ux0, Double.MAX_VALUE);
-					lx > Double.MIN_VALUE &&
+			for(lx = min(ux0, DBL_MAX);
+					lx > DBL_MIN &&
 					cumulative_raw(lx, df, ncp, Eps, rEps, 10000, false) < pp;
 					lx *= 0.5);
 		}

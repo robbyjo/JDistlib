@@ -267,11 +267,11 @@ public class NonCentralT extends GenericDistribution {
 		if(p > 1 - DBL_EPSILON) return Double.POSITIVE_INFINITY;
 		pp = min(1 - DBL_EPSILON, p * (1 + Eps));
 		for(ux = max(1., ncp);
-				ux < Double.MAX_VALUE && cumulative(ux, df, ncp, true, false) < pp;
+				ux < DBL_MAX && cumulative(ux, df, ncp, true, false) < pp;
 				ux *= 2);
 		pp = p * (1 - Eps);
 		for(lx = min(-1., -ncp);
-				lx > -Double.MAX_VALUE && cumulative(lx, df, ncp, true, false) > pp;
+				lx > -DBL_MAX && cumulative(lx, df, ncp, true, false) > pp;
 				lx *= 2);
 
 		/* 2. interval (lx,ux)  halving : */

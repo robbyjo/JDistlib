@@ -49,8 +49,8 @@ public class Poisson extends GenericDistribution {
 		if (lambda == 0) return( (x == 0) ? (give_log ? 0. : 1.) : (give_log ? Double.NEGATIVE_INFINITY : 0.) );
 		if (MathFunctions.isInfinite(lambda)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (x < 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		if (x <= lambda * Double.MIN_VALUE) return(give_log ? -lambda : exp(-lambda) );
-		if (lambda < x * Double.MIN_VALUE) {
+		if (x <= lambda * DBL_MIN) return(give_log ? -lambda : exp(-lambda) );
+		if (lambda < x * DBL_MIN) {
 			x = -lambda + x*log(lambda) -lgammafn(x+1);
 			return(give_log ? x : exp(x));
 		}

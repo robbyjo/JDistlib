@@ -330,7 +330,7 @@ public class MathFunctions {
 		if (ngam == 0) {
 			ngam = chebyshev_init(gamcs, 42, DBL_EPSILON/20);
 			xmin=-170.5674972726612; xmax=171.61447887182298;
-			xsml = exp(max(log(Double.MIN_VALUE), -log(Double.MAX_VALUE))+0.01);
+			xsml = exp(max(log(DBL_MIN), -log(Double.MAX_VALUE))+0.01);
 			dxrel = sqrt(DBL_EPSILON);
 		}
 		/*/
@@ -953,7 +953,7 @@ public class MathFunctions {
 				}
 
 				w = bup(b0, a0, y0, x0, n, eps, false);
-				if (w < Double.MIN_VALUE && log_p) {
+				if (w < DBL_MIN && log_p) {
 					b0 += n;
 					// goto L100;
 					w = bpser(a0, b0, x0, eps, log_p);
@@ -3055,7 +3055,7 @@ public class MathFunctions {
 			/* --------------------------------------------------------------
 			   Argument < EPS
 			   -------------------------------------------------------------- */
-			if (y >= Double.MIN_VALUE) {
+			if (y >= DBL_MIN) {
 				res = 1. / y;
 			} else {
 				return(Double.POSITIVE_INFINITY);

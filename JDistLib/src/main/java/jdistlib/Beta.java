@@ -257,9 +257,9 @@ public class Beta extends GenericDistribution {
 		//	    v = beta * log(u1 / (1.0 - u1));
 		//	    if (v <= expmax) {
 		//		w = AA * exp(v);
-		//		if(Double.isInfinite(w)) w = Double.MAX_VALUE;
+		//		if(Double.isInfinite(w)) w = DBL_MAX;
 		//	    } else
-		//		w = Double.MAX_VALUE;
+		//		w = DBL_MAX;
 
 
 		if (a <= 1.0) {	/* --- Algorithm BC --- */
@@ -288,9 +288,9 @@ public class Beta extends GenericDistribution {
 						v = beta * log(u1 / (1.0 - u1));
 						if (v <= expmax) {
 							w = b * exp(v);
-							if(isInfinite(w)) w = Double.MAX_VALUE;
+							if(isInfinite(w)) w = DBL_MAX;
 						} else
-							w = Double.MAX_VALUE;
+							w = DBL_MAX;
 						break;
 					}
 					if (z >= k2)
@@ -301,9 +301,9 @@ public class Beta extends GenericDistribution {
 				v = beta * log(u1 / (1.0 - u1));
 				if (v <= expmax) {
 					w = b * exp(v);
-					if(isInfinite(w)) w = Double.MAX_VALUE;
+					if(isInfinite(w)) w = DBL_MAX;
 				} else
-					w = Double.MAX_VALUE;
+					w = DBL_MAX;
 
 				if (alpha * (log(alpha / (a + w)) + v) - 1.3862944 >= log(z))
 					break;
@@ -325,9 +325,9 @@ public class Beta extends GenericDistribution {
 				v = beta * log(u1 / (1.0 - u1));
 				if (v <= expmax) {
 					w = a * exp(v);
-					if(isInfinite(w)) w = Double.MAX_VALUE;
+					if(isInfinite(w)) w = DBL_MAX;
 				} else
-					w = Double.MAX_VALUE;
+					w = DBL_MAX;
 
 				z = u1 * u1 * u2;
 				r = gamma * v - 1.3862944;

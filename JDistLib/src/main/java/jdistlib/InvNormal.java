@@ -24,6 +24,7 @@ import jdistlib.math.Optimization;
 import jdistlib.math.UnivariateFunction;
 import jdistlib.rng.QRandomEngine;
 import static java.lang.Math.*;
+import static jdistlib.math.Constants.DBL_MIN;
 
 /**
  * Inverse normal (or Wald) distribution. Taken from package gamlss.dist.
@@ -54,7 +55,7 @@ public class InvNormal extends GenericDistribution {
 		if (mu <= 0 || sigma <= 0 || p < 0 || p > 1) return Double.NaN;
 		if (log_p) p = exp(p);
 		if (!lower_tail) p = 1-p;
-		double ax = Double.MIN_VALUE, bx = mu;
+		double ax = DBL_MIN, bx = mu;
 		if (cumulative(mu, mu, sigma, true, false) < p) {
 			ax = mu;
 			int j = 1;

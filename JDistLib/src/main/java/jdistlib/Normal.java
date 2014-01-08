@@ -20,7 +20,6 @@
 package jdistlib;
 
 import static java.lang.Double.isNaN;
-import static java.lang.Double.MIN_VALUE;
 import static java.lang.Double.NaN;
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.POSITIVE_INFINITY;
@@ -136,7 +135,7 @@ public class Normal extends GenericDistribution {
 		x = result;
 
 		eps = DBL_EPSILON * 0.5;
-		min = MIN_VALUE;
+		min = DBL_MIN;
 		/*!*     y = fabs(x); *!*/
 		y = abs(x);
 		if (y <= 0.67448975) { /* qnorm(3/4) = .6744.... -- earlier had 0.66291 */
@@ -526,7 +525,7 @@ public class Normal extends GenericDistribution {
 	public static final double random_box_muller(double mu, double sigma, QRandomEngine random) {
 		double
 			theta = 2 * PI * random.nextDouble(),
-			R = sqrt(-2 * log(random.nextDouble())) + 10*Double.MIN_VALUE;
+			R = sqrt(-2 * log(random.nextDouble())) + 10*DBL_MIN;
 		return random.nextDouble() < 0.5 ? R * cos(theta) : R * sin(theta);
 	}
 

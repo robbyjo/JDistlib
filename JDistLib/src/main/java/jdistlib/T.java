@@ -151,9 +151,9 @@ public class T extends GenericDistribution {
 			 * 1. finding an upper and lower bound */
 			if(p > 1 - DBL_EPSILON) return Double.POSITIVE_INFINITY;
 			pp = min(1 - DBL_EPSILON, p * (1 + Eps));
-			for(ux = 1.; ux < Double.MAX_VALUE && cumulative(ux, ndf, true, false) < pp; ux *= 2);
+			for(ux = 1.; ux < DBL_MAX && cumulative(ux, ndf, true, false) < pp; ux *= 2);
 			pp = p * (1 - Eps);
-			for(lx =-1.; lx > -Double.MAX_VALUE && cumulative(lx, ndf, true, false) > pp; lx *= 2);
+			for(lx =-1.; lx > -DBL_MAX && cumulative(lx, ndf, true, false) > pp; lx *= 2);
 
 			/* 2. interval (lx,ux)  halving
 		   regula falsi failed on qt(0.1, 0.1)
@@ -195,9 +195,9 @@ public class T extends GenericDistribution {
 		//#define P_is_exp_2p (lower_tail == neg) /* both TRUE or FALSE == !xor */
 
 		if (abs(ndf - 2) < eps) {	/* df ~= 2 */
-			if(P > Double.MIN_VALUE) {
+			if(P > DBL_MIN) {
 				if(3* P < DBL_EPSILON) /* P ~= 0 */
-					q = 1 / sqrt(P);
+					q = 1.0 / sqrt(P);
 				else if (P > 0.9)	   /* P ~= 1 */
 					q = (1 - P) * sqrt(2 /(P * (2 - P)));
 				else /* eps/3 <= P <= 0.9 */
@@ -228,7 +228,7 @@ public class T extends GenericDistribution {
 					c = ((20700 * a / b - 98) * a - 16) * a + 96.36,
 					d = ((94.5 / (b + c) - 3) / b + 1) * sqrt(a * M_PI_2) * ndf;
 
-			boolean P_ok1 = P > Double.MIN_VALUE || !log_p,  P_ok = P_ok1;
+			boolean P_ok1 = P > DBL_MIN || !log_p,  P_ok = P_ok1;
 			if(P_ok1) {
 				y = pow(d * P, 2 / ndf);
 				P_ok = (y >= DBL_EPSILON);

@@ -221,7 +221,7 @@ public class NonCentralBeta extends GenericDistribution {
 		pp = min(1 - DBL_EPSILON, p * (1 + Eps));
 		for(ux = 0.5; ux < 1 - DBL_EPSILON && cumulative(ux, a, b, ncp, true, false) < pp; ux = 0.5*(1+ux)) ;
 		pp = p * (1 - Eps);
-		for(lx = 0.5; lx > Double.MIN_VALUE && cumulative(lx, a, b, ncp, true, false) > pp; lx *= 0.5) ;
+		for(lx = 0.5; lx > DBL_MIN && cumulative(lx, a, b, ncp, true, false) > pp; lx *= 0.5) ;
 
 		/* 2. interval (lx,ux)  halving : */
 		do {

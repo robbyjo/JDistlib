@@ -286,7 +286,7 @@ public class Gamma extends GenericDistribution {
 		 * where the final result is very close to DBL_MIN.	 In those
 		 * cases, simply redo via log space.
 		 */
-		if (!log_p && res < Double.MIN_VALUE / DBL_EPSILON) {
+		if (!log_p && res < DBL_MIN / DBL_EPSILON) {
 			/* with(.Machine, double.xmin / double.eps) #|-> 1.002084e-292 */
 			return exp (pgamma_raw (x, alph, lower_tail, true));
 		} else
@@ -496,7 +496,7 @@ public class Gamma extends GenericDistribution {
 			if(x == 0) {
 				final double _1_p = 1. + 1e-7;
 				final double _1_m = 1. - 1e-7;
-				x = Double.MIN_VALUE;
+				x = DBL_MIN;
 				p_ = cumulative(x, alpha, scale, lower_tail, log_p);
 				if(( lower_tail && p_ > p * _1_p) ||
 						(!lower_tail && p_ < p * _1_m))

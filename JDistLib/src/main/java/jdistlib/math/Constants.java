@@ -79,7 +79,9 @@ public class Constants {
 
 	/* Difference between 1.0 and the minimum float/double greater than 1.0 */
 	public static final double FLT_EPSILON = 1.19209290e-07F;
-	public static final double DBL_EPSILON = 2.2204460492503131e-16; 
+	public static final double DBL_EPSILON = 2.2204460492503131e-16;
+	public static final double DBL_MIN = 2.22507385850720138309e-308;
+	public static final double DBL_MAX = 1.797693134862315708145e+308;
 	public static final double SQRT_DBL_EPSILON = sqrt(DBL_EPSILON); 
 
 	/* Number of decimal digits of precision in a float/double */

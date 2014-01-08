@@ -21,6 +21,8 @@ import static java.lang.Math.min;
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
 import static jdistlib.math.Constants.DBL_EPSILON;
+import static jdistlib.math.Constants.DBL_MIN;
+import static jdistlib.math.Constants.DBL_MAX;
 import jdistlib.Normal;
 
 public class Integrate {
@@ -495,8 +497,8 @@ public class Integrate {
 		/*           initialization */
 		/*           -------------- */
 
-		uflow = Double.MIN_VALUE;
-		oflow = Double.MAX_VALUE;
+		uflow = DBL_MIN;
+		oflow = DBL_MAX;
 		rlist2[0] = result.result;
 		errmax = result.abserr;
 		maxerr = 1;
@@ -943,7 +945,7 @@ public class Integrate {
 
 		/* ***first executable statement  dqk15i */
 		epmach = DBL_EPSILON;
-		uflow = Double.MIN_VALUE;
+		uflow = DBL_MIN;
 		dinf = (double) min(1, inf);
 
 		centr = (a + b) * .5;

@@ -1013,13 +1013,13 @@ public class Bessel {
 		ex = x;
 		nu = alpha;
 		if (nb > 0 && 0. <= nu && nu < 1.) {
-			if(ex < Double.MIN_VALUE || ex > xlrg_BESS_Y) {
+			if(ex < DBL_MIN || ex > xlrg_BESS_Y) {
 				/* Warning is not really appropriate, give
 				 * proper limit:
 				 * ML_ERROR(ME_RANGE, "Y_bessel"); */
 				ncalc = nb;
 				if(ex > xlrg_BESS_Y)  by[0]= 0.; /*was ML_POSINF */
-				else if(ex < Double.MIN_VALUE) by[0]=Double.NEGATIVE_INFINITY;
+				else if(ex < DBL_MIN) by[0]=Double.NEGATIVE_INFINITY;
 				for(i=0; i < nb; i++)
 					by[i] = by[0];
 				return ncalc;
@@ -1850,8 +1850,8 @@ public class Bessel {
 					c = abs(nu);
 					d3 = c + c;
 					d1 = d3 - 1.;
-					f1 = Double.MIN_VALUE;
-					f0 = (2. * (c + d2) / ex + .5 * ex / (c + d2 + 1.)) * Double.MIN_VALUE;
+					f1 = DBL_MIN;
+					f0 = (2. * (c + d2) / ex + .5 * ex / (c + d2 + 1.)) * DBL_MIN;
 					for (i = 3; i <= m; ++i) {
 						d2 -= 1.;
 						f2 = (d3 + d2 + d2) * f0;

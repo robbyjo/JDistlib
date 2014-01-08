@@ -15,6 +15,7 @@
  */
 package jdistlib;
 
+import jdistlib.math.VectorMath;
 import jdistlib.rng.QMersenneTwister;
 import jdistlib.rng.QRandomEngine;
 
@@ -694,8 +695,8 @@ public class TestDPQR {
 			double pnorm_min_y_log = Normal.cumulative(-y, 0, 1, true, true);
 			System.out.println(String.format("y=%d, log(pnorm(y)) = %3.18g, pnorm(y, log=TRUE) = %3.18g, log(pnorm(-y)) = %3.18g, pnorm(-y, log=TRUE) = %3.18g", y, log_pnorm_y, pnorm_y_log, log_pnorm_min_y, pnorm_min_y_log));
 		}
-		double[] yy = c(colon(1., 50), pows(10, c(colon(3,10), c(20,50,150,250))));
-		yy = c(mins(yy), new double[] {0}, yy);
+		double[] yy = c(colon(1., 50), VectorMath.vpow(10, c(colon(3,10), c(20,50,150,250))));
+		yy = c(VectorMath.vmin(yy), new double[] {0}, yy);
 		for (double y: yy) {
 			double py_minus = Normal.cumulative(-y, 0, 1, true, false);
 			double py_plus = Normal.cumulative(+y, 0, 1, false, false);
@@ -1022,26 +1023,26 @@ public class TestDPQR {
 		printAllEqual(Rwilcox, Qwilcox);
 
 		lower_tail = false; log_p = false;
-		Qbeta = beta.quantile(comps(Pbeta), lower_tail, log_p);
-		Qbinom = binom.quantile(comps(Pbinom), lower_tail, log_p);
-		Qcauchy = cauchy.quantile(comps(Pcauchy), lower_tail, log_p);
-		Qchisq = chisq.quantile(comps(Pchisq), lower_tail, log_p);
-		Qexp = exp.quantile(comps(Pexp), lower_tail, log_p);
-		Qf = f.quantile(comps(Pf), lower_tail, log_p);
-		Qgamma = gamma.quantile(comps(Pgamma), lower_tail, log_p);
-		Qgeom = geom.quantile(comps(Pgeom), lower_tail, log_p);
-		Qhyper = hyper.quantile(comps(Phyper), lower_tail, log_p);
-		Qlnorm = lnorm.quantile(comps(Plnorm), lower_tail, log_p);
-		Qlogis = logis.quantile(comps(Plogis), lower_tail, log_p);
-		Qnbinom = nbinom.quantile(comps(Pnbinom), lower_tail, log_p);
-		Qnorm = norm.quantile(comps(Pnorm), lower_tail, log_p);
-		Qpois = pois.quantile(comps(Ppois), lower_tail, log_p);
-		Qsignrank = signrank.quantile(comps(Psignrank), lower_tail, log_p);
-		Qt = t.quantile(comps(Pt), lower_tail, log_p);
-		Qt2 = t2.quantile(comps(Pt2), lower_tail, log_p);
-		Qunif = unif.quantile(comps(Punif), lower_tail, log_p);
-		Qweibull = weibull.quantile(comps(Pweibull), lower_tail, log_p);
-		Qwilcox = wilcox.quantile(comps(Pwilcox), lower_tail, log_p);
+		Qbeta = beta.quantile(VectorMath.vcomp(Pbeta), lower_tail, log_p);
+		Qbinom = binom.quantile(VectorMath.vcomp(Pbinom), lower_tail, log_p);
+		Qcauchy = cauchy.quantile(VectorMath.vcomp(Pcauchy), lower_tail, log_p);
+		Qchisq = chisq.quantile(VectorMath.vcomp(Pchisq), lower_tail, log_p);
+		Qexp = exp.quantile(VectorMath.vcomp(Pexp), lower_tail, log_p);
+		Qf = f.quantile(VectorMath.vcomp(Pf), lower_tail, log_p);
+		Qgamma = gamma.quantile(VectorMath.vcomp(Pgamma), lower_tail, log_p);
+		Qgeom = geom.quantile(VectorMath.vcomp(Pgeom), lower_tail, log_p);
+		Qhyper = hyper.quantile(VectorMath.vcomp(Phyper), lower_tail, log_p);
+		Qlnorm = lnorm.quantile(VectorMath.vcomp(Plnorm), lower_tail, log_p);
+		Qlogis = logis.quantile(VectorMath.vcomp(Plogis), lower_tail, log_p);
+		Qnbinom = nbinom.quantile(VectorMath.vcomp(Pnbinom), lower_tail, log_p);
+		Qnorm = norm.quantile(VectorMath.vcomp(Pnorm), lower_tail, log_p);
+		Qpois = pois.quantile(VectorMath.vcomp(Ppois), lower_tail, log_p);
+		Qsignrank = signrank.quantile(VectorMath.vcomp(Psignrank), lower_tail, log_p);
+		Qt = t.quantile(VectorMath.vcomp(Pt), lower_tail, log_p);
+		Qt2 = t2.quantile(VectorMath.vcomp(Pt2), lower_tail, log_p);
+		Qunif = unif.quantile(VectorMath.vcomp(Punif), lower_tail, log_p);
+		Qweibull = weibull.quantile(VectorMath.vcomp(Pweibull), lower_tail, log_p);
+		Qwilcox = wilcox.quantile(VectorMath.vcomp(Pwilcox), lower_tail, log_p);
 
 		System.out.println();
 		System.out.println("Upper tail equality beta(0.8, 2)");
@@ -1086,26 +1087,26 @@ public class TestDPQR {
 		printAllEqual(Rwilcox, Qwilcox);
 
 		lower_tail = true; log_p = true;
-		Qbeta = beta.quantile(logs(Pbeta), lower_tail, log_p);
-		Qbinom = binom.quantile(logs(Pbinom), lower_tail, log_p);
-		Qcauchy = cauchy.quantile(logs(Pcauchy), lower_tail, log_p);
-		Qchisq = chisq.quantile(logs(Pchisq), lower_tail, log_p);
-		Qexp = exp.quantile(logs(Pexp), lower_tail, log_p);
-		Qf = f.quantile(logs(Pf), lower_tail, log_p);
-		Qgamma = gamma.quantile(logs(Pgamma), lower_tail, log_p);
-		Qgeom = geom.quantile(logs(Pgeom), lower_tail, log_p);
-		Qhyper = hyper.quantile(logs(Phyper), lower_tail, log_p);
-		Qlnorm = lnorm.quantile(logs(Plnorm), lower_tail, log_p);
-		Qlogis = logis.quantile(logs(Plogis), lower_tail, log_p);
-		Qnbinom = nbinom.quantile(logs(Pnbinom), lower_tail, log_p);
-		Qnorm = norm.quantile(logs(Pnorm), lower_tail, log_p);
-		Qpois = pois.quantile(logs(Ppois), lower_tail, log_p);
-		Qsignrank = signrank.quantile(logs(Psignrank), lower_tail, log_p);
-		Qt = t.quantile(logs(Pt), lower_tail, log_p);
-		Qt2 = t2.quantile(logs(Pt2), lower_tail, log_p);
-		Qunif = unif.quantile(logs(Punif), lower_tail, log_p);
-		Qweibull = weibull.quantile(logs(Pweibull), lower_tail, log_p);
-		Qwilcox = wilcox.quantile(logs(Pwilcox), lower_tail, log_p);
+		Qbeta = beta.quantile(VectorMath.vlog(Pbeta), lower_tail, log_p);
+		Qbinom = binom.quantile(VectorMath.vlog(Pbinom), lower_tail, log_p);
+		Qcauchy = cauchy.quantile(VectorMath.vlog(Pcauchy), lower_tail, log_p);
+		Qchisq = chisq.quantile(VectorMath.vlog(Pchisq), lower_tail, log_p);
+		Qexp = exp.quantile(VectorMath.vlog(Pexp), lower_tail, log_p);
+		Qf = f.quantile(VectorMath.vlog(Pf), lower_tail, log_p);
+		Qgamma = gamma.quantile(VectorMath.vlog(Pgamma), lower_tail, log_p);
+		Qgeom = geom.quantile(VectorMath.vlog(Pgeom), lower_tail, log_p);
+		Qhyper = hyper.quantile(VectorMath.vlog(Phyper), lower_tail, log_p);
+		Qlnorm = lnorm.quantile(VectorMath.vlog(Plnorm), lower_tail, log_p);
+		Qlogis = logis.quantile(VectorMath.vlog(Plogis), lower_tail, log_p);
+		Qnbinom = nbinom.quantile(VectorMath.vlog(Pnbinom), lower_tail, log_p);
+		Qnorm = norm.quantile(VectorMath.vlog(Pnorm), lower_tail, log_p);
+		Qpois = pois.quantile(VectorMath.vlog(Ppois), lower_tail, log_p);
+		Qsignrank = signrank.quantile(VectorMath.vlog(Psignrank), lower_tail, log_p);
+		Qt = t.quantile(VectorMath.vlog(Pt), lower_tail, log_p);
+		Qt2 = t2.quantile(VectorMath.vlog(Pt2), lower_tail, log_p);
+		Qunif = unif.quantile(VectorMath.vlog(Punif), lower_tail, log_p);
+		Qweibull = weibull.quantile(VectorMath.vlog(Pweibull), lower_tail, log_p);
+		Qwilcox = wilcox.quantile(VectorMath.vlog(Pwilcox), lower_tail, log_p);
 
 		System.out.println();
 		System.out.println("Lower tail, log equality beta(0.8, 2)");
@@ -1150,26 +1151,26 @@ public class TestDPQR {
 		printAllEqual(Rwilcox, Qwilcox);
 
 		lower_tail = false; log_p = true;
-		Qbeta = beta.quantile(log1pComps(Pbeta), lower_tail, log_p);
-		Qbinom = binom.quantile(log1pComps(Pbinom), lower_tail, log_p);
-		Qcauchy = cauchy.quantile(log1pComps(Pcauchy), lower_tail, log_p);
-		Qchisq = chisq.quantile(log1pComps(Pchisq), lower_tail, log_p);
-		Qexp = exp.quantile(log1pComps(Pexp), lower_tail, log_p);
-		Qf = f.quantile(log1pComps(Pf), lower_tail, log_p);
-		Qgamma = gamma.quantile(log1pComps(Pgamma), lower_tail, log_p);
-		Qgeom = geom.quantile(log1pComps(Pgeom), lower_tail, log_p);
-		Qhyper = hyper.quantile(log1pComps(Phyper), lower_tail, log_p);
-		Qlnorm = lnorm.quantile(log1pComps(Plnorm), lower_tail, log_p);
-		Qlogis = logis.quantile(log1pComps(Plogis), lower_tail, log_p);
-		Qnbinom = nbinom.quantile(log1pComps(Pnbinom), lower_tail, log_p);
-		Qnorm = norm.quantile(log1pComps(Pnorm), lower_tail, log_p);
-		Qpois = pois.quantile(log1pComps(Ppois), lower_tail, log_p);
-		Qsignrank = signrank.quantile(log1pComps(Psignrank), lower_tail, log_p);
-		Qt = t.quantile(log1pComps(Pt), lower_tail, log_p);
-		Qt2 = t2.quantile(log1pComps(Pt2), lower_tail, log_p);
-		Qunif = unif.quantile(log1pComps(Punif), lower_tail, log_p);
-		Qweibull = weibull.quantile(log1pComps(Pweibull), lower_tail, log_p);
-		Qwilcox = wilcox.quantile(log1pComps(Pwilcox), lower_tail, log_p);
+		Qbeta = beta.quantile(VectorMath.vlog1pComps(Pbeta), lower_tail, log_p);
+		Qbinom = binom.quantile(VectorMath.vlog1pComps(Pbinom), lower_tail, log_p);
+		Qcauchy = cauchy.quantile(VectorMath.vlog1pComps(Pcauchy), lower_tail, log_p);
+		Qchisq = chisq.quantile(VectorMath.vlog1pComps(Pchisq), lower_tail, log_p);
+		Qexp = exp.quantile(VectorMath.vlog1pComps(Pexp), lower_tail, log_p);
+		Qf = f.quantile(VectorMath.vlog1pComps(Pf), lower_tail, log_p);
+		Qgamma = gamma.quantile(VectorMath.vlog1pComps(Pgamma), lower_tail, log_p);
+		Qgeom = geom.quantile(VectorMath.vlog1pComps(Pgeom), lower_tail, log_p);
+		Qhyper = hyper.quantile(VectorMath.vlog1pComps(Phyper), lower_tail, log_p);
+		Qlnorm = lnorm.quantile(VectorMath.vlog1pComps(Plnorm), lower_tail, log_p);
+		Qlogis = logis.quantile(VectorMath.vlog1pComps(Plogis), lower_tail, log_p);
+		Qnbinom = nbinom.quantile(VectorMath.vlog1pComps(Pnbinom), lower_tail, log_p);
+		Qnorm = norm.quantile(VectorMath.vlog1pComps(Pnorm), lower_tail, log_p);
+		Qpois = pois.quantile(VectorMath.vlog1pComps(Ppois), lower_tail, log_p);
+		Qsignrank = signrank.quantile(VectorMath.vlog1pComps(Psignrank), lower_tail, log_p);
+		Qt = t.quantile(VectorMath.vlog1pComps(Pt), lower_tail, log_p);
+		Qt2 = t2.quantile(VectorMath.vlog1pComps(Pt2), lower_tail, log_p);
+		Qunif = unif.quantile(VectorMath.vlog1pComps(Punif), lower_tail, log_p);
+		Qweibull = weibull.quantile(VectorMath.vlog1pComps(Pweibull), lower_tail, log_p);
+		Qwilcox = wilcox.quantile(VectorMath.vlog1pComps(Pwilcox), lower_tail, log_p);
 
 		System.out.println();
 		System.out.println("Upper tail, log equality beta(0.8, 2)");
@@ -1238,45 +1239,45 @@ public class TestDPQR {
 
 		System.out.println();
 		System.out.println("Upper tail cumulative equality beta(0.8, 2)");
-		printAllEqual(log1pComps(Pbeta), _Pbeta);
+		printAllEqual(VectorMath.vlog1pComps(Pbeta), _Pbeta);
 		System.out.println("Upper tail cumulative equality binomial(25, pi/16.0)");
-		printAllEqual(log1pComps(Pbinom), _Pbinom);
+		printAllEqual(VectorMath.vlog1pComps(Pbinom), _Pbinom);
 		System.out.println("Upper tail cumulative equality cauchy(12, 2)");
-		printAllEqual(log1pComps(Pcauchy), _Pcauchy);
+		printAllEqual(VectorMath.vlog1pComps(Pcauchy), _Pcauchy);
 		System.out.println("Upper tail cumulative equality chisq(3)");
-		printAllEqual(log1pComps(Pchisq), _Pchisq);
+		printAllEqual(VectorMath.vlog1pComps(Pchisq), _Pchisq);
 		System.out.println("Upper tail cumulative equality exp(rate = 2.0)");
-		printAllEqual(log1pComps(Pexp), _Pexp);
+		printAllEqual(VectorMath.vlog1pComps(Pexp), _Pexp);
 		System.out.println("Upper tail cumulative equality f(12, 6)");
-		printAllEqual(log1pComps(Pf), _Pf);
+		printAllEqual(VectorMath.vlog1pComps(Pf), _Pf);
 		System.out.println("Upper tail cumulative equality gamma(2, 5)");
-		printAllEqual(log1pComps(Pgamma), _Pgamma);
+		printAllEqual(VectorMath.vlog1pComps(Pgamma), _Pgamma);
 		System.out.println("Upper tail cumulative equality geom(pi/16.0)");
-		printAllEqual(log1pComps(Pgeom), _Pgeom);
+		printAllEqual(VectorMath.vlog1pComps(Pgeom), _Pgeom);
 		System.out.println("Upper tail cumulative equality hyper(40, 30, 20)");
-		printAllEqual(log1pComps(Phyper), _Phyper);
+		printAllEqual(VectorMath.vlog1pComps(Phyper), _Phyper);
 		System.out.println("Upper tail cumulative equality lnorm(-1, 3)");
-		printAllEqual(log1pComps(Plnorm), _Plnorm);
+		printAllEqual(VectorMath.vlog1pComps(Plnorm), _Plnorm);
 		System.out.println("Upper tail cumulative equality logis(12, 2)");
-		printAllEqual(log1pComps(Plogis), _Plogis);
+		printAllEqual(VectorMath.vlog1pComps(Plogis), _Plogis);
 		System.out.println("Upper tail cumulative equality nbinom(7, 0.01)");
-		printAllEqual(log1pComps(Pnbinom), _Pnbinom);
+		printAllEqual(VectorMath.vlog1pComps(Pnbinom), _Pnbinom);
 		System.out.println("Upper tail cumulative equality norm(-1, 3)");
-		printAllEqual(log1pComps(Pnorm), _Pnorm);
+		printAllEqual(VectorMath.vlog1pComps(Pnorm), _Pnorm);
 		System.out.println("Upper tail cumulative equality pois(12)");
-		printAllEqual(log1pComps(Ppois), _Ppois);
+		printAllEqual(VectorMath.vlog1pComps(Ppois), _Ppois);
 		System.out.println("Upper tail cumulative equality signrank(47)");
-		printAllEqual(log1pComps(Psignrank), _Psignrank);
+		printAllEqual(VectorMath.vlog1pComps(Psignrank), _Psignrank);
 		System.out.println("Upper tail cumulative equality t(11)");
-		printAllEqual(log1pComps(Pt), _Pt);
+		printAllEqual(VectorMath.vlog1pComps(Pt), _Pt);
 		System.out.println("Upper tail cumulative equality t(1.01)");
-		printAllEqual(log1pComps(Pt2), _Pt2);
+		printAllEqual(VectorMath.vlog1pComps(Pt2), _Pt2);
 		System.out.println("Upper tail cumulative equality unif(0.2, 2)");
-		printAllEqual(log1pComps(Punif), _Punif);
+		printAllEqual(VectorMath.vlog1pComps(Punif), _Punif);
 		System.out.println("Upper tail cumulative equality weibull(3, 2)");
-		printAllEqual(log1pComps(Pweibull), _Pweibull);
+		printAllEqual(VectorMath.vlog1pComps(Pweibull), _Pweibull);
 		System.out.println("Upper tail cumulative equality wilcox(13, 17)");
-		printAllEqual(log1pComps(Pwilcox), _Pwilcox);
+		printAllEqual(VectorMath.vlog1pComps(Pwilcox), _Pwilcox);
 	}
 
 	@Test
@@ -1292,16 +1293,16 @@ public class TestDPQR {
 
 		Cauchy cauchy = new Cauchy(0, 1);
 		double[] ex = new double[] {1,2,5,10,15,20,25,50,100,200,300, Double.POSITIVE_INFINITY};
-		double[] x = pows(10, ex);
+		double[] x = VectorMath.vpow(10, ex);
 		for (double _x : x)
 			if (_x > 1e10)
 				printBool(isEqual(T.cumulative(-_x, 1, true, false), cauchy.cumulative(-_x), 1e-15));
 		System.out.println("## for PR#7902:");
-		double[] rec_x = rec(x), mins_x = mins(x);
+		double[] rec_x = rec(x), mins_x = VectorMath.vmin(x);
 		success &= printAllEqualScaled(mins_x, cauchy.quantile(cauchy.cumulative(mins_x)));
 		success &= printAllEqualScaled(x, cauchy.quantile(cauchy.cumulative(x, true, true), true, true));
 		success &= printAllEqual(rec_x, cauchy.quantile(cauchy.cumulative(rec_x)));
-		ex = mins(c(rev(rec_x), ex));
+		ex = VectorMath.vmin(c(rev(rec_x), ex));
 		success &= printAllEqualScaled(ex, cauchy.quantile(cauchy.cumulative(ex, true, true), true, true));
 
 		x = new double[] { 0, 1};
@@ -1326,16 +1327,16 @@ public class TestDPQR {
 			success = false;
 		}
 
-		x = pows(10, colon(100, 295));
+		x = VectorMath.vpow(10, colon(100, 295));
 		for (double v : new double[] {1e-250, 1e-25, 0.9, 1.1, 101, 1e10, 1e100}) {
 			Gamma pgamma = new Gamma(v, 1);
-			success &= printAllEqualScaled(mins(x), pgamma.cumulative(x, false, true));
+			success &= printAllEqualScaled(VectorMath.vmin(x), pgamma.cumulative(x, false, true));
 		}
-		x = pows(2, colon(-1022, -900));
+		x = VectorMath.vpow(2, colon(-1022, -900));
 		Gamma g = new Gamma(10, 1);
-		success &= printAllEqual(mins(g.cumulative(x, true, true), times(10, logs(x))), rep(-15.104412573076, x.length), 1e-12);
+		success &= printAllEqual(VectorMath.vmin(g.cumulative(x, true, true), VectorMath.vtimes(10, VectorMath.vlog(x))), rep(-15.104412573076, x.length), 1e-12);
 		g = new Gamma(0.1, 1);
-		success &= printAllEqual(mins(g.cumulative(x, true, true), times(0.1, logs(x))), rep(0.0498724412598364, x.length), 1e-13);
+		success &= printAllEqual(VectorMath.vmin(g.cumulative(x, true, true), VectorMath.vtimes(0.1, VectorMath.vlog(x))), rep(0.0498724412598364, x.length), 1e-13);
 
 		Poisson pois = new Poisson(3e-308);
 		success &= printAllEqualScaled(c(-7096.080376108055133955, -14204.287543530712355278), pois.density(c(10.0,20.0), true));
@@ -1390,20 +1391,20 @@ public class TestDPQR {
 			System.out.println(String.format("%3.18g %3.18g", _x, NonCentralT.density(_x, 2, 1, false)));
 		}
 
-		x = rep(pows(10, c(colon(-3.,2.), colon(6.,9.), times(10, colon(2.,30.)))), 12);
+		x = rep(VectorMath.vpow(10, c(colon(-3.,2.), colon(6.,9.), VectorMath.vtimes(10, colon(2.,30.)))), 12);
 		boolean cur_success = true;
 		for (double nu : new double[] {0.75, 1.2, 4.5, 999, 1e50}) {
 			T t = new T(nu);
 			double[] lfx = t.density(x, true);
-			cur_success &= allFinite(lfx);
-			cur_success &= allEqual(exps(lfx), t.density(x));
+			cur_success &= VectorMath.allFinite(lfx);
+			cur_success &= allEqual(VectorMath.vexp(lfx), t.density(x));
 		}
 		success &= cur_success;
 		if (!cur_success)
 			System.err.println("Error at extreme values of T density");
 
 		val = ChiSquare.cumulative(1, 1, true, false);
-		double[] nus = pows(2, seq(25, 34, 0.5));
+		double[] nus = VectorMath.vpow(2, seq(25, 34, 0.5));
 		for (int i = 0; i < nus.length; i++) {
 			double nu = nus[i];
 			double _f = F.cumulative(1, 1, inf, true, false);
@@ -1441,20 +1442,20 @@ public class TestDPQR {
 		}
 
 		System.out.println("## In extreme left tail {PR#11030}");
-		x = times(1e-12, colon(10.,123.));
+		x = VectorMath.vtimes(1e-12, colon(10.,123.));
 		double[] qg = new Gamma(19, 1).quantile(x),
-			qg2 = new Gamma(11, 1).quantile(times(1e-9, colon(1.,100.))),
-			dqg = diff(qg, 1, 2),
-			dqg2 = diff(qg2, 1, 2);
-		if (!allLt(dqg, -6e-6)) {
+			qg2 = new Gamma(11, 1).quantile(VectorMath.vtimes(1e-9, colon(1.,100.))),
+			dqg = VectorMath.diff(qg, 1, 2),
+			dqg2 = VectorMath.diff(qg2, 1, 2);
+		if (!VectorMath.allLt(dqg, -6e-6)) {
 			System.err.println("Error at Gamma.cumulative(x, 19, 1, true, false)!");
 			success = false;
 		}
-		if (!allLt(dqg2, -6e-6)) {
+		if (!VectorMath.allLt(dqg2, -6e-6)) {
 			System.err.println("Error at Gamma.cumulative(x, 11, 1, true, false)!");
 			success = false;
 		}
-		if (!allLt(abss(comps(divs(new Gamma(19, 1).cumulative(qg), x))), 1e-13)) {
+		if (!VectorMath.allLt(VectorMath.vabs(VectorMath.vcomp(VectorMath.vdiv(new Gamma(19, 1).cumulative(qg), x))), 1e-13)) {
 			System.err.println("Error at 1-Gamma.cumulative(x, 19, 1, true, false)!");
 			success = false;
 		}
@@ -1495,23 +1496,54 @@ public class TestDPQR {
 			}
 		}
 		// very small negatives were rounded to 0 in R 2.2.1 and earlier
+
+		{
+			System.out.println("## dbeta(*, ncp):");
+			double[] a = new LogNormal(0, 1).random(100);
+			for (double a_ : a) {
+				if (Beta.density(0, 1, a_, false) != a_) {
+					System.err.println(String.format("Error: Beta.density(0, 1, %3.18g, false) != %3.18g", a_, a_));
+					success = false;
+				}
+				if (NonCentralBeta.density(0, 0.9, 2.2, a_, false) != inf) {
+					System.err.println(String.format("Error: NonCentralBeta.density(0, 1, 2.2, %3.18g, false) != Inf", a_));
+					success = false;
+				}
+			}
+			if (NonCentralBeta.density(0, 0.9, 2.2, 0, false) != inf) {
+				System.err.println("Error: NonCentralBeta.density(0, 1, 2.2, 0, false) != Inf");
+				success = false;
+			}
+			double[] dbx = new double[] {0, 5, 80, 405, 1280, 3125, 6480, 12005, 20480, 32805,
+				50000, 73205, 103680, 142805, 192080, 253125, 327680};
+			double[] cc = VectorMath.vdiv(colon(0., 16.), 16.);
+			success &= allEqual(VectorMath.vtimes(65536, new Beta(5,1).density(cc)), dbx);
+			success &= allEqual(VectorMath.vexp(VectorMath.vplus(16*log(2), new Beta(5,1).density(cc, true))), dbx);
+
+			System.out.println("## the first gave 0, the 2nd NaN in R <= 2.3.0; others use 'TRUE' values");
+			val = NonCentralBeta.density(0.8, 0.5, 5, 1000, false);
+			if (val != 3.001852308908624616864e-35) {
+				System.err.println(String.format("Precision loss: NonCentralBeta.density(0.8, 0.5, 5, 1000, false) %3.18g != 3.001852308908624616864e-35", val));
+				success = false;
+			}
+		}
 		return success;
 	}
 
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
-		test_binom();
-		test_geom();
-		test_hyper();
-		test_negbin();
-		test_poisson();
-		test_signrank();
-		test_wilcox();
-		test_gamma();
-		test_noncentralchisq();
-		test_beta();
-		test_normal();
-		test_random();
+//		test_binom();
+//		test_geom();
+//		test_hyper();
+//		test_negbin();
+//		test_poisson();
+//		test_signrank();
+//		test_wilcox();
+//		test_gamma();
+//		test_noncentralchisq();
+//		test_beta();
+//		test_normal();
+//		test_random();
 		test_extreme();
 	}
 }

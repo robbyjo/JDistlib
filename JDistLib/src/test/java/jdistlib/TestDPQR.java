@@ -174,83 +174,6 @@ public class TestDPQR {
 		return printAllEqualScaled(a, b, defaultNumericalError);
 	}
 
-	static final double[] pows(double x, double[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[i] = pow(x, e[i]);
-		return v;
-	}
-
-	static final double[] pows(double x, int[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[i] = pow(x, e[i]);
-		return v;
-	}
-
-	static final double[] mins(double[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[i] = -e[i];
-		return v;
-	}
-
-	static final double[] mins(double[] a, double[] b) {
-		double[] v = new double[a.length];
-		for (int i = 0; i < a.length; i++)
-			v[i] = a[i]-b[i];
-		return v;
-	}
-
-	static final double[] times(double a, double[] b) {
-		double[] v = new double[b.length];
-		for (int i = 0; i < b.length; i++)
-			v[i] = a*b[i];
-		return v;
-	}
-
-	static final double[] comps(double[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[i] = 1-e[i];
-		return v;
-	}
-
-	static final double[] exps(double[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[i] = exp(e[i]);
-		return v;
-	}
-
-	static final double[] logs(double[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[i] = log(e[i]);
-		return v;
-	}
-
-	static final double[] log1pComps(double[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[i] = log1p(-e[i]);
-		return v;
-	}
-
-	static final double[] rec(double[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[i] = 1.0/e[i];
-		return v;
-	}
-
-	static final double[] rev(double[] e) {
-		double[] v = new double[e.length];
-		for (int i = 0; i < e.length; i++)
-			v[e.length - i - 1] = e[i];
-		return v;
-	}
-
 	static final void print(double... val) {
 		print(" %g", val);
 	}
@@ -1535,6 +1458,11 @@ public class TestDPQR {
 		}
 
 		System.out.println("## In extreme left tail {PR#11030}");
+		x = times(1e-12, colon(10.,123.));
+		double[] qg = new Gamma(19, 1).cumulative(x),
+			qg2 = new Gamma(11, 1).cumulative(x),
+			dqg = diff(qg, 1, 2),
+			dqg2 = diff(qg2, 1, 2);
 		return success;
 	}
 

@@ -21,6 +21,9 @@ import static java.lang.Math.log1p;
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 
  * @author Roby Joehanes
@@ -295,5 +298,22 @@ public class VectorMath {
 		for (int i = 0; i < n; i++)
 			sum += e[i];
 		return sum;
+	}
+
+	public static final double sum(Map<String, Integer> e) {
+		double sum = 0;
+		for (int v: e.values())
+			sum += v;
+		return sum;
+	}
+
+	public static final Map<String, Integer> table(double[] e) {
+		Map<String, Integer> map = new HashMap<String, Integer>();
+		for (double _e : e) {
+			String estr = String.valueOf(_e);
+			Integer i = map.get(estr);
+			map.put(estr, 1 + (i == null ? 0 : i.intValue()));
+		}
+		return map;
 	}
 }

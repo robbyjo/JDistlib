@@ -15,7 +15,6 @@
  */
 package jdistlib;
 
-import jdistlib.math.MathFunctions;
 import jdistlib.rng.QMersenneTwister;
 import jdistlib.rng.QRandomEngine;
 
@@ -53,23 +52,23 @@ public class TestDPQR {
 		return abs(truval) >= eps ? 1 - approx / truval : approx - truval;
 	}
 
-	static final boolean isEqual(double a, double b) {
+	public static final boolean isEqual(double a, double b) {
 		return isEqual(a, b, defaultNumericalError);
 	}
 
-	static final boolean isEqual(double a, double b, double tol) {
+	public static final boolean isEqual(double a, double b, double tol) {
 		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) <= tol);
 	}
 
-	static final boolean isEqualScaled(double a, double b) {
+	public static final boolean isEqualScaled(double a, double b) {
 		return isEqualScaled(a, b, defaultNumericalError);
 	}
 
-	static final boolean isEqualScaled(double a, double b, double tol) {
+	public static final boolean isEqualScaled(double a, double b, double tol) {
 		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b)/(Double.isNaN(a) ? 0 : a) <= tol);
 	}
 
-	static final boolean allEqual(double[] a, double[] b, double tol) {
+	public static final boolean allEqual(double[] a, double[] b, double tol) {
 		int n = a.length;
 		if (n != b.length) throw new RuntimeException();
 		for (int i = 0; i < n; i++)
@@ -77,11 +76,11 @@ public class TestDPQR {
 		return true;
 	}
 
-	static final boolean allEqual(double[] a, double[] b) {
+	public static final boolean allEqual(double[] a, double[] b) {
 		return allEqual(a, b, defaultNumericalError);
 	}
 
-	static final boolean allEqualScaled(double[] a, double[] b, double tol) {
+	public static final boolean allEqualScaled(double[] a, double[] b, double tol) {
 		int n = a.length;
 		if (n != b.length) throw new RuntimeException();
 		for (int i = 0; i < n; i++)
@@ -89,16 +88,16 @@ public class TestDPQR {
 		return true;
 	}
 
-	static final boolean allEqualScaled(double[] a, double[] b) {
+	public static final boolean allEqualScaled(double[] a, double[] b) {
 		return allEqualScaled(a, b, defaultNumericalError);
 	}
 
-	static final boolean printBool(boolean b) {
+	public static final boolean printBool(boolean b) {
 		System.out.println(b ? "[1] TRUE" : "[1] FALSE");
 		return b;
 	}
 
-	static final boolean printBool(boolean... b) {
+	public static final boolean printBool(boolean... b) {
 		if (b == null || b.length == 0) return false;
 		System.out.print("[1]");
 		boolean bb = true;
@@ -110,7 +109,7 @@ public class TestDPQR {
 		return bb;
 	}
 
-	static final boolean printAllEqual(double[] a, double[] b, double tol) {
+	public static final boolean printAllEqual(double[] a, double[] b, double tol) {
 		boolean v = allEqual(a, b, tol);
 		printBool(v);
 		if (v) return true;
@@ -138,11 +137,11 @@ public class TestDPQR {
 		return false;
 	}
 
-	static final boolean printAllEqual(double[] a, double[] b) {
+	public static final boolean printAllEqual(double[] a, double[] b) {
 		return printAllEqual(a, b, defaultNumericalError);
 	}
 
-	static final boolean printAllEqualScaled(double[] a, double[] b, double tol) {
+	public static final boolean printAllEqualScaled(double[] a, double[] b, double tol) {
 		boolean v = allEqualScaled(a, b, tol);
 		printBool(v);
 		if (v) return true;
@@ -170,28 +169,8 @@ public class TestDPQR {
 		return false;
 	}
 
-	static final boolean printAllEqualScaled(double[] a, double[] b) {
+	public static final boolean printAllEqualScaled(double[] a, double[] b) {
 		return printAllEqualScaled(a, b, defaultNumericalError);
-	}
-
-	static final void print(double... val) {
-		print(" %g", val);
-	}
-
-	static final void print(String format, double... val) {
-		int n = val.length;
-		for (int i = 0; i < n; i++) {
-			System.out.print(String.format(format, val[i]));
-			if ((i + 1) % 6 == 0) System.out.println();
-		}
-		System.out.println();
-	}
-
-	static final boolean allFinite(double[] e) {
-		for (double _e : e)
-			if (MathFunctions.isInfinite(_e))
-				return false;
-		return true;
 	}
 
 	@Test
@@ -1459,27 +1438,39 @@ public class TestDPQR {
 
 		System.out.println("## In extreme left tail {PR#11030}");
 		x = times(1e-12, colon(10.,123.));
-		double[] qg = new Gamma(19, 1).cumulative(x),
-			qg2 = new Gamma(11, 1).cumulative(x),
+		double[] qg = new Gamma(19, 1).quantile(x),
+			qg2 = new Gamma(11, 1).quantile(times(1e-9, colon(1.,100.))),
 			dqg = diff(qg, 1, 2),
 			dqg2 = diff(qg2, 1, 2);
+		if (!allLt(dqg, -6e-6)) {
+			System.err.println("Error at Gamma.cumulative(x, 19, 1, true, false)!");
+			success = false;
+		}
+		if (!allLt(dqg2, -6e-6)) {
+			System.err.println("Error at Gamma.cumulative(x, 11, 1, true, false)!");
+			success = false;
+		}
+//		if (!allLt(divs(new Gamma(19, 1).cumulative(qg), p), -6e-6)) {
+//			System.err.println("Error at Gamma.cumulative(x, 11, 1, true, false)!");
+//			success = false;
+//		}
 		return success;
 	}
 
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
-		test_binom();
-		test_geom();
-		test_hyper();
-		test_negbin();
-		test_poisson();
-		test_signrank();
-		test_wilcox();
-		test_gamma();
-		test_noncentralchisq();
-		test_beta();
-		test_normal();
-		test_random();
+//		test_binom();
+//		test_geom();
+//		test_hyper();
+//		test_negbin();
+//		test_poisson();
+//		test_signrank();
+//		test_wilcox();
+//		test_gamma();
+//		test_noncentralchisq();
+//		test_beta();
+//		test_normal();
+//		test_random();
 		test_extreme();
 	}
 }

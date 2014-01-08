@@ -1,11 +1,14 @@
 package jdistlib.util;
 
+import static java.lang.Math.abs;
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import static java.lang.Math.log1p;
 import static java.lang.Math.pow;
 
 import java.util.Arrays;
+
+import jdistlib.math.MathFunctions;
 
 /**
  * Utility functions to mimic R
@@ -129,10 +132,24 @@ public class Utilities {
 		return v;
 	}
 
+	public static final double[] divs(double[] a, double b) {
+		double[] v = new double[a.length];
+		for (int i = 0; i < a.length; i++)
+			v[i] = a[i]/b;
+		return v;
+	}
+
 	public static final double[] comps(double[] e) {
 		double[] v = new double[e.length];
 		for (int i = 0; i < e.length; i++)
 			v[i] = 1-e[i];
+		return v;
+	}
+
+	public static final double[] abss(double[] e) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = abs(e[i]);
 		return v;
 	}
 
@@ -171,6 +188,19 @@ public class Utilities {
 		return v;
 	}
 
+	public static final void print(double... val) {
+		print(" %g", val);
+	}
+
+	public static final void print(String format, double... val) {
+		int n = val.length;
+		for (int i = 0; i < n; i++) {
+			System.out.print(String.format(format, val[i]));
+			if ((i + 1) % 6 == 0) System.out.println();
+		}
+		System.out.println();
+	}
+
 	public static final double[] diff(double[] e, int lag, int order) {
 		double[] v = new double[e.length];
 		System.arraycopy(e, 0, v, 0, e.length);
@@ -188,4 +218,17 @@ public class Utilities {
 		return e;
 	}
 
+	public static final boolean allFinite(double[] e) {
+		for (double _e : e)
+			if (MathFunctions.isInfinite(_e))
+				return false;
+		return true;
+	}
+
+	public static final boolean allLt(double[] e, double v) {
+		for (double _e : e)
+			if (_e >= v)
+				return false;
+		return true;
+	}
 }

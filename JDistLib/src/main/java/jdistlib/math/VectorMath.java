@@ -202,6 +202,14 @@ public class VectorMath {
 		return e;
 	}
 
+	public static final double[] diff(double[] e, int lag) {
+		return diff(e, lag, 1);
+	}
+
+	public static final double[] diff(double[] e) {
+		return diff(e, 1, 1);
+	}
+
 	public static final boolean allFinite(double[] e) {
 		for (double _e : e)
 			if (MathFunctions.isInfinite(_e))

@@ -19,6 +19,7 @@ import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import static java.lang.Math.log1p;
 import static java.lang.Math.pow;
+import static java.lang.Math.sqrt;
 
 /**
  * 
@@ -256,5 +257,35 @@ public class VectorMath {
 		for (int i = 0; i < quantile.length; i++)
 			v[i] = quantile(sortedData, quantile[i]);
 		return v;
+	}
+
+	public static final double mean(double[] e) {
+		double sum = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			sum += (e[i] / n); // guard against overflow
+		return sum;
+	}
+
+	public static final double sd(double[] e) {
+		double sum = 0, sumsq = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++) {
+			double v = e[i] / n; // guard against overflow
+			sum += v;
+			sumsq += v * v;
+		}
+		return sqrt((n * sumsq - sum * sum) * (n / (n - 1)));
+	}
+
+	public static final double var(double[] e) {
+		double sum = 0, sumsq = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++) {
+			double v = e[i] / n; // guard against overflow
+			sum += v;
+			sumsq += v * v;
+		}
+		return (n * sumsq - sum * sum) * (n / (n - 1));
 	}
 }

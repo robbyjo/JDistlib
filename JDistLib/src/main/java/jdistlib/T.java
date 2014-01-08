@@ -234,7 +234,8 @@ public class T extends GenericDistribution {
 				P_ok = (y >= DBL_EPSILON);
 			}
 			if(!P_ok) { /* log_p && P very small */
-				log_P2 = is_neg_lower ? p : (p > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))); //R_Log1_Exp(p); /* == log(P / 2) */
+				// log_P2 = is_neg_lower ? R_D_log(p) : R_D_LExp(p); /* == log(P / 2) */
+				log_P2 = is_neg_lower ? (log_p ? (p) : log(p)) : (log_p ? ((p) > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))) : log1p(-p));
 				x = (log(d) + M_LN2 + log_P2) / ndf;
 				y = exp(2 * x);
 			}

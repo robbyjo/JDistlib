@@ -242,7 +242,7 @@ public class VectorMath {
 		int
 			lo = (int) Math.floor(index),
 			hi = (int) Math.ceil(index);
-		if (lo <= 0)
+		if (lo < 0)
 			return 0;
 		double
 			h = index - lo,

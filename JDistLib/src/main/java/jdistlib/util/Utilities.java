@@ -139,6 +139,15 @@ public class Utilities {
 		return v;
 	}
 
+	public static final double[] divs(double[] a, double[] b) {
+		double[] v = new double[a.length];
+		if (a.length != b.length)
+			throw new RuntimeException();
+		for (int i = 0; i < a.length; i++)
+			v[i] = a[i]/b[i];
+		return v;
+	}
+
 	public static final double[] comps(double[] e) {
 		double[] v = new double[e.length];
 		for (int i = 0; i < e.length; i++)

@@ -1450,27 +1450,36 @@ public class TestDPQR {
 			System.err.println("Error at Gamma.cumulative(x, 11, 1, true, false)!");
 			success = false;
 		}
-//		if (!allLt(divs(new Gamma(19, 1).cumulative(qg), p), -6e-6)) {
-//			System.err.println("Error at Gamma.cumulative(x, 11, 1, true, false)!");
-//			success = false;
-//		}
+		if (!allLt(abss(comps(divs(new Gamma(19, 1).cumulative(qg), x))), 1e-13)) {
+			System.err.println("Error at 1-Gamma.cumulative(x, 19, 1, true, false)!");
+			success = false;
+		}
+		if (!isEqual(qg[0], 2.35047385139143)) {
+			System.err.println("Error at Gamma.cumulative(1e-11, 19, 1, true, false)!=2.35047385139143");
+			success = false;
+		}
+		if (!isEqual(qg2[29], 1.11512318734547)) {
+			System.err.println("Error at Gamma.cumulative(3e-8, 11, 1, true, false)!=1.11512318734547");
+			success = false;
+		}
+		// was non-continuous in R 2.6.2 and earlier
 		return success;
 	}
 
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
-//		test_binom();
-//		test_geom();
-//		test_hyper();
-//		test_negbin();
-//		test_poisson();
-//		test_signrank();
-//		test_wilcox();
-//		test_gamma();
-//		test_noncentralchisq();
-//		test_beta();
-//		test_normal();
-//		test_random();
+		test_binom();
+		test_geom();
+		test_hyper();
+		test_negbin();
+		test_poisson();
+		test_signrank();
+		test_wilcox();
+		test_gamma();
+		test_noncentralchisq();
+		test_beta();
+		test_normal();
+		test_random();
 		test_extreme();
 	}
 }

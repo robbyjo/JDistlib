@@ -1283,6 +1283,8 @@ public class TestDPQR {
 	public static final boolean test_extreme() {
 		System.out.println("### (Extreme) tail tests added more recently:");
 		boolean success = true;
+		double neginf = Double.NEGATIVE_INFINITY, inf = Double.POSITIVE_INFINITY;
+
 		success = printBool(isEqual(1, -1e-17/Exponential.cumulative(Exponential.quantile(-1e-17, 1, true, true), 1, true, true)));
 		success &= printBool(isEqual(abs(Gamma.cumulative(30, 100, 1, false, true)), 7.3384686328784e-24, 1e-36));
 		success &= printBool(isEqual(1, Cauchy.cumulative(-1e20, 0, 1, true, false) / 3.18309886183791e-21));
@@ -1302,7 +1304,6 @@ public class TestDPQR {
 		ex = mins(c(rev(rec_x), ex));
 		success &= printAllEqualScaled(ex, cauchy.quantile(cauchy.cumulative(ex, true, true), true, true));
 
-		double neginf = Double.NEGATIVE_INFINITY, inf = Double.POSITIVE_INFINITY;
 		x = new double[] { 0, 1};
 		ex = new double[] { neginf, inf };
 		if (!allEqual(cauchy.cumulative(ex), x) ||
@@ -1341,46 +1342,49 @@ public class TestDPQR {
 		val = Poisson.density(1e20, 1e-290, true);
 		success &= printBool(isEqualScaled(-71280137882815411781632.0, val));
 
-		x = c(1.0/Math.PI, 1.0, Math.PI);
-		F f1 = new F(3, 1e6), f2 = new F(3, inf);
 		String fmt = " %3.18g";
-		System.out.println("## Inf df in pf etc.");
-		print(fmt, f1.density(x));
-		print(fmt, f2.density(x));
-		print(fmt, f1.cumulative(x));
-		print(fmt, f2.cumulative(x));
+		{
+			x = c(1.0/Math.PI, 1.0, Math.PI);
+			F f1 = new F(3, 1e6), f2 = new F(3, inf);
+			System.out.println("## Inf df in pf etc.");
+			print(fmt, f1.density(x));
+			print(fmt, f2.density(x));
+			print(fmt, f1.cumulative(x));
+			print(fmt, f2.cumulative(x));
 
-		f1 = new F(1e6, 5); f2 = new F(inf, 5);
-		print(fmt, f1.density(x));
-		print(fmt, f2.density(x));
-		print(fmt, f1.cumulative(x));
-		print(fmt, f2.cumulative(x));
+			f1 = new F(1e6, 5); f2 = new F(inf, 5);
+			print(fmt, f1.density(x));
+			print(fmt, f2.density(x));
+			print(fmt, f1.cumulative(x));
+			print(fmt, f2.cumulative(x));
 
-		f1 = new F(inf, inf);
-		print(f1.density(x));
-		print(f1.cumulative(x));
+			f1 = new F(inf, inf);
+			print(f1.density(x));
+			print(f1.cumulative(x));
 
-		f1 = new F(5, inf);
-		print(fmt, f1.cumulative(x));
+			f1 = new F(5, inf);
+			print(fmt, f1.cumulative(x));
 
-		NonCentralF ncf = new NonCentralF(5, 1e6, 1);
-		success &= printAllEqualScaled(c(0.06593319432457067641451, 0.47087998660583602061891, 0.97887586737053189356317),
-			ncf.cumulative(x));
-		ncf = new NonCentralF(5, 1e7, 1);
-		success &= printAllEqualScaled(c(0.06593308950344137220334, 0.47088028378103324866899, 0.97887640681761456384891),
-			ncf.cumulative(x));
-		ncf = new NonCentralF(5, 1e8, 1);
-		success &= printAllEqualScaled(c(0.06593307522941961595908, 0.47088029999414682258418, 0.97887645916474952390018),
-			ncf.cumulative(x));
-		ncf = new NonCentralF(5, inf, 1);
-		print(fmt, ncf.cumulative(x));
-		print(fmt, T.density(1, inf, false));
-		print(fmt, NonCentralT.density(1, inf, 0, false));
-		print(fmt, NonCentralT.density(1, inf, 1, false));
-		print(fmt, NonCentralT.density(1, 1e6, 1, false));
-		print(fmt, NonCentralT.density(1, 1e7, 1, false));
-		print(fmt, NonCentralT.density(1, 1e8, 1, false));
-		print(fmt, NonCentralT.density(1, 1e10, 1, false));
+			NonCentralF ncf = new NonCentralF(5, 1e6, 1);
+			success &= printAllEqualScaled(c(0.06593319432457067641451, 0.47087998660583602061891, 0.97887586737053189356317),
+				ncf.cumulative(x));
+			ncf = new NonCentralF(5, 1e7, 1);
+			success &= printAllEqualScaled(c(0.06593308950344137220334, 0.47088028378103324866899, 0.97887640681761456384891),
+				ncf.cumulative(x));
+			ncf = new NonCentralF(5, 1e8, 1);
+			success &= printAllEqualScaled(c(0.06593307522941961595908, 0.47088029999414682258418, 0.97887645916474952390018),
+				ncf.cumulative(x));
+			ncf = new NonCentralF(5, inf, 1);
+			print(fmt, ncf.cumulative(x));
+			print(fmt, T.density(1, inf, false));
+			print(fmt, NonCentralT.density(1, inf, 0, false));
+			print(fmt, NonCentralT.density(1, inf, 1, false));
+			print(fmt, NonCentralT.density(1, 1e6, 1, false));
+			print(fmt, NonCentralT.density(1, 1e7, 1, false));
+			print(fmt, NonCentralT.density(1, 1e8, 1, false));
+			print(fmt, NonCentralT.density(1, 1e10, 1, false));
+		}
+
 
 		for (double _x : new double[] {1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-100, 0}) {
 			System.out.println(String.format("%3.18g %3.18g", _x, NonCentralT.density(_x, 2, 1, false)));
@@ -1463,6 +1467,34 @@ public class TestDPQR {
 			success = false;
 		}
 		// was non-continuous in R 2.6.2 and earlier
+
+		for (double f2 : new double[] {0.5, 1, 2, 3, 4}) {
+			if (F.density(0, 1, f2, false) != inf) {
+				System.err.println(String.format("Error: F.density(0, 1, %f, false) != Inf", f2));
+				success = false;
+			}
+			if (F.density(0, 2, f2, false) != 1) {
+				System.err.println(String.format("Error: F.density(0, 2, %f, false) != 1", f2));
+				success = false;
+			}
+			if (F.density(0, 3, f2, false) != 0) {
+				System.err.println(String.format("Error: F.density(0, 3, %f, false) != 0", f2));
+				success = false;
+			}
+		}
+		// only the last one was ok in R 2.2.1 and earlier
+	
+		for (double x0 : new double[] {-2e-22, -2e-10, -2e-7, -2e-5}) {
+			if (Binomial.cumulative(x0, 3, 1, true, false) != 0) {
+				System.err.println(String.format("Error: Binomial.cumulative(%f, 3, 0.1, true, false) != 0", x0));
+				success = false;
+			}
+			if (Binomial.density(x0, 3, 1, false) != 0) {
+				System.err.println(String.format("Error: Binomial.density(%f, 3, 0.1, false) != 0", x0));
+				success = false;
+			}
+		}
+		// very small negatives were rounded to 0 in R 2.2.1 and earlier
 		return success;
 	}
 

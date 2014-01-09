@@ -82,6 +82,7 @@ public class TestDPQR {
 			tx[i] = tbl_x.get(String.valueOf(xi[i]));
 		double[] fhat = vdiv(cumsum(tx), n);
 		double s =  max(vabs(vmin(fhat, f)));
+		//double pdkwbound = Math.min(1, 2*exp(-2*n*s*s)); // P-value of s
 		double qdkwbound = sqrt(log(p0/2)/(-2*n));
 		return s < qdkwbound;
 	}

@@ -15,6 +15,9 @@
  */
 package jdistlib;
 
+import java.util.Map;
+
+import jdistlib.generic.GenericDistribution;
 import jdistlib.math.VectorMath;
 import jdistlib.rng.QMersenneTwister;
 import jdistlib.rng.QRandomEngine;
@@ -46,6 +49,40 @@ public class TestDPQR {
 
 	public static final void setRandomEngine(QRandomEngine rng) {
 		random = rng;
+	}
+
+	public static final boolean dkwtest(GenericDistribution d) {
+		return dkwtest(d, 10000, 0.001);
+	}
+
+	/**
+	 * <P>RNG tests using DKW inequality for rate of convergence
+	 * 
+	 * <P>P(sup | F_n - F | > t) < 2 exp(-2nt^2)
+	 * 
+	 * <P>The 2 in front of exp() was derived by Massart. It is the best possible
+	 * constant valid uniformly in t,n,F. For large n*t^2 this agrees with the
+	 * large-sample approximation to the Kolmogorov-Smirnov statistic.
+	 * 
+	 * <P>Taken from p-r-random-tests.R
+	 * @param d
+	 * @param n
+	 * @param p0
+	 * @return
+	 */
+	public static final boolean dkwtest(GenericDistribution d, int n, double p0) {
+		double[] x = d.random(n);
+		Map<String, Integer> tbl_x = table(vsignif(x, 12));
+		double[] xi = as_numeric(tbl_x.keySet());
+		sort(xi);
+		double[] f = d.cumulative(xi);
+		double[] tx = new double[xi.length];
+		for (int i = 0; i < xi.length; i++)
+			tx[i] = tbl_x.get(String.valueOf(xi[i]));
+		double[] fhat = vdiv(cumsum(tx), n);
+		double s =  max(vabs(vmin(fhat, f)));
+		double qdkwbound = sqrt(log(p0/2)/(-2*n));
+		return s < qdkwbound;
 	}
 
 	static final double rErr(double approx, double truval) {
@@ -1943,6 +1980,115 @@ public class TestDPQR {
 		return success;
 	}
 
+	/**
+	 * DKW test, taken from p-r-random-tests.R
+	 * @return
+	 */
+	@Test
+	public static final boolean test_dkwtest() {
+		boolean success = true;
+		System.out.println("DKW test");
+		System.out.println("Binomial");
+		success &= printBool(dkwtest(new Binomial(1, 0.2)));
+		success &= printBool(dkwtest(new Binomial(2, 0.2)));
+		success &= printBool(dkwtest(new Binomial(100, 0.2)));
+		success &= printBool(dkwtest(new Binomial(1e4, 0.2)));
+		success &= printBool(dkwtest(new Binomial(1, 0.8)));
+		success &= printBool(dkwtest(new Binomial(100, 0.8)));
+		success &= printBool(dkwtest(new Binomial(100, 0.999)));
+
+		System.out.println("Poisson");
+		success &= printBool(dkwtest(new Poisson(0.095)));
+		success &= printBool(dkwtest(new Poisson(0.95)));
+		success &= printBool(dkwtest(new Poisson(9.5)));
+		success &= printBool(dkwtest(new Poisson(95)));
+
+		System.out.println("Negative Binomial");
+		success &= printBool(dkwtest(new NegBinomial(1, 0.2)));
+		success &= printBool(dkwtest(new NegBinomial(2, 0.2)));
+		success &= printBool(dkwtest(new NegBinomial(100, 0.2)));
+		success &= printBool(dkwtest(new NegBinomial(1e4, 0.2)));
+		success &= printBool(dkwtest(new NegBinomial(1, 0.8)));
+		success &= printBool(dkwtest(new NegBinomial(100, 0.8)));
+		success &= printBool(dkwtest(new NegBinomial(100, 0.999)));
+
+		System.out.println("Normal");
+		success &= printBool(dkwtest(new Normal()));
+		success &= printBool(dkwtest(new Normal(5, 3)));
+
+		System.out.println("Gamma");
+		success &= printBool(dkwtest(new Gamma(0.1, 1)));
+		success &= printBool(dkwtest(new Gamma(0.2, 1)));
+		success &= printBool(dkwtest(new Gamma(10, 1)));
+		success &= printBool(dkwtest(new Gamma(20, 1)));
+
+		System.out.println("Hypergeometric");
+		success &= printBool(dkwtest(new HyperGeometric(40, 30, 20)));
+		success &= printBool(dkwtest(new HyperGeometric(40,  3, 20)));
+		success &= printBool(dkwtest(new HyperGeometric( 6,  3,  2)));
+		success &= printBool(dkwtest(new HyperGeometric( 5,  3,  2)));
+		success &= printBool(dkwtest(new HyperGeometric( 4,  3,  2)));
+
+		System.out.println("SignRank");
+		success &= printBool(dkwtest(new SignRank(1)));
+		success &= printBool(dkwtest(new SignRank(2)));
+		success &= printBool(dkwtest(new SignRank(10)));
+		success &= printBool(dkwtest(new SignRank(30)));
+
+		System.out.println("Wilcoxon");
+		success &= printBool(dkwtest(new Wilcoxon(40, 30)));
+		success &= printBool(dkwtest(new Wilcoxon(40, 10)));
+		success &= printBool(dkwtest(new Wilcoxon( 6,  3)));
+		success &= printBool(dkwtest(new Wilcoxon( 5,  3)));
+		success &= printBool(dkwtest(new Wilcoxon( 4,  3)));
+
+		System.out.println("ChiSquare");
+		success &= printBool(dkwtest(new ChiSquare(1)));
+		success &= printBool(dkwtest(new ChiSquare(10)));
+
+		System.out.println("Logistic");
+		success &= printBool(dkwtest(new Logistic()));
+		success &= printBool(dkwtest(new Logistic(4, 2)));
+
+		System.out.println("T");
+		success &= printBool(dkwtest(new T(1)));
+		success &= printBool(dkwtest(new T(10)));
+		success &= printBool(dkwtest(new T(40)));
+
+		System.out.println("Beta");
+		success &= printBool(dkwtest(new Beta(1, 1)));
+		success &= printBool(dkwtest(new Beta(2, 1)));
+		success &= printBool(dkwtest(new Beta(1, 2)));
+		success &= printBool(dkwtest(new Beta(2, 2)));
+		success &= printBool(dkwtest(new Beta(0.2, 0.2)));
+
+		System.out.println("Cauchy");
+		success &= printBool(dkwtest(new Cauchy()));
+		success &= printBool(dkwtest(new Cauchy(4, 2)));
+
+		System.out.println("F");
+		success &= printBool(dkwtest(new F(1, 1)));
+		success &= printBool(dkwtest(new F(1, 10)));
+		success &= printBool(dkwtest(new F(10, 10)));
+		success &= printBool(dkwtest(new F(30, 3)));
+
+		System.out.println("Weibull");
+		success &= printBool(dkwtest(new Weibull(1, 1)));
+		success &= printBool(dkwtest(new Weibull(4, 4)));
+
+		System.out.println("## regression test for PR#7314");
+		success &= printBool(dkwtest(new HyperGeometric(60, 100, 50)));
+		success &= printBool(dkwtest(new HyperGeometric(6, 10, 5)));
+		success &= printBool(dkwtest(new HyperGeometric(600, 1000, 500)));
+
+		System.out.println("## regression test for non-central t bug");
+		success &= printBool(dkwtest(new NonCentralT(20, 3)));
+
+		System.out.println("## regression test for non-central F bug");
+		success &= printBool(dkwtest(new NonCentralF(10, 2, 3)));
+		return success;
+	}
+
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
 		test_binom();
@@ -1958,5 +2104,6 @@ public class TestDPQR {
 		test_normal();
 		test_random();
 		test_extreme();
+		test_dkwtest();
 	}
 }

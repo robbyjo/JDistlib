@@ -2,6 +2,9 @@ package jdistlib.util;
 
 import java.util.Arrays;
 
+import jdistlib.rng.MersenneTwister;
+import jdistlib.rng.RandomEngine;
+
 /**
  * Utility functions to mimic R
  * @author Roby Joehanes
@@ -259,6 +262,29 @@ public class Utilities {
 			System.arraycopy(a, n - numNegs, b, 0, numNegs);
 			System.arraycopy(a, 0, a, numNegs, n - numNegs);
 			System.arraycopy(b, 0, a, 0, numNegs);
+		}
+	}
+
+	/**
+	 * Permute the array e
+	 * @param e
+	 */
+	public static final void permute(double[] e) {
+		permute(e, new MersenneTwister());
+	}
+
+	/**
+	 * Permute the array e
+	 * @param e
+	 * @param random
+	 */
+	public static final void permute(double[] e, RandomEngine random) {
+		int n = e.length;
+		for (int i = 0; i < n; i++) {
+			int
+				i1 = random.nextInt(n),
+				i2 = random.nextInt(n);
+			double t = e[i1]; e[i1] = e[i2]; e[i2] = t;
 		}
 	}
 }

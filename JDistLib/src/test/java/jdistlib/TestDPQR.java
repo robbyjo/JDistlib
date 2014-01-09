@@ -15,6 +15,7 @@
  */
 package jdistlib;
 
+import jdistlib.math.VectorMath;
 import jdistlib.rng.QMersenneTwister;
 import jdistlib.rng.QRandomEngine;
 
@@ -1551,7 +1552,6 @@ public class TestDPQR {
 				}
 			}
 		}
-		//*/
 
 		{
 			System.out.println("## qt(p ~ 0, df=1) - PR#9804");
@@ -1564,6 +1564,313 @@ public class TestDPQR {
 			if (!isEqualScaled(val, -exp(370)/sqrt(2))) {
 				System.err.println(String.format("Precision loss: T.quantile(-740, 2, true, true) %3.18g != %3.18g", val, -exp(370)/sqrt(2)));
 				success = false;
+			}
+			System.out.println("## P ~ 1 (=> p ~ 0.5):");
+			double[] p5 = vplus(0.5, vpow(2, seq(-25, -40, -5)));
+			t = new T(2);
+			success &= printAllEqual(t.quantile(p5), c(8.429369702178821491988e-08, 2.634178031930877166753e-09, 8.231806349783991146103e-11, 2.572439484307497233157e-12));
+			System.out.println("## qt(<large>, log = TRUE)  is now more finite and monotone (again!):");
+			val = T.quantile(-1000, 4, true, true);
+			if (!isEqualScaled(val, -4.930611e108)) {
+				System.err.println(String.format("Precision loss: T.quantile(-1000, 4, true, true) %3.18g != -4.930611e108", val));
+				success = false;
+			}
+			System.out.println("##almost: stopifnot(all(abs(5/6 - diff(log(qtp))) < 1e-11)):");
+			x = new T(1.2).quantile(colon(-20., -850), false, true);
+			p5 = diff(vlog(x));
+			sort(p5);
+			p5 = quantile(p5, c(0., 0.995));
+			success &= printAllEqual(p5, c(5./6., 5./6.), 1e-11);
+
+			System.out.println("## close to df=1 (where Taylor steps are important!):");
+			t = new T(1.02);
+			val = t.cumulative(t.quantile(-20, true, true), true, true);
+			if (!isEqual(val, -20)) {
+				System.err.println(String.format("Precision loss: T.cumulative(T.quantile(-20, 1.02, true, true), 1.02, true, true) == %3.18g != -20", val));
+				success = false;
+			}
+			val = t.quantile(t.cumulative(-20, true, true), true, true);
+			if (!isEqual(val, -20)) {
+				System.err.println(String.format("Precision loss: T.quantile(T.cumulative(-20, 1.02, true, true), 1.02, true, true) == %3.18g != -20", val));
+				success = false;
+			}
+			x = vpow(-2, colon(-10., -600));
+			t = new T(1.1);
+			if (!allGt(diff(vlog(t.quantile(x, true, true))), 0.6)) {
+				System.err.println("Precision loss: diff(T.quantile(x, 1.1, true, true)) <= 0.6");
+				success = false;
+			}
+			x = vpow(-2, colon(-20., -600));
+			t = new T(1);
+			if (mean(vabs(vmin(diff(t.quantile(x, true, true)), log(2)))) >= 1e-8) {
+				System.err.println("Precision loss: diff(T.quantile(x, 1, true, true)) != log(2)");
+				success = false;
+			}
+			t = new T(2);
+			if (mean(vabs(vmin(diff(t.quantile(x, true, true)), log(sqrt(2))))) >= 1e-8) {
+				System.err.println("Precision loss: diff(T.quantile(x, 2, true, true)) != log(sqrt(2))");
+				success = false;
+			}
+			System.out.println("## Case, where log.p=TRUE was fine, but log.p=FALSE (default) gave NaN:");
+			x = colon(40., 406.);
+			t = new T(1.2);
+			success &= printAllEqualScaled(x, vmin(t.cumulative(t.quantile(vexp(vmin(x))), true, true)));
+		}
+
+		{
+			System.out.println("## pbeta(*, log=TRUE) {toms708} -- now improved tail behavior:");
+			x = c(.01, .10, .25, .40, .55, .71, .98);
+			double[] pbval = c(-0.04605755624088, -0.3182809860569, -0.7503593555585,
+				-1.241555830932, -1.851527837938, -2.76044482378, -8.149862739881);
+			success &= printAllEqualScaled(new Beta(0.8, 2).cumulative(x, false, true), pbval);
+			success &= printAllEqualScaled(new Beta(2, 0.8).cumulative(vcomp(x), true, true), pbval);
+			x = vmin(vpow(2, colon(0, 1022)));
+			for (double nu : c(0.1, 0.2, 0.5, 1, 1.2, 2.2, 5, 10, 20, 50, 100, 200)) {
+				if (!allFinite(new T(nu).cumulative(x, true, true))) {
+					System.err.println(String.format("Bad numeric behavior: T.cumulative(x, %f, true, true))", nu));
+					success = false;
+				}
+			}
+			val = T.cumulative(pow(2, -30), 10, true, false);
+			if (!isEqual(val, 0.50000000036238542)) {
+				System.err.println(String.format("Precision loss: T.cumulative(2^-30, 10, true, true)) = %3.18g != 0.50000000036238542", val));
+				success = false;
+			}
+		}
+
+		{
+			System.out.println("## rbinom(*, size) gave NaN for large size up to R <= 2.6.1");
+			x = Binomial.random(100, Integer.MAX_VALUE, 1e-9, random);
+			if (!allFinite(x) || sum(table(x)) != 100) {
+				System.err.println("Produces NaN: Binomial.random(100, Integer.MAX_VALUE, 1e-9, random)");
+				success = false;
+			}
+			x = Binomial.random(100, 10.*Integer.MAX_VALUE, 1e-10, random);
+			if (!allFinite(x) || sum(table(x)) != 100) {
+				System.err.println("Produces NaN: Binomial.random(100, 10*Integer.MAX_VALUE, 1e-10, random)");
+				success = false;
+			}
+		}
+
+		{
+			System.out.println("## qf() with large df1, df2  and/or  small p:");
+			val = F.quantile(1.0/4.0, inf, inf, true, false);
+			if (val != 1) {
+				System.err.println(String.format("F.quantile(1/4, inf, inf, true, false) != 1, but produces %3.18g", val));
+				success = false;
+			}
+			F f = new F(12, 50);
+			val = f.cumulative(f.quantile(1e-18));
+			if (!isEqual(1, 1e-18 / val, 1e-10)) {
+				System.err.println(String.format("F.cumulative(F.quantile(1e-18, 12, 50, true, false), true, false) != 1e-18, but produces %3.18g", val));
+				success = false;
+			}
+			f = new F(1e60, 1e90);
+			val = f.quantile(f.cumulative(0.01, true, true), true, true);
+			if (!isEqual(0.01, val, 1e-4)) {
+				System.err.println(String.format("F.quantile(F.cumulative(0.01, 1e60, 1e90, true, true), true, true) != 0.01, but produces %3.18g", val));
+				success = false;
+			}
+		}
+
+		{
+			System.out.println("## qbeta(*, log.p) for \"border\" case:");
+			val = Beta.quantile(-1e10, 50, 40, true, true);
+			if (isInfinite(val)) {
+				System.err.println("Beta.quantile(-1e10, 50, 40, true, true) is infinite");
+				success = false;
+			}
+			val = Beta.quantile(-1e10, 2, 3, false, true);
+			if (isInfinite(val)) {
+				System.err.println("Beta.quantile(-1e10, 2, 3, false, true) is infinite");
+				success = false;
+			}
+			// infinite loop or NaN in R <= 2.7.0
+		}
+
+		{
+			System.out.println("## phyper(x, 0,0,0), notably for huge x");
+			HyperGeometric h = new HyperGeometric(0, 0, 0);
+			x = h.cumulative(c(0., 1, 2, 3, 1e67));
+			success &= printAllEqual(rep(1, x.length), x);
+		}
+
+		{
+			System.out.println("## plnorm(<= 0, . , log.p=TRUE)");
+			if (LogNormal.cumulative(-1, 0, 1, false, true) != 0) {
+				System.err.println("LogNormal.cumulative(-1, 0, 1, false, true) != 0");
+				success = false;
+			}
+			if (LogNormal.cumulative(0, 0, 1, false, true) != 0) {
+				System.err.println("LogNormal.cumulative(0, 0, 1, false, true) != 0");
+				success = false;
+			}
+			if (LogNormal.cumulative(-1, 0, 1, true, true) != neginf) {
+				System.err.println("LogNormal.cumulative(-1, 0, 1, true, true) != -Inf");
+				success = false;
+			}
+			if (LogNormal.cumulative(0, 0, 1, true, true) != neginf) {
+				System.err.println("LogNormal.cumulative(0, 0, 1, true, true) != -Inf");
+				success = false;
+			}
+			// was wrongly == 'log.p=FALSE' up to R <= 2.7.1 (PR#11867)
+		}
+
+		{
+			System.out.println("## pchisq(df=0) was wrong in 2.7.1; then, upto 2.10.1, P*(0,0) gave 1");
+			ChiSquare chisq = new ChiSquare(0);
+			x = c(-1., 0, 1);
+			if (!VectorMath.allEqual(chisq.cumulative(x), c(0.,0,1))) {
+				System.err.println("ChiSquare.cumulative(c(-1,0,1), 0, true, false) != c(0,0,1)");
+				success = false;
+			}
+			if (!VectorMath.allEqual(chisq.cumulative(x, false, false), c(1.,1,0))) {
+				System.err.println("ChiSquare.cumulative(c(-1,0,1), 0, false, false) != c(1,1,0)");
+				success = false;
+			}
+		}
+
+		{
+			System.out.println("## dnbinom for extreme  size and/or mu :");
+			x = vtimes(1e11, vpow(2, colon(1., 10)));
+			double[] d = new double[x.length];
+			for (int i = 0; i < x.length; i++) {
+				double size = x[i];
+				val = NegBinomial.density_mu(17, size, 20, false);
+				double val2 = Poisson.density(17, 20, false);
+				d[i] = val - val2;
+				if (d[i] >= 0) {
+					System.err.println(String.format("NegBinomial.density_mu(17, %3.18g, 20, false) = %3.18g > Poisson.density(17, 20, false) = %3.18g", size, val, val2));
+					success = false;
+				}
+			}
+			if (!allGt(diff(d), 0)) {
+				System.err.println("diff(NegBinomial.density_mu(17, size, 20, false) - Poisson.density(17, 20, false)) <= 0");
+				success = false;
+			}
+			// was wrong up to 2.7.1
+			// The fix to the above, for x = 0, had a new cancellation problem
+			for (double _x : vtimes(1e12, vpow(2, colon(0., 20)))) {
+				val = NegBinomial.density_mu(0, 1, _x, false);
+				if (!isEqual(1.0/(1.0+_x), val, 1e-13)) {
+					System.err.println(String.format("NegBinomial.density_mu(0, 1, %3.18, false) = %3.18g != %3.18", _x, val, 1.0/(1.0+_x)));
+					success = false;
+				}
+			}
+			// was wrong in 2.7.2 (only)
+		}
+
+		{
+			System.out.println("## Non-central F for large x");
+			x = vtimes(1e16, vpow(1.1, colon(0., 20)));
+			NonCentralF f = new NonCentralF(1, 1, 20);
+			x = f.cumulative(x, false, true);
+			if (!allGt(x, -0.047) && !allLt(x, -0.0455)) {
+				System.err.println("NonCentralF.cumulative(large X, 1, 1, 20, false, true) jumped prematurely to -Inf");
+				success = false;
+			}
+			// pf(*, log) jumped to -Inf prematurely in 2.8.0 and earlier
+		}
+
+		{
+			System.out.println("## Non-central Chi^2 density for large x");
+			NonCentralChiSquare nc = new NonCentralChiSquare(10, 1);
+			x = nc.density(c(inf, 1e80, 1e50, 1e40));
+			if (!VectorMath.allEqual(rep(0, x.length), x)) {
+				System.err.println("NonCentralChiSquare.density(x, 10, 1, false) != 0 for huge x");
+				success = false;
+			}
+			// did hang in 2.8.0 and earlier (PR#13309).
+		}
+
+		{
+			System.out.println("## qbinom() .. particularly for large sizes, small prob:");
+			x = c(.01, .001, .1, .25);
+			double[] pr = vtimes(1e-7, colon(2., 20));
+			double[] sizes = c(5000279., 5006279., 5016279);
+			double[] ks = colon(0., 15);
+			for (double sz: sizes) {
+				for (double p : x) {
+					for (double _pr : pr) {
+						val = Binomial.quantile(p, sz, _pr, true, false);
+						double val2 = Poisson.quantile(p, sz * _pr, true, false);
+						if (val != val2) {
+							System.err.println(String.format("p=%3.18g, sz=%3.18g, pr=%3.18g, Binomial.quantile(p, sz, pr, true, false) = %3.18g != Poisson.quantile(p, sz*pr, true, false) = %3.18", p, sz, _pr, val, val2));
+							success = false;
+						}
+					}
+				}
+				for (double _pr : pr) {
+					for (double _ks : ks) {
+						val = Binomial.cumulative(_ks, sz, _pr, true, false);
+						double val2 = Binomial.quantile(val, sz, _pr, true, false);
+						if (val2 != _ks) {
+							System.err.println(String.format("Binomial.quantile(Binomial.cumulative(%d, %f, %3.18g, true, false) = %3.18g != %f", _ks, sz, _pr, val, val2));
+							success = false;
+						}
+					}
+				}
+			}
+			//  do_search() in qbinom() contained a thinko up to 2.9.0 (PR#13711)
+		}
+
+		{
+			System.out.println("## pbeta(x, a,b, log=TRUE)  for small x and a  is ~ log-linear");
+			x = vpow(2, colon(-200., -10));
+			for (double a : c(1e-8, 1e-12, 16e-16, 4e-16)) {
+				for (double b : c(0.6, 1, 2, 10)) {
+					double[] dp = diff(new Beta(a, b).cumulative(x, true, true));
+					val = sd(dp) / mean(dp);
+					if (val >= 0.0007) {
+						System.err.println(String.format("a=%f, b=%f, dp=diff(Beta(x, a, b, true, true)), sd(dp)/mean(db) = %3.18> 0.0007", a, b, val));
+						success = false;
+					}
+				}
+			}
+			// had  accidental cancellation '1 - w'
+		}
+		//*/
+
+		{
+			System.out.println("## qgamma(p, a) for small a and (hence) small p");
+			System.out.println("## pgamma(x, a) for very very small a");
+
+			val = Gamma.quantile(0.99, 0.0001, 1, true, false);
+			if (val != 0) {
+				System.err.println(String.format("Gamma.quantile(0.99,  0.0001, 1, true, false) = %3.18g != 0", val));
+				success = false;
+			}
+			x = vplus(1.0, vtimes(1e-7, c(-1., 1)));
+			double[] pg = new Gamma(pow(2, -64), 1).cumulative(x, false, false);
+			if (abs(pg[1] - 1.18928249197237758088243e-20) >= 1e-33) {
+				System.err.println(String.format("Precision loss: Gamma.cumulative(%g, 2^-64, 1, true, false) %3.18g != 1.18928249197237758088243e-20", x[1], pg[1]));
+				success = false;
+			}
+
+			val = abs(diff(pg)[0] + diff(x)[0]*Gamma.density(1, pow(2,-64), 1, false));
+			if (val >= 1e-13*mean(pg)) {
+				System.err.println(String.format("abs(diff(pg)[0] + diff(x)[0]*Gamma.density(1, pow(2,-64), 1, false)) = %3.18g", val));
+				success = false;
+			}
+
+			for (double a: vpow(2, vmin(seq(10., 1000, .25)))) {
+				double
+					q1c = Gamma.quantile(1e-100, a, 1, false, false),
+					q3c = Gamma.quantile(1e-300, a, 1, false, false);
+				if (q1c > 0) {
+					double p1c = Gamma.cumulative(q1c, a, 1, false, false);
+					if (abs(1 - p1c/1e-100) >= 10e-13) {
+						System.err.println(String.format("Precision loss: a=%f. Gamma.cumulative(Gamma.quantile(1e-300, a, 1, false, false)) != 1e-100", a));
+						success = false;
+					}
+				}
+				if (q3c > 0) {
+					double p3c = Gamma.cumulative(q3c, a, 1, false, false);
+					if (abs(1 - p3c/1e-300) >= 28e-13) {
+						System.err.println(String.format("Precision loss: a=%f. Gamma.cumulative(Gamma.quantile(1e-300, a, 1, false, false)) != 1e-100", a));
+						success = false;
+					}
+				}
 			}
 		}
 		return success;

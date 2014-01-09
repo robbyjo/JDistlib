@@ -1920,14 +1920,21 @@ public class TestDPQR {
 				System.err.println("Anomalous Beta.cumulative(x, 0.5, 2200, false, true) at the second derivative");
 				success = false;
 			}
-			double[] y = new double[51];
-			for (int i = 0; i < y.length; i++) {
-				double b = 2200*pow(2, i);
-				y[i] = log(-Beta.cumulative(.28, 1./2, b, false, true));
-				if (!isEqualScaled(log(b), y[i] + 1.113, 0.00002)) {
-					System.err.println(String.format("Precision loss at log(-Beta.cumulative(x, 0.5, %3.18g, false, true)) = %3.18g != %3.18g", b, y[i]+1.113, log(b)));
+			double[] b = new double[51];
+			double[] y = new double[b.length];
+			for (int i = 0; i < b.length; i++) {
+				b[i] = 2200*pow(2, i);
+				y[i] = log(-Beta.cumulative(.28, 1./2, b[i], false, true)) + 1.113;
+				if (!isEqualScaled(log(b[i]), y[i], 0.00002)) {
+					System.err.println(String.format("Precision loss at log(-Beta.cumulative(x, 0.5, %3.18g, false, true))+1.113 = %3.18g != %3.18g", b[i], y[i], log(b[i])));
 					success = false;
 				}
+			}
+			b = vlog(b);
+			val = mean(vabs(vmin(b, y))) / mean(b);
+			if (abs(val) < 0.0002) {
+				System.err.println("Precision loss at log(-Beta.cumulative(x, 0.5, 2200+, false, true))");
+				success = false;
 			}
 			// pbx had two -Inf; y was all Inf  for R <= 2.15.3;  PR#15162
 		}

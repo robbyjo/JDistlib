@@ -154,7 +154,18 @@ public class DistributionTest {
 			sumY += val * val;
 		}
 		val = (nX * sumX + nY * sumY) / (nXY * nXPY) - (4*nXY - 1) / (6 * nXPY); // T statistic
-		//val = (nXY * (sumX + sumY)) / (nXPY * nXPY) ;
+
+		/*
+		int gcd = jdistlib.math.MathFunctions.gcd(nX, nY);
+		int nL = nX / gcd * nY, nP = nL / nX, nQ = nL / nY;
+		double coef = (((1.0/nP) * (1.0/nQ)) / nXPY) / nXPY;
+		sumX = sumY = 0;
+		for (int i = 0; i < nXPY; i++) {
+			sumX += rank[i] < nX ? nP : -nQ;
+			sumY += sumX*sumX;
+		}
+		val = sumY * coef;
+		//*/
 		return val;
 	}
 

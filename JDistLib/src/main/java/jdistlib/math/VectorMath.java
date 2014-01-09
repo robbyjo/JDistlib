@@ -344,4 +344,29 @@ public class VectorMath {
 		}
 		return v;
 	}
+
+	public static final double[] cumsum(double[] e) {
+		int n = e.length;
+		double[] r = new double[n];
+		r[0] = e[0];
+		for (int i = 1; i < n; i++)
+			r[i] = r[i-1] + e[i];
+		return r;
+	}
+
+	public static final double max(double[] e) {
+		int n = e.length;
+		double mx = e[0];
+		for (int i = 1; i < n; i++)
+			if (e[i] > mx) mx = e[i];
+		return mx;
+	}
+
+	public static final double min(double[] e) {
+		int n = e.length;
+		double mn = e[0];
+		for (int i = 1; i < n; i++)
+			if (e[i] < mn) mn = e[i];
+		return mn;
+	}
 }

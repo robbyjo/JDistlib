@@ -266,6 +266,47 @@ public class Utilities {
 	}
 
 	/**
+	 * Converts the integer array e into a double array
+	 * @param e
+	 * @return a double array
+	 */
+	public static final double[] to_double(int[] e) {
+		int n = e.length;
+		double[] r = new double[n];
+		for (int i = 0; i < n; i++)
+			r[i] = e[i];
+		return r;
+	}
+
+	/**
+	 * Returns the order of the elements of array e
+	 * @param e
+	 */
+	public static final int[] order(double[] e) {
+		int n = e.length;
+		int[] idx = new int[n];
+		double[] v = new double[n];
+		System.arraycopy(e, 0, v, 0, n);
+		for (int i = 0; i < n; i++)
+			idx[i] = i;
+		sort(v, idx);
+		return idx;
+	}
+
+	/**
+	 * Returns the ranks of the elements of array e
+	 * @param e
+	 */
+	public static final int[] rank(double[] e) {
+		int n = e.length;
+		int[] order = order(e);
+		int[] rank = new int[n];
+		for (int i = 0; i < n; i++)
+			rank[order[i]] = i;
+		return rank;
+	}
+
+	/**
 	 * Permute the array e
 	 * @param e
 	 */

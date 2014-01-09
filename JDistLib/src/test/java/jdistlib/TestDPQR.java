@@ -71,6 +71,7 @@ public class TestDPQR {
 	 * @return
 	 */
 	public static final boolean dkwtest(GenericDistribution d, int n, double p0) {
+		d.setRandomEngine(random);
 		double[] x = d.random(n);
 		Map<String, Integer> tbl_x = table(vsignif(x, 12));
 		double[] xi = as_numeric(tbl_x.keySet());

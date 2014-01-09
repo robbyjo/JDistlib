@@ -28,7 +28,6 @@ import jdistlib.rng.QRandomEngine;
 public class SignRank extends GenericDistribution {
 	protected double[] w;
 	protected int n;
-	protected QRandomEngine random;
 
 	public SignRank(int n) {
 		this.n = n;

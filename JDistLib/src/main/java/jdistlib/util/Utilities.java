@@ -11,6 +11,8 @@ import jdistlib.rng.RandomEngine;
  *
  */
 public class Utilities {
+	public enum RankTies { AVERAGE, MAX, MIN }
+
 	public static final int[] colon(int from, int to) {
 		int n = Math.abs(to - from) + 1;
 		int[] d = new int[n];
@@ -284,25 +286,57 @@ public class Utilities {
 	 */
 	public static final int[] order(double[] e) {
 		int n = e.length;
-		int[] idx = new int[n];
+		int[] order = new int[n];
 		double[] v = new double[n];
 		System.arraycopy(e, 0, v, 0, n);
 		for (int i = 0; i < n; i++)
-			idx[i] = i;
-		sort(v, idx);
-		return idx;
+			order[i] = i;
+		sort(v, order);
+		return order;
+	}
+
+	/**
+	 * Returns the ranks of the elements of array e, resolve ties by averaging
+	 * @param e
+	 */
+	public static final double[] rank(double[] e) {
+		return rank(e, RankTies.AVERAGE);
 	}
 
 	/**
 	 * Returns the ranks of the elements of array e
 	 * @param e
+	 * @param ties Ties resolution: Average, Min, or Max
 	 */
-	public static final int[] rank(double[] e) {
+	public static final double[] rank(double[] e, RankTies ties) {
 		int n = e.length;
-		int[] order = order(e);
-		int[] rank = new int[n];
+		int[] order = new int[n];
+		double[] rank = new double[n];
+		double[] v = new double[n];
+		System.arraycopy(e, 0, v, 0, n);
 		for (int i = 0; i < n; i++)
-			rank[order[i]] = i;
+			order[i] = i;
+		sort(v, order);
+		int j;
+		for (int i = 0; i < n; i = j+1) {
+			j = i;
+			while ((j < n - 1) && (v[j] == v[j+1])) j++;
+			switch (ties) {
+				case AVERAGE:
+					double avg = (i + j) / 2.;
+					for (int k = i; k <= j; k++)
+						rank[order[k]] = avg;
+					break;
+				case MAX:
+					for (int k = i; k <= j; k++)
+						rank[order[k]] = j;
+					break;
+				case MIN:
+					for (int k = i; k <= j; k++)
+						rank[order[k]] = i;
+					break;
+			}
+		}
 		return rank;
 	}
 

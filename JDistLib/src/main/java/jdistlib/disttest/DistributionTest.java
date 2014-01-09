@@ -16,7 +16,9 @@ package jdistlib.disttest;
 
 import static java.lang.Math.abs;
 import static java.lang.Math.floor;
-import static java.util.Arrays.sort;
+import static jdistlib.util.Utilities.c;
+import static jdistlib.util.Utilities.sort;
+import static jdistlib.util.Utilities.rank;
 import static jdistlib.disttest.Utils.calculate_ecdf;
 
 
@@ -35,24 +37,24 @@ public class DistributionTest {
 	 * @param Y an array with length of nY
 	 * @return
 	 */
-	public static final double kolmogorov_smirnov_statistic(double[] X, double[] Y)
-	{
+	public static final double kolmogorov_smirnov_statistic(double[] X, double[] Y) {
 		int
 			nX = X.length,
 			nY = Y.length,
 			idxX = 0,
 			idxY = 0;
 		double
-			sortedX[] = X.clone(),
-			sortedY[] = Y.clone(),
+			sortedX[] = new double[nX],
+			sortedY[] = new double[nY],
 			maxDiv = 0;
+		System.arraycopy(X, 0, sortedX, 0, nX);
+		System.arraycopy(Y, 0, sortedY, 0, nX);
 		sort(sortedX);
 		sort(sortedY);
 	
 		// Pathological case
 		if (sortedX[nX - 1] < sortedY[0] || sortedY[nY - 1] < sortedX[0])
 			return 1.0;
-	
 		// Scan for duplicate values
 		double
 			cdfX[] = calculate_ecdf(sortedX),
@@ -60,24 +62,17 @@ public class DistributionTest {
 			pX = 0,
 			pY = 0,
 			div = 0;
-	
-		while (idxX < nX && idxY < nY)
-		{
+		while (idxX < nX && idxY < nY) {
 			double
 				x = sortedX[idxX],
 				y = sortedY[idxY];
-			if (y < x)
-			{
+			if (y < x) {
 				pY = cdfY[idxY];
 				idxY++;
-			}
-			else if (y > x)
-			{
+			} else if (y > x) {
 				pX = cdfX[idxX];
 				idxX++;
-			}
-			else
-			{
+			} else {
 				pX = cdfX[idxX];
 				pY = cdfY[idxY];
 				idxX++; idxY++;
@@ -87,7 +82,6 @@ public class DistributionTest {
 			if (div > maxDiv)
 				maxDiv = div;
 		}
-	
 		return maxDiv;
 	}
 
@@ -99,8 +93,7 @@ public class DistributionTest {
 	 * @param lengthY
 	 * @return
 	 */
-	public static final double kolmogorov_smirnov_pvalue(double maxDiv, int lengthX, int lengthY)
-	{
+	public static final double kolmogorov_smirnov_pvalue(double maxDiv, int lengthX, int lengthY) {
 		/*
 		Set<Double> set = new HashSet<Double>();
 		for (double x: X)
@@ -114,13 +107,11 @@ public class DistributionTest {
 		set = null;
 		//*/
 	
-		if (lengthX > lengthY)
-		{
+		if (lengthX > lengthY) {
 			int temp = lengthY;
 			lengthY = lengthX;
 			lengthX = temp;
 		}
-	
 		double
 			q = floor(maxDiv * lengthX * lengthY - 1e-7) / (lengthX * lengthY),
 			u[] = new double[lengthY + 1],
@@ -129,8 +120,7 @@ public class DistributionTest {
 	
 		for (int j = 0; j <= lengthY; j++)
 			u[j] = (j / nd) > q ? 0: 1;
-		for(int i = 1; i <= lengthX; i++)
-		{
+		for(int i = 1; i <= lengthX; i++) {
 			double w = (double)(i) / ((double)(i + lengthY));
 			u[0] = (i / md) > q ? 0 : w * u[0];
 			for(int j = 1; j <= lengthY; j++)
@@ -139,4 +129,23 @@ public class DistributionTest {
 		return 1 - u[lengthY];
 	}
 
+	public static final double cramer_vonmises_statistic(double[] X, double[] Y) {
+		int
+			nX = X.length,
+			nY = Y.length,
+			nXY = nX * nY,
+			nXPY = nX + nY;
+		int[] rank = rank(c(X, Y));
+		double sumX = 0, sumY = 0, val;
+		for (int i = 0; i < nX; i++) {
+			val = rank[i] - i;
+			sumX += val * val;
+		}
+		for (int i = nX; i < nXPY; i++) {
+			val = rank[i] - (i - nX);
+			sumY += val * val;
+		}
+		val = (nX * sumX + nY * sumY) / (nXY + nXPY) - (4*nXY - 1) / (6 * nXPY);
+		return val;
+	}
 }

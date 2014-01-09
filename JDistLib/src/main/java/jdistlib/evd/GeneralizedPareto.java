@@ -17,7 +17,7 @@ package jdistlib.evd;
 import static java.lang.Math.*;
 import jdistlib.Exponential;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 /**
  * Generalized Pareto Distribution
@@ -53,7 +53,7 @@ public class GeneralizedPareto extends GenericDistribution {
 			(loc + scale * (pow(p, -shape) - 1) / shape);
 	}
 
-	public static final double random(double loc, double scale, double shape, QRandomEngine random) {
+	public static final double random(double loc, double scale, double shape, RandomEngine random) {
 		if (scale < 0)
 			return Double.NaN;
 		return shape == 0 ?
@@ -61,7 +61,7 @@ public class GeneralizedPareto extends GenericDistribution {
 			(loc + scale * ((pow(random.nextDouble(), -shape) - 1) / shape) );
 	}
 
-	public static final double[] random(int n, double loc, double scale, double shape, QRandomEngine random) {
+	public static final double[] random(int n, double loc, double scale, double shape, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(loc, scale, shape, random);

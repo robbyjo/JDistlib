@@ -36,7 +36,7 @@ package jdistlib.rng;
  * @author Roby Joehanes
  *
  */
-public class QRandomCMWC extends QRandomEngine
+public class RandomCMWC extends RandomEngine
 {
 	private long mBuffer[] = new long[4096];
 	private int mIndex = 4095;
@@ -189,7 +189,7 @@ public class QRandomCMWC extends QRandomEngine
 		return (float) nextDouble();
 	}
 
-	public QRandomCMWC clone() {
-		return new QRandomCMWC();
+	public RandomCMWC clone() {
+		return new RandomCMWC();
 	}
 }

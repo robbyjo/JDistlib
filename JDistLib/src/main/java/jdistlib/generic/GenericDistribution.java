@@ -14,8 +14,8 @@
  */
 package jdistlib.generic;
 
-import jdistlib.rng.QMersenneTwister;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.MersenneTwister;
+import jdistlib.rng.RandomEngine;
 
 /**
  * An interface for a generic distribution. All parameters have to be encoded (either as fields or otherwise).
@@ -25,7 +25,7 @@ import jdistlib.rng.QRandomEngine;
  *
  */
 public abstract class GenericDistribution {
-	protected QRandomEngine random = new QMersenneTwister();
+	protected RandomEngine random = new MersenneTwister();
 	public abstract double density(double x, boolean log);
 	public abstract double cumulative(double p, boolean lower_tail, boolean log_p);
 	public abstract double quantile(double q, boolean lower_tail, boolean log_p);
@@ -107,11 +107,11 @@ public abstract class GenericDistribution {
 		return rand;
 	}
 
-	public void setRandomEngine(QRandomEngine r) {
+	public void setRandomEngine(RandomEngine r) {
 		random = r;
 	}
 
-	public QRandomEngine getRandomEngine() {
+	public RandomEngine getRandomEngine() {
 		return random;
 	}
 
@@ -121,8 +121,8 @@ public abstract class GenericDistribution {
 	 * @param r random number generator
 	 * @return Random number for the distribution
 	 */
-	public double random(QRandomEngine r) {
-		QRandomEngine temp = random;
+	public double random(RandomEngine r) {
+		RandomEngine temp = random;
 		random = r;
 		double v = random();
 		random = temp;

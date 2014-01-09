@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Geometric extends GenericDistribution {
 	public static final double density(double x, double p, boolean give_log)
@@ -93,13 +93,13 @@ public class Geometric extends GenericDistribution {
 		return max(0, ceil(p / log1p(- prob) - 1 - 1e-12));
 	}
 
-	public static final double random(double p, QRandomEngine random)
+	public static final double random(double p, RandomEngine random)
 	{
 	    if (MathFunctions.isInfinite(p) || p <= 0 || p > 1) return Double.NaN;
 	    return Poisson.random(Exponential.random_standard(random) * ((1 - p) / p), random);
 	}
 
-	public static final double[] random(int n, double p, QRandomEngine random) {
+	public static final double[] random(int n, double p, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(p, random);

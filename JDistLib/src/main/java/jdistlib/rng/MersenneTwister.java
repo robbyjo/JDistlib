@@ -197,7 +197,7 @@ import java.io.*;
 // on the code, I strongly suggest looking at MersenneTwister.java first.
 // -- Sean
 
-public class QMersenneTwister extends QRandomEngine implements Serializable, Cloneable
+public class MersenneTwister extends RandomEngine implements Serializable, Cloneable
 {
 	// Serialization
 	private static final long serialVersionUID = -8219700664442619525L;  // locked as of Version 15
@@ -226,9 +226,9 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 
 	/* We're overriding all internal data, to my knowledge, so this should be okay */
 	@Override
-	public QMersenneTwister clone()
+	public MersenneTwister clone()
 	{
-		QMersenneTwister f = new QMersenneTwister();
+		MersenneTwister f = new MersenneTwister();
 		f.mt = mt.clone();
 		f.mag01 = mag01.clone();
 		f.mti = mti;
@@ -241,9 +241,9 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 	public boolean stateEquals(Object o)
 	{
 		if (o==this) return true;
-		if (o == null || !(o instanceof QMersenneTwister))
+		if (o == null || !(o instanceof MersenneTwister))
 			return false;
-		QMersenneTwister other = (QMersenneTwister) o;
+		MersenneTwister other = (MersenneTwister) o;
 		if (mti != other.mti) return false;
 		for(int x=0;x<mag01.length;x++)
 			if (mag01[x] != other.mag01[x]) return false;
@@ -283,7 +283,7 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 	/**
 	 * Constructor using the default seed.
 	 */
-	public QMersenneTwister()
+	public MersenneTwister()
 	{
 		this(System.currentTimeMillis());
 	}
@@ -293,7 +293,7 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 	 * as a long, it's best to make sure it's actually an integer.
 	 *
 	 */
-	public QMersenneTwister(final long seed)
+	public MersenneTwister(final long seed)
 	{
 		setSeed(seed);
 	}
@@ -305,7 +305,7 @@ public class QMersenneTwister extends QRandomEngine implements Serializable, Clo
 	 * in the array are used; if the array is shorter than this then
 	 * integers are repeatedly used in a wrap-around fashion.
 	 */
-	public QMersenneTwister(final int[] array)
+	public MersenneTwister(final int[] array)
 	{
 		setSeed(array);
 	}

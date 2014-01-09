@@ -21,7 +21,7 @@ package jdistlib;
 
 import static jdistlib.math.MathFunctions.isInfinite;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class ChiSquare extends GenericDistribution {
 	public static final double density(double x, double df, boolean give_log) {
@@ -36,12 +36,12 @@ public class ChiSquare extends GenericDistribution {
 	    return Gamma.quantile(p, 0.5 * df, 2.0, lower_tail, log_p);
 	}
 
-	public static final double random(double df, QRandomEngine random) {
+	public static final double random(double df, RandomEngine random) {
 	    if (isInfinite(df) || df < 0.0) return Double.NaN;
 	    return Gamma.random(df / 2.0, 2.0, random);
 	}
 
-	public static final double[] random(int n, double df, QRandomEngine random) {
+	public static final double[] random(int n, double df, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(df, random);

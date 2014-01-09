@@ -15,7 +15,7 @@
 package jdistlib.evd;
 
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 import static java.lang.Math.*;
 
 /**
@@ -49,11 +49,11 @@ public class Rayleigh extends GenericDistribution {
 		return scale * sqrt(-2 * log1p(-p));
 	}
 
-	public static final double random(double scale, QRandomEngine random) {
+	public static final double random(double scale, RandomEngine random) {
 		return scale <= 0 ? Double.NaN : scale * sqrt(-2 * log(random.nextDouble()));
 	}
 
-	public static final double[] random(int n, double scale, QRandomEngine random) {
+	public static final double[] random(int n, double scale, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(scale, random);

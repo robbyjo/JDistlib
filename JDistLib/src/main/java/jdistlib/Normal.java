@@ -29,7 +29,7 @@ import static jdistlib.math.MathFunctions.isInfinite;
 import static jdistlib.math.MathFunctions.trunc;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 /**
  * 
@@ -321,32 +321,32 @@ public class Normal extends GenericDistribution {
 	 * @param random
 	 * @return
 	 */
-	public static final double random(double mu, double sigma, QRandomEngine random) {
+	public static final double random(double mu, double sigma, RandomEngine random) {
 		return mu + sigma * random_standard(random);
 	}
 
-	public static final double random_standard(QRandomEngine random) {
+	public static final double random_standard(RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, 0, 1, true, false);
 		return u1;
 	}
 
-	public static final double[] random(int n, double mu, double sigma, QRandomEngine random) {
+	public static final double[] random(int n, double mu, double sigma, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(mu, sigma, random);
 		return rand;
 	}
 
-	public static final double[] random_standard(int n, QRandomEngine random) {
+	public static final double[] random_standard(int n, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random_standard(random);
 		return rand;
 	}
 
-	public static final double random_ahrens_dieter(double mu, double sigma, QRandomEngine random) {
+	public static final double random_ahrens_dieter(double mu, double sigma, RandomEngine random) {
 	    final double a[] = new double[]
 	        {
 	    	0.0000000, 0.03917609, 0.07841241, 0.1177699,
@@ -466,7 +466,7 @@ public class Normal extends GenericDistribution {
 		return (C1*exp(-x*x/2.0)-C2*(A-x));
 	}
 
-	public static final double random_kinderman_ramage(double mu, double sigma, QRandomEngine random) {
+	public static final double random_kinderman_ramage(double mu, double sigma, RandomEngine random) {
 		double u1, u2, u3, tt;
 		//* corrected version from Josef Leydold
 		u1 = random.nextDouble();
@@ -522,7 +522,7 @@ public class Normal extends GenericDistribution {
 		}
 	}
 
-	public static final double random_box_muller(double mu, double sigma, QRandomEngine random) {
+	public static final double random_box_muller(double mu, double sigma, RandomEngine random) {
 		double
 			theta = 2 * PI * random.nextDouble(),
 			R = sqrt(-2 * log(random.nextDouble())) + 10*DBL_MIN;

@@ -24,7 +24,7 @@ import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 /*
  *    Computes the probability and quantile that the maximum of rr studentized
@@ -574,14 +574,14 @@ public class Tukey extends GenericDistribution {
 	 * @param random
 	 * @return
 	 */
-	public static final double random(double rr, double cc, double df, QRandomEngine random) {
+	public static final double random(double rr, double cc, double df, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, rr, cc, df, true, false);
 		return u1;
 	}
 
-	public static final double[] random(int n, double rr, double cc, double df, QRandomEngine random) {
+	public static final double[] random(int n, double rr, double cc, double df, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(rr, cc, df, random);

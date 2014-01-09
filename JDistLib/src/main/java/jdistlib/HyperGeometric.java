@@ -24,7 +24,7 @@ import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class HyperGeometric extends GenericDistribution {
 	public class RandomState {
@@ -261,10 +261,10 @@ public class HyperGeometric extends GenericDistribution {
 		}
 		return value;
 	}
-	public static final double random(double nn1in, double nn2in, double kkin, QRandomEngine random)
+	public static final double random(double nn1in, double nn2in, double kkin, RandomEngine random)
 	{	return random(nn1in, nn2in, kkin, random, null); }
 
-	public static final double random(double nn1in, double nn2in, double kkin, QRandomEngine random, RandomState state)
+	public static final double random(double nn1in, double nn2in, double kkin, RandomEngine random, RandomState state)
 	{
 		final double con = 57.56462733;
 		final double deltal = 0.0078;
@@ -522,7 +522,7 @@ public class HyperGeometric extends GenericDistribution {
 		return ix;
 	}
 
-	public static final double[] random(int n, double nn1in, double nn2in, double kkin, QRandomEngine random, RandomState state) {
+	public static final double[] random(int n, double nn1in, double nn2in, double kkin, RandomEngine random, RandomState state) {
 		if (state == null) state = create_random_state();
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
@@ -530,7 +530,7 @@ public class HyperGeometric extends GenericDistribution {
 		return rand;
 	}
 
-	public static final double[] random(int n, double nn1in, double nn2in, double kkin, QRandomEngine random) {
+	public static final double[] random(int n, double nn1in, double nn2in, double kkin, RandomEngine random) {
 		return random(n, nn1in, nn2in, kkin, random, create_random_state());
 	}
 

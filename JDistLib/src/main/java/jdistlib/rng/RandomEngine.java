@@ -25,7 +25,7 @@ package jdistlib.rng;
  * @author Roby Joehanes
  *
  */
-public abstract class QRandomEngine
+public abstract class RandomEngine
 {
 	protected long mSeed;
 
@@ -46,5 +46,5 @@ public abstract class QRandomEngine
 	public double random()
 	{	return nextDouble(); }
 
-	public abstract QRandomEngine clone();
+	public abstract RandomEngine clone();
 }

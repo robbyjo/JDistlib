@@ -24,7 +24,7 @@ import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class NonCentralChiSquare extends GenericDistribution {
 	/*
@@ -414,7 +414,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		else rchisq0(n, ncp) + .Internal(rchisq(n, df))
 	    }</pre>
 	 */
-	public static final double random(double df, double lambda, QRandomEngine random) {
+	public static final double random(double df, double lambda, RandomEngine random) {
 		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(lambda) || df < 0. || lambda < 0.)
 			return Double.NaN;
 
@@ -428,7 +428,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		return r;
 	}
 
-	public static final double[] random(int n, double df, double lambda, QRandomEngine random) {
+	public static final double[] random(int n, double df, double lambda, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(df, lambda, random);

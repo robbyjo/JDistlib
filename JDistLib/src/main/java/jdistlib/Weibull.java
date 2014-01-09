@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Weibull extends GenericDistribution {
 	public static final double density(double x, double shape, double scale, boolean give_log) {
@@ -86,7 +86,7 @@ public class Weibull extends GenericDistribution {
 		return scale * pow(-p, 1./shape) ;
 	}
 
-	public static final double random(double shape, double scale, QRandomEngine random) {
+	public static final double random(double shape, double scale, RandomEngine random) {
 		if (MathFunctions.isInfinite(shape) || MathFunctions.isInfinite(scale) || shape <= 0. || scale <= 0.) {
 			if(scale == 0.) return 0.;
 			/* else */
@@ -95,7 +95,7 @@ public class Weibull extends GenericDistribution {
 		return scale * pow(-log(random.nextDouble()), 1.0 / shape);
 	}
 
-	public static final double[] random(int n, double shape, double scale, QRandomEngine random) {
+	public static final double[] random(int n, double shape, double scale, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(shape, scale, random);

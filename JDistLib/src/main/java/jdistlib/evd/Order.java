@@ -17,7 +17,7 @@ package jdistlib.evd;
 import jdistlib.Beta;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 import static java.lang.Math.*;
 import static jdistlib.math.MathFunctions.*;
 
@@ -56,13 +56,13 @@ public class Order extends GenericDistribution {
 		return largest != lower_tail ? 1 - sum : sum;
 	}
 
-	public static final double random(GenericDistribution dist, int mlen, int j, boolean largest, QRandomEngine random) {
+	public static final double random(GenericDistribution dist, int mlen, int j, boolean largest, RandomEngine random) {
 		if (!largest) j = mlen + 1 - j;
 		double value = Beta.random(mlen+1-j, j, random);
 		return dist.quantile(value, true, false);
 	}
 
-	public static final double[] random(int n, GenericDistribution dist, int mlen, int j, boolean largest, QRandomEngine random) {
+	public static final double[] random(int n, GenericDistribution dist, int mlen, int j, boolean largest, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(dist, mlen, j, largest, random);

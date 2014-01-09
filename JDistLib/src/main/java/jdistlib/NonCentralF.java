@@ -22,7 +22,7 @@ package jdistlib;
 import static java.lang.Math.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class NonCentralF extends GenericDistribution {
 	/*
@@ -120,13 +120,13 @@ public class NonCentralF extends GenericDistribution {
 		return y/(1-y) * (df2/df1);
 	}
 
-	public static final double random(double df1, double df2, double ncp, QRandomEngine random) {
+	public static final double random(double df1, double df2, double ncp, RandomEngine random) {
 		if (ncp == 0)
 			return F.random(df1, df2, random);
 		return (NonCentralChiSquare.random(df1, ncp, random) / df1) / (ChiSquare.random(df2, random) / df2);
 	}
 
-	public static final double[] random(int n, double df1, double df2, double ncp, QRandomEngine random) {
+	public static final double[] random(int n, double df1, double df2, double ncp, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(df1, df2, ncp, random);

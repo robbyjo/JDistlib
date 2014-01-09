@@ -24,7 +24,7 @@ import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class NonCentralT extends GenericDistribution {
 	/**<pre>
@@ -284,13 +284,13 @@ public class NonCentralT extends GenericDistribution {
 		return 0.5 * (lx + ux);
 	}
 
-	public static final double random(double df, double ncp, QRandomEngine random) {
+	public static final double random(double df, double ncp, RandomEngine random) {
 		if (ncp == 0)
 			return T.random(df, random);
 		return Normal.random(ncp,1,random) / sqrt(ChiSquare.random(df, random)/df);
 	}
 
-	public static final double[] random(int n, double df, double ncp, QRandomEngine random) {
+	public static final double[] random(int n, double df, double ncp, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(df, ncp, random);

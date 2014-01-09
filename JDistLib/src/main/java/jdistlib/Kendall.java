@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 /**
  * Kendall tau distribution
@@ -160,14 +160,14 @@ public class Kendall extends GenericDistribution {
 	 * @param random
 	 * @return
 	 */
-	public static final double random(int n, QRandomEngine random) {
+	public static final double random(int n, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, n);
 		return u1;
 	}
 
-	public static final double[] random(int count, int n, QRandomEngine random) {
+	public static final double[] random(int count, int n, RandomEngine random) {
 		double[] rand = new double[count];
 		for (int i = 0; i < count; i++)
 			rand[i] = random(n, random);

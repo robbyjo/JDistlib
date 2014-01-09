@@ -24,7 +24,7 @@ import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class NegBinomial extends GenericDistribution {
 	public static final double density(double x, double size, double prob, boolean give_log) {
@@ -220,14 +220,14 @@ public class NegBinomial extends GenericDistribution {
 		return quantile(p, size, /* prob = */ size/(size+mu), lower_tail, log_p);
 	}
 
-	public static final double random(double size, double prob, QRandomEngine random) {
+	public static final double random(double size, double prob, RandomEngine random) {
 	    if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(prob) || size <= 0 || prob <= 0 || prob > 1)
 	    	/* prob = 1 is ok, PR#1218 */
 	    	return Double.NaN;
 	    return (prob == 1) ? 0 : Poisson.random(Gamma.random(size, (1 - prob) / prob, random), random);
 	}
 
-	public static final double[] random(int n, double size, double prob, QRandomEngine random) {
+	public static final double[] random(int n, double size, double prob, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(size, prob, random);

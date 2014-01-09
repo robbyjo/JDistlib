@@ -21,7 +21,7 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Spearman extends GenericDistribution {
 	// From pspearman package
@@ -1252,14 +1252,14 @@ public class Spearman extends GenericDistribution {
 		throw new RuntimeException("Not implemented, sorry!");
 	}
 
-	public static final double random(int n, QRandomEngine random) {
+	public static final double random(int n, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, n);
 		return u1;
 	}
 
-	public static final double[] random(int count, int n, QRandomEngine random) {
+	public static final double[] random(int count, int n, RandomEngine random) {
 		double[] rand = new double[count];
 		for (int i = 0; i < count; i++)
 			rand[i] = random(n, random);

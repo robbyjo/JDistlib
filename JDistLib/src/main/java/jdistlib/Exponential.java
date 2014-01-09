@@ -25,7 +25,7 @@ package jdistlib;
 
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 
@@ -78,7 +78,7 @@ public class Exponential extends GenericDistribution {
 		return - scale * (lower_tail? log_p ? ((p) > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))) : log1p(-p): (log_p ? (p) : log(p)));
 	}
 
-	public static final double random(double scale, QRandomEngine random)
+	public static final double random(double scale, RandomEngine random)
 	{
 		if (MathFunctions.isInfinite(scale) || scale <= 0.0) {
 			if(scale == 0.) return 0.;
@@ -87,7 +87,7 @@ public class Exponential extends GenericDistribution {
 		return scale * random_standard(random);
 	}
 
-	public static final double random_standard(QRandomEngine random)
+	public static final double random_standard(RandomEngine random)
 	{
 		/* q[k-1] = sum(log(2)^k / k!)  k=1,..,n, */
 		/* The highest n (here 16) is determined by q[n-1] = 1.0 */
@@ -136,14 +136,14 @@ public class Exponential extends GenericDistribution {
 		return a + umin * q[0];
 	}
 
-	public static final double[] random(int n, double scale, QRandomEngine random) {
+	public static final double[] random(int n, double scale, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(scale, random);
 		return rand;
 	}
 
-	public static final double[] random_standard(int n, QRandomEngine random) {
+	public static final double[] random_standard(int n, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random_standard(random);

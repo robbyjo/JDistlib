@@ -22,7 +22,7 @@ package jdistlib;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.Optimization;
 import jdistlib.math.UnivariateFunction;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.DBL_MIN;
 
@@ -80,13 +80,13 @@ public class InvNormal extends GenericDistribution {
 		return Optimization.zeroin(f, ax, bx, 0, 10000);
 	}
 
-	public static final double random(double mu, double sigma, QRandomEngine random) {
+	public static final double random(double mu, double sigma, RandomEngine random) {
 		if (Double.isNaN(mu) || Double.isNaN(sigma)) return mu + sigma;
 		if (mu <= 0 || sigma <= 0) return Double.NaN;
 		return quantile(random.nextDouble(), mu, sigma, true, false);
 	}
 
-	public static final double[] random(int n, double mu, double sigma, QRandomEngine random) {
+	public static final double[] random(int n, double mu, double sigma, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(mu, sigma, random);

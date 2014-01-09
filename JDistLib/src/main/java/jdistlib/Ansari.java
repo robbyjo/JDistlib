@@ -24,7 +24,7 @@ import static java.lang.Math.log;
 import static java.util.Arrays.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 /**
  * Ansari-Bradley test statistic
@@ -207,24 +207,24 @@ public class Ansari extends GenericDistribution {
 	 * @param random
 	 * @return
 	 */
-	public static final double random(int m, int n, QRandomEngine random) {
+	public static final double random(int m, int n, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, m, n);
 		return u1;
 	}
 
-	public static final double random(int m, int n, double[][][] w, QRandomEngine random) {
+	public static final double random(int m, int n, double[][][] w, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, m, n, w);
 		return u1;
 	}
-	public static final double[] random(int count, int m, int n, QRandomEngine random) {
+	public static final double[] random(int count, int m, int n, RandomEngine random) {
 		return random(count, m, n, null, random);
 	}
 
-	public static final double[] random(int count, int m, int n, double[][][] w, QRandomEngine random) {
+	public static final double[] random(int count, int m, int n, double[][][] w, RandomEngine random) {
 		double[] rand = new double[count];
 		for (int i = 0; i < count; i++) {
 			double u1 = random.nextDouble();

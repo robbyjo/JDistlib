@@ -19,8 +19,8 @@ import java.util.Map;
 
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.VectorMath;
-import jdistlib.rng.QMersenneTwister;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.MersenneTwister;
+import jdistlib.rng.RandomEngine;
 
 import org.junit.Test;
 
@@ -44,10 +44,10 @@ import static jdistlib.util.Utilities.*;
  *
  */
 public class TestDPQR {
-	static QRandomEngine random = new QMersenneTwister(123L);
+	static RandomEngine random = new MersenneTwister(123L);
 	static final double defaultNumericalError = DBL_EPSILON * 64;
 
-	public static final void setRandomEngine(QRandomEngine rng) {
+	public static final void setRandomEngine(RandomEngine rng) {
 		random = rng;
 	}
 

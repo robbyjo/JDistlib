@@ -24,7 +24,7 @@ import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Beta extends GenericDistribution {
 
@@ -222,7 +222,7 @@ public class Beta extends GenericDistribution {
 		return Double.NaN;
 	}
 
-	public static final double random(double aa, double bb, QRandomEngine random)
+	public static final double random(double aa, double bb, RandomEngine random)
 	{
 		final double expmax = (DBL_MAX_EXP * M_LN2);
 		double a, b, alpha;
@@ -344,7 +344,7 @@ public class Beta extends GenericDistribution {
 		}
 	}
 
-	public static final double[] random(int n, double aa, double bb, QRandomEngine random) {
+	public static final double[] random(int n, double aa, double bb, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(aa, bb, random);

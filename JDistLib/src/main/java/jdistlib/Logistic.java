@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Logistic extends GenericDistribution {
 	public static final double density(double x, double location, double scale, boolean give_log) {
@@ -102,14 +102,14 @@ public class Logistic extends GenericDistribution {
 		return location + scale * p;
 	}
 
-	public static final double random(double location, double scale, QRandomEngine random) {
+	public static final double random(double location, double scale, RandomEngine random) {
 		if (Double.isNaN(location) || MathFunctions.isInfinite(scale)) return Double.NaN;
 		if (scale == 0. || MathFunctions.isInfinite(location)) return location;
 		double u = random.nextDouble();
 		return location + scale * log(u / (1. - u));
 	}
 
-	public static final double[] random(int n, double location, double scale, QRandomEngine random) {
+	public static final double[] random(int n, double location, double scale, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(location, scale, random);

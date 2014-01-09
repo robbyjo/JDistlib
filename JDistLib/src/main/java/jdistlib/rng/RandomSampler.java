@@ -97,12 +97,12 @@ package jdistlib.rng;
  * @author  wolfgang.hoschek@cern.ch
  * @version 1.1 05/26/99
  */
-public class QRandomSampler {
+public class RandomSampler {
 //public class RandomSampler extends Object implements java.io.Serializable {
 	long my_n;
 	long my_N;
 	long my_low;
-	QRandomEngine my_RandomGenerator;
+	RandomEngine my_RandomGenerator;
 	//static long negalphainv; // just to determine once and for all the best value for negalphainv
 /**
  * Constructs a random sampler that computes and delivers sorted random sets in blocks.
@@ -114,14 +114,14 @@ public class QRandomSampler {
  * @param low the interval to choose random numbers from is <tt>[low,low+N-1]</tt>. Hint: If <tt>low==0</tt>, then random numbers will be drawn from the interval <tt>[0,N-1]</tt>.
  * @param randomGenerator a random number generator. Set this parameter to <tt>null</tt> to use the default random number generator.
  */
-public QRandomSampler(long n, long N, long low, QRandomEngine randomGenerator) {
+public RandomSampler(long n, long N, long low, RandomEngine randomGenerator) {
 	if (n<0) throw new IllegalArgumentException("n must be >= 0");
 	if (n>N) throw new IllegalArgumentException("n must by <= N");
 	this.my_n=n;
 	this.my_N=N;
 	this.my_low=low;
 
-	if (randomGenerator==null) randomGenerator = new QMersenneTwister();
+	if (randomGenerator==null) randomGenerator = new MersenneTwister();
 	this.my_RandomGenerator=randomGenerator;
 }
 
@@ -166,7 +166,7 @@ public void nextBlock(int count, long[] values, int fromIndex) {
  * @param fromIndex the first index within <tt>values</tt> to be filled with numbers (inclusive).
  * @param randomGenerator a random number generator.
  */
-protected static void rejectMethodD(long n, long N, int count, long low, long[] values, int fromIndex, QRandomEngine randomGenerator) {
+protected static void rejectMethodD(long n, long N, int count, long low, long[] values, int fromIndex, RandomEngine randomGenerator) {
 	/*  This algorithm is applicable if a large percentage (90%..100%) of N shall be sampled.
 		In such cases it is more efficient than sampleMethodA() and sampleMethodD().
 	    The idea is that it is more efficient to express
@@ -279,10 +279,10 @@ protected static void rejectMethodD(long n, long N, int count, long low, long[] 
  * @param fromIndex the first index within <tt>values</tt> to be filled with numbers (inclusive).
  * @param randomGenerator a random number generator. Set this parameter to <tt>null</tt> to use the default random number generator.
  */
-public static void sample(long n, long N, int count, long low, long[] values, int fromIndex, QRandomEngine randomGenerator) {
+public static void sample(long n, long N, int count, long low, long[] values, int fromIndex, RandomEngine randomGenerator) {
 	if (n<=0 || count<=0) return;
 	if (count>n) throw new IllegalArgumentException("count must not be greater than n");
-	if (randomGenerator==null) randomGenerator = new QMersenneTwister();
+	if (randomGenerator==null) randomGenerator = new MersenneTwister();
 
 	if (count==N) { // rare case treated quickly
 		long val = low;
@@ -317,7 +317,7 @@ public static void sample(long n, long N, int count, long low, long[] values, in
  * @param fromIndex the first index within <tt>values</tt> to be filled with numbers (inclusive).
  * @param randomGenerator a random number generator.
  */
-protected static void sampleMethodA(long n, long N, int count, long low, long[] values, int fromIndex, QRandomEngine randomGenerator) {
+protected static void sampleMethodA(long n, long N, int count, long low, long[] values, int fromIndex, RandomEngine randomGenerator) {
 	double V, quot, Nreal, top;
 	long S;
 	long chosen = -1+low;
@@ -365,7 +365,7 @@ protected static void sampleMethodA(long n, long N, int count, long low, long[] 
  * @param fromIndex the first index within <tt>values</tt> to be filled with numbers (inclusive).
  * @param randomGenerator a random number generator.
  */
-protected static void sampleMethodD(long n, long N, int count, long low, long[] values, int fromIndex, QRandomEngine randomGenerator) {
+protected static void sampleMethodD(long n, long N, int count, long low, long[] values, int fromIndex, RandomEngine randomGenerator) {
 	double nreal, Nreal, ninv, nmin1inv, U, X, Vprime, y1, y2, top, bottom, negSreal, qu1real;
 	long qu1, threshold, t, limit;
 	long S;

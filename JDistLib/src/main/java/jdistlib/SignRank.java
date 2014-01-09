@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class SignRank extends GenericDistribution {
 	protected double[] w;
@@ -160,16 +160,16 @@ public class SignRank extends GenericDistribution {
 		return(q);
 	}
 
-	public void setRandomEngine(QRandomEngine rand)
+	public void setRandomEngine(RandomEngine rand)
 	{	random = rand; }
 
-	public QRandomEngine getRandomEngine()
+	public RandomEngine getRandomEngine()
 	{	return random; }
 
 	public double random()
 	{	return random(random); }
 
-	public double random(QRandomEngine rr) {
+	public double random(RandomEngine rr) {
 		if (n == 0) return 0;
 		double r = 0.0;
 		for (int i = 0; i < n; )
@@ -177,7 +177,7 @@ public class SignRank extends GenericDistribution {
 		return r;
 	}
 
-	public double[] random(int n, QRandomEngine r) {
+	public double[] random(int n, RandomEngine r) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(r);

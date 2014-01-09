@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Binomial extends GenericDistribution {
 	public class RandomState {
@@ -201,11 +201,11 @@ public class Binomial extends GenericDistribution {
 		}
 	}
 
-	public static final double random(double nin, double pp, QRandomEngine random) {
+	public static final double random(double nin, double pp, RandomEngine random) {
 		return random(nin, pp, random, null);
 	}
 
-	public static final double random(double nin, double pp, QRandomEngine random, RandomState state) {
+	public static final double random(double nin, double pp, RandomEngine random, RandomState state) {
 		if (state == null) state = singleton.new RandomState();
 
 		double f, f1, f2, u, v, w, w2, x, x1, x2, z, z2;
@@ -387,11 +387,11 @@ public class Binomial extends GenericDistribution {
 		}
 	}
 
-	public static final double[] random(int n, double nin, double pp, QRandomEngine random) {
+	public static final double[] random(int n, double nin, double pp, RandomEngine random) {
 		return random(n, nin, pp, random, create_random_state());
 	}
 
-	public static final double[] random(int n, double nin, double pp, QRandomEngine random, RandomState state) {
+	public static final double[] random(int n, double nin, double pp, RandomEngine random, RandomState state) {
 		if (state == null) state = create_random_state();
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)

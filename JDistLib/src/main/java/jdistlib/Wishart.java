@@ -14,7 +14,7 @@
  */
 package jdistlib;
 
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 import static java.lang.Math.sqrt;
 import static jdistlib.matrix.QMatrixUtils.*;
@@ -49,7 +49,7 @@ public class Wishart {
 	 * @param rand Randomizer
 	 * @return
 	 */
-	public static final double[][] random(double n, double[][] L, QRandomEngine rand)
+	public static final double[][] random(double n, double[][] L, RandomEngine rand)
 	{
 		int d = L.length;
 		assert (d == L[0].length); // Crude check for square-ness

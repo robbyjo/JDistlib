@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class LogNormal extends GenericDistribution{
 	public static final double density(double x, double meanlog, double sdlog, boolean give_log) {
@@ -68,12 +68,12 @@ public class LogNormal extends GenericDistribution{
 		return exp(Normal.quantile(p, meanlog, sdlog, lower_tail, log_p));
 	}
 
-	public static final double random(double meanlog, double sdlog, QRandomEngine random) {
+	public static final double random(double meanlog, double sdlog, RandomEngine random) {
 		if(Double.isNaN(meanlog) || MathFunctions.isInfinite(sdlog) || sdlog < 0.) return Double.NaN;
 		return exp(Normal.random(meanlog, sdlog, random));
 	}
 
-	public static final double[] random(int n, double meanlog, double sdlog, QRandomEngine random) {
+	public static final double[] random(int n, double meanlog, double sdlog, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(meanlog, sdlog, random);

@@ -22,7 +22,7 @@ package jdistlib;
 import static java.lang.Math.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Uniform extends GenericDistribution {
 	public static final double density(double x, double a, double b, boolean give_log) {
@@ -58,7 +58,7 @@ public class Uniform extends GenericDistribution {
 		return a + p * (b - a);
 	}
 
-	public static final double random(double a, double b, QRandomEngine random) {
+	public static final double random(double a, double b, RandomEngine random) {
 		if (MathFunctions.isInfinite(a) || MathFunctions.isInfinite(b) || b < a) return Double.NaN;
 		if (a == b)
 			return a;
@@ -70,7 +70,7 @@ public class Uniform extends GenericDistribution {
 		}
 	}
 
-	public static final double[] random(int n, double a, double b, QRandomEngine random) {
+	public static final double[] random(int n, double a, double b, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(a, b, random);

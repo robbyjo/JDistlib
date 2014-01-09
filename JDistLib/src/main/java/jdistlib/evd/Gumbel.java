@@ -17,7 +17,7 @@ package jdistlib.evd;
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 /**
  * Gumbel distribution. It is a special case of Extreme Value Distribution with shape == 0.
@@ -34,10 +34,10 @@ public class Gumbel extends GenericDistribution {
 	public static final double quantile(double p, double loc, double scale, boolean lower_tail)
 	{	return GEV.quantile(p, loc, scale, 0, lower_tail); }
 
-	public static final double random(double loc, double scale, QRandomEngine random)
+	public static final double random(double loc, double scale, RandomEngine random)
 	{	return GEV.random(loc, scale, 0, random); }
 
-	public static final double[] random(int n, double loc, double scale, QRandomEngine random) {
+	public static final double[] random(int n, double loc, double scale, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(loc, scale, random);

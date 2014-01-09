@@ -17,7 +17,7 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 /**
  * @author Roby Joehanes
@@ -65,14 +65,14 @@ public class Logarithmic extends GenericDistribution {
 		return Double.POSITIVE_INFINITY;
 	}
 
-	public static final double random(double mu, QRandomEngine random) {
+	public static final double random(double mu, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
 		u1 = quantile(u1 / 134217728, mu, true, false);
 		return u1;
 	}
 
-	public static final double[] random(int n, double mu, QRandomEngine random) {
+	public static final double[] random(int n, double mu, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(mu, random);

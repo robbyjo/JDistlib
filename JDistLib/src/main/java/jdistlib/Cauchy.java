@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.isInfinite;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Cauchy extends GenericDistribution {
 	public static final double density(double x, double location, double scale, boolean give_log)
@@ -95,14 +95,14 @@ public class Cauchy extends GenericDistribution {
 		/*	-1/tan(pi * p) = -cot(pi * p) = tan(pi * (p - 1/2))  */
 	}
 
-	public static final double random(double location, double scale, QRandomEngine random)
+	public static final double random(double location, double scale, RandomEngine random)
 	{
 		if (Double.isNaN(location) || isInfinite(scale) || scale < 0) return Double.NaN;
 		if (scale == 0. || isInfinite(location)) return location;
 		return location + scale * tan(M_PI * random.nextDouble());
 	}
 
-	public static final double[] random(int n, double location, double scale, QRandomEngine random) {
+	public static final double[] random(int n, double location, double scale, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(location, scale, random);

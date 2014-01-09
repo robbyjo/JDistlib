@@ -16,7 +16,7 @@ package jdistlib.evd;
 
 import jdistlib.Exponential;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 import static java.lang.Math.*;
 
 /**
@@ -49,13 +49,13 @@ public class ReverseWeibull extends GenericDistribution {
 		return loc - scale * pow(-log(p), 1.0 / shape);
 	}
 
-	public static final double random(double loc, double scale, double shape, QRandomEngine random) {
+	public static final double random(double loc, double scale, double shape, RandomEngine random) {
 		if (scale < 0 || shape <= 0)
 			return Double.NaN;
 		return loc - scale * pow(Exponential.random_standard(random), 1.0 / shape);
 	}
 
-	public static final double[] random(int n, double loc, double scale, double shape, QRandomEngine random) {
+	public static final double[] random(int n, double loc, double scale, double shape, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(loc, scale, shape, random);

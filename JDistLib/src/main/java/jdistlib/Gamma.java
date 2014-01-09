@@ -24,7 +24,7 @@ import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Gamma extends GenericDistribution {
 	static final double M_cutoff = M_LN2 * DBL_MAX_EXP / DBL_EPSILON;
@@ -533,7 +533,7 @@ public class Gamma extends GenericDistribution {
 		return x;
 	}
 
-	public static final double random(double a, double scale, QRandomEngine random)
+	public static final double random(double a, double scale, RandomEngine random)
 	{
 		/* Constants : */
 		final double sqrt32 = 5.656854;
@@ -693,7 +693,7 @@ public class Gamma extends GenericDistribution {
 		return scale * x * x;
 	}
 
-	public static final double[] random(int n, double a, double scale, QRandomEngine random) {
+	public static final double[] random(int n, double a, double scale, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(a, scale, random);

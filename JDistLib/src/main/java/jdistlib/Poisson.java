@@ -27,7 +27,7 @@ import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.rng.QRandomEngine;
+import jdistlib.rng.RandomEngine;
 
 public class Poisson extends GenericDistribution {
 	public class RandomState {
@@ -172,14 +172,14 @@ public class Poisson extends GenericDistribution {
 		}
 	}
 
-	public static final double random(double mu, QRandomEngine random)
+	public static final double random(double mu, RandomEngine random)
 	{	return random(mu, random, null); }
 
-	public static final double[] random(int n, double mu, QRandomEngine random) {
+	public static final double[] random(int n, double mu, RandomEngine random) {
 		return random(n, mu, random, create_random_state());
 	}
 
-	public static final double[] random(int n, double mu, QRandomEngine random, RandomState state) {
+	public static final double[] random(int n, double mu, RandomEngine random, RandomState state) {
 		if (state == null) state = create_random_state();
 		double[] result = new double[n];
 		for (int i = 0; i < n; i++)
@@ -187,7 +187,7 @@ public class Poisson extends GenericDistribution {
 		return result;
 	}
 
-	public static final double random(double mu, QRandomEngine random, RandomState state) {
+	public static final double random(double mu, RandomEngine random, RandomState state) {
 		final double
 		a0 = -0.5,
 		a1 = 0.3333333,

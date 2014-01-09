@@ -531,6 +531,13 @@ public class Normal extends GenericDistribution {
 
 	public double mu, sigma;
 
+	/**
+	 * Constructor for standard normal (i.e., mean = 0, sd = 1)
+	 */
+	public Normal() {
+		this(0, 1);
+	}
+
 	public Normal(double mu, double sigma) {
 		this.mu = mu; this.sigma = sigma;
 		if (sigma <= 0) throw new RuntimeException("Sigma must be positive");

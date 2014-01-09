@@ -1,6 +1,6 @@
 What's new:
 
-Version 0.1.4 (?):
+Version 0.2.0 (Jan 8, 2014):
 * Deprecated GenericDistribution.random(QRandomEngine)
 * Added an API to create multiple random variables
 * Added an API to query multiple values of density, cumulative, and quantile (instance only)

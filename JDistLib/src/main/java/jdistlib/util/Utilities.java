@@ -89,6 +89,16 @@ public class Utilities {
 		return r;
 	}
 
+	public static final double[] rep_each(double[] v, int n) {
+		int vn = v.length;
+		double[] r = new double[vn];
+		for (int i = 0; i < vn; i++) {
+			double vi = v[i];
+			for (int j = 0; j < n; j++)
+				r[i*n + j] = vi;
+		}
+		return r;
+	}
 
 	public static final double[] rec(double[] e) {
 		double[] v = new double[e.length];

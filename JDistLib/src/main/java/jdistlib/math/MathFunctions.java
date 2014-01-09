@@ -61,8 +61,9 @@ public class MathFunctions {
 	 * @return
 	 */
 	public static final double signif(double val, int places) {
+		places = places - (int) (ceil(log10(val)));
 		double factor = pow(10, places);
-		return exp(trunc(log10(val) * factor)/factor);
+		return Math.round(val*factor)/factor;
 	}
 
 	// R's finite is not the same as Java's !Double.isInfinite

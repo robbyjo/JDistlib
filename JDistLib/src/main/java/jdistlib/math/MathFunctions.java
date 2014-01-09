@@ -67,6 +67,21 @@ public class MathFunctions {
 		return Math.round(val*factor)/factor;
 	}
 
+	/**
+	 * Find greatest common divisor of m and n
+	 * @param m
+	 * @param n
+	 * @return GCD(m, n)
+	 */
+	public static final int gcd(int m, int n) {
+		while (true) {
+			m %= n;
+			if (0 == m) return n;
+			n %= m;
+			if (0 == n) return m;
+		}
+	}
+
 	// R's finite is not the same as Java's !Double.isInfinite
 	public static final boolean isFinite(double x)
 	{	return !Double.isNaN(x) && (x != Double.POSITIVE_INFINITY) && (x != Double.NEGATIVE_INFINITY); }

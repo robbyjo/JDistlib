@@ -118,6 +118,13 @@ public class Logistic extends GenericDistribution {
 
 	protected double location, scale;
 
+	/**
+	 * Constructor for standard Logistic (location = 0, scale = 1)
+	 */
+	public Logistic() {
+		this(0, 1);
+	}
+
 	public Logistic(double location, double scale) {
 		this.location = location; this.scale = scale;
 	}

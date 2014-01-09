@@ -82,6 +82,13 @@ public class LogNormal extends GenericDistribution{
 
 	protected double meanlog, sdlog;
 
+	/**
+	 * Constructor for standard Logistic (location = 0, scale = 1)
+	 */
+	public LogNormal() {
+		this(0, 1);
+	}
+
 	public LogNormal(double meanlog, double sdlog) {
 		this.meanlog = meanlog; this.sdlog = sdlog;
 	}

@@ -21,6 +21,7 @@ import static java.lang.Math.log1p;
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -332,5 +333,15 @@ public class VectorMath {
 			map.put(estr, 1 + (i == null ? 0 : i.intValue()));
 		}
 		return map;
+	}
+
+	public static final double[] as_numeric(Collection<String> ll) {
+		int n = ll.size(), i = 0;
+		double[] v = new double[n];
+		for (String str: ll) {
+			v[i] = Double.valueOf(str);
+			i++;
+		}
+		return v;
 	}
 }

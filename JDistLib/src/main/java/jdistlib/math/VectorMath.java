@@ -198,7 +198,7 @@ public class VectorMath {
 	public static final double[] vsignif(double[] e, int digits) {
 		double[] v = new double[e.length];
 		for (int i = 0; i < e.length; i++)
-			v[i] = MathFunctions.signif(-e[i], digits);
+			v[i] = MathFunctions.signif(e[i], digits);
 		return v;
 	}
 

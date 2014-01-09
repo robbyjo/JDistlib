@@ -48,7 +48,7 @@ public class DistributionTest {
 			sortedY[] = new double[nY],
 			maxDiv = 0;
 		System.arraycopy(X, 0, sortedX, 0, nX);
-		System.arraycopy(Y, 0, sortedY, 0, nX);
+		System.arraycopy(Y, 0, sortedY, 0, nY);
 		sort(sortedX);
 		sort(sortedY);
 	
@@ -129,23 +129,47 @@ public class DistributionTest {
 		return 1 - u[lengthY];
 	}
 
-	public static final double cramer_vonmises_statistic(double[] X, double[] Y) {
+	/**
+	 * Two-sample Cramer-Von Mises test
+	 * @param X
+	 * @param Y
+	 * @return
+	 */
+	static final double cramer_vonmises_statistic(double[] X, double[] Y) {
 		int
 			nX = X.length,
 			nY = Y.length,
 			nXY = nX * nY,
 			nXPY = nX + nY;
-		int[] rank = rank(c(X, Y));
+		double[] rank = rank(c(X, Y)),
+			rankX = rank(X),
+			rankY = rank(Y);
 		double sumX = 0, sumY = 0, val;
 		for (int i = 0; i < nX; i++) {
-			val = rank[i] - i;
+			val = rank[i] - rankX[i];
 			sumX += val * val;
 		}
 		for (int i = nX; i < nXPY; i++) {
-			val = rank[i] - (i - nX);
+			val = rank[i] - rankY[i - nX];
 			sumY += val * val;
 		}
-		val = (nX * sumX + nY * sumY) / (nXY + nXPY) - (4*nXY - 1) / (6 * nXPY);
+		val = (nX * sumX + nY * sumY) / (nXY * nXPY) - (4*nXY - 1) / (6 * nXPY); // T statistic
+		//val = (nXY * (sumX + sumY)) / (nXPY * nXPY) ;
 		return val;
+	}
+
+	public static final void main(String[] args) {
+		double[] x = new double[] {
+			-1.2315764307891696738295, 0.1076666048919862200828, -0.2507677102611699515577,	0.1865730243313593050836,
+			0.7674721840239807635342, -0.1874640529241502207025, 0.1376975996921310230192, 0.3722658431557314684390,
+			1.8257862598243677076937, -1.4691239378183402752853
+		};
+		double[] y = new double[] {
+			2.633833206002905935605, -1.041337574910569774289, -1.081121838223072728624, 2.702460192243479220053,
+			1.626548966201278201282, 1.336642538096019183769, 1.075145021293279601338, 1.543056949670002397923,
+			-0.085039987328253241472, 1.357930215887039437916
+		};
+		// Correct answer: T = 0.405, P-value: 0.07656584901166944845397
+		System.out.println(cramer_vonmises_statistic(x, y));
 	}
 }

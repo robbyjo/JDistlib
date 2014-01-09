@@ -1829,7 +1829,6 @@ public class TestDPQR {
 			}
 			// had  accidental cancellation '1 - w'
 		}
-		//*/
 
 		{
 			System.out.println("## qgamma(p, a) for small a and (hence) small p");
@@ -1871,6 +1870,16 @@ public class TestDPQR {
 						success = false;
 					}
 				}
+			}
+		}
+		//*/
+
+		{
+			System.out.println("## gave Inf as p==1 was checked *before* lambda==0");
+			x = vdiv(colon(0., 8), 8);
+			if (!VectorMath.allEqual(new Poisson(0).quantile(x), rep(0, x.length))) {
+				System.err.println("Poisson.quantile(x, lambda=0, true, false) != 0");
+				success = false;
 			}
 		}
 		return success;

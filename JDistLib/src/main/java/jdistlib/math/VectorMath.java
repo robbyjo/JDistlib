@@ -235,6 +235,16 @@ public class VectorMath {
 		return true;
 	}
 
+	public static final boolean allEqual(double[] e, double[] v) {
+		if (e.length != v.length)
+			throw new RuntimeException();
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			if (e[i] != v[i])
+				return false;
+		return true;
+	}
+
 	/**
 	 * Find quantile given a sorted data of array (Definition 7)
 	 * @param sortedData

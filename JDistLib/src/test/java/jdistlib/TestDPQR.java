@@ -1787,9 +1787,7 @@ public class TestDPQR {
 			System.out.println("## qbinom() .. particularly for large sizes, small prob:");
 			x = c(.01, .001, .1, .25);
 			double[] pr = vtimes(1e-7, colon(2., 20));
-			double[] sizes = c(5000279., 5006279., 5016279);
-			double[] ks = colon(0., 15);
-			for (double sz: sizes) {
+			for (double sz: c(5000279., 5006279., 5016279)) {
 				for (double p : x) {
 					for (double _pr : pr) {
 						val = Binomial.quantile(p, sz, _pr, true, false);
@@ -1801,11 +1799,11 @@ public class TestDPQR {
 					}
 				}
 				for (double _pr : pr) {
-					for (double _ks : ks) {
-						val = Binomial.cumulative(_ks, sz, _pr, true, false);
+					for (int ks = 0; ks <= 15; ks++) {
+						val = Binomial.cumulative(ks, sz, _pr, true, false);
 						double val2 = Binomial.quantile(val, sz, _pr, true, false);
-						if (val2 != _ks) {
-							System.err.println(String.format("Binomial.quantile(Binomial.cumulative(%d, %f, %3.18g, true, false) = %3.18g != %f", _ks, sz, _pr, val, val2));
+						if (val2 != ks) {
+							System.err.println(String.format("Binomial.quantile(Binomial.cumulative(%d, %f, %3.18g, true, false) = %3.18g != %f", ks, sz, _pr, val, val2));
 							success = false;
 						}
 					}
@@ -1834,9 +1832,9 @@ public class TestDPQR {
 			System.out.println("## qgamma(p, a) for small a and (hence) small p");
 			System.out.println("## pgamma(x, a) for very very small a");
 
-			val = Gamma.quantile(0.99, 0.0001, 1, true, false);
+			val = Gamma.quantile(0.99, 0.00001, 1, true, false);
 			if (val != 0) {
-				System.err.println(String.format("Gamma.quantile(0.99,  0.0001, 1, true, false) = %3.18g != 0", val));
+				System.err.println(String.format("Gamma.quantile(0.99,  0.00001, 1, true, false) = %3.18g != 0", val));
 				success = false;
 			}
 			x = vplus(1.0, vtimes(1e-7, c(-1., 1)));
@@ -1872,7 +1870,6 @@ public class TestDPQR {
 				}
 			}
 		}
-		//*/
 
 		{
 			System.out.println("## gave Inf as p==1 was checked *before* lambda==0");
@@ -1882,6 +1879,59 @@ public class TestDPQR {
 				success = false;
 			}
 		}
+
+		{
+			System.out.println("## extreme tail of non-central chisquare");
+			val = NonCentralChiSquare.cumulative(200, 4, 0.001, true, true);
+			if (!isEqualScaled(-3.851e-42, val)) {
+				System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(200, 4, 0.001, true, true) = %3.18g != -3.851e-42", val));
+				success = false;
+			}
+		}
+
+		{
+			System.out.println("## logit() == qlogit() on the right extreme:");
+			x = c(colon(10., 80.), vplus(80, vtimes(5, colon(1., 24))), vplus(200, vtimes(20, colon(1., 25))));
+			Logistic l = new Logistic(0, 1);
+			success &= printAllEqual(x, l.quantile(l.cumulative(x, true, true), true, true));
+			// qlogis() gave Inf much too early for R <= 2.12.1
+
+			System.out.println("## Part 2:");
+			x = c(x, seq(700., 800, 10));
+			success &= printAllEqual(x, l.quantile(l.cumulative(x, false, true), false, true));
+			// plogis() underflowed to -Inf too early for R <= 2.15.0
+		}
+
+		{
+			System.out.println("## log upper tail pbeta():");
+			x = vdiv(colon(25., 50.), 128);
+			double[] pbx = new Beta(1./2, 2200).cumulative(x, false, true);
+			double[] dp = diff(pbx);
+			double[] d2p = diff(dp);
+			if (!allGt(pbx, -1094) || !allLt(pbx, -481.66)) {
+				System.err.println("Anomalous Beta.cumulative(x, 0.5, 2200, false, true)");
+				success = false;
+			}
+			if (!allGt(dp, -29) || !allLt(dp, -20)) {
+				System.err.println("Anomalous Beta.cumulative(x, 0.5, 2200, false, true) at the first derivative");
+				success = false;
+			}
+			if (!allGt(d2p, -.36) || !allLt(d2p, -.2)) {
+				System.err.println("Anomalous Beta.cumulative(x, 0.5, 2200, false, true) at the second derivative");
+				success = false;
+			}
+			double[] y = new double[51];
+			for (int i = 0; i < y.length; i++) {
+				double b = 2200*pow(2, i);
+				y[i] = log(-Beta.cumulative(.28, 1./2, b, false, true));
+				if (!isEqualScaled(log(b), y[i] + 1.113, 0.00002)) {
+					System.err.println(String.format("Precision loss at log(-Beta.cumulative(x, 0.5, %3.18g, false, true)) = %3.18g != %3.18g", b, y[i]+1.113, log(b)));
+					success = false;
+				}
+			}
+			// pbx had two -Inf; y was all Inf  for R <= 2.15.3;  PR#15162
+		}
+		//*/
 		return success;
 	}
 

@@ -61,7 +61,8 @@ public class MathFunctions {
 	 * @return
 	 */
 	public static final double signif(double val, int places) {
-		places = places - (int) (ceil(log10(val)));
+		if (val != 0)
+			places = places - (int) (ceil(log10(val)));
 		double factor = pow(10, places);
 		return Math.round(val*factor)/factor;
 	}

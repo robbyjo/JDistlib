@@ -1,5 +1,9 @@
 What's new:
 
+Version 0.2.1 (?):
+* Fixed crash on Poisson.random (and consequently NegBinomial.random) when mu >= 10
+* Added codes from p-r-tests.R
+
 Version 0.2.0 (Jan 8, 2014):
 * Deprecated GenericDistribution.random(QRandomEngine)
 * Added an API to create multiple random variables

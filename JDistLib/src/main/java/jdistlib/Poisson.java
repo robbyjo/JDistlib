@@ -246,14 +246,14 @@ public class Poisson extends GenericDistribution {
 				}
 
 				for(;;) {
-					/* Step U. uniform sample for inversion method */
+					/*	Step U. uniform sample for inversion method */
 					u = random.nextDouble();
 					if (u <= state.p0)
 						return 0.;
 
-					/* Step T. table comparison until the end pp[l] of the
-				   pp-table of cumulative poisson probabilities
-				   (0.458 > ~= pp[9](= 0.45792971447) for mu=10 ) */
+					/*	Step T. table comparison until the end pp[l] of the
+						pp-table of cumulative poisson probabilities
+						(0.458 > ~= pp[9](= 0.45792971447) for mu=10 ) */
 					if (state.l != 0) {
 						for (k = (u <= 0.458) ? 1 : min(state.l, state.m);  k <= state.l; k++)
 							if (u <= state.pp[k])
@@ -261,8 +261,8 @@ public class Poisson extends GenericDistribution {
 						if (state.l == 35) /* u > pp[35] */
 							continue;
 					}
-					/* Step C. creation of new poisson
-				   probabilities p[l..] and their cumulatives q =: pp[k] */
+					/*	Step C. creation of new poisson
+						probabilities p[l..] and their cumulatives q =: pp[k] */
 					state.l++;
 					for (k = state.l; k <= 35; k++) {
 						state.p *= mu / k;
@@ -318,15 +318,48 @@ public class Poisson extends GenericDistribution {
 			state.c = 0.1069 / mu; /* guarantees majorization by the 'hat'-function. */
 		}
 
+		int num_iter = 0; boolean fail = false;
 		if (g >= 0.) {
 			/* 'Subroutine' F is called (kflag=0 for correct return) */
 			//kflag = 0;
 			kflag = false;
 			//goto Step_F;
+			// Copied Step F over
+			num_iter++;
+			//Step_F: /* 'subroutine' F : calculation of px,py,fx,fy. */
+
+			if (pois < 10) { /* use factorials from table fact[] */
+				px = -mu;
+				py = pow(mu, pois) / fact[(int)pois]; // FIXME pois can be < 0!
+			}
+			else {
+				/* Case pois >= 10 uses polynomial approximation
+			   a0-a7 for accuracy when advisable */
+				del = one_12 / fk;
+				del = del * (1. - 4.8 * del * del);
+				v = difmuk / fk;
+				if (abs(v) <= 0.25)
+					px = fk * v * v * (((((((a7 * v + a6) * v + a5) * v + a4) *
+							v + a3) * v + a2) * v + a1) * v + a0) - del;
+				else /* |v| > 1/4 */
+					px = fk * log(1. + v) - difmuk - del;
+				py = M_1_SQRT_2PI / sqrt(fk);
+			}
+			x = (0.5 - difmuk) / state.s;
+			x *= x;/* x^2 */
+			fx = -0.5 * x;
+			fy = state.omega * (((state.c3 * x + state.c2) * x + state.c1) * x + state.c0);
+			if (kflag) {
+				/* Step H. Hat acceptance (E is repeated on rejection) */
+				if (state.c * abs(u) <= py * exp(px + E) - fy * exp(fx + E))
+					return pois;
+			} else
+				/* Step Q. Quotient acceptance (rare case) */
+				if (fy - u * fy <= py * exp(px - fx))
+					return pois;
 		}
 
 		t = 0;
-		int num_iter = 0; boolean fail = false;
 		for(;;) {
 			if (num_iter == 1000) {
 				fail = true;
@@ -335,22 +368,18 @@ public class Poisson extends GenericDistribution {
 			num_iter++;
 			/* Step E. Exponential Sample */
 
-			if (!kflag) {
-				E = Exponential.random_standard(random);	/* ~ Exp(1) (standard exponential) */
+			E = Exponential.random_standard(random);	/* ~ Exp(1) (standard exponential) */
 
-				/*  sample t from the laplace 'hat'
-				    (if t <= -0.6744 then pk < fk for all mu >= 10.) */
-				u = 2 * random.nextDouble() - 1.;
-				//t = 1.8 + fsign(E, u);
-				t = 1.8 + abs(E) * signum(u);
-			}
-			if (!kflag || t > -0.6744) {
-				if (!kflag) {
-					pois = floor(mu + state.s * t);
-					fk = pois;
-					difmuk = mu - fk;
+			/*  sample t from the laplace 'hat'
+			    (if t <= -0.6744 then pk < fk for all mu >= 10.) */
+			u = 2 * random.nextDouble() - 1.;
+			//t = 1.8 + fsign(E, u);
+			t = 1.8 + abs(E) * signum(u);
 
-				}
+			if (t > -0.6744) {
+				pois = floor(mu + state.s * t);
+				fk = pois;
+				difmuk = mu - fk;
 				/* 'subroutine' F is called (kflag=1 for correct return) */
 				//kflag = 1;
 				kflag = true;
@@ -359,7 +388,7 @@ public class Poisson extends GenericDistribution {
 
 				if (pois < 10) { /* use factorials from table fact[] */
 					px = -mu;
-					py = pow(mu, pois) / fact[(int)pois];
+					py = pow(mu, pois) / fact[(int)pois]; // FIXME pois can be < 0!
 				}
 				else {
 					/* Case pois >= 10 uses polynomial approximation

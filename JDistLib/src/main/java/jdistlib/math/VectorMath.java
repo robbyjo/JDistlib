@@ -194,6 +194,13 @@ public class VectorMath {
 		return v;
 	}
 
+	public static final double[] vsignif(double[] e, int digits) {
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = MathFunctions.signif(-e[i], digits);
+		return v;
+	}
+
 	public static final double[] diff(double[] e, int lag, int order) {
 		double[] v = new double[e.length];
 		System.arraycopy(e, 0, v, 0, e.length);

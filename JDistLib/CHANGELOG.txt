@@ -1,5 +1,9 @@
 What's new:
 
+Version 0.3.0 (?):
+* Remove the Q prefix of QRandomEngine, QMersenneTwister, QRandomCMWC, and QRandomSampler
+* Fixed bugs on Kolmogorov-Smirnov two-sample test when the second array (Y) is longer than the first array (X)
+
 Version 0.2.1 (Jan 9, 2014):
 * Fixed crash on Poisson.random (and consequently NegBinomial.random) when mu >= 10
 * Fixed bugs on NonCentralF.random

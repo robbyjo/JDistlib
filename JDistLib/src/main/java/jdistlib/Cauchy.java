@@ -111,6 +111,13 @@ public class Cauchy extends GenericDistribution {
 
 	protected double location, scale;
 
+	/**
+	 * Standard constructor for Cauchy (location = 0, scale = 1)
+	 */
+	public Cauchy() {
+		this(0, 1);
+	}
+
 	public Cauchy(double location, double scale) {
 		this.location = location; this.scale = scale;
 	}

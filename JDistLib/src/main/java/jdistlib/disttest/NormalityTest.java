@@ -30,7 +30,8 @@ import static java.lang.Math.min;
 import static java.lang.Math.pow;
 import static java.lang.Math.signum;
 import static java.lang.Math.sqrt;
-import static java.util.Arrays.sort;
+import static jdistlib.math.Constants.M_1_SQRT_2;
+import static jdistlib.util.Utilities.sort;
 import static jdistlib.disttest.Utils.calculate_ecdf;
 
 /** 
@@ -38,10 +39,7 @@ import static jdistlib.disttest.Utils.calculate_ecdf;
  * @author Roby Joehanes
  */
 public class NormalityTest {
-	public static final double shapiro_wilk_statistic(double[] X)
-	{
-		final double kSqrtHalf = sqrt(0.5);
-
+	public static final double shapiro_wilk_statistic(double[] X) {
 		// constant for Shapiro-wilk
 		final double[]
 			c1 = {0, 0.221157, -0.147981, -2.07119, 4.434685, -2.706056},
@@ -51,12 +49,10 @@ public class NormalityTest {
 			return 0;
 		double[] a = new double[n2];
 		if (n == 3)
-			a[0] = kSqrtHalf;
-		else
-		{
+			a[0] = M_1_SQRT_2;
+		else {
 			double an25 = n + 0.25, sum2 = 0, sqrtSum2;
-			for (int i = 0; i < n2; i++)
-			{
+			for (int i = 0; i < n2; i++) {
 				double val = a[i] = Normal.quantile((i + 0.625) / an25, 0, 1, true, false);
 				sum2 += val * val;
 			}
@@ -64,14 +60,12 @@ public class NormalityTest {
 			sqrtSum2 = sqrt(sum2);
 			double rsn = 1 / sqrt(n), a1 = poly(c1, rsn) - a[0] / sqrtSum2, fac, a2;
 			int i1 = 1;
-			if (n > 5)
-			{
+			if (n > 5) {
 				i1 = 2;
 				a2 = -a[1] / sqrtSum2 + poly(c2, rsn);
 				fac = -sqrt( (sum2 - 2 * a[0] * a[0] - 2 * a[1] * a[1]) / (1 - 2 * a1 * a1 - 2 * a2 * a2) );
 				a[1] = a2;
-			}
-			else
+			} else
 				fac = -sqrt( (sum2 - 2 * a[0] * a[0]) / (1 - 2 * a1 * a1) );
 			a[0] = a1;
 			for (int i = i1; i < n2; i++)
@@ -80,8 +74,7 @@ public class NormalityTest {
 
 		double range = X[n - 1] - X[0], xx = X[0] / range, sx = xx, sa = -a[0], xi;
 		int j = n - 1;
-		for (int i = 1; i < n; j--)
-		{
+		for (int i = 1; i < n; j--) {
 			xi = X[i] / range;
 			sx += xi;
 			i++;
@@ -93,8 +86,7 @@ public class NormalityTest {
 		// W statistic is a squared correlation between data and coefficients
 		double ssa = 0, ssx = 0, sax = 0;
 		sa /= n; sx /= n; j = n - 1;
-		for (int i = 0; i < n; ++i, --j)
-		{
+		for (int i = 0; i < n; ++i, --j) {
 			double
 			asa = i != j ? signum(i - j) * a[min(i,j)] - sa : -sa,
 				xsx = X[i] / range - sx;
@@ -119,8 +111,7 @@ public class NormalityTest {
 	 * @param n The length of the array
 	 * @return
 	 */
-	public static final double shapiro_wilk_pvalue(double w, int n)
-	{
+	public static final double shapiro_wilk_pvalue(double w, int n) {
 		final double kVerySmallValue = 1e-19;
 
 		// constant for Shapiro-wilk
@@ -142,33 +133,27 @@ public class NormalityTest {
 		gamma,
 		m, s;
 
-		if (n <= 11)
-		{
+		if (n <= 11) {
 			gamma = poly(g, n);
 			if (y >= gamma)
 				return kVerySmallValue; // rather use an even smaller value, or NA ?
 			y = -log(gamma - y);
 			m = poly(c3, n);
 			s = exp(poly(c4, n));
-		}
-		else
-		{
+		} else {
 			m = poly(c5, xx);
 			s = exp(poly(c6, xx));
 		}
-
 		return Normal.cumulative(y, m, s*s, false, false);
 	}
 
-	public static final double anderson_darling_statistic(double[] X)
-	{
+	public static final double anderson_darling_statistic(double[] X) {
 		int n = X.length;
 		double
 			sum = 0,
 			sumSq = 0;
 	
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			double value = X[i];
 			sum += value;
 			sumSq += value * value;
@@ -201,8 +186,7 @@ public class NormalityTest {
 	 * @param n The length of the array
 	 * @return
 	 */
-	public static final double anderson_darling_pvalue(double value, int n)
-	{
+	public static final double anderson_darling_pvalue(double value, int n) {
 		double
 			aa = value * (1 + 0.75/n + 2.25 / (n*n)),
 			aasq = aa * aa;
@@ -215,8 +199,7 @@ public class NormalityTest {
 		return exp(1.2937 - 5.709 * aa + 0.0186 * aasq);
 	}
 
-	public static final double cramer_vonmises_statistic(double[] X)
-	{
+	public static final double cramer_vonmises_statistic(double[] X) {
 		int
 			n = X.length,
 			n2 = n * 2;
@@ -225,8 +208,7 @@ public class NormalityTest {
 			sum = 0,
 			sumSq = 0;
 
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			double val = X[i];
 			sum += val;
 			sumSq += val * val;
@@ -243,8 +225,7 @@ public class NormalityTest {
 		sort(sortedZ);
 
 		w = 1.0 / (12 * n);
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			double val = (2 * i + 1.0) / n2 - sortedZ[i];
 			w += val * val;
 		}
@@ -257,8 +238,7 @@ public class NormalityTest {
 	 * @param n The length of the array
 	 * @return
 	 */
-	public static final double cramer_vonmises_pvalue(double w, int n)
-	{
+	public static final double cramer_vonmises_pvalue(double w, int n) {
 		double
 			ww = (1 + 0.5/n) * w,
 			ww2 = ww * ww;
@@ -301,8 +281,7 @@ public class NormalityTest {
 			sumCube = 0,
 			sumQuad = 0;
 
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			double
 				val = X[i],
 				valsq = val * val;
@@ -341,8 +320,7 @@ public class NormalityTest {
 	 * @param X
 	 * @return
 	 */
-	public static final double jarque_bera_statistic(double[] X)
-	{
+	public static final double jarque_bera_statistic(double[] X) {
 		// These are all magic numbers I took from:
 		// http://en.wikipedia.org/wiki/Jarque-Bera_test
 		int n = X.length;
@@ -352,8 +330,7 @@ public class NormalityTest {
 			sumCube = 0,
 			sumQuad = 0;
 	
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			double val = X[i];
 			sum += val;
 			double valsq = val * val;
@@ -382,15 +359,13 @@ public class NormalityTest {
 	public static final double jarque_bera_pvalue(double value)
 	{	return ChiSquare.cumulative(value, 2, true, false); }
 
-	public static final double kolmogorov_smirnov_statistic(double[] X)
-	{
+	public static final double kolmogorov_smirnov_statistic(double[] X) {
 		int n = X.length;
 		double
 			sum = 0,
 			sumSq = 0;
 	
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			double val = X[i];
 			sum += val;
 			sumSq += val * val;
@@ -410,8 +385,7 @@ public class NormalityTest {
 			cdfZ[] = calculate_ecdf(sortedZ),
 			max = 0;
 	
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			double
 				cdfNormal = Normal.cumulative(sortedZ[i], 0, 1, true, false),
 				M = abs(cdfNormal - cdfZ[i]),
@@ -429,8 +403,7 @@ public class NormalityTest {
 	 * @param X The original array with which you invoked kolmogorov_smirnov_statistic
 	 * @return
 	 */
-	public static final double kolmogorov_smirnov_pvalue(double d, double[] X)
-	{
+	public static final double kolmogorov_smirnov_pvalue(double d, double[] X) {
 		int n = X.length;
 		Set<Double> set = new HashSet<Double>(n);
 		for (double x: X)
@@ -449,8 +422,7 @@ public class NormalityTest {
 			for (int j = 0; j < m; j++)
 				H[i * m + j] = i - j + 1 < 0 ? 0 : 1;
 
-		for(int i = 0; i < m; i++)
-		{
+		for(int i = 0; i < m; i++) {
 			H[i * m] -= pow(h, i + 1);
 			H[(m - 1) * m + i] -= pow(h, (m - i));
 		}
@@ -463,11 +435,9 @@ public class NormalityTest {
 		int eH = 0;
 		double eQ = m_power(H, eH, Q, 0, m, n);
 		double s = Q[(k - 1) * m + k - 1];
-		for(int i = 1; i <= n; i++)
-		{
+		for(int i = 1; i <= n; i++) {
 			s = s * i / n;
-			if(s < 1e-140)
-			{
+			if(s < 1e-140) {
 				s *= 1e140;
 				eQ -= 140;
 			}
@@ -485,8 +455,7 @@ public class NormalityTest {
 	 * @param X
 	 * @return
 	 */
-	private static final double kolmogorov_smirnov_pvalue_with_ties(double d, double[] X)
-	{
+	private static final double kolmogorov_smirnov_pvalue_with_ties(double d, double[] X) {
 		final double
 			kKSTolerance = 1e-6,
 			kPiSqDiv8 = PI * PI / 8,
@@ -497,8 +466,7 @@ public class NormalityTest {
 		d = sqrt(n) * d;
 
 		double z, w, s;
-		if (d < 1)
-		{
+		if (d < 1) {
 			z = -kPiSqDiv8 / (d * d);
 			w = log(d);
 			s = 0;
@@ -513,8 +481,7 @@ public class NormalityTest {
 		double
 			old = 0,
 			neww = 1;
-		while (abs(old - neww) > kKSTolerance)
-		{
+		while (abs(old - neww) > kKSTolerance) {
 			old = neww;
 			neww += 2 * s * exp(z * k * k);
 			s *= -1;
@@ -537,20 +504,16 @@ public class NormalityTest {
 	 * @param n The length of the array
 	 * @return
 	 */
-	public static final double kolmogorov_lilliefors_pvalue(double k, int n)
-	{
+	public static final double kolmogorov_lilliefors_pvalue(double k, int n) {
 		double
 			Kd = k,
 			nd = n;
-		if (n > 100)
-		{
+		if (n > 100) {
 			Kd = k * pow((n/100.0),0.49);
 			nd = 100;
 		}
-
 		double pvalue = exp(-7.01256 * Kd * Kd * (nd + 2.78019) + 2.99587 * Kd * sqrt(nd + 2.78019) - 0.122119 + 0.974598/sqrt(nd) + 1.67997/nd);
-		if (pvalue > 0.1)
-		{
+		if (pvalue > 0.1) {
 			double
 				KK = (sqrt(n) - 0.01 + 0.85/sqrt(n)) * k,
 				KK2 = KK * KK,
@@ -574,8 +537,7 @@ public class NormalityTest {
 	 * @param X a sorted array of values
 	 * @return
 	 */
-	public static final double shapiro_francia_statistic(double[] X)
-	{
+	public static final double shapiro_francia_statistic(double[] X) {
 		int n = X.length;
 		double
 			denum = n + 0.25,
@@ -587,8 +549,7 @@ public class NormalityTest {
 			x,
 			y;
 
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			y = Normal.quantile((i + 0.625) / denum, 0, 1, true, false);
 			x = X[i];
 			sumX += x;
@@ -607,8 +568,7 @@ public class NormalityTest {
 	 * @param n the length of the original array
 	 * @return
 	 */
-	public static final double shapiro_francia_pvalue(double w, int n)
-	{
+	public static final double shapiro_francia_pvalue(double w, int n) {
 		double
 			a = log(n),
 			b = log(a),
@@ -623,12 +583,10 @@ public class NormalityTest {
 	 * @param x
 	 * @return
 	 */
-	private static final double poly(double[] coeff, double x)
-	{
+	private static final double poly(double[] coeff, double x) {
 		int n = coeff.length;
 		double result = coeff[0];
-		if (n > 1)
-		{
+		if (n > 1) {
 			double p = x * coeff[n - 1];
 			for (int i = n - 2; i > 0; i--)
 				p = (p + coeff[i]) * x;
@@ -647,13 +605,11 @@ public class NormalityTest {
 	 * @param n
 	 * @return
 	 */
-	private static final int m_power(double[] A, int eA, double[] V, int eV, int m, int n)
-	{
+	private static final int m_power(double[] A, int eA, double[] V, int eV, int m, int n) {
 		double[] B = new double[m * m];
 		int eB;
 
-		if(n == 1)
-		{
+		if(n == 1) {
 			for (int i = 0; i < m * m; i++)
 				V[i] = A[i];
 			return eA;
@@ -661,22 +617,16 @@ public class NormalityTest {
 		eV = m_power(A, eA, V, eV, m, n / 2);
 		m_multiply(V, V, B, m);
 		eB = 2 * eV;
-
-		if((n & 1) == 0)
-		{
+		if((n & 1) == 0) {
 			for (int i = 0; i < m * m; i++)
 				V[i] = B[i];
 			eV = eB;
-		}
-		else
-	    {
+		} else {
 			m_multiply(A, B, V, m);
 			eV = eA + eB;
 	    }
-
 		int mdiv2 = m / 2;
-		if(V[mdiv2 * m + mdiv2] > 1e140)
-		{
+		if(V[mdiv2 * m + mdiv2] > 1e140) {
 			for (int i = 0; i < m * m; i++)
 				V[i] = V[i] * 1e-140;
 			eV += 140;
@@ -691,16 +641,13 @@ public class NormalityTest {
 	 * @param C
 	 * @param m
 	 */
-	private static final void m_multiply(double[] A, double[] B, double[] C, int m)
-	{
+	private static final void m_multiply(double[] A, double[] B, double[] C, int m) {
 		for (int i = 0; i < m; i++)
-			for (int j = 0; j < m; j++)
-			{
+			for (int j = 0; j < m; j++) {
 				double s = 0.0;
 				for (int k = 0; k < m; k++)
 					s+= A[i * m + k] * B[k * m + j];
 				C[i * m + j] = s;
 			}
 	}
-
 }

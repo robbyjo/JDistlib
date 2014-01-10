@@ -572,7 +572,7 @@ public class Tukey extends GenericDistribution {
 	 * @param cc
 	 * @param df
 	 * @param random
-	 * @return
+	 * @return random variate
 	 */
 	public static final double random(double rr, double cc, double df, RandomEngine random) {
 		double u1 = random.nextDouble();

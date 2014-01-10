@@ -28,7 +28,7 @@ public class MathFunctions {
 	 * By: Roby Joehanes
 	 * @param a
 	 * @param p the order (or dimension)
-	 * @return
+	 * @return log multivariate gamma
 	 */
 	public static final double lmvgammafn(double a, int p) {
 		double sum = 0;
@@ -58,7 +58,7 @@ public class MathFunctions {
 	 * Mimicking R's signif
 	 * @param val
 	 * @param places
-	 * @return
+	 * @return rounded values
 	 */
 	public static final double signif(double val, int places) {
 		if (val != 0)
@@ -125,7 +125,7 @@ public class MathFunctions {
 	 * @param x
 	 * @param a
 	 * @param n
-	 * @return
+	 * @return Chebyshev function result
 	 */    
 	public static final double chebyshev_eval(double x, double a[], int n) {
 		if (n < 1 || n > 1000 || x < -1.1 || x > 1.1)

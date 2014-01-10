@@ -257,7 +257,7 @@ public class VectorMath {
 	 * Find quantile given a sorted data of array (Definition 7)
 	 * @param sortedData
 	 * @param quantile must be 0 <= quantile <= 1
-	 * @return
+	 * @return quantile value
 	 */
 	public static final double quantile(double[] sortedData, double quantile) {
 		double index = (sortedData.length - 1) * quantile;

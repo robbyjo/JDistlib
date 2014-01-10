@@ -24,7 +24,7 @@ public class QMatrixUtils {
 	 * Calculate XY. Eliminate the need to instantiate a matrix.
 	 * @param X (n x m)
 	 * @param Y (m x p)
-	 * @return
+	 * @return X * Y
 	 */
 	public static final double[][] calculateXY(double[][] X, double[][] Y)
 	{
@@ -53,7 +53,7 @@ public class QMatrixUtils {
 	 * Calculate XY'. Eliminate the need to transpose.
 	 * @param X
 	 * @param Y
-	 * @return
+	 * @return X * Y'
 	 */
 	public static final double[][] calculateXYt(double[][] X, double[][] Y)
 	{
@@ -84,7 +84,7 @@ public class QMatrixUtils {
 	 * Calculate X'Y. Eliminate the need to transpose.
 	 * @param X
 	 * @param Y
-	 * @return
+	 * @return X'Y
 	 */
 	public static final double[][] calculateXtY(double[][] X, double[][] Y)
 	{

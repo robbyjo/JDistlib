@@ -109,7 +109,7 @@ public class NormalityTest {
 	 * 
 	 * @param w
 	 * @param n The length of the array
-	 * @return
+	 * @return p value
 	 */
 	public static final double shapiro_wilk_pvalue(double w, int n) {
 		final double kVerySmallValue = 1e-19;
@@ -184,7 +184,7 @@ public class NormalityTest {
 	 * 
 	 * @param value
 	 * @param n The length of the array
-	 * @return
+	 * @return p value
 	 */
 	public static final double anderson_darling_pvalue(double value, int n) {
 		double
@@ -236,7 +236,7 @@ public class NormalityTest {
 	 * 
 	 * @param w
 	 * @param n The length of the array
-	 * @return
+	 * @return p value
 	 */
 	public static final double cramer_vonmises_pvalue(double w, int n) {
 		double
@@ -258,7 +258,7 @@ public class NormalityTest {
 	 * Doornik, Hansen, An Omnibus Test for Univariate and Multivariate Normality, 1994
 	 * 
 	 * @param X
-	 * @return
+	 * @return test statistic
 	 */
 	public static final double dagostino_pearson_statistic(double[] X)
 	{
@@ -318,7 +318,7 @@ public class NormalityTest {
 	 * http://en.wikipedia.org/wiki/Jarque-Bera_test
 	 * 
 	 * @param X
-	 * @return
+	 * @return test statistic
 	 */
 	public static final double jarque_bera_statistic(double[] X) {
 		// These are all magic numbers I took from:
@@ -401,7 +401,7 @@ public class NormalityTest {
 	 * 
 	 * @param d
 	 * @param X The original array with which you invoked kolmogorov_smirnov_statistic
-	 * @return
+	 * @return p-value
 	 */
 	public static final double kolmogorov_smirnov_pvalue(double d, double[] X) {
 		int n = X.length;
@@ -453,7 +453,7 @@ public class NormalityTest {
 	 * 
 	 * @param d
 	 * @param X
-	 * @return
+	 * @return p-value with ties
 	 */
 	private static final double kolmogorov_smirnov_pvalue_with_ties(double d, double[] X) {
 		final double
@@ -493,7 +493,7 @@ public class NormalityTest {
 	/**
 	 * Exactly identical as kolmogorov_smirnov_statistic
 	 * @param X
-	 * @return
+	 * @return test statistic
 	 */
 	public static final double kolmogorov_lilliefors_statistic(double[] X)
 	{	return kolmogorov_smirnov_statistic(X); }
@@ -502,7 +502,7 @@ public class NormalityTest {
 	 * 
 	 * @param k
 	 * @param n The length of the array
-	 * @return
+	 * @return p-value
 	 */
 	public static final double kolmogorov_lilliefors_pvalue(double k, int n) {
 		double
@@ -535,7 +535,7 @@ public class NormalityTest {
 	/**
 	 * Shapiro-Francia normality test
 	 * @param X a sorted array of values
-	 * @return
+	 * @return test statistic
 	 */
 	public static final double shapiro_francia_statistic(double[] X) {
 		int n = X.length;
@@ -566,7 +566,7 @@ public class NormalityTest {
 	 * P-value of Shapiro-Francia normality test
 	 * @param w the result from ShapiroFrancia's statistic
 	 * @param n the length of the original array
-	 * @return
+	 * @return p-value
 	 */
 	public static final double shapiro_francia_pvalue(double w, int n) {
 		double
@@ -581,7 +581,7 @@ public class NormalityTest {
 	 * Helper function to calculate polynomials (for Shapiro-Wilk)
 	 * @param coeff
 	 * @param x
-	 * @return
+	 * @return polynomial value
 	 */
 	private static final double poly(double[] coeff, double x) {
 		int n = coeff.length;
@@ -603,7 +603,7 @@ public class NormalityTest {
 	 * @param eV
 	 * @param m
 	 * @param n
-	 * @return
+	 * @return result of power series
 	 */
 	private static final int m_power(double[] A, int eA, double[] V, int eV, int m, int n) {
 		double[] B = new double[m * m];
@@ -639,7 +639,7 @@ public class NormalityTest {
 	 * @param A
 	 * @param B
 	 * @param C
-	 * @param m
+	 * @param m multiplication of a vector-shaped matrix
 	 */
 	private static final void m_multiply(double[] A, double[] B, double[] C, int m) {
 		for (int i = 0; i < m; i++)

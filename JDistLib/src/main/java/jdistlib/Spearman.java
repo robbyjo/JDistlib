@@ -1097,7 +1097,7 @@ public class Spearman extends GenericDistribution {
 	 * @param is
 	 * @param n
 	 * @param lower_tail
-	 * @return
+	 * @return CDF
 	 */
 	public static final double cumulative(double is, int n, boolean lower_tail) {
 		if (n > spearmanArray.length)
@@ -1128,7 +1128,7 @@ public class Spearman extends GenericDistribution {
 	 * @param is
 	 * @param n
 	 * @param lower_tail
-	 * @return
+	 * @return CDF
 	 */
 	public static final double cumulative_as89(double is, int n, boolean lower_tail) {
 		final double
@@ -1218,7 +1218,7 @@ public class Spearman extends GenericDistribution {
 	 * @param is
 	 * @param n
 	 * @param lower_tail
-	 * @return
+	 * @return CDF
 	 */
 	public static final double cumulative_t(double is, int n, boolean lower_tail) {
 		double r = 1 - (6.0 / n) * (is / (n * n - 1.0));

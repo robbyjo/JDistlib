@@ -111,7 +111,7 @@ public abstract class GenericDistribution {
 	 * Hazard function of a distribution. Defined as: pdf / (1-cdf)
 	 * @param t
 	 * @param give_log
-	 * @return
+	 * @return hazard value
 	 */
 	public double hazard(double t, boolean give_log) {
 		double pdf = density(t, true);

@@ -319,7 +319,7 @@ public class Normal extends GenericDistribution {
 	 * @param mu
 	 * @param sigma
 	 * @param random
-	 * @return
+	 * @return random variate
 	 */
 	public static final double random(double mu, double sigma, RandomEngine random) {
 		return mu + sigma * random_standard(random);

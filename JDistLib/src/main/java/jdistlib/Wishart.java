@@ -47,7 +47,7 @@ public class Wishart {
 	 * @param n degree of freedom
 	 * @param L square matrix of d x d, lower triangular Cholesky factor of sigma matrix
 	 * @param rand Randomizer
-	 * @return
+	 * @return square matrix of d x d
 	 */
 	public static final double[][] random(double n, double[][] L, RandomEngine rand)
 	{

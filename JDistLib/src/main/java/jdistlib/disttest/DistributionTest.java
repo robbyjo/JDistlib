@@ -35,7 +35,7 @@ public class DistributionTest {
 	 * 
 	 * @param X an array with length of nX
 	 * @param Y an array with length of nY
-	 * @return
+	 * @return K-S statistics
 	 */
 	public static final double kolmogorov_smirnov_statistic(double[] X, double[] Y) {
 		int
@@ -91,7 +91,7 @@ public class DistributionTest {
 	 * @param maxDiv
 	 * @param lengthX
 	 * @param lengthY
-	 * @return
+	 * @return p-value
 	 */
 	public static final double kolmogorov_smirnov_pvalue(double maxDiv, int lengthX, int lengthY) {
 		/*
@@ -133,9 +133,9 @@ public class DistributionTest {
 	 * Two-sample Cramer-Von Mises test
 	 * @param X
 	 * @param Y
-	 * @return
+	 * @return statistic
 	 */
-	static final double cramer_vonmises_statistic(double[] X, double[] Y) {
+	private static final double cramer_vonmises_statistic(double[] X, double[] Y) {
 		int
 			nX = X.length,
 			nY = Y.length,

@@ -93,7 +93,6 @@ package jdistlib.rng;
  * ACM Transactions on Mathematical Software, Vol 13, 1987.
  * Paper available <A HREF="http://www.cs.duke.edu/~jsv"> here</A>.
  * 
- * @see RandomSamplingAssistant
  * @author  wolfgang.hoschek@cern.ch
  * @version 1.1 05/26/99
  */

@@ -23,7 +23,7 @@ public class Utils {
 	/**
 	 * Calculate the CDF of empirical distribution
 	 * @param sorted
-	 * @return
+	 * @return empirical CDF
 	 */
 	public static final double[] calculate_ecdf(double[] sorted)
 	{

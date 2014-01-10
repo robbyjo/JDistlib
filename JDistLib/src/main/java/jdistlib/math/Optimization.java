@@ -36,7 +36,7 @@ public class Optimization {
 	 * @param f
 	 * @param ax
 	 * @param bx
-	 * @return
+	 * @return the x at which f(x) is the minimum value
 	 */
 	public static final strictfp double optimize(UnivariateFunction f, double ax, double bx)
 	{	return optimize(f, ax, bx, 1e-10, 1000); }
@@ -167,7 +167,7 @@ public class Optimization {
 	 * @param bx
 	 * @param tol Acceptable tolerance for the root value. May be specified as 0.0 to cause the program to find the root as accurate as possible.
 	 * @param maxiter Max. iterations
-	 * @return
+	 * @return the x where f(x) == 0
 	 */
 	public static final strictfp double zeroin(UnivariateFunction f, double ax, double bx, double tol, int maxiter) {
 		double maxit = maxiter+1, a = ax, b = bx, c = a, fa = f.eval(ax), fb = f.eval(bx), fc = fa;

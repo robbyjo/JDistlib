@@ -205,7 +205,7 @@ public class Ansari extends GenericDistribution {
 	 * @param m
 	 * @param n
 	 * @param random
-	 * @return
+	 * @return random variate of Ansari
 	 */
 	public static final double random(int m, int n, RandomEngine random) {
 		double u1 = random.nextDouble();

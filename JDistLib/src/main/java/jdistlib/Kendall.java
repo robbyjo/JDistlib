@@ -67,7 +67,7 @@ public class Kendall extends GenericDistribution {
 	 * Density of Kendall distribution
 	 * @param x This is count, not tau!
 	 * @param n
-	 * @return
+	 * @return density
 	 */
 	public static final double density(double x, int n) {
 		long w[][] = new long[n+1][];
@@ -79,7 +79,7 @@ public class Kendall extends GenericDistribution {
 	 * Density of Kendall distribution
 	 * @param tau This is tau, not count!
 	 * @param n
-	 * @return
+	 * @return density
 	 */
 	public static final double density_tau(double tau, int n) {
 		return density(calculate_count(tau, n), n);
@@ -93,7 +93,7 @@ public class Kendall extends GenericDistribution {
 	 * <P>Less test: cumulative(x,n)
 	 * @param x This is count, not tau!
 	 * @param n
-	 * @return
+	 * @return cumulative
 	 */
 	public static final double cumulative(double x, int n) {
 		double p, q;
@@ -115,7 +115,7 @@ public class Kendall extends GenericDistribution {
 	 * Cumulative distribution of Kendall distribution
 	 * @param tau This is tau, not count!
 	 * @param n
-	 * @return
+	 * @return cumulative
 	 */
 	public static final double cumulative_tau(double tau, int n) {
 		return cumulative(calculate_count(tau, n), n);
@@ -158,7 +158,7 @@ public class Kendall extends GenericDistribution {
 	 * Kendall RNG by inversion
 	 * @param n
 	 * @param random
-	 * @return
+	 * @return random variate
 	 */
 	public static final double random(int n, RandomEngine random) {
 		double u1 = random.nextDouble();

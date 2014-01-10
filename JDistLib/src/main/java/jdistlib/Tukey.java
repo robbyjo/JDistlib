@@ -26,51 +26,51 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
-/*
- *    Computes the probability and quantile that the maximum of rr studentized
+/**
+ *   <P> Computes the probability and quantile that the maximum of rr studentized
  *    ranges, each based on cc means and with df degrees of freedom
  *    for the standard error, is less than q.
  *
- *    The algorithm is based on that of the reference.
+ *    <P>The algorithm is based on that of the reference.
  *
- *  REFERENCE
+ * <P> REFERENCE
  *
- *    Copenhaver, Margaret Diponzio & Holland, Burt S.
+ *    <P>Copenhaver, Margaret Diponzio & Holland, Burt S.
  *    Multiple comparisons of simple effects in
  *    the two-way analysis of variance with fixed effects.
  *    Journal of Statistical Computation and Simulation,
  *    Vol.30, pp.1-15, 1988.
  *    
- *  RJ's Note: See Algorithm AS 190 by Lund and Lund
+ *  <P>RJ's Note: See Algorithm AS 190 by Lund and Lund
  */
 public class Tukey extends GenericDistribution {
-	/*  wprob() :
+	/**  wprob() :
 
-	This function calculates probability integral of Hartley's
+	<P>This function calculates probability integral of Hartley's
 	form of the range.
 
-	w     = value of range
-	rr    = no. of rows or groups
-	cc    = no. of columns or treatments
-	ir    = error flag = 1 if pr_w probability > 1
-	pr_w = returned probability integral from (0, w)
+	<P>w     = value of range
+	<br>rr    = no. of rows or groups
+	<br>cc    = no. of columns or treatments
+	<br>ir    = error flag = 1 if pr_w probability > 1
+	<br>pr_w = returned probability integral from (0, w)
 
-	program will not terminate if ir is raised.
+	<P>program will not terminate if ir is raised.
 
-	bb = upper limit of legendre integration
-	iMax = maximum acceptable value of integral
-	nleg = order of legendre quadrature
-	ihalf = int ((nleg + 1) / 2)
-	wlar = value of range above which wincr1 intervals are used to
+	<P>bb = upper limit of legendre integration
+	<br>iMax = maximum acceptable value of integral
+	<br>nleg = order of legendre quadrature
+	<br>ihalf = int ((nleg + 1) / 2)
+	<br>wlar = value of range above which wincr1 intervals are used to
 	       calculate second part of integral,
 	       else wincr2 intervals are used.
-	C1, C2, C3 = values which are used as cutoffs for terminating
+	<br>C1, C2, C3 = values which are used as cutoffs for terminating
 	or modifying a calculation.
 
-	M_1_SQRT_2PI = 1 / sqrt(2 * pi);  from abramowitz & stegun, p. 3.
-	M_SQRT2 = sqrt(2)
-	xleg = legendre 12-point nodes
-	aleg = legendre 12-point coefficients
+	<P>M_1_SQRT_2PI = 1 / sqrt(2 * pi);  from abramowitz & stegun, p. 3.
+	<br>M_SQRT2 = sqrt(2)
+	<br>xleg = legendre 12-point nodes
+	<br>aleg = legendre 12-point coefficients
 	 */
 	static final double wprob(double w, double rr, double cc)
 	{
@@ -206,65 +206,65 @@ public class Tukey extends GenericDistribution {
 		return pr_w;
 	} /* wprob() */
 
-	/*  function ptukey() [was qprob() ]:
+	/**<p>  function ptukey() [was qprob() ]:
 
-	q = value of studentized range
-	rr = no. of rows or groups
-	cc = no. of columns or treatments
-	df = degrees of freedom of error term
-	ir[0] = error flag = 1 if wprob probability > 1
-	ir[1] = error flag = 1 if qprob probability > 1
+	<p>q = value of studentized range
+	<br>rr = no. of rows or groups
+	<br>cc = no. of columns or treatments
+	<br>df = degrees of freedom of error term
+	<br>ir[0] = error flag = 1 if wprob probability > 1
+	<br>ir[1] = error flag = 1 if qprob probability > 1
 
-	qprob = returned probability integral over [0, q]
+	<P>qprob = returned probability integral over [0, q]
 
-	The program will not terminate if ir[0] or ir[1] are raised.
+	<P>The program will not terminate if ir[0] or ir[1] are raised.
 
-	All references in wprob to Abramowitz and Stegun
+	<p>All references in wprob to Abramowitz and Stegun
 	are from the following reference:
 
-	Abramowitz, Milton and Stegun, Irene A.
+	<P>Abramowitz, Milton and Stegun, Irene A.
 	Handbook of Mathematical Functions.
 	New York:  Dover publications, Inc. (1970).
 
-	All constants taken from this text are
+	<P>All constants taken from this text are
 	given to 25 significant digits.
 
-	nlegq = order of legendre quadrature
-	ihalfq = int ((nlegq + 1) / 2)
-	eps = max. allowable value of integral
-	eps1 & eps2 = values below which there is
+	<p>nlegq = order of legendre quadrature
+	<br>ihalfq = int ((nlegq + 1) / 2)
+	<br>eps = max. allowable value of integral
+	<br>eps1 & eps2 = values below which there is
 		      no contribution to integral.
 
-	d.f. <= dhaf:	integral is divided into ulen1 length intervals.  else
-	d.f. <= dquar:	integral is divided into ulen2 length intervals.  else
-	d.f. <= deigh:	integral is divided into ulen3 length intervals.  else
-	d.f. <= dlarg:	integral is divided into ulen4 length intervals.
+	<P>d.f. <= dhaf:	integral is divided into ulen1 length intervals.  else
+	<br>d.f. <= dquar:	integral is divided into ulen2 length intervals.  else
+	<br>d.f. <= deigh:	integral is divided into ulen3 length intervals.  else
+	<br>d.f. <= dlarg:	integral is divided into ulen4 length intervals.
 
-	d.f. > dlarg:	the range is used to calculate integral.
+	<br>d.f. > dlarg:	the range is used to calculate integral.
 
-	M_LN2 = log(2)
+	<p>M_LN2 = log(2)
 
-	xlegq = legendre 16-point nodes
-	alegq = legendre 16-point coefficients
+	<br>xlegq = legendre 16-point nodes
+	<br>alegq = legendre 16-point coefficients
 
-	The coefficients and nodes for the legendre quadrature used in
+	<p>The coefficients and nodes for the legendre quadrature used in
 	qprob and wprob were calculated using the algorithms found in:
 
-	Stroud, A. H. and Secrest, D.
-	Gaussian Quadrature Formulas.
-	Englewood Cliffs,
-	New Jersey:  Prentice-Hall, Inc, 1966.
+	<p>Stroud, A. H. and Secrest, D.
+	<br>Gaussian Quadrature Formulas.
+	<br>Englewood Cliffs,
+	<br>New Jersey:  Prentice-Hall, Inc, 1966.
 
-	All values matched the tables (provided in same reference)
+	<p>All values matched the tables (provided in same reference)
 	to 30 significant digits.
 
-	f(x) = .5 + erf(x / sqrt(2)) / 2      for x > 0
+	<p>f(x) = .5 + erf(x / sqrt(2)) / 2      for x > 0
 
-	f(x) = erfc( -x / sqrt(2)) / 2	      for x < 0
+	<p>f(x) = erfc( -x / sqrt(2)) / 2	      for x < 0
 
-	where f(x) is standard normal c. d. f.
+	<p>where f(x) is standard normal c. d. f.
 
-	if degrees of freedom large, approximate integral
+	<p>if degrees of freedom large, approximate integral
 	with range distribution.
 	 */
 	public static final double cumulative(double q, double rr, double cc, double df, boolean lower_tail, boolean log_p)
@@ -408,19 +408,19 @@ public class Tukey extends GenericDistribution {
 		return (lower_tail ? (log_p ? log(ans) : (ans))  : (log_p	? log1p(-(ans)) : (0.5 - (ans) + 0.5)));
 	}
 
-	/* qinv() :
-	 *	this function finds percentage point of the studentized range
+	/** qinv() :
+	 *	<p>this function finds percentage point of the studentized range
 	 *	which is used as initial estimate for the secant method.
 	 *	function is adapted from portion of algorithm as 70
 	 *	from applied statistics (1974) ,vol. 23, no. 1
 	 *	by odeh, r. e. and evans, j. o.
 	 *
-	 *	  p = percentage point
-	 *	  c = no. of columns or treatments
-	 *	  v = degrees of freedom
-	 *	  qinv = returned initial estimate
+	 *	  <br>p = percentage point
+	 *	  <br>c = no. of columns or treatments
+	 *	  <br>v = degrees of freedom
+	 *	  <br>qinv = returned initial estimate
 	 *
-	 *	vmax is cutoff above which degrees of freedom
+	 *	<br>vmax is cutoff above which degrees of freedom
 	 *	is treated as infinity.
 	 */
 	static double qinv(double p, double c, double v)
@@ -454,28 +454,28 @@ public class Tukey extends GenericDistribution {
 		return t * (q * log (c - 1.0) + c5);
 	}
 
-	/*
-	 *  Copenhaver, Margaret Diponzio & Holland, Burt S.
+	/**
+	 *  <p>Copenhaver, Margaret Diponzio & Holland, Burt S.
 	 *  Multiple comparisons of simple effects in
 	 *  the two-way analysis of variance with fixed effects.
 	 *  Journal of Statistical Computation and Simulation,
 	 *  Vol.30, pp.1-15, 1988.
 	 *
-	 *  Uses the secant method to find critical values.
+	 *  <p>Uses the secant method to find critical values.
 	 *
-	 *  p = confidence level (1 - alpha)
-	 *  rr = no. of rows or groups
-	 *  cc = no. of columns or treatments
-	 *  df = degrees of freedom of error term
+	 *  <p>p = confidence level (1 - alpha)
+	 *  <br>rr = no. of rows or groups
+	 *  <br>cc = no. of columns or treatments
+	 *  <br>df = degrees of freedom of error term
 	 *
-	 *  ir(1) = error flag = 1 if wprob probability > 1
-	 *  ir(2) = error flag = 1 if ptukey probability > 1
-	 *  ir(3) = error flag = 1 if convergence not reached in 50 iterations
+	 *  <p>ir(1) = error flag = 1 if wprob probability > 1
+	 *  <br>ir(2) = error flag = 1 if ptukey probability > 1
+	 *  <br>ir(3) = error flag = 1 if convergence not reached in 50 iterations
 	 *		       = 2 if df < 2
 	 *
-	 *  qtukey = returned critical value
+	 *  <p>qtukey = returned critical value
 	 *
-	 *  If the difference between successive iterates is less than eps,
+	 *  <p>If the difference between successive iterates is less than eps,
 	 *  the search is terminated
 	 */
 	public static final double quantile(double p, double rr, double cc, double df, boolean lower_tail, boolean log_p)

@@ -33,14 +33,14 @@ public class NegBinomial extends GenericDistribution {
 
 		if (prob <= 0 || prob > 1 || size < 0) return Double.NaN;
 		//R_D_nonint_check(x);
-		if((abs((x) - floor((x)+0.5)) > 1e-7)) {
+		if((abs((x) - rint(x)) > 1e-7)) {
 			//MATHLIB_WARNING("non-integer x = %f", x);
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
 
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		//x = R_D_forceint(x);
-		x = floor((x) + 0.5);
+		x = rint(x);
 
 		ans = Binomial.density_raw(size, x+size, prob, 1-prob, give_log);
 		p = ((double)size)/(size+x);
@@ -56,14 +56,14 @@ public class NegBinomial extends GenericDistribution {
 
 		if (mu < 0 || size < 0) return Double.NaN;
 		// R_D_nonint_check(x);
-		if((abs((x) - floor((x)+0.5)) > 1e-7)) {
+		if((abs((x) - rint(x)) > 1e-7)) {
 			//MATHLIB_WARNING("non-integer x = %f", x);
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
 
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		//x = R_D_forceint(x);
-		x = floor((x) + 0.5);
+		x = rint(x);
 		if(x == 0) { /* be accurate, both for n << mu, and n >> mu :*/
 			x = size * (size < mu ? log(size/(size+mu)) : log1p(- mu/(size+mu)));
 			return (give_log ? (x) : exp(x));
@@ -193,7 +193,8 @@ public class NegBinomial extends GenericDistribution {
 
 		/* y := approx.value (Cornish-Fisher expansion) :  */
 		z = Normal.quantile(p, 0., 1., /*lower_tail*/true, /*log_p*/false);
-		y = floor(mu + sigma * (z + gamma * (z*z - 1) / 6) + 0.5);
+		// y = floor(mu + sigma * (z + gamma * (z*z - 1) / 6) + 0.5);
+		y = rint(mu + sigma * (z + gamma * (z*z - 1) / 6));
 
 		z = cumulative(y, size, prob, /*lower_tail*/true, /*log_p*/false);
 

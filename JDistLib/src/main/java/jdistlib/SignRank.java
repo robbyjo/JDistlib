@@ -173,7 +173,7 @@ public class SignRank extends GenericDistribution {
 		if (n == 0) return 0;
 		double r = 0.0;
 		for (int i = 0; i < n; )
-			r += (++i) * floor(rr.nextDouble() + 0.5);
+			r += (++i) * rint(rr.nextDouble()); // (++i) * floor(rr.nextDouble() + 0.5);
 		return r;
 	}
 

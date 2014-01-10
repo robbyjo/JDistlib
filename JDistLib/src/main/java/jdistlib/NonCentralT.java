@@ -276,10 +276,10 @@ public class NonCentralT extends GenericDistribution {
 
 		/* 2. interval (lx,ux)  halving : */
 		do {
-			nx = 0.5 * (lx + ux);
+			nx = 0.5 * (lx + ux); // could be zero
 			if (cumulative(nx, df, ncp, true, false) > p) ux = nx; else lx = nx;
 		}
-		while ((ux - lx) / abs(nx) > accu);
+		while ((ux - lx) > accu * abs(nx));
 
 		return 0.5 * (lx + ux);
 	}

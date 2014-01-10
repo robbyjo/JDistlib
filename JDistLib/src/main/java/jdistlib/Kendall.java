@@ -71,7 +71,7 @@ public class Kendall extends GenericDistribution {
 	 */
 	public static final double density(double x, int n) {
 		long w[][] = new long[n+1][];
-		if (abs(x - floor(x + 0.5)) > 1e-7 || x < 0 || x > (n * (n - 1) / 2)) return 0;
+		if (abs(x - rint(x)) > 1e-7 || x < 0 || x > (n * (n - 1) / 2)) return 0;
 		return count((int) x, n, w) / gammafn(n + 1);
 	}
 

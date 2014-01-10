@@ -459,15 +459,15 @@ public class MathFunctions {
 		if(isInfinite(x) || isInfinite(np) || np == 0.0) return Double.NaN;
 
 		if (abs(x-np) < 0.1*(x+np)) {
-			v = (x-np)/(x+np);
+			v = exp(log(x-np) - log(x+np)); // might underflow to 0
 			s = (x-np)*v;/* s using v -- change by MM */
 			ej = 2*x*v;
 			v = v*v;
-			for (j=1; ; j++) { /* Taylor series */
+			for (j=1; j < 1000; j++) { /* Taylor series */
 				ej *= v;
 				s1 = s+ej/((j<<1)+1);
-				if (s1==s) /* last term was effectively 0 */
-					return(s1);
+				if (s1 == s) /* last term was effectively 0 */
+					return s1;
 				s = s1;
 			}
 		}

@@ -78,15 +78,15 @@ public class Binomial extends GenericDistribution {
 	    if (Double.isNaN(x) || Double.isNaN(n) || Double.isNaN(p)) return x + n + p;
 
 	    //if (p < 0 || p > 1 || R_D_negInonint(n))
-	    if (p < 0 || p > 1 || (n < 0. || (abs((n) - floor((n)+0.5)) > 1e-7)))
+	    if (p < 0 || p > 1 || (n < 0. || (abs((n) - round(n)) > 1e-7)))
 			return Double.NaN;
 	    //R_D_nonint_check(x);
-	    if((abs((x) - floor((x)+0.5)) > 1e-7))
+	    if((abs((x) - rint(x)) > 1e-7))
 	    	return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 	    if (x < 0 || isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 
-	    n = floor((n) + 0.5);
-	    x = floor((x) + 0.5);
+	    n = rint(n);
+	    x = rint(x);
 
 	    return density_raw(x, n, p, 1-p, give_log);
 	}
@@ -95,14 +95,14 @@ public class Binomial extends GenericDistribution {
 	{
 		if (Double.isNaN(x) || Double.isNaN(n) || Double.isNaN(p)) return x + n + p;
 		if (isInfinite(n) || isInfinite(p)) return Double.NaN;
-		if((abs((n) - floor((n)+0.5)) > 1e-7)) return Double.NaN;
-		n = floor((n) + 0.5);
+		if((abs((n) - rint(n)) > 1e-7)) return Double.NaN;
+		n = rint(n);
 		/* PR#8560: n=0 is a valid value */
 		if(n < 0 || p < 0 || p > 1) return Double.NaN;
 
-		if (x < 0) return 0;
+		if (x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		x = floor(x + 1e-7);
-		if (n <= x) return 1;
+		if (n <= x) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		return Beta.cumulative(p, x + 1, n - x, !lower_tail, log_p);
 	}
 
@@ -136,7 +136,8 @@ public class Binomial extends GenericDistribution {
 		/* if log_p is true, p = -Inf is a legitimate value */
 		if(isInfinite(p) && !log_p) return Double.NaN;
 
-		if(n != floor(n + 0.5)) return Double.NaN;
+		//if(n != floor(n + 0.5)) return Double.NaN;
+		if(n != rint(n)) return Double.NaN;
 		if (pr < 0 || pr > 1 || n < 0) return Double.NaN;
 
 		// R_Q_P01_boundaries(p, 0, n);
@@ -178,7 +179,8 @@ public class Binomial extends GenericDistribution {
 
 		/* y := approx.value (Cornish-Fisher expansion) :  */
 		z = Normal.quantile(p, 0., 1., /*lower_tail*/true, /*log_p*/false);
-		y = floor(mu + sigma * (z + gamma * (z*z - 1) / 6) + 0.5);
+		//y = floor(mu + sigma * (z + gamma * (z*z - 1) / 6) + 0.5);
+		y = rint(mu + sigma * (z + gamma * (z*z - 1) / 6));
 
 		if(y > n) /* way off */ y = n;
 
@@ -213,7 +215,7 @@ public class Binomial extends GenericDistribution {
 		int i,ix,k, n;
 
 		if (isInfinite(nin)) return Double.NaN;
-		r = floor(nin + 0.5);
+		r = rint(nin); // floor(nin + 0.5);
 		if (r != nin) return Double.NaN;
 		if (isInfinite(pp) ||
 				/* n=0, p=0, p=1 are not errors <TSL>*/

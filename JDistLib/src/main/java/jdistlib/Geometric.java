@@ -33,13 +33,13 @@ public class Geometric extends GenericDistribution {
 		if (p <= 0 || p > 1) return Double.NaN;
 
 		//R_D_nonint_check(x);
-		if((abs((x) - floor((x)+0.5)) > 1e-7)) {
+		if((abs((x) - rint(x)) > 1e-7)) {
 			//MATHLIB_WARNING("non-integer x = %f", x);
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
 		if (x < 0 || MathFunctions.isInfinite(x) || p == 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		//x = R_D_forceint(x);
-		x = floor((x) + 0.5);
+		x = rint(x);
 		/* prob = (1-p)^x, stable for small p */
 		prob = Binomial.density_raw(0.,x, p,1-p, give_log);
 		return((give_log) ? log(p) + prob : p*prob);

@@ -54,6 +54,7 @@ public class Poisson extends GenericDistribution {
 			x = -lambda + x*log(lambda) -lgammafn(x+1);
 			return(give_log ? x : exp(x));
 		}
+		// return(R_D_fexp( M_2PI*x, -stirlerr(x)-bd0(x,lambda) ));
 		lambda = -stirlerr(x)-bd0(x,lambda);
 		x = M_2PI*x;
 		return give_log ? -0.5*log(x)+lambda : exp(lambda)/sqrt(x);
@@ -62,9 +63,9 @@ public class Poisson extends GenericDistribution {
 	public static final double density(double x, double lambda, boolean give_log) {
 		if(Double.isNaN(x) || Double.isNaN(lambda)) return x + lambda;
 		if (lambda < 0) return Double.NaN;
-		if (abs((x) - floor((x)+0.5)) > 1e-7) return (give_log ? Double.NEGATIVE_INFINITY : 0.); // Non integer
+		if (abs((x) - round(x)) > 1e-7) return (give_log ? Double.NEGATIVE_INFINITY : 0.); // Non integer
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		return( density_raw(floor((x) + 0.5),lambda,give_log) );
+		return density_raw(round(x), lambda, give_log) ;
 	}
 
 	public static final double cumulative (double x, double lambda, boolean lower_tail, boolean log_p) {
@@ -151,7 +152,8 @@ public class Poisson extends GenericDistribution {
 
 		/* y := approx.value (Cornish-Fisher expansion) :  */
 		z[0] = Normal.quantile(p, 0., 1., /*lower_tail*/true, /*log_p*/false);
-		y = floor(mu + sigma * (z[0] + gamma * (z[0]*z[0] - 1) / 6) + 0.5);
+		//y = floor(mu + sigma * (z[0] + gamma * (z[0]*z[0] - 1) / 6) + 0.5);
+		y = rint(mu + sigma * (z[0] + gamma * (z[0]*z[0] - 1) / 6));
 
 		z[0] = cumulative(y, lambda, /*lower_tail*/true, /*log_p*/false);
 

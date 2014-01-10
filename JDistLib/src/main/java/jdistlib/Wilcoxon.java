@@ -238,7 +238,7 @@ public class Wilcoxon extends GenericDistribution {
 
 	@Override
 	public double density(double x, boolean log) {
-		if ((abs((x) - floor((x)+0.5)) > 1e-7)) return 0;
+		if ((abs((x) - rint(x)) > 1e-7)) return 0;
 		return density((int) x, log);
 	}
 

@@ -3,6 +3,11 @@ What's new:
 Version 0.3.0 (?):
 * Remove the Q prefix of QRandomEngine, QMersenneTwister, QRandomCMWC, and QRandomSampler
 * Fixed bugs on Kolmogorov-Smirnov two-sample test when the second array (Y) is longer than the first array (X)
+* Fixed bugs for Binomial.cumulative when x < 0 or x >= n (improperly returns 0 or 1).
+* Updated to R-patched_2014-01-08_r64705 that contains the following bug fixes:
+  * dbeta(x, a, b) with a or b within a factor of 2 of the largest representable number could infinite-loop. (Reported by Ioannis Kosmidis.)
+  * qcauchy(p, *) is now fully accurate even when p is very close to 1. (PR#15521)
+  * In some extreme cases (more than 10^15) integer inputs to dpqrxxx functions might have been rounded up by one (with a warning about being non-integer).  (PR#15624)
 
 Version 0.2.1 (Jan 9, 2014):
 * Fixed crash on Poisson.random (and consequently NegBinomial.random) when mu >= 10

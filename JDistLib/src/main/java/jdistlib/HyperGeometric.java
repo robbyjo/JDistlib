@@ -49,17 +49,17 @@ public class HyperGeometric extends GenericDistribution {
 
 	    if (Double.isNaN(x) || Double.isNaN(r) || Double.isNaN(b) || Double.isNaN(n)) return x + r + b + n;
 
-	    if ((r < 0. || (abs((r) - floor((r)+0.5)) > 1e-7)) ||
-	    	(b < 0. || (abs((b) - floor((b)+0.5)) > 1e-7)) ||
-	    	(n < 0. || (abs((n) - floor((n)+0.5)) > 1e-7)) || n > r+b) return Double.NaN;
+	    if ((r < 0. || (abs((r) - rint(r)) > 1e-7)) ||
+	    	(b < 0. || (abs((b) - rint(b)) > 1e-7)) ||
+	    	(n < 0. || (abs((n) - rint(n)) > 1e-7)) || n > r+b) return Double.NaN;
 	    //if (R_D_negInonint(x))
-	    if (x < 0. || (abs((x) - floor((x)+0.5)) > 1e-7))
+	    if (x < 0. || (abs((x) - rint(x)) > 1e-7))
 	    	return(give_log ? Double.NEGATIVE_INFINITY : 0.);
 
-	    x = floor((x) + 0.5); // x = R_D_forceint(x);
-	    r = floor((r) + 0.5); // r = R_D_forceint(r);
-	    b = floor((b) + 0.5); // b = R_D_forceint(b);
-	    n = floor((n) + 0.5); // n = R_D_forceint(n);
+	    x = rint(x); // x = R_D_forceint(x);
+	    r = rint(r); // r = R_D_forceint(r);
+	    b = rint(b); // b = R_D_forceint(b);
+	    n = rint(n); // n = R_D_forceint(n);
 
 	    if (n < x || r < x || n - x > b) return(give_log ? Double.NEGATIVE_INFINITY : 0.);
 	    if (n == 0) return((x == 0) ? (give_log ? 0. : 1.) : (give_log ? Double.NEGATIVE_INFINITY : 0.));
@@ -131,9 +131,9 @@ public class HyperGeometric extends GenericDistribution {
 		if(Double.isNaN(x) || Double.isNaN(NR) || Double.isNaN(NB) || Double.isNaN(n)) return x + NR + NB + n;
 
 		x = floor (x + 1e-7);
-		NR = floor((NR) + 0.5); // NR = R_D_forceint(NR);
-		NB = floor((NB) + 0.5); // NB = R_D_forceint(NB);
-		n = floor((n) + 0.5);  // n  = R_D_forceint(n);
+		NR = rint(NR); // NR = R_D_forceint(NR);
+		NB = rint(NB); // NB = R_D_forceint(NB);
+		n = rint(n);  // n  = R_D_forceint(n);
 
 		if (NR < 0 || NB < 0 || MathFunctions.isInfinite(NR + NB) || n < 0 || n > NR + NB)
 			return Double.NaN;
@@ -173,10 +173,10 @@ public class HyperGeometric extends GenericDistribution {
 		if(Double.isNaN(p) || Double.isNaN(NR) || Double.isNaN(NB) || Double.isNaN(n)) return p + NR + NB + n;
 		if(MathFunctions.isInfinite(p) || MathFunctions.isInfinite(NR) || MathFunctions.isInfinite(NB) || MathFunctions.isInfinite(n))
 			return Double.NaN;
-		NR = floor(NR + 0.5);
-		NB = floor(NB + 0.5);
+		NR = rint(NR); // floor(NR + 0.5);
+		NB = rint(NB); // floor(NB + 0.5);
 		N = NR + NB;
-		n = floor(n + 0.5);
+		n = rint(n); // floor(n + 0.5);
 		if (NR < 0 || NB < 0 || n < 0 || n > N) return Double.NaN;
 		/* Goal:  Find  xr (= #{red balls in sample}) such that
 		 *   phyper(xr,  NR,NB, n) >= p > phyper(xr - 1,  NR,NB, n)
@@ -290,9 +290,9 @@ public class HyperGeometric extends GenericDistribution {
 		if(MathFunctions.isInfinite(nn1in) || MathFunctions.isInfinite(nn2in) || MathFunctions.isInfinite(kkin))
 			return Double.NaN;
 
-		nn1 = (int) floor(nn1in+0.5);
-		nn2 = (int) floor(nn2in+0.5);
-		kk	= (int) floor(kkin +0.5);
+		nn1 = (int) rint(nn1in); // floor(nn1in+0.5);
+		nn2 = (int) rint(nn2in); // floor(nn2in+0.5);
+		kk	= (int) rint(kkin); // floor(kkin +0.5);
 
 		if (nn1 < 0 || nn2 < 0 || kk < 0 || kk > nn1 + nn2)
 			return Double.NaN;

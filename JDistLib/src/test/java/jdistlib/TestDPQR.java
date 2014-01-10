@@ -2093,6 +2093,7 @@ public class TestDPQR {
 
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
+		//System.out.println(NonCentralChiSquare.cumulative(1e-5, 100, 1, true, false));
 		test_binom();
 		test_geom();
 		test_hyper();

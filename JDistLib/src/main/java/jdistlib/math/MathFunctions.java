@@ -2854,7 +2854,7 @@ public class MathFunctions {
 	public static final double lchoose(double n, double k)
 	{
 		double k0 = k;
-		k = floor(k + 0.5);
+		k = rint(k);
 		/* NaNs propagated correctly */
 		if(Double.isNaN(n) || Double.isNaN(k)) return n + k;
 		if (abs(k - k0) > 1e-7)
@@ -2870,7 +2870,7 @@ public class MathFunctions {
 		if (n < 0) {
 			return lchoose(-n+ k-1, k);
 		}
-		else if (abs((n) - floor((n)+0.5)) <= 1e-7) { // (R_IS_INT(n)) {
+		else if (abs((n) - rint(n)) <= 1e-7) { // (R_IS_INT(n)) {
 			if(n < k) return Double.NEGATIVE_INFINITY;
 			/* k <= n :*/
 			if(n - k < 2) return lchoose(n, n-k); /* <- Symmetry */
@@ -2889,7 +2889,7 @@ public class MathFunctions {
 	{
 		final int k_small_max = 30;
 		double r, k0 = k;
-		k = floor(k + 0.5);
+		k = rint(k);
 		/* NaNs propagated correctly */
 		if(Double.isNaN(n) || Double.isNaN(k)) return n + k;
 		if (abs(k - k0) > 1e-7)
@@ -2897,14 +2897,14 @@ public class MathFunctions {
 			System.err.println(String.format("'k' (%.2f) must be integer, rounded to %.0f", k0, k));
 		if (k < k_small_max) {
 			int j;
-			if(n-k < k && n >= 0 && (abs((n) - floor((n)+0.5)) <= 1e-7)) k = n-k; /* <- Symmetry */
+			if(n-k < k && n >= 0 && (abs((n) - rint(n)) <= 1e-7)) k = n-k; /* <- Symmetry */
 			if (k <	 0) return 0.;
 			if (k == 0) return 1.;
 			/* else: k >= 1 */
 			r = n;
 			for(j = 2; j <= k; j++)
 				r *= (n-j+1)/j;
-			return (abs((n) - floor((n)+0.5)) <= 1e-7) ? floor(r + 0.5) : r;
+			return (abs((n) - rint(n)) <= 1e-7) ? rint(r) : r;
 			/* might have got rounding errors */
 		}
 		/* else: k >= k_small_max */
@@ -2913,10 +2913,10 @@ public class MathFunctions {
 			if (((k) != 2 * floor((k) / 2.))) r = -r;
 			return r;
 		}
-		else if ((abs((n) - floor((n)+0.5)) <= 1e-7)) {
+		else if ((abs((n) - rint(n)) <= 1e-7)) {
 			if(n < k) return 0.;
 			if(n - k < k_small_max) return choose(n, n-k); /* <- Symmetry */
-			return floor(exp(lfastchoose(n, k)) + 0.5);
+			return rint(exp(lfastchoose(n, k)));
 		}
 		/* else non-integer n >= 0 : */
 		if (n < k-1) {

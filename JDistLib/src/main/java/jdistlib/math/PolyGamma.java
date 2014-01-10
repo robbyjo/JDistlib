@@ -504,7 +504,7 @@ public class PolyGamma
 		/* n-th derivative of psi(x);  e.g., psigamma(x,0) == digamma(x) */
 		double[] ans;
 
-		int n = (int) floor(deriv + 0.5);
+		int n = (int) rint(deriv);
 		if(n > kMaxValue)
 			return Double.NaN;
 		ans = dpsifn(x, n, 1, 1);

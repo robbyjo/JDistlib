@@ -107,6 +107,26 @@ public abstract class GenericDistribution {
 		return rand;
 	}
 
+	/**
+	 * Hazard function of a distribution. Defined as: pdf / (1-cdf)
+	 * @param t
+	 * @param give_log
+	 * @return
+	 */
+	public double hazard(double t, boolean give_log) {
+		double pdf = density(t, true);
+		double cdf = cumulative(t, false, true);
+		return give_log ? pdf - cdf : Math.exp(pdf - cdf);
+	}
+
+	public double[] hazard(double[] t, boolean give_log) {
+		int n = t.length;
+		double[] v = new double[n];
+		for (int i = 0; i < n; i++)
+			v[i] = hazard(t[i], give_log);
+		return v;
+	}
+
 	public void setRandomEngine(RandomEngine r) {
 		random = r;
 	}

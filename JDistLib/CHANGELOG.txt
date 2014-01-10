@@ -1,7 +1,9 @@
 What's new:
 
-Version 0.3.0 (?):
+Version 0.3.0 (Jan 10, 2014):
 * Remove the Q prefix of QRandomEngine, QMersenneTwister, QRandomCMWC, and QRandomSampler
+* Added Beta binomial distribution (with parameterization of mu, sigma, and size)
+* Added hazard, cumulative hazard, survival, and inverse survival functions for all distributions (instance only)
 * Fixed bugs on Kolmogorov-Smirnov two-sample test when the second array (Y) is longer than the first array (X)
 * Fixed bugs for Binomial.cumulative when x < 0 or x >= n (improperly returns 0 or 1).
 * Updated to R-patched_2014-01-08_r64705 that contains the following bug fixes:

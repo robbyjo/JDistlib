@@ -1225,6 +1225,9 @@ public class Spearman extends GenericDistribution {
 		return T.cumulative(r / sqrt((1 - r * r) / (n - 2.0)), n-2, !lower_tail, false);
 	}
 
+	/**
+	 * NOT IMPLEMENTED YET!
+	 */
 	public static final double density(double x, int r) {
 		if (r < 3) return Double.NaN;
 		double
@@ -1237,7 +1240,6 @@ public class Spearman extends GenericDistribution {
 	if (CheckFriedmanExactF(r,n,X,&F,false,doRho)) {
 		return F;	 // Lower tail including X exactly
 	}
-		//*/
 		//if (r > spearmanArray.length) {
 			double W = (s - 1.0) / (m + 2.0); // Corrected for continuity
 			double a = 0.5 * r - 1.0;
@@ -1245,13 +1247,20 @@ public class Spearman extends GenericDistribution {
 		//}
 		//int ss = (int) (0.5+((r*(r*r-1))/6.0)*(1.0+x));
 		//if (r % 2 == 0) ss *= 4;
-		//throw new RuntimeException("Not implemented, sorry!");
+		 * */
+		throw new RuntimeException("Not implemented, sorry!");
 	}
 
+	/**
+	 * NOT IMPLEMENTED YET!
+	 */
 	public static final double quantile(double q, int n) {
 		throw new RuntimeException("Not implemented, sorry!");
 	}
 
+	/**
+	 * NOT IMPLEMENTED YET!
+	 */
 	public static final double random(int n, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
@@ -1259,6 +1268,9 @@ public class Spearman extends GenericDistribution {
 		return u1;
 	}
 
+	/**
+	 * NOT IMPLEMENTED YET!
+	 */
 	public static final double[] random(int count, int n, RandomEngine random) {
 		double[] rand = new double[count];
 		for (int i = 0; i < count; i++)
@@ -1272,6 +1284,9 @@ public class Spearman extends GenericDistribution {
 		this.n = n;
 	}
 
+	/**
+	 * NOT IMPLEMENTED YET!
+	 */
 	@Override
 	public double density(double x, boolean log) {
 		x = density(x, n);
@@ -1284,6 +1299,9 @@ public class Spearman extends GenericDistribution {
 		return log_p ? log(p) : p;
 	}
 
+	/**
+	 * NOT IMPLEMENTED YET!
+	 */
 	@Override
 	public double quantile(double q, boolean lower_tail, boolean log_p) {
 		if (log_p) q = exp(q);
@@ -1291,6 +1309,9 @@ public class Spearman extends GenericDistribution {
 		return quantile(q, n);
 	}
 
+	/**
+	 * NOT IMPLEMENTED YET!
+	 */
 	@Override
 	public double random() {
 		return random(n, random);

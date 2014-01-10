@@ -31,15 +31,6 @@ public abstract class GenericDistribution {
 	public abstract double quantile(double q, boolean lower_tail, boolean log_p);
 	public abstract double random();
 
-	/**
-	 * Assume lower tail and non-log
-	 * @param p
-	 * @return cdf
-	 */
-	public double cumulative(double p) {
-		return cumulative(p, true, false);
-	}
-
 	public double[] density(double[] x, boolean log) {
 		int n = x.length;
 		double[] v = new double[n];
@@ -55,6 +46,15 @@ public abstract class GenericDistribution {
 	 */
 	public double[] density(double[] x) {
 		return density(x, false);
+	}
+
+	/**
+	 * Assume lower tail and non-log
+	 * @param p
+	 * @return cdf
+	 */
+	public double cumulative(double p) {
+		return cumulative(p, true, false);
 	}
 
 	public double[] cumulative(double[] p, boolean lower_tail, boolean log_p) {
@@ -124,6 +124,67 @@ public abstract class GenericDistribution {
 		double[] v = new double[n];
 		for (int i = 0; i < n; i++)
 			v[i] = hazard(t[i], give_log);
+		return v;
+	}
+
+	/**
+	 * Cumulative hazard function, which is basically -ln(1-CDF).
+	 * @param p
+	 * @return survival function
+	 */
+	public double cumulative_hazard(double p) {
+		return -cumulative(p, false, true);
+	}
+
+	public double[] cumulative_hazard(double[] p) {
+		int n = p.length;
+		double[] v = new double[n];
+		for (int i = 0; i < n; i++)
+			v[i] = cumulative(p[i], false, true);
+		return v;
+	}
+
+	/**
+	 * Survival function, which is basically 1-CDF.
+	 * @param p
+	 * @return survival function
+	 */
+	public double survival(double p, boolean log_p) {
+		return cumulative(p, false, log_p);
+	}
+
+	public double[] survival(double[] p, boolean log_p) {
+		int n = p.length;
+		double[] v = new double[n];
+		for (int i = 0; i < n; i++)
+			v[i] = cumulative(p[i], false, log_p);
+		return v;
+	}
+
+	/**
+	 * Survival function, which is basically 1-CDF. Assume non-log.
+	 * @param p
+	 * @return survival function
+	 */
+	public double[] survival(double[] p) {
+		return cumulative(p, false, false);
+	}
+
+	/**
+	 * Inverse survival function, which is basically quantile(1-p).
+	 * @param p
+	 * @param log_p true if the p-value is in log scale
+	 * @return Inverse survival function
+	 */
+	public double inverse_survival(double p, boolean log_p) {
+		return quantile(p, false, log_p);
+	}
+
+	public double[] inverse_survival(double[] p, boolean log_p) {
+		int n = p.length;
+		double[] v = new double[n];
+		for (int i = 0; i < n; i++)
+			v[i] = quantile(p[i], false, log_p);
 		return v;
 	}
 

@@ -76,10 +76,18 @@ public class Ansari extends GenericDistribution {
 	}
 
 	public static final double[] cumulative(int[] x, int m, int n) {
-		return cumulative(x, m, n, null);
+		return cumulative(x, m, n, null, true);
 	}
 
-	static final double[] cumulative(int[] x, int m, int n, double[][][] w) {
+	public static final double cumulative(int x, int m, int n, boolean lower_tail) {
+		return cumulative(x, m, n, null, lower_tail);
+	}
+
+	public static final double[] cumulative(int[] x, int m, int n, boolean lower_tail) {
+		return cumulative(x, m, n, null, lower_tail);
+	}
+
+	static final double[] cumulative(int[] x, int m, int n, double[][][] w, boolean lower_tail) {
 		int i, j, l, u, len = x.length;
 		double c, p;
 		double[] result = new double[len];
@@ -100,7 +108,7 @@ public class Ansari extends GenericDistribution {
 				for (j = l; j <= qq; j++) {
 					p += cansari(j, m, n, w);
 				}
-				result[i] = p / c;
+				result[i] = lower_tail ? p / c : 1 - p / c;
 			}
 		}
 		return result;
@@ -111,6 +119,10 @@ public class Ansari extends GenericDistribution {
 	}
 
 	public static final double cumulative(int x, int m, int n, double[][][] w) {
+		return cumulative(x, m, n, w, true);
+	}
+
+	public static final double cumulative(int x, int m, int n, double[][][] w, boolean lower_tail) {
 		int j, l, u;
 		double c, p;
 		if (w == null) w = new double[m+1][n+1][];
@@ -252,8 +264,7 @@ public class Ansari extends GenericDistribution {
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		p = cumulative((int) p, m, n, w);
-		p = lower_tail ? p : 1 - p;
+		p = cumulative((int) p, m, n, w, lower_tail);
 		return log_p ? log(p) : p;
 	}
 

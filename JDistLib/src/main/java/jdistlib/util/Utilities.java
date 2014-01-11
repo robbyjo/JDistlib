@@ -307,9 +307,10 @@ public class Utilities {
 	}
 
 	/**
-	 * Returns the ranks of the elements of array e
+	 * Returns the ranks of the elements of array e.
 	 * @param e
 	 * @param ties Ties resolution: Average, Min, or Max
+	 * @return NOTE: Rank is index 1-based!
 	 */
 	public static final double[] rank(double[] e, RankTies ties) {
 		int n = e.length;
@@ -328,15 +329,15 @@ public class Utilities {
 				case AVERAGE:
 					double avg = (i + j) / 2.;
 					for (int k = i; k <= j; k++)
-						rank[order[k]] = avg;
+						rank[order[k]] = avg + 1;
 					break;
 				case MAX:
 					for (int k = i; k <= j; k++)
-						rank[order[k]] = j;
+						rank[order[k]] = j + 1;
 					break;
 				case MIN:
 					for (int k = i; k <= j; k++)
-						rank[order[k]] = i;
+						rank[order[k]] = i + 1;
 					break;
 			}
 		}

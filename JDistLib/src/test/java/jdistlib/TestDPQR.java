@@ -2097,7 +2097,7 @@ public class TestDPQR {
 		double[] r = rank(c(x, y));
 		double sum = 0;
 		for (int i = 0; i < nx; i++) {
-			double val = N - r[i];
+			double val = N - r[i] + 1;
 			sum += r[i] < val ? r[i] : val;
 		}
 		return sum;

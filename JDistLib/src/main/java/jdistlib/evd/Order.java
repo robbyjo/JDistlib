@@ -17,6 +17,8 @@ package jdistlib.evd;
 import jdistlib.Beta;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
+import jdistlib.math.Optimization;
+import jdistlib.math.UnivariateFunction;
 import jdistlib.rng.RandomEngine;
 import static java.lang.Math.*;
 import static jdistlib.math.MathFunctions.*;
@@ -41,7 +43,7 @@ public class Order extends GenericDistribution {
 		return !log ? exp(x) : x;
 	}
 
-	public static final double cumulative(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail) {
+	public static final double cumulative(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail, boolean log_p) {
 		if (mlen <= 0 || j <= 0 || j > mlen)
 			return Double.NaN;
 		int from = largest ? mlen + 1 - j : 0;
@@ -53,7 +55,76 @@ public class Order extends GenericDistribution {
 			sum += exp(lgammafn(mlen+1) - lgammafn(sveck+1) - lgammafn(mlen - sveck + 1)
 				+ sveck * log(distn) + (mlen - sveck) * log(1 - distn));
 		}
-		return largest != lower_tail ? 1 - sum : sum;
+		double p = largest != lower_tail ? 1 - sum : sum;
+		return log_p ? log(p) : p;
+	}
+
+	/**
+	 * Find the quantile of order statistics. WARNING: UNTESTED!!!
+	 * @param q
+	 * @param dist
+	 * @param mlen
+	 * @param j
+	 * @param largest
+	 * @param lower_tail
+	 * @param log_p
+	 * @return Quantile
+	 */
+	public static final double quantile(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail, boolean log_p) {
+		if (log_p) q = exp(q);
+		UnivariateFunction fun = new UnivariateFunction() {
+			double q; int mlen, j; boolean largest, lower_tail, log_p;
+			GenericDistribution dist;
+			public void setParameters(double... params) {
+				q = params[0]; mlen = (int) params[1]; j = (int) params[2];
+				largest = params[3] == 0 ? false : true;
+				lower_tail = params[4] == 0 ? false : true;
+				log_p = params[5] == 0 ? false : true;
+			}
+			public void setObjects(Object... obj) {
+				dist = (GenericDistribution) obj[0];
+			}
+			public double eval(double x) {
+				double val = cumulative(x, dist, mlen, j, largest, lower_tail, log_p);
+				val = val - q;
+				return val * val;
+			}
+		};
+		fun.setParameters(q, mlen, j, largest ? 1.0 : 0.0, lower_tail ? 1.0 : 0.0, log_p ? 1.0 : 0.0);
+		fun.setObjects(dist);
+		double min = -20, max = 20, x; // Guess within (-20, 20)
+		/*
+		 * The following loop assumes that the cdf of the order statistic is
+		 * pretty well behaved
+		 */
+		while (true) {
+			x = floor(Optimization.zeroin(fun, min, max, 1e-20, 10000));
+			// Does the optimization returns border value?
+			if (x == min) { // To the minimum side? Expand towards the negative
+				max = min; min *= 2;
+			} else if (x == max) { // To the maximum side? Expand towards the positive
+				min = max; max *= 2;
+			} else
+				break;
+		}
+		// Numerical search is over, manual scan 
+		double last_x, inc = lower_tail ? -1 : 1;
+		double val = cumulative(x, dist, mlen, j, largest, lower_tail, log_p);
+		while (true) {
+			x += inc;
+			val = cumulative(x, dist, mlen, j, largest, lower_tail, log_p);
+			if (val < q) {
+				last_x = x;
+				x -= inc;
+				break;
+			}
+		}
+		if (last_x > x) {
+			double temp = last_x; last_x = x; x = temp;
+		}
+		// Run another optimization round in the last interval. Hopefully fast.
+		x = floor(Optimization.optimize(fun, last_x, x, 1e-20, 10000));
+		return x;
 	}
 
 	public static final double random(GenericDistribution dist, int mlen, int j, boolean largest, RandomEngine random) {
@@ -84,13 +155,12 @@ public class Order extends GenericDistribution {
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		p = cumulative(p, dist, mlen, j, largest, lower_tail);
-		return log_p ? log(p) : p;
+		return cumulative(p, dist, mlen, j, largest, lower_tail, log_p);
 	}
 
 	@Override
 	public double quantile(double q, boolean lower_tail, boolean log_p) {
-		throw new RuntimeException("Not implemented, sorry!");
+		return quantile(q, dist, mlen, j, largest, lower_tail, log_p);
 	}
 
 	@Override

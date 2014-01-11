@@ -21,6 +21,8 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.Optimization;
+import jdistlib.math.UnivariateFunction;
 import jdistlib.rng.RandomEngine;
 
 public class Spearman extends GenericDistribution {
@@ -1252,25 +1254,56 @@ public class Spearman extends GenericDistribution {
 	}
 
 	/**
-	 * NOT IMPLEMENTED YET!
+	 * Uses numerical optimization to get approximate value, then followed by manual search. 
+	 * @param q
+	 * @param n
+	 * @param lower_tail
+	 * @oaram log_p
+	 * @return quantile value
 	 */
-	public static final double quantile(double q, int n) {
-		throw new RuntimeException("Not implemented, sorry!");
+	public static final double quantile(double q, int n, boolean lower_tail, boolean log_p) {
+		if (log_p) q = exp(q);
+		UnivariateFunction fun = new UnivariateFunction() {
+			double q; int n; boolean lower_tail;
+			public void setParameters(double... params) {
+				q = params[0]; n = (int) params[1];
+				lower_tail = params[2] == 0 ? false : true;
+			}
+			public double eval(double x) {
+				double val = cumulative(x, n, lower_tail);
+				val = val - q;
+				return val * val;
+			}
+		};
+		fun.setParameters(q, n, lower_tail ? 1.0 : 0.0);
+		double max = n * (n * n - 1) / 6 + 1;
+		double x = floor(Optimization.optimize(fun, 0., max, 1e-20, 10000));
+		double inc = lower_tail ? -1 : 1;
+		double val = cumulative(x, n, lower_tail);
+		while (true) {
+			x += inc;
+			val = cumulative(x, n, lower_tail);
+			if (val < q) {
+				x -= inc;
+				break;
+			}
+		}
+		return x;
 	}
 
 	/**
-	 * NOT IMPLEMENTED YET!
+	 * Inverse CDF lookup
+	 * @param n
+	 * @param random
+	 * @return random variate
 	 */
 	public static final double random(int n, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();
-		u1 = quantile(u1 / 134217728, n);
+		u1 = quantile(u1 / 134217728, n, true, false);
 		return u1;
 	}
 
-	/**
-	 * NOT IMPLEMENTED YET!
-	 */
 	public static final double[] random(int count, int n, RandomEngine random) {
 		double[] rand = new double[count];
 		for (int i = 0; i < count; i++)
@@ -1300,20 +1333,28 @@ public class Spearman extends GenericDistribution {
 	}
 
 	/**
-	 * NOT IMPLEMENTED YET!
+	 * Uses numerical optimization to get approximate value, then followed by manual search. 
+	 * @param q
+	 * @param lower_tail
+	 * @param log_p Whether q is in log value
+	 * @return quantile value
 	 */
 	@Override
 	public double quantile(double q, boolean lower_tail, boolean log_p) {
-		if (log_p) q = exp(q);
-		if (!lower_tail) q = 1 - q;
-		return quantile(q, n);
+		return quantile(q, n, lower_tail, log_p);
 	}
 
 	/**
-	 * NOT IMPLEMENTED YET!
+	 * Inverse CDF lookup
+	 * @return random variate
 	 */
 	@Override
 	public double random() {
 		return random(n, random);
+	}
+
+	public static final void main(String[] args) {
+		System.out.println(cumulative(36, 10, true));
+		System.out.println(quantile(0.005265376984126984329093, 10, true, false));
 	}
 }

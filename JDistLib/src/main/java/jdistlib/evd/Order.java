@@ -43,6 +43,10 @@ public class Order extends GenericDistribution {
 		return !log ? exp(x) : x;
 	}
 
+	public static final double cumulative(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail) {
+		return cumulative(q, dist, mlen, j, largest, lower_tail, false);
+	}
+
 	public static final double cumulative(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail, boolean log_p) {
 		if (mlen <= 0 || j <= 0 || j > mlen)
 			return Double.NaN;

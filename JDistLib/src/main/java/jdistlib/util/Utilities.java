@@ -1,7 +1,9 @@
 package jdistlib.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 import jdistlib.rng.MersenneTwister;
 import jdistlib.rng.RandomEngine;
@@ -368,7 +370,7 @@ public class Utilities {
 		LinkedHashSet<Double> set = new LinkedHashSet<Double>(e.length);
 		for (double _e : e)
 			set.add(_e);
-		int n = e.length, i = 0;
+		int n = set.size(), i = 0;
 		double[] r = new double[n];
 		for (double _e: set)
 			r[i++] = _e;
@@ -413,5 +415,35 @@ public class Utilities {
 			if (e[i])
 				idx[j++] = i;
 		return idx;
+	}
+
+	/**
+	 * Compute RLE
+	 * @param e
+	 * @return Double dimension array of 2 x e.length. The first contains the values. The second contains the lengths.
+	 */
+	public static final double[][] rle(double[] e) {
+		List<Double> vals = new ArrayList<Double>();
+		List<Integer> lens = new ArrayList<Integer>();
+		double last_val = e[0];
+		int last_ct = 1, n = e.length;
+		for (int i = 1; i < n; i++)
+			if (e[i] != last_val) {
+				vals.add(last_val);
+				lens.add(last_ct);
+				last_val = e[i];
+				last_ct = 1;
+			} else
+				last_ct++;
+		vals.add(last_val);
+		lens.add(last_ct);
+		n = vals.size();
+		double[] uvals = new double[n];
+		double[] ulen = new double[n];
+		for (int i = 0; i < n; i++) {
+			uvals[i] = vals.get(i);
+			ulen[i] = lens.get(i);
+		}
+		return new double[][] {uvals, ulen};
 	}
 }

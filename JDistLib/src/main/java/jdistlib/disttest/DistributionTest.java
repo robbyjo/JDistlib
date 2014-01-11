@@ -19,6 +19,7 @@ import static jdistlib.util.Utilities.*;
 import static jdistlib.math.VectorMath.*;
 import static jdistlib.disttest.Utils.calculate_ecdf;
 import jdistlib.Ansari;
+import jdistlib.F;
 import jdistlib.Normal;
 
 
@@ -212,6 +213,30 @@ public class DistributionTest {
 		double zz = (T - E) / sqrt(v);
 		double p = Normal.cumulative_standard(zz);
 		return new double[] {zz, 2 * min(p, 1 - p)};
+	}
+
+	/**
+	 * Performs an F test to compare the variances of two samples from normal populations. Ratio is set to 1.0. 
+	 * @param x
+	 * @param y
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] var_test(double[] x, double[] y) {
+		return var_test(x, y, 1);
+	}
+
+	/**
+	 * Performs an F test to compare the variances of two samples from normal populations. 
+	 * @param x
+	 * @param y
+	 * @param ratio the hypothesized ratio of the population variances of x and y.
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] var_test(double[] x, double[] y, double ratio) {
+		double stat = (var(x) / var(y)) / ratio;
+		double p = F.cumulative(stat, x.length - 1, y.length - 1, true, false);
+		p = 2 * min(p, 1 - p);
+		return new double[] {stat, 2 * min(p, 1-p)};
 	}
 
 	/**

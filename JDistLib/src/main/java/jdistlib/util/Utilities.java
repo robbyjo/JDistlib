@@ -447,4 +447,65 @@ public class Utilities {
 		}
 		return new double[][] {uvals, ulen};
 	}
+
+	/**
+	 * Mimic the behavior of match function in R.
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public static final int[] match(double[] x, double[] y) {
+		int nx = x.length, ny = y.length;
+		int[] r = new int[nx];
+		for (int i = 0; i < nx; i++) {
+			r[i] = -1;
+			for (int j = 0; j < ny; j++)
+				if (x[i] == y[j]) {
+					r[i] = j;
+					break;
+				}
+		}
+		return r;
+	}
+
+	public static final int[] match(int[] x, int[] y) {
+		int nx = x.length, ny = y.length;
+		int[] r = new int[nx];
+		for (int i = 0; i < nx; i++) {
+			r[i] = -1;
+			for (int j = 0; j < ny; j++)
+				if (x[i] == y[j]) {
+					r[i] = j;
+					break;
+				}
+		}
+		return r;
+	}
+
+	public static final <S> int[] match(S[] x, S[] y) {
+		int nx = x.length, ny = y.length;
+		int[] r = new int[nx];
+		for (int i = 0; i < nx; i++) {
+			r[i] = -1;
+			for (int j = 0; j < ny; j++)
+				if (x[i].equals(y[j])) {
+					r[i] = j;
+					break;
+				}
+		}
+		return r;
+	}
+
+	/**
+	 * Mimic the tabulate function in R
+	 * @param x
+	 * @param n
+	 * @return
+	 */
+	public static final int[] tabulate(int[] x, int n) {
+		int nx = x.length;
+		int[] r = new int[n];
+		for (int i = 0; i < nx; i++) r[x[i]]++;
+		return r;
+	}
 }

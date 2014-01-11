@@ -2091,9 +2091,35 @@ public class TestDPQR {
 		return success;
 	}
 
+	static final double ansari_test(double[] x, double[] y) {
+		int nx = x.length;
+		double N = nx + y.length;
+		double[] r = rank(c(x, y));
+		double sum = 0;
+		for (int i = 0; i < nx; i++) {
+			double val = N - r[i];
+			sum += r[i] < val ? r[i] : val;
+		}
+		return sum;
+	}
+
+	@Test
+	public static final boolean test_ansari() {
+		// Taken from ansari.test.R
+		//Hollander & Wolfe (1973, p. 86f):
+		//Serum iron determination using Hyland control sera
+		double[] ramsay = new double [] {111, 107, 100, 99, 102, 106, 109, 108, 104, 99,
+            101, 96, 97, 102, 107, 113, 116, 113, 110, 98};
+		double[] jung_parekh = new double[] {107, 108, 106, 98, 105, 103, 110, 105, 104,
+	         100, 96, 108, 103, 104, 114, 114, 113, 108, 106, 99};
+		double ansari = ansari_test(ramsay, jung_parekh);
+		return true;
+	}
+
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
 		//System.out.println(NonCentralChiSquare.cumulative(1e-5, 100, 1, true, false));
+		test_ansari();
 		test_binom();
 		test_geom();
 		test_hyper();

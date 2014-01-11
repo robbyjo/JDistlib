@@ -24,4 +24,5 @@ package jdistlib.math;
 public interface UnivariateFunction {
 	public double eval(double x);
 	public void setParameters(double... params);
+	public void setObjects(Object... obj);
 }

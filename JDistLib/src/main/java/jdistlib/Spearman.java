@@ -1269,6 +1269,7 @@ public class Spearman extends GenericDistribution {
 				q = params[0]; n = (int) params[1];
 				lower_tail = params[2] == 0 ? false : true;
 			}
+			public void setObjects(Object... obj) {}
 			public double eval(double x) {
 				double val = cumulative(x, n, lower_tail);
 				val = val - q;

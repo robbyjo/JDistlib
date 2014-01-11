@@ -70,6 +70,7 @@ public class InvNormal extends GenericDistribution {
 			public double eval(double x) {
 				return cumulative(x, mu, sigma, true, false) - p;
 			}
+			public void setObjects(Object... obj) {}
 			public void setParameters(double... params) {
 				mu = params[0];
 				sigma = params[1];

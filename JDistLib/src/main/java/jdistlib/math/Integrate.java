@@ -1366,9 +1366,8 @@ public class Integrate {
 
 	public static void main(String[] args) {
 		UnivariateFunction f = new UnivariateFunction() {
-			public void setParameters(double... params) {
-			}
-			
+			public void setParameters(double... params) {}
+			public void setObjects(Object... obj) {}
 			public double eval(double x) {
 				return Normal.density(x, 0, 1, false);
 			}
@@ -1378,9 +1377,8 @@ public class Integrate {
 		System.out.println("Error = " + result.abserr); // Should be precisely 0.5
 
 		f = new UnivariateFunction() {
-			public void setParameters(double... params) {
-			}
-			
+			public void setParameters(double... params) {}
+			public void setObjects(Object... obj) {}
 			public double eval(double x) {
 				return 1/((x+1) * sqrt(x));
 			}

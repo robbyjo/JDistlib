@@ -2094,6 +2094,7 @@ public class TestDPQR {
 
 	@Test
 	public static final boolean test_ansari() {
+		boolean success = true;
 		// Taken from ansari.test.R
 		//Hollander & Wolfe (1973, p. 86f):
 		//Serum iron determination using Hyland control sera
@@ -2104,7 +2105,12 @@ public class TestDPQR {
 		double[] ansari = DistributionTest.ansari_bradley_test(ramsay, jung_parekh, true);
 		System.out.println(ansari[0]);
 		System.out.println(ansari[1]);
-		return true;
+		success &= isEqual(185.5, ansari[0]) && isEqual(0.18668552840821545, ansari[1]);
+		double[] mood = DistributionTest.mood_test(ramsay, jung_parekh);
+		System.out.println(mood[0]);
+		System.out.println(mood[1]);
+		success &= isEqual(1.0371275614960966, mood[0]) && isEqual(0.2996764118570592, mood[1]);
+		return success;
 	}
 
 	public static final void main(String[] args) {

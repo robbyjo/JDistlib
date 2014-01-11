@@ -137,6 +137,13 @@ public class VectorMath {
 		return v;
 	}
 
+	public static final double[] vsq(double[] a) {
+		double[] v = new double[a.length];
+		for (int i = 0; i < a.length; i++)
+			v[i] = a[i]*a[i];
+		return v;
+	}
+
 	public static final double[] vdiv(double[] a, double b) {
 		double[] v = new double[a.length];
 		for (int i = 0; i < a.length; i++)
@@ -348,6 +355,15 @@ public class VectorMath {
 	public static final double[] cumsum(double[] e) {
 		int n = e.length;
 		double[] r = new double[n];
+		r[0] = e[0];
+		for (int i = 1; i < n; i++)
+			r[i] = r[i-1] + e[i];
+		return r;
+	}
+
+	public static final int[] cumsum(int[] e) {
+		int n = e.length;
+		int[] r = new int[n];
 		r[0] = e[0];
 		for (int i = 1; i < n; i++)
 			r[i] = r[i-1] + e[i];

@@ -526,4 +526,18 @@ public class Utilities {
 			r[i] = x[idx[i]];
 		return r;
 	}
+
+	/**
+	 * Mimic x[idx] behavior of R
+	 * @param x
+	 * @param idx
+	 * @return
+	 */
+	public static final double[] index_min1(double[] x, int[] idx) {
+		int n = idx.length;
+		double[] r = new double[n];
+		for (int i = 0; i < n; i++)
+			r[i] = x[idx[i] - 1];
+		return r;
+	}
 }

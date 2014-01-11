@@ -169,6 +169,52 @@ public class DistributionTest {
 	}
 
 	/**
+	 * Performs Mood's two-sample test for a difference in scale parameters. 
+	 * @param x
+	 * @param y
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] mood_test(double[] x, double[] y) {
+		int nx = x.length, ny = y.length;
+		double N = nx + ny;
+		if (N < 3)
+			throw new RuntimeException("Not enough observations");
+		double E = nx * (N * N - 1.) / 12.;
+		double v = (1./180.) * nx * ny * (N + 1) * (N + 2) * (N - 2);
+		double[] z = c(x, y);
+		boolean has_ties = unique(z).length != z.length;
+		double T = 0;
+		double con = (N + 1.0)/ 2.;
+		if (!has_ties) {
+			double[] r = rank(z);
+			for (int i = 0; i < nx; i++) {
+				double val = r[i] - con;
+				T += val * val;
+			}
+		} else {
+			double[] u = unique(z);
+			sort(u);
+			int[] a = tabulate(match(x, u), u.length);
+			int[] t = tabulate(match(z, u), u.length);
+			double[] p = vmin(colon(1., z.length), con);
+			p = cumsum(vsq(p));
+			double sum = 0;
+			for (int i = 0; i < u.length; i++) {
+				double ti = t[i], NmtiSq = N - t[i], tsq = ti * ti;
+				NmtiSq *= NmtiSq;
+				sum += ti * (tsq - 1) * (tsq - 4 + 15 * NmtiSq);
+			}
+			v = v - (nx * ny) / (180. * N * (N - 1)) * sum;
+			double[] temp = diff(c(new double[] {0.}, index_min1(p, cumsum(t))));
+			for (int i = 0; i < t.length; i++)
+				T += a[i] * temp[i] / t[i];
+		}
+		double zz = (T - E) / sqrt(v);
+		double p = Normal.cumulative_standard(zz);
+		return new double[] {zz, 2 * min(p, 1 - p)};
+	}
+
+	/**
 	 * Two-sample Cramer-Von Mises test
 	 * @param X
 	 * @param Y

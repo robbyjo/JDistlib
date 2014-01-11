@@ -57,6 +57,14 @@ public class Normal extends GenericDistribution {
 				: M_1_SQRT_2PI * exp(-0.5 * x * x) / sigma;
 	}
 
+	public static final double cumulative_standard(double x) {
+		return cumulative(x, 0, 1, true, false);
+	}
+
+	public static final double cumulative(double x, double mu, double sigma) {
+		return cumulative(x, mu, sigma, true, false);
+	}
+
 	public static final double cumulative(double x, double mu, double sigma, boolean lower_tail, boolean log_p) {
 		final double SIXTEN = 16; /* Cutoff allowing exact "*" and "/" */
 		final double a[] = new double[] {

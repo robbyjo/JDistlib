@@ -17,6 +17,7 @@ package jdistlib;
 
 import java.util.Map;
 
+import jdistlib.disttest.DistributionTest;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.VectorMath;
 import jdistlib.rng.MersenneTwister;
@@ -2091,18 +2092,6 @@ public class TestDPQR {
 		return success;
 	}
 
-	static final double ansari_test(double[] x, double[] y) {
-		int nx = x.length;
-		double N = nx + y.length;
-		double[] r = rank(c(x, y));
-		double sum = 0;
-		for (int i = 0; i < nx; i++) {
-			double val = N - r[i] + 1;
-			sum += r[i] < val ? r[i] : val;
-		}
-		return sum;
-	}
-
 	@Test
 	public static final boolean test_ansari() {
 		// Taken from ansari.test.R
@@ -2112,7 +2101,7 @@ public class TestDPQR {
             101, 96, 97, 102, 107, 113, 116, 113, 110, 98};
 		double[] jung_parekh = new double[] {107, 108, 106, 98, 105, 103, 110, 105, 104,
 	         100, 96, 108, 103, 104, 114, 114, 113, 108, 106, 99};
-		double ansari = ansari_test(ramsay, jung_parekh);
+		double ansari = DistributionTest.ansari_bradley_statistic(ramsay, jung_parekh);
 		return true;
 	}
 

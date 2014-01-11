@@ -369,4 +369,24 @@ public class VectorMath {
 			if (e[i] < mn) mn = e[i];
 		return mn;
 	}
+
+	public static final double[] pmax(double[] a, double[] b) {
+		int n = a.length;
+		if (n != b.length)
+			throw new RuntimeException();
+		double[] mx = new double[n];
+		for (int i = 0; i < n; i++)
+			mx[i] = a[i] > b[i] ? a[i] : b[i];
+		return mx;
+	}
+
+	public static final double[] pmin(double[] a, double[] b) {
+		int n = a.length;
+		if (n != b.length)
+			throw new RuntimeException();
+		double[] mx = new double[n];
+		for (int i = 0; i < n; i++)
+			mx[i] = a[i] < b[i] ? a[i] : b[i];
+		return mx;
+	}
 }

@@ -1,6 +1,7 @@
 package jdistlib.util;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 
 import jdistlib.rng.MersenneTwister;
 import jdistlib.rng.RandomEngine;
@@ -361,5 +362,56 @@ public class Utilities {
 				i2 = random.nextInt(n);
 			double t = e[i1]; e[i1] = e[i2]; e[i2] = t;
 		}
+	}
+
+	public static final double[] unique(double[] e) {
+		LinkedHashSet<Double> set = new LinkedHashSet<Double>(e.length);
+		for (double _e : e)
+			set.add(_e);
+		int n = e.length, i = 0;
+		double[] r = new double[n];
+		for (double _e: set)
+			r[i++] = _e;
+		return r;
+	}
+
+	public static final <S> S[] unique(S[] e) {
+		LinkedHashSet<S> set = new LinkedHashSet<S>(e.length);
+		for (S _e : e)
+			set.add(_e);
+		return (S[]) set.toArray();
+	}
+
+	public static final boolean[] is_duplicated(double[] e) {
+		LinkedHashSet<Double> set = new LinkedHashSet<Double>(e.length);
+		int n = e.length, i = 0;
+		boolean[] r = new boolean[n];
+		for (double _e : e) {
+			r[i++] = set.contains(_e);
+			set.add(_e);
+		}
+		return r;
+	}
+
+	public static final <S> boolean[] is_duplicated(S[] e) {
+		LinkedHashSet<S> set = new LinkedHashSet<S>(e.length);
+		int n = e.length, i = 0;
+		boolean[] r = new boolean[n];
+		for (S _e : e) {
+			r[i++] = set.contains(_e);
+			set.add(_e);
+		}
+		return r;
+	}
+
+	public static final int[] which(boolean[] e) {
+		int n = e.length, n_true = 0, j = 0;
+		for (boolean _e : e)
+			if (_e) n_true++;
+		int[] idx = new int[n_true];
+		for (int i = 0; i < n; i++)
+			if (e[i])
+				idx[j++] = i;
+		return idx;
 	}
 }

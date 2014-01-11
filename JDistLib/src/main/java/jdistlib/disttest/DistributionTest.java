@@ -130,6 +130,36 @@ public class DistributionTest {
 	}
 
 	/**
+	 * Calculate Ansari-Bradley statistic for two-sample test for a difference in scale parameters. 
+	 * @param x
+	 * @param y
+	 * @return Ansari-Bradley test statistic
+	 */
+	public static final double ansari_bradley_statistic(double[] x, double[] y) {
+		int nx = x.length;
+		double N = nx + y.length;
+		double[] r = rank(c(x, y));
+		double sum = 0;
+		for (int i = 0; i < nx; i++) {
+			double val = N - r[i] + 1;
+			sum += r[i] < val ? r[i] : val;
+		}
+		return sum;
+	}
+
+	public static final double ansari_bradley_pvalue(double[] x, double[] y, boolean is_exact) {
+		int nx = x.length, ny = y.length;
+		double N = nx + y.length;
+		double[] r = rank(c(x, y));
+		double sum = 0;
+		for (int i = 0; i < nx; i++) {
+			double val = N - r[i] + 1;
+			sum += r[i] < val ? r[i] : val;
+		}
+		return 0;
+	}
+
+	/**
 	 * Two-sample Cramer-Von Mises test
 	 * @param X
 	 * @param Y

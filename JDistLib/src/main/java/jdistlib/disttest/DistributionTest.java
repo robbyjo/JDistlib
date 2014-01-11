@@ -14,13 +14,12 @@
  */
 package jdistlib.disttest;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.floor;
-import static jdistlib.util.Utilities.c;
-import static jdistlib.util.Utilities.sort;
-import static jdistlib.util.Utilities.rank;
+import static java.lang.Math.*;
+import static jdistlib.util.Utilities.*;
+import static jdistlib.math.VectorMath.*;
 import static jdistlib.disttest.Utils.calculate_ecdf;
 import jdistlib.Ansari;
+import jdistlib.Normal;
 
 
 /**
@@ -131,36 +130,42 @@ public class DistributionTest {
 	}
 
 	/**
-	 * Calculate Ansari-Bradley statistic for two-sample test for a difference in scale parameters. 
-	 * @param x
-	 * @param y
-	 * @return Ansari-Bradley test statistic
+	 * Return the two-sided test of Ansari-Bradley.
+	 * @param x the original x
+	 * @param y the original y
+	 * @param force_exact Set to true if you want exact answer. The default behavior is that
+	 * if there are ties or either the length of x or the length of y is at least 50.
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
-	public static final double ansari_bradley_statistic(double[] x, double[] y) {
-		int nx = x.length;
-		double N = nx + y.length;
+	public static final double[] ansari_bradley_test(double[] x, double[] y, boolean force_exact) {
+		int nx = x.length, ny = y.length;
+		double N = nx + ny;
 		double[] r = rank(c(x, y));
-		double sum = 0;
-		for (int i = 0; i < nx; i++) {
-			double val = N - r[i] + 1;
-			sum += r[i] < val ? r[i] : val;
+		boolean has_ties = unique(r).length != r.length;
+		boolean large_xy = nx >= 50 || ny >= 50;
+		double h = 0;
+		r = pmin(r, vmin(N + 1, r));
+		for (int i = 0; i < nx; i++)
+			h += r[i];
+		if (force_exact || (!has_ties && !large_xy)) {
+			double limit = (nx + 1) * (nx + 1) / 4 + (nx * ny / 2) / 2.0;
+			double p = h > limit ? 1 - Ansari.cumulative((int) h - 1, nx, ny)
+				: Ansari.cumulative((int) h, nx, ny);
+			p = min(2 * p, 1);
+			return new double[] {h, p};
 		}
-		return sum;
-	}
-
-	/**
-	 * Return the two-sided p-value of Ansari-Bradley statistic. Assume no ties
-	 * @param h
-	 * @param nx
-	 * @param ny
-	 * @return the p-value
-	 */
-	public static final double ansari_bradley_pvalue(double h, int nx, int ny) {
-		double limit = (nx + 1) * (nx + 1) / 4 + (nx * ny / 2) / 2.0;
-		double p = h > limit ? 1 - Ansari.cumulative((int) h - 1, nx, ny)
-			: Ansari.cumulative((int) h, nx, ny);
-		p = Math.min(2 * p, 1);
-		return p;
+		// Has ties or large xy: Inexact match
+		sort(r);
+		double[][] rle = rle(r);
+		double denom = 16 * N * (N - 1), Np1Sq = N + 1, Np2 = (N+2);
+		Np1Sq *= Np1Sq;
+		double sigma = 16 * sum(vtimes(vtimes(rle[0], rle[0]), rle[1]));
+		sigma = N % 2 == 0 ? sqrt(nx * ny * (sigma - N*Np2*Np2) / denom)
+			: sqrt(nx * ny * (sigma*N - Np1Sq*Np1Sq) / (denom * N));
+		double z = N % 2 == 0 ? h - nx * Np2 / 4 : h - nx * Np1Sq / (4 * N);
+		double p = Normal.cumulative(z/sigma, 0, 1, true, false);
+		p = 2 * min(p, 1-p);
+		return new double[] {h, p};
 	}
 
 	/**

@@ -512,4 +512,18 @@ public class Utilities {
 	public static final int[] seq_along(double[] z) {
 		return colon(1, z.length);
 	}
+
+	/**
+	 * Mimic x[idx] behavior of R
+	 * @param x
+	 * @param idx
+	 * @return
+	 */
+	public static final double[] index(double[] x, int[] idx) {
+		int n = idx.length;
+		double[] r = new double[n];
+		for (int i = 0; i < n; i++)
+			r[i] = x[idx[i]];
+		return r;
+	}
 }

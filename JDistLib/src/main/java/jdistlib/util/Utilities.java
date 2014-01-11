@@ -508,4 +508,8 @@ public class Utilities {
 		for (int i = 0; i < nx; i++) r[x[i]]++;
 		return r;
 	}
+
+	public static final int[] seq_along(double[] z) {
+		return colon(1, z.length);
+	}
 }

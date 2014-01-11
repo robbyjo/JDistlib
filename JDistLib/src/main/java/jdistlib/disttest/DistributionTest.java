@@ -20,6 +20,7 @@ import static jdistlib.util.Utilities.c;
 import static jdistlib.util.Utilities.sort;
 import static jdistlib.util.Utilities.rank;
 import static jdistlib.disttest.Utils.calculate_ecdf;
+import jdistlib.Ansari;
 
 
 /**
@@ -147,16 +148,19 @@ public class DistributionTest {
 		return sum;
 	}
 
-	public static final double ansari_bradley_pvalue(double[] x, double[] y, boolean is_exact) {
-		int nx = x.length, ny = y.length;
-		double N = nx + y.length;
-		double[] r = rank(c(x, y));
-		double sum = 0;
-		for (int i = 0; i < nx; i++) {
-			double val = N - r[i] + 1;
-			sum += r[i] < val ? r[i] : val;
-		}
-		return 0;
+	/**
+	 * Return the two-sided p-value of Ansari-Bradley statistic. Assume no ties
+	 * @param h
+	 * @param nx
+	 * @param ny
+	 * @return the p-value
+	 */
+	public static final double ansari_bradley_pvalue(double h, int nx, int ny) {
+		double limit = (nx + 1) * (nx + 1) / 4 + (nx * ny / 2) / 2.0;
+		double p = h > limit ? 1 - Ansari.cumulative((int) h - 1, nx, ny)
+			: Ansari.cumulative((int) h, nx, ny);
+		p = Math.min(2 * p, 1);
+		return p;
 	}
 
 	/**

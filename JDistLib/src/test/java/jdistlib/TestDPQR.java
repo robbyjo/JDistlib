@@ -2102,6 +2102,7 @@ public class TestDPQR {
 		double[] jung_parekh = new double[] {107, 108, 106, 98, 105, 103, 110, 105, 104,
 	         100, 96, 108, 103, 104, 114, 114, 113, 108, 106, 99};
 		double ansari = DistributionTest.ansari_bradley_statistic(ramsay, jung_parekh);
+		System.out.println(DistributionTest.ansari_bradley_pvalue(ansari, ramsay.length, jung_parekh.length));
 		return true;
 	}
 

@@ -26,6 +26,7 @@ import jdistlib.Ansari;
 import jdistlib.F;
 import jdistlib.Normal;
 import jdistlib.SignRank;
+import jdistlib.T;
 import jdistlib.Wilcoxon;
 
 
@@ -376,7 +377,7 @@ public class DistributionTest {
 	 * @param mu
 	 * @param correction set to true if continuity correction is desired. Only matters
 	 * then there are ties
-	 * @param paired set true for paired test (which reduces to Wilcoxon test)
+	 * @param paired set to true for paired test (which reduces to Wilcoxon test)
 	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
@@ -434,6 +435,71 @@ public class DistributionTest {
 			}
 		}
 		return new double[] {w, p};
+	}
+
+	/**
+	 * One-sample t-test
+	 * @param x
+	 * @param mu
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] t_test(double[] x, double mu, TestKind kind) {
+		int nx = x.length;
+		double stderr = sqrt(var(x)/nx);
+		nx--;
+		double t = (mean(x) - mu) / stderr, p = Double.NaN;
+		switch (kind) {
+			case TWO_SIDED: p = 2 * T.cumulative(-abs(t), nx, true, false); break;
+			case GREATER: p = T.cumulative(t, nx, false, false); break;
+			case LOWER: p = T.cumulative(t, nx, true, false); break;
+		}
+		return new double[] {t, p};
+	}
+
+	/**
+	 * Paired t-test
+	 * @param x
+	 * @param y
+	 * @param mu
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] t_test_paired(double[] x, double[] y, double mu, TestKind kind) {
+		return t_test(vmin(x, y), mu, kind);
+	}
+
+	/**
+	 * Two sample t-test
+	 * @param x
+	 * @param y
+	 * @param mu
+	 * @param pool_var set to true if the variance should be pooled. Only matters when paired == false
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] t_test(double[] x, double[] y, double mu, boolean pool_var, TestKind kind) {
+		int nx = x.length, ny = y.length;
+		double stderr, df;
+		if (pool_var) {
+			df = nx + ny - 2;
+			stderr = 0;
+			if (nx > 1) stderr += (nx - 1) * var(x);
+			if (ny > 1) stderr += (ny - 1) * var(y);
+			stderr = sqrt((stderr/df) * (1.0/nx + 1.0/ny));
+		} else {
+			double sx = var(x)/nx, sy = var(y)/ny;
+			stderr = sx + sy;
+			df = stderr*stderr / (sx*sx/(nx-1) + sy*sy/(ny-1));
+			stderr = sqrt(stderr);
+		}
+		double t = (mean(x) - mean(y) - mu) / stderr, p = Double.NaN;
+		switch (kind) {
+			case TWO_SIDED: p = 2 * T.cumulative(-abs(t), df, true, false); break;
+			case GREATER: p = T.cumulative(t, df, false, false); break;
+			case LOWER: p = T.cumulative(t, df, true, false); break;
+		}
+		return new double[] {t, p};
 	}
 
 	/**

@@ -2133,6 +2133,30 @@ public class TestDPQR {
 		System.out.println(result[0]);
 		System.out.println(result[1]);
 		success &= isEqual(4.092220946951346860487, result[0]) && isEqual(0.0001238966302667954266781, result[1]);
+		x = colon(1., 10);
+		y = colon(7., 20);
+		result = DistributionTest.t_test(x, y, 0, false, TestKind.TWO_SIDED);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= isEqual(-5.434929763894059462359, result[0]) && isEqual(1.855281832511811190324e-05, result[1]);
+		result = DistributionTest.t_test(x, c(y, new double[]{200}), 0, false, TestKind.TWO_SIDED);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= isEqual(-1.632902633201205322422, result[0]) && isEqual(0.124513498089745308639, result[1]);
+		x = new double[] {0.7, -1.6, -0.2, -1.2, -0.1, 3.4, 3.7, 0.8, 0.0, 2.0};
+		y = new double[] {1.9, 0.8, 1.1, 0.1, -0.1, 4.4, 5.5, 1.6, 4.6, 3.4};
+		result = DistributionTest.t_test(x, y, 0, false, TestKind.TWO_SIDED);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= isEqual(-1.860813467486853056698, result[0]) && isEqual(0.07939414018735817257788, result[1]);
+		result = DistributionTest.t_test_paired(x, y, 0, TestKind.TWO_SIDED);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= isEqual(-4.062127683382036558157, result[0]) && isEqual(0.002832890197384270187381, result[1]);
+		result = DistributionTest.t_test(x, y, 0, true, TestKind.TWO_SIDED);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= isEqual(-1.860813467486853056698, result[0]) && isEqual(0.07918671421593817538742, result[1]);
 		return success;
 	}
 

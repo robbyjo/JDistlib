@@ -21,8 +21,6 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.math.Optimization;
-import jdistlib.math.UnivariateFunction;
 import jdistlib.rng.RandomEngine;
 
 public class Spearman extends GenericDistribution {
@@ -1254,7 +1252,7 @@ public class Spearman extends GenericDistribution {
 	}
 
 	/**
-	 * Uses numerical optimization to get approximate value, then followed by manual search. 
+	 * Uses bisection. 
 	 * @param q
 	 * @param n
 	 * @param lower_tail
@@ -1262,34 +1260,41 @@ public class Spearman extends GenericDistribution {
 	 * @return quantile value
 	 */
 	public static final double quantile(double q, int n, boolean lower_tail, boolean log_p) {
+		if (Double.isNaN(q) || n <= 0 || q < 0 || q > 1) return Double.NaN;
 		if (log_p) q = exp(q);
-		UnivariateFunction fun = new UnivariateFunction() {
-			double q; int n; boolean lower_tail;
-			public void setParameters(double... params) {
-				q = params[0]; n = (int) params[1];
-				lower_tail = params[2] == 0 ? false : true;
+		double lo = 0, hi = n * (n * n - 1) / 3 + 1,
+			f_lo = cumulative(lo, n, true), f_hi = cumulative(hi, n, true), mid, f_mid;
+		boolean pathological = false;
+		do {
+			mid = floor((lo + hi) / 2);
+			f_mid = cumulative(mid, n, true);
+			// When the case is pathological, prefer to shrink the
+			// upper bound when lower_tail == true (shrink the lower bound otherwise)
+			if (f_mid == q && (f_hi == q || f_lo == q) && (hi - lo > 1))
+				pathological = true;
+			if (lower_tail) {
+				if (f_mid > q) {
+					hi = mid;
+					f_hi = f_mid;
+				} else {
+					lo = mid;
+					f_lo = f_mid;
+				}
+			} else {
+				if (f_mid < q) {
+					lo = mid;
+					f_lo = f_mid;
+				} else {
+					hi = mid;
+					f_hi = f_mid;
+				}
 			}
-			public void setObjects(Object... obj) {}
-			public double eval(double x) {
-				double val = cumulative(x, n, lower_tail);
-				val = val - q;
-				return val * val;
-			}
-		};
-		fun.setParameters(q, n, lower_tail ? 1.0 : 0.0);
-		double max = n * (n * n - 1) / 6 + 1;
-		double x = floor(Optimization.optimize(fun, 0., max, 1e-20, 10000));
-		double inc = lower_tail ? -1 : 1;
-		double val = cumulative(x, n, lower_tail);
-		while (true) {
-			x += inc;
-			val = cumulative(x, n, lower_tail);
-			if (val < q) {
-				x -= inc;
-				break;
-			}
-		}
-		return x;
+		} while (hi - lo > 1);
+		if (pathological)
+			System.err.println("Pathological case of Spearman.quantile! Quantile estimate may not be accurate!");
+		if (lower_tail)
+			return f_hi <= q ? hi : f_mid <= q ? mid : lo;
+		return f_lo >= q ? lo : f_mid >= q ? mid : hi;
 	}
 
 	/**
@@ -1355,7 +1360,10 @@ public class Spearman extends GenericDistribution {
 	}
 
 	public static final void main(String[] args) {
-		System.out.println(cumulative(36, 10, true));
-		System.out.println(quantile(0.005265376984126984329093, 10, true, false));
+		System.out.println(cumulative(0, 10, true));
+		int n = 10, q = 36;
+		double v = cumulative(q, n, true);
+		System.out.println(v);
+		System.out.println(quantile(v, n, true, false));
 	}
 }

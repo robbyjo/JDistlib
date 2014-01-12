@@ -18,9 +18,15 @@ import static java.lang.Math.*;
 import static jdistlib.util.Utilities.*;
 import static jdistlib.math.VectorMath.*;
 import static jdistlib.disttest.Utils.calculate_ecdf;
+
+import java.util.HashSet;
+import java.util.Set;
+
 import jdistlib.Ansari;
 import jdistlib.F;
 import jdistlib.Normal;
+import jdistlib.SignRank;
+import jdistlib.Wilcoxon;
 
 
 /**
@@ -139,6 +145,19 @@ public class DistributionTest {
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
 	public static final double[] ansari_bradley_test(double[] x, double[] y, boolean force_exact) {
+		return ansari_bradley_test(x, y, force_exact, TestKind.TWO_SIDED);
+	}
+
+	/**
+	 * Ansari-Bradley test.
+	 * @param x the original x
+	 * @param y the original y
+	 * @param force_exact Set to true if you want exact answer. The default behavior is that
+	 * if there are ties or either the length of x or the length of y is at least 50.
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] ansari_bradley_test(double[] x, double[] y, boolean force_exact, TestKind kind) {
 		int nx = x.length, ny = y.length;
 		double N = nx + ny;
 		double[] r = rank(c(x, y));
@@ -149,11 +168,21 @@ public class DistributionTest {
 		for (int i = 0; i < nx; i++)
 			h += r[i];
 		if (force_exact || (!has_ties && !large_xy)) {
-			double limit = (nx + 1) * (nx + 1) / 4 + (nx * ny / 2) / 2.0;
-			double p = h > limit ? 1 - Ansari.cumulative((int) h - 1, nx, ny)
-				: Ansari.cumulative((int) h, nx, ny);
-			p = min(2 * p, 1);
-			return new double[] {h, p};
+			switch(kind) {
+				case TWO_SIDED:
+					double limit = (nx + 1) * (nx + 1) / 4 + (nx * ny / 2) / 2.0;
+					double p = h > limit ? 1 - Ansari.cumulative((int) h - 1, nx, ny)
+						: Ansari.cumulative((int) h, nx, ny);
+					p = min(2 * p, 1);
+					return new double[] {h, p};
+				case LOWER:
+					p = Ansari.cumulative((int) (h - 1), nx, ny, false);
+					return new double[] {h, p};
+				case GREATER:
+					p = Ansari.cumulative((int) h, nx, ny, true);
+					return new double[] {h, p};
+			}
+			throw new RuntimeException(); // Should never happen
 		}
 		// Has ties or large xy: Inexact match
 		sort(r);
@@ -170,12 +199,22 @@ public class DistributionTest {
 	}
 
 	/**
-	 * Performs Mood's two-sample test for a difference in scale parameters. 
+	 * Performs Mood's two-sample test for a difference in scale parameters. Two-sided test. 
 	 * @param x
 	 * @param y
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
 	public static final double[] mood_test(double[] x, double[] y) {
+		return mood_test(x, y, TestKind.TWO_SIDED);
+	}
+	/**
+	 * Performs Mood's two-sample test for a difference in scale parameters. 
+	 * @param x
+	 * @param y
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] mood_test(double[] x, double[] y, TestKind kind) {
 		int nx = x.length, ny = y.length;
 		double N = nx + ny;
 		if (N < 3)
@@ -211,18 +250,19 @@ public class DistributionTest {
 				T += a[i] * temp[i] / t[i];
 		}
 		double zz = (T - E) / sqrt(v);
-		double p = Normal.cumulative_standard(zz);
-		return new double[] {zz, 2 * min(p, 1 - p)};
+		double p = Normal.cumulative(zz, 0, 1, kind != TestKind.GREATER, false);
+		return new double[] {zz, kind == TestKind.TWO_SIDED ? 2 * min(p, 1 - p) : p};
 	}
 
 	/**
 	 * Performs an F test to compare the variances of two samples from normal populations. Ratio is set to 1.0. 
 	 * @param x
 	 * @param y
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
-	public static final double[] var_test(double[] x, double[] y) {
-		return var_test(x, y, 1);
+	public static final double[] var_test(double[] x, double[] y, TestKind kind) {
+		return var_test(x, y, 1, kind);
 	}
 
 	/**
@@ -230,13 +270,170 @@ public class DistributionTest {
 	 * @param x
 	 * @param y
 	 * @param ratio the hypothesized ratio of the population variances of x and y.
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
-	public static final double[] var_test(double[] x, double[] y, double ratio) {
+	public static final double[] var_test(double[] x, double[] y, double ratio, TestKind kind) {
 		double stat = (var(x) / var(y)) / ratio;
-		double p = F.cumulative(stat, x.length - 1, y.length - 1, true, false);
-		p = 2 * min(p, 1 - p);
-		return new double[] {stat, 2 * min(p, 1-p)};
+		double p = Double.NaN;
+		switch (kind) {
+			case TWO_SIDED:
+				p = F.cumulative(stat, x.length - 1, y.length - 1, true, false);
+				p = 2 * min(p, 1 - p);
+				break;
+			case GREATER:
+				p = F.cumulative(stat, x.length - 1, y.length - 1, false, false);
+				break;
+			case LOWER:
+				p = F.cumulative(stat, x.length - 1, y.length - 1, true, false);
+				break;
+		}
+		return new double[] {stat, p};
+	}
+
+	/**
+	 * One-sample Wilcoxon test. Test whether the vector of x is != mu
+	 * @param x
+	 * @param mu
+	 * @param correction set to true if continuity correction is desired. Only matters
+	 * if x has zeroes or ties
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] wilcoxon_test(double[] x, double mu, boolean correction, TestKind kind) {
+		boolean has_zeroes = false;
+		int n_nonzero = 0;
+		Set<Double> seen_set = new HashSet<Double>();
+		for (int i = 0; i < x.length; i++) {
+			if (x[i] == mu) {
+				has_zeroes = true;
+			} else {
+				n_nonzero++;
+				seen_set.add(x[i]);
+			}
+		}
+		double[] new_x = new double[n_nonzero];
+		for (int i = 0, j = 0; i < x.length; i++)
+			if (x[i] != mu)
+				new_x[j++] = x[i] - mu;
+		x = new_x;
+		boolean has_ties = seen_set.size() != x.length;
+		double[] r = rank(vabs(x));
+		int n = r.length;
+		double limit = n * (n + 1) / 4.0, v = 0, p = Double.NaN;
+		for (int i = 0; i < n; i++)
+			v += r[i];
+		if (!has_ties && !has_zeroes) {
+			SignRank sr = new SignRank(n);
+			switch (kind) {
+				case TWO_SIDED:
+					p = v > limit ? sr.cumulative(v - 1, false, false) : sr.cumulative(v);
+					p = min(2*p, 1);
+					break;
+				case GREATER:
+					p = sr.cumulative(v - 1, false, false);
+					break;
+				case LOWER:
+					p = sr.cumulative(v);
+					break;
+			}
+		} else {
+			double sigma = 0;
+			for (int nties : table(r).values())
+				sigma += (nties * nties * nties - nties);
+			sigma = sqrt(limit * (2 * n + 1) / 6 - sigma / 48);
+			v = v - limit;
+			double cor = 0;
+			if (correction) {
+				switch (kind) {
+					case TWO_SIDED:
+						cor = signum(v) * 0.5; break;
+					case GREATER:
+						cor = 0.5; break;
+					case LOWER:
+						cor = -0.5; break;
+				}
+			}
+			v = (v - cor) / sigma;
+			switch (kind) {
+				case TWO_SIDED:
+					p = 2 * min (Normal.cumulative_standard(v),
+						Normal.cumulative(v, 0, 1, false, false));
+					break;
+				case GREATER:
+					p = Normal.cumulative(v, 0, 1, false, false); break;
+				case LOWER:
+					p = Normal.cumulative_standard(v); break;
+			}
+		}
+		return new double[] {v, p};
+	}
+
+	/**
+	 * Mann-Whitney-U test
+	 * @param x
+	 * @param y
+	 * @param mu
+	 * @param correction set to true if continuity correction is desired. Only matters
+	 * then there are ties
+	 * @param paired set true for paired test (which reduces to Wilcoxon test)
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] mann_whitney_u_test(double[] x, double[] y, double mu, boolean correction,
+		boolean paired, TestKind kind) {
+		int nx = x.length, ny = y.length, n = nx + ny;
+		if (paired)
+			return wilcoxon_test(vmin(x, y), mu, correction, kind);
+		double[] r = rank(c(vmin(x, mu), y));
+		double w = -nx * (nx + 1) / 2, p = Double.NaN, limit = nx * ny / 2.0;
+		for (int i = 0; i < nx; i++)
+			w += r[i];
+		boolean has_ties = unique(r).length != r.length;
+		if (!has_ties) {
+			Wilcoxon wilcox = new Wilcoxon(nx, ny);
+			switch (kind) {
+				case TWO_SIDED:
+					p = w > limit ? wilcox.cumulative(w - 1, false, false) : wilcox.cumulative(w);
+					p = min(2*p, 1);
+					break;
+				case GREATER:
+					p = wilcox.cumulative(w - 1, false, false);
+					break;
+				case LOWER:
+					p = wilcox.cumulative(w);
+					break;
+			}
+		} else {
+			double sigma = 0;
+			for (int nties : table(r).values())
+				sigma += (nties * nties * nties - nties);
+			sigma = sqrt((limit / 6) * ((n + 1) - sigma / (n * (n + 1))));
+			w = w - limit;
+			double cor = 0;
+			if (correction) {
+				switch (kind) {
+					case TWO_SIDED:
+						cor = signum(w) * 0.5; break;
+					case GREATER:
+						cor = 0.5; break;
+					case LOWER:
+						cor = -0.5; break;
+				}
+			}
+			w = (w - cor) / sigma;
+			switch (kind) {
+				case TWO_SIDED:
+					p = 2 * min (Normal.cumulative_standard(w),
+						Normal.cumulative(w, 0, 1, false, false));
+					break;
+				case GREATER:
+					p = Normal.cumulative(w, 0, 1, false, false); break;
+				case LOWER:
+					p = Normal.cumulative_standard(w); break;
+			}
+		}
+		return new double[] {w, p};
 	}
 
 	/**

@@ -297,24 +297,24 @@ public class VectorMath {
 
 	public static final double sd(double[] e) {
 		double sum = 0, sumsq = 0;
-		int n = e.length;
+		int n = e.length, nm1 = n-1;
 		for (int i = 0; i < n; i++) {
-			double v = e[i] / n; // guard against overflow
-			sum += v;
-			sumsq += v * v;
+			double v = e[i]; // guard against overflow
+			sum += v / n;
+			sumsq += v * v / nm1;
 		}
-		return sqrt((n * sumsq - sum * sum) * (n / (n - 1)));
+		return sqrt(sumsq - (sum / nm1) * sum * n);
 	}
 
 	public static final double var(double[] e) {
 		double sum = 0, sumsq = 0;
-		int n = e.length;
+		int n = e.length, nm1 = n-1;
 		for (int i = 0; i < n; i++) {
-			double v = e[i] / n; // guard against overflow
-			sum += v;
-			sumsq += v * v;
+			double v = e[i]; // guard against overflow
+			sum += v / n;
+			sumsq += v * v / nm1;
 		}
-		return (n * sumsq - sum * sum) * (n / (n - 1));
+		return sumsq - (sum / nm1) * sum * n;
 	}
 
 	public static final double sum(double[] e) {

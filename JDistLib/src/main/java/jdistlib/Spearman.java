@@ -1256,7 +1256,7 @@ public class Spearman extends GenericDistribution {
 	 * @param q
 	 * @param n
 	 * @param lower_tail
-	 * @oaram log_p
+	 * @param log_p
 	 * @return quantile value
 	 */
 	public static final double quantile(double q, int n, boolean lower_tail, boolean log_p) {

@@ -285,7 +285,7 @@ public class VectorMath {
 	 * Find quantile given a sorted data of array (Definition 7)
 	 * @param sortedData This data is assumed to be presorted!
 	 * @param quantile
-	 * @return
+	 * @return quantile values
 	 */
 	public static final double[] quantile(double[] sortedData, double[] quantile) {
 		double[] v = new double[quantile.length];

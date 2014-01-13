@@ -464,7 +464,7 @@ public class Utilities {
 	 * Mimic the behavior of match function in R.
 	 * @param x
 	 * @param y
-	 * @return
+	 * @return match index
 	 */
 	public static final int[] match(double[] x, double[] y) {
 		int nx = x.length, ny = y.length;
@@ -512,7 +512,7 @@ public class Utilities {
 	 * Mimic the tabulate function in R
 	 * @param x
 	 * @param n
-	 * @return
+	 * @return tabulate
 	 */
 	public static final int[] tabulate(int[] x, int n) {
 		int nx = x.length;
@@ -529,7 +529,7 @@ public class Utilities {
 	 * Mimic x[idx] behavior of R
 	 * @param x
 	 * @param idx
-	 * @return
+	 * @return array
 	 */
 	public static final double[] index(double[] x, int[] idx) {
 		int n = idx.length;
@@ -543,7 +543,7 @@ public class Utilities {
 	 * Mimic x[idx] behavior of R
 	 * @param x
 	 * @param idx
-	 * @return
+	 * @return array
 	 */
 	public static final double[] index_min1(double[] x, int[] idx) {
 		int n = idx.length;

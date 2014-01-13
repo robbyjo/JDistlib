@@ -1,5 +1,14 @@
 What's new:
 
+Version 0.3.1 (Jan 13, 2014):
+* Added Spearman quantile (using bisection) and random variates (by inversion)
+* Added Order quantile variates (only very minimally tested; caveat emptor!)
+* Added Chi, Inverse Gamma, and Nakagami distributions (based on simple transform from the Gamma distribution)
+* Added many two-distribution tests: Ansari-Bradley, Mood, Bartlett, Fligner, T-test (one-sample, paired, two-sample), Variance test, Wilcoxon test, Mann-Whitney-U test, Kruskal-Wallis test, Binomial test
+* Added lower_tail flag to Ansari distribution
+* Utilities.rank is now index 1 based (not index 0) since many routines seem to depend on that fact
+* Various bug fixes
+
 Version 0.3.0 (Jan 10, 2014):
 * Remove the Q prefix of QRandomEngine, QMersenneTwister, QRandomCMWC, and QRandomSampler
 * Added Beta binomial distribution (with parameterization of mu, sigma, and size)

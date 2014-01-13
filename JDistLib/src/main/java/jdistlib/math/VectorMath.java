@@ -295,6 +295,18 @@ public class VectorMath {
 		return sum;
 	}
 
+	/**
+	 * Get the median
+	 * @param e does not need to be sorted
+	 * @return median value
+	 */
+	public static final double median(double[] e) {
+		int n = e.length;
+		double[] v = new double[e.length];
+		System.arraycopy(e, 0, v, 0, n);
+		return quantile(v, 0.5);
+	}
+
 	public static final double sd(double[] e) {
 		double sum = 0, sumsq = 0;
 		int n = e.length, nm1 = n-1;

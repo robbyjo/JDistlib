@@ -570,18 +570,17 @@ public class DistributionTest {
 		}
 		int[] unique_group = to_int_array(map.keySet());
 		int k = unique_group.length;
-		int[] group_len = new int[k];
 		double[] var_group = new double[k];
 		double v_total = 0, sum_recip = 0, sum_n_vlog = 0;
 		for (int i = 0; i < k; i++) {
 			double[] dbl = to_double_array(map.get(unique_group[i]));
 			var_group[i] = var(dbl);
-			group_len[i] = dbl.length;
-			v_total += group_len[i] * var_group[i] / n; 
-			sum_recip += 1.0/dbl.length;
-			sum_n_vlog += dbl.length * log(var_group[i]);
+			int ni = dbl.length - 1;
+			v_total += ni * var_group[i] / (n - k); 
+			sum_recip += 1.0/ni;
+			sum_n_vlog += ni * log(var_group[i]);
 		}
-		double stat = ((n * v_total - sum_n_vlog) / (1 + (sum_recip - 1.0/n) / (3*(k-1))));
+		double stat = (((n - k) * log(v_total) - sum_n_vlog) / (1 + (sum_recip - 1.0/(n-k)) / (3*(k-1))));
 		double p = ChiSquare.cumulative(stat, k - 1, true, false);
 		return new double[] {stat, p};
 	}

@@ -14,16 +14,17 @@
  */
 package jdistlib.math;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
 import static java.lang.Math.abs;
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import static java.lang.Math.log1p;
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import static jdistlib.util.Utilities.sort;
 
 /**
  * 
@@ -304,6 +305,7 @@ public class VectorMath {
 		int n = e.length;
 		double[] v = new double[e.length];
 		System.arraycopy(e, 0, v, 0, n);
+		sort(v);
 		return quantile(v, 0.5);
 	}
 

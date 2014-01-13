@@ -99,8 +99,8 @@ public class Utilities {
 	}
 
 	public static final double[] rep_each(double[] v, int n) {
-		int vn = v.length * n;
-		double[] r = new double[vn];
+		int vn = v.length;
+		double[] r = new double[vn * n];
 		for (int i = 0; i < vn; i++) {
 			double vi = v[i];
 			for (int j = 0; j < n; j++)
@@ -110,8 +110,8 @@ public class Utilities {
 	}
 
 	public static final int[] rep_each(int[] v, int n) {
-		int vn = v.length * n;
-		int[] r = new int[vn];
+		int vn = v.length;
+		int[] r = new int[vn * n];
 		for (int i = 0; i < vn; i++) {
 			int vi = v[i];
 			for (int j = 0; j < n; j++)

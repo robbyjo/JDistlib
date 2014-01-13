@@ -2157,12 +2157,20 @@ public class TestDPQR {
 		System.out.println(result[0]);
 		System.out.println(result[1]);
 		success &= isEqual(-1.860813467486853056698, result[0]) && isEqual(0.07918671421593817538742, result[1]);
+		x = new double[] {10,7,20,14,14,12,10,23,17,20,14,13,11,17,21,11,16,14,17,17,19,21,7,13,0,1,7,2,3,1,2,1,3,0,1,4,3,5,12,6,4,3,5,5,5,5,2,4,3,5,3,5,3,6,1,1,3,2,6,4,11,9,15,22,15,16,13,10,26,26,24,13};
+		int[] g = rep_each(colon(1, 6), 12);
+		result = DistributionTest.bartlett_test(x, g);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= isEqual(25.95982532036868661862, result[0]) && isEqual(9.085122332945314439778e-05, result[1]);
 		return success;
 	}
 
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
 		//System.out.println(NonCentralChiSquare.cumulative(1e-5, 100, 1, true, false));
+		test_disttest();
+		System.exit(0);
 		test_binom();
 		test_geom();
 		test_hyper();

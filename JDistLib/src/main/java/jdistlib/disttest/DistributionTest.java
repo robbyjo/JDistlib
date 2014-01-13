@@ -19,11 +19,16 @@ import static jdistlib.util.Utilities.*;
 import static jdistlib.math.VectorMath.*;
 import static jdistlib.disttest.Utils.calculate_ecdf;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import jdistlib.Ansari;
 import jdistlib.Binomial;
+import jdistlib.ChiSquare;
 import jdistlib.F;
 import jdistlib.Normal;
 import jdistlib.SignRank;
@@ -542,6 +547,43 @@ public class DistributionTest {
 			case LOWER: p = Binomial.cumulative(n_success, n, p, true, false); break;
 		}
 		return new double[] {n_success * 1.0 / n, p};
+	}
+
+	/**
+	 * Bartlett's test
+	 * @param x
+	 * @param group an array of group indices. Observation in x that belongs in the same group must have the same index.
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] bartlett_test(double[] x, int[] group) {
+		int n = x.length;
+		if (n != group.length)
+			throw new RuntimeException();
+		Map<Integer, List<Double>> map = new HashMap<Integer, List<Double>>();
+		for (int i = 0; i < n; i++) {
+			List<Double> ll = map.get(group[i]);
+			if (ll == null) {
+				ll = new ArrayList<Double>();
+				map.put(group[i], ll);
+			}
+			ll.add(x[i]);
+		}
+		int[] unique_group = to_int_array(map.keySet());
+		int k = unique_group.length;
+		int[] group_len = new int[k];
+		double[] var_group = new double[k];
+		double v_total = 0, sum_recip = 0, sum_n_vlog = 0;
+		for (int i = 0; i < k; i++) {
+			double[] dbl = to_double_array(map.get(unique_group[i]));
+			var_group[i] = var(dbl);
+			group_len[i] = dbl.length;
+			v_total += group_len[i] * var_group[i] / n; 
+			sum_recip += 1.0/dbl.length;
+			sum_n_vlog += dbl.length * log(var_group[i]);
+		}
+		double stat = ((n * v_total - sum_n_vlog) / (1 + (sum_recip - 1.0/n) / (3*(k-1))));
+		double p = ChiSquare.cumulative(stat, k - 1, true, false);
+		return new double[] {stat, p};
 	}
 
 	/**

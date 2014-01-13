@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jdistlib.Ansari;
+import jdistlib.Binomial;
 import jdistlib.F;
 import jdistlib.Normal;
 import jdistlib.SignRank;
@@ -500,6 +501,47 @@ public class DistributionTest {
 			case LOWER: p = T.cumulative(t, df, true, false); break;
 		}
 		return new double[] {t, p};
+	}
+
+	/**
+	 * Binomial test
+	 * @param n_success The number of successes
+	 * @param n The total number of trials
+	 * @param p Expected probability
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] binomial_test(int n_success, int n, double p, TestKind kind) {
+		switch (kind) {
+			case TWO_SIDED:
+				if (p == 0) {
+					p = n_success == 0 ? 1 : 0;
+				} else if (p == 1) {
+					p = n_success == n ? 1 : 0;
+				} else {
+					double d = Binomial.density(n_success, n, p, false) * (1 + 1e-7),
+						m = n * p;
+					if (n_success == m) {
+						p = 1;
+					} else if (n_success < m){
+						int y = 0;
+						for (int i = (int) ceil(m); i <= n; i++)
+							if (Binomial.density(i, n, p, false) <= d) y++;
+						p = Binomial.cumulative(n_success, n, p, true, false) +
+							Binomial.cumulative(n - y, n, p, false, false);
+					} else {
+						int y = 0, mlo = (int) floor(m);
+						for (int i = 0; i <= mlo; i++)
+							if (Binomial.density(i, n, p, false) <= d) y++;
+						p = Binomial.cumulative(y - 1, n, p, true, false) +
+							Binomial.cumulative(n_success - 1, n, p, false, false);
+					}
+				}
+				break;
+			case GREATER: p = Binomial.cumulative(n_success - 1, n, p, false, false); break;
+			case LOWER: p = Binomial.cumulative(n_success, n, p, true, false); break;
+		}
+		return new double[] {n_success * 1.0 / n, p};
 	}
 
 	/**

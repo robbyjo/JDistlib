@@ -263,7 +263,7 @@ public class VectorMath {
 
 	/**
 	 * Find quantile given a sorted data of array (Definition 7)
-	 * @param sortedData
+	 * @param sortedData This data is assumed to be presorted! Use quantile0 if you want to use unsorted data!
 	 * @param quantile must be 0 <= quantile <= 1
 	 * @return quantile value
 	 */
@@ -281,10 +281,47 @@ public class VectorMath {
 		return result;
 	}
 
+	/**
+	 * Find quantile given a sorted data of array (Definition 7)
+	 * @param sortedData This data is assumed to be presorted!
+	 * @param quantile
+	 * @return
+	 */
 	public static final double[] quantile(double[] sortedData, double[] quantile) {
 		double[] v = new double[quantile.length];
 		for (int i = 0; i < quantile.length; i++)
 			v[i] = quantile(sortedData, quantile[i]);
+		return v;
+	}
+
+	/**
+	 * Find quantile in an array (Definition 7). Data is assumed to be unsorted
+	 * @param e
+	 * @param quantile must be 0 <= quantile <= 1
+	 * @return quantile value
+	 */
+	public static final double quantile0(double[] e, double quantile) {
+		int n = e.length;
+		double[] r = new double[n];
+		System.arraycopy(e, 0, r, 0, n);
+		sort(r);
+		return quantile(r, quantile);
+	}
+
+	/**
+	 * Find quantile in an array (Definition 7). Data is assumed to be unsorted
+	 * @param e
+	 * @param quantile must be 0 <= quantile <= 1
+	 * @return quantile values
+	 */
+	public static final double[] quantile0(double[] e, double[] quantile) {
+		int n = e.length;
+		double[] r = new double[n];
+		System.arraycopy(e, 0, r, 0, n);
+		sort(r);
+		double[] v = new double[quantile.length];
+		for (int i = 0; i < quantile.length; i++)
+			v[i] = quantile(r, quantile[i]);
 		return v;
 	}
 
@@ -398,6 +435,22 @@ public class VectorMath {
 		for (int i = 1; i < n; i++)
 			if (e[i] < mn) mn = e[i];
 		return mn;
+	}
+
+	public static final int which_max(double[] e) {
+		int n = e.length, which = 0;
+		double mx = e[0];
+		for (int i = 1; i < n; i++)
+			if (e[i] > mx) { mx = e[i]; which = i; };
+		return which;
+	}
+
+	public static final int which_min(double[] e) {
+		int n = e.length, which = 0;
+		double mn = e[0];
+		for (int i = 1; i < n; i++)
+			if (e[i] < mn) { mn = e[i]; which = i; };
+		return which;
 	}
 
 	public static final double[] pmax(double[] a, double[] b) {

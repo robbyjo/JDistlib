@@ -1228,27 +1228,23 @@ public class Spearman extends GenericDistribution {
 	/**
 	 * NOT IMPLEMENTED YET!
 	 */
-	public static final double density(double x, int r) {
-		if (r < 3) return Double.NaN;
-		double
-			m = r * (r * r - 1) / 3.0,
-			s = (m / 2.0) * (1.0 + x);
-		if (s > m) return Double.NaN;
-		s -= 2.0;
-		s = max(1, 2 * (((long) floor(s))/2)); // force s to be even, except when it is 
-		/*
-	if (CheckFriedmanExactF(r,n,X,&F,false,doRho)) {
-		return F;	 // Lower tail including X exactly
-	}
-		//if (r > spearmanArray.length) {
-			double W = (s - 1.0) / (m + 2.0); // Corrected for continuity
-			double a = 0.5 * r - 1.0;
-			return Beta.cumulative(1.0 - W, a, a, true, false) - Beta.cumulative((1.0 - W) - 2.0/(m+2), a, a, true, false);
-		//}
-		//int ss = (int) (0.5+((r*(r*r-1))/6.0)*(1.0+x));
-		//if (r % 2 == 0) ss *= 4;
-		 * */
-		throw new RuntimeException("Not implemented, sorry!");
+	public static final double density(double is, int n) {
+		if (n <= spearmanArray.length) {
+			int m = n * (n * n - 1) / 6 + 1;
+			double[]
+				freq = new double[m],
+				g = spearmanArray[n - 1];
+			int l = g.length;
+			System.arraycopy(g, 0, freq, 0, l);
+			for (int i = 0; i < l; i++)
+				freq[m - i - 1] = g[i];
+			int k = ((int) is) / 2 + 1;
+			double sum = 0;
+			for (int i = 0; i < m; i++)
+				sum += freq[i];
+			return freq[k] / sum;
+		}
+		throw new RuntimeException();
 	}
 
 	/**

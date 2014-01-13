@@ -580,10 +580,16 @@ public class DistributionTest {
 			sum_n_vlog += ni * log(var_group);
 		}
 		double stat = (((n - k) * log(v_total) - sum_n_vlog) / (1 + (sum_recip - 1.0/(n-k)) / (3*(k-1))));
-		double p = ChiSquare.cumulative(stat, k - 1, true, false);
+		double p = ChiSquare.cumulative(stat, k - 1, false, false);
 		return new double[] {stat, p};
 	}
 
+	/**
+	 * Fligner-Killeen test
+	 * @param x
+	 * @param group an array of group indices. Observation in x that belongs in the same group must have the same index.
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
 	public static final double[] fligner_test(double[] x, int[] group) {
 		int n = x.length;
 		if (n != group.length)
@@ -600,24 +606,35 @@ public class DistributionTest {
 		int[] unique_group = to_int_array(map.keySet());
 		int k = unique_group.length;
 		int[] cumsum_n_group = new int[k], n_group = new int[k];
-		double[] new_x = null;
+		double[] new_x = new double[n];
 		for (int i = 0; i < k; i++) {
 			double[] dbl = to_double_array(map.get(unique_group[i]));
-			cumsum_n_group[i] = dbl.length + (i > 0 ? cumsum_n_group[i-1] : 0);
-			n_group[i] = dbl.length;
+			int ni = dbl.length;
+			cumsum_n_group[i] = ni + (i > 0 ? cumsum_n_group[i-1] : 0);
+			n_group[i] = ni;
 			double med_group = median(dbl);
-			for (int j = 0; j < dbl.length; j++)
-				dbl[i] -= med_group;
-			if (new_x == null)
-				new_x = dbl;
-			else
-				new_x = c(new_x, dbl);
+			for (int j = 0; j < ni; j++)
+				dbl[j] -= med_group;
+			System.arraycopy(dbl, 0, new_x, i == 0 ? 0 : cumsum_n_group[i-1], ni);
 		}
 		new_x = rank(vabs(new_x));
-		for (int i = 0; i < new_x.length; i++) {
+		for (int i = 0; i < new_x.length; i++)
 			new_x[i] = Normal.quantile((1 + new_x[i] / (n + 1)) / 2.0, 0, 1, true, false);
+		double stat = 0;
+		for (int i = 0; i < k; i++) {
+			int
+				from = i == 0 ? 0 : cumsum_n_group[i - 1],
+				ni = n_group[i],
+				to = from + ni;
+			double sum = 0;
+			for (int j = from; j < to; j++)
+				sum += new_x[j];
+			stat += sum * sum / ni;
 		}
-		return new double[] {0,1};
+		double ma = mean(new_x);
+		stat = (stat - n * ma * ma) / var(new_x);
+		double p = ChiSquare.cumulative(stat, k - 1, false, false);
+		return new double[] {stat, p};
 	}
 
 	/**

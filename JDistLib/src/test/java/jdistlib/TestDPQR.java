@@ -2162,7 +2162,11 @@ public class TestDPQR {
 		result = DistributionTest.bartlett_test(x, g);
 		System.out.println(result[0]);
 		System.out.println(result[1]);
-		success &= isEqual(25.95982532036868661862, result[0]) && isEqual(9.085122332945314439778e-05, result[1]);
+		success &= isEqualScaled(25.95982532036868661862, result[0]) && isEqualScaled(9.085122332945314439778e-05, result[1]);
+		result = DistributionTest.fligner_test(x, g);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= isEqual(14.4827810384586079806, result[0]) && isEqual(0.01281677918970919316521, result[1]);
 		return success;
 	}
 

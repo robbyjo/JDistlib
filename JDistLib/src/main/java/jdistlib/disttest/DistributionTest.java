@@ -638,6 +638,56 @@ public class DistributionTest {
 	}
 
 	/**
+	 * Kruskal-Wallis test
+	 * @param x
+	 * @param group an array of group indices. Observation in x that belongs in the same group must have the same index.
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] kruskal_wallis_test(double[] x, int[] group) {
+		int n = x.length;
+		if (n != group.length)
+			throw new RuntimeException();
+		Map<Integer, List<Double>> map = new HashMap<Integer, List<Double>>();
+		for (int i = 0; i < n; i++) {
+			List<Double> ll = map.get(group[i]);
+			if (ll == null) {
+				ll = new ArrayList<Double>();
+				map.put(group[i], ll);
+			}
+			ll.add(x[i]);
+		}
+		int[] unique_group = to_int_array(map.keySet());
+		int k = unique_group.length;
+		int[] cumsum_n_group = new int[k], n_group = new int[k];
+		double[] new_x = new double[n];
+		for (int i = 0; i < k; i++) {
+			double[] dbl = to_double_array(map.get(unique_group[i]));
+			int ni = dbl.length;
+			cumsum_n_group[i] = ni + (i > 0 ? cumsum_n_group[i-1] : 0);
+			n_group[i] = ni;
+			System.arraycopy(dbl, 0, new_x, i == 0 ? 0 : cumsum_n_group[i-1], ni);
+		}
+		double[] r = rank(new_x);
+		double stat = 0;
+		for (int i = 0; i < k; i++) {
+			int
+				from = i == 0 ? 0 : cumsum_n_group[i - 1],
+				ni = n_group[i],
+				to = from + ni;
+			double sum = 0;
+			for (int j = from; j < to; j++)
+				sum += r[j];
+			stat += sum * sum / ni;
+		}
+		double sigma = 0;
+		for (int nties : table(r).values())
+			sigma += (nties * nties * nties - nties);
+		stat = ((12 * stat / (n * (n + 1)) - 3 * (n + 1)) / (1 - sigma / (n*n*n - n)));
+		double p = ChiSquare.cumulative(stat, k - 1, false, false);
+		return new double[] {stat, p};
+	}
+
+	/**
 	 * Two-sample Cramer-Von Mises test
 	 * @param X
 	 * @param Y

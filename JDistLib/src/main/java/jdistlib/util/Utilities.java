@@ -2,6 +2,7 @@ package jdistlib.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -538,6 +539,24 @@ public class Utilities {
 		double[] r = new double[n];
 		for (int i = 0; i < n; i++)
 			r[i] = x[idx[i] - 1];
+		return r;
+	}
+
+	public static final int[] to_int_array(Collection<Integer> s) {
+		int n = s.size();
+		int[] r = new int[n];
+		int i = 0;
+		for (int _s : s)
+			r[i++] = _s;
+		return r;
+	}
+
+	public static final double[] to_double_array(Collection<Double> s) {
+		int n = s.size();
+		double[] r = new double[n];
+		int i = 0;
+		for (double _s : s)
+			r[i++] = _s;
 		return r;
 	}
 }

@@ -570,19 +570,54 @@ public class DistributionTest {
 		}
 		int[] unique_group = to_int_array(map.keySet());
 		int k = unique_group.length;
-		double[] var_group = new double[k];
 		double v_total = 0, sum_recip = 0, sum_n_vlog = 0;
 		for (int i = 0; i < k; i++) {
 			double[] dbl = to_double_array(map.get(unique_group[i]));
-			var_group[i] = var(dbl);
+			double var_group = var(dbl);
 			int ni = dbl.length - 1;
-			v_total += ni * var_group[i] / (n - k); 
+			v_total += ni * var_group / (n - k); 
 			sum_recip += 1.0/ni;
-			sum_n_vlog += ni * log(var_group[i]);
+			sum_n_vlog += ni * log(var_group);
 		}
 		double stat = (((n - k) * log(v_total) - sum_n_vlog) / (1 + (sum_recip - 1.0/(n-k)) / (3*(k-1))));
 		double p = ChiSquare.cumulative(stat, k - 1, true, false);
 		return new double[] {stat, p};
+	}
+
+	public static final double[] fligner_test(double[] x, int[] group) {
+		int n = x.length;
+		if (n != group.length)
+			throw new RuntimeException();
+		Map<Integer, List<Double>> map = new HashMap<Integer, List<Double>>();
+		for (int i = 0; i < n; i++) {
+			List<Double> ll = map.get(group[i]);
+			if (ll == null) {
+				ll = new ArrayList<Double>();
+				map.put(group[i], ll);
+			}
+			ll.add(x[i]);
+		}
+		int[] unique_group = to_int_array(map.keySet());
+		int k = unique_group.length;
+		int[] cumsum_n_group = new int[k], n_group = new int[k];
+		double[] new_x = null;
+		for (int i = 0; i < k; i++) {
+			double[] dbl = to_double_array(map.get(unique_group[i]));
+			cumsum_n_group[i] = dbl.length + (i > 0 ? cumsum_n_group[i-1] : 0);
+			n_group[i] = dbl.length;
+			double med_group = median(dbl);
+			for (int j = 0; j < dbl.length; j++)
+				dbl[i] -= med_group;
+			if (new_x == null)
+				new_x = dbl;
+			else
+				new_x = c(new_x, dbl);
+		}
+		new_x = rank(vabs(new_x));
+		for (int i = 0; i < new_x.length; i++) {
+			new_x[i] = Normal.quantile((1 + new_x[i] / (n + 1)) / 2.0, 0, 1, true, false);
+		}
+		return new double[] {0,1};
 	}
 
 	/**

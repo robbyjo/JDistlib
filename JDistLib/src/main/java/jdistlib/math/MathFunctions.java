@@ -2628,9 +2628,9 @@ public class MathFunctions {
 			u = -(a - 0.5) * log(h / (h + 1.0)),
 			v = b * alnrel(h);
 			if (u > v)
-				return log(b) * -0.5 + kLog1OverSqrt2Pi + w - v - u;
+				return log(b) * -0.5 + M_LN_SQRT_2PI + w - v - u;
 			else
-				return log(b) * -0.5 + kLog1OverSqrt2Pi + w - u - v;
+				return log(b) * -0.5 + M_LN_SQRT_2PI + w - u - v;
 		}
 	} /* betaln */
 

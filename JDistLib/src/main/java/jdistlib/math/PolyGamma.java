@@ -182,8 +182,7 @@ public class PolyGamma
 		-1.92965793419400681e+16
 	};
 
-	public static final double[] dpsifn(double x, int n, int kode, int m) 
-	{
+	public static final double[] dpsifn(double x, int n, int kode, int m) {
 		double ans[] = new double[n + 1];
 		int i, j, k, mm, mx, nn, np, nx, fn;
 		double arg, den, elim, eps, fln, fx, rln, rxsq;
@@ -499,14 +498,12 @@ public class PolyGamma
 		return ans;
 	}
 
-	public static final double psigamma(double x, double deriv)
-	{
+	public static final double psigamma(double x, int n) {
 		/* n-th derivative of psi(x);  e.g., psigamma(x,0) == digamma(x) */
 		double[] ans;
 
-		int n = (int) rint(deriv);
-		if(n > kMaxValue)
-			return Double.NaN;
+		//int n = (int) rint(deriv);
+		//if(n > kMaxValue) return Double.NaN;
 		ans = dpsifn(x, n, 1, 1);
 		if(ans == null)
 			return Double.NaN;
@@ -517,35 +514,55 @@ public class PolyGamma
 		return result;/* = psi(n, x) */
 	}
 
-	public static final double digamma(double x)
-	{
+	public static final double digamma(double x) {
 		double ans[] = dpsifn(x, 0, 1, 1);
 		if(ans == null)
 			throw new ArithmeticException(sErrorDomain);
 		return -ans[0];
 	}
 
-	public static final double trigamma(double x)
-	{
+	public static final double trigamma(double x) {
 		double ans[] = dpsifn(x, 1, 1, 1);
 		if(ans == null)
 			throw new ArithmeticException(sErrorDomain);
 		return ans[0];
 	}
 
-	public static final double tetragamma(double x)
-	{
+	public static final double tetragamma(double x) {
 		double ans[] = dpsifn(x, 2, 1, 1);
 		if(ans == null)
 			throw new ArithmeticException(sErrorDomain);
 		return -2.0 * ans[0];
 	}
 
-	public static final double pentagamma(double x)
-	{
+	public static final double pentagamma(double x) {
 		double ans[] = dpsifn(x, 3, 1, 1);
 		if(ans == null)
 			throw new ArithmeticException(sErrorDomain);
 		return 6.0 * ans[0];
+	}
+
+	public static final double[] psigamma(double[] x, int deriv) {
+		int n = x.length;
+		double[] r = new double[n];
+		for (int i = 0; i < n; i++)
+			r[i] = psigamma(x[i], deriv);
+		return r;
+	}
+
+	public static final double[] digamma(double[] x) {
+		return psigamma(x, 0);
+	}
+
+	public static final double[] trigamma(double[] x) {
+		return psigamma(x, 1);
+	}
+
+	public static final double[] tetragamma(double[] x) {
+		return psigamma(x, 2);
+	}
+
+	public static final double[] pentagamma(double[] x) {
+		return psigamma(x, 3);
 	}
 }

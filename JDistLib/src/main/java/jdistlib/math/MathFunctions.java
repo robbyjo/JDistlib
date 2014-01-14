@@ -245,9 +245,21 @@ public class MathFunctions {
 		return ans;
 	}
 
-	public static final double lgammafn(double x)
-	{
+	public static final double lgammafn(double x) {
 		return lgammafn_sign(x, null);
+	}
+
+	/**
+	 * Batch call log gamma function
+	 * @param x
+	 * @return an array of results
+	 */
+	public static final double[] lgammafn(double[] x) {
+		int n = x.length;
+		double[] r = new double[n];
+		for (int i = 0; i < n; i++)
+			r[i] = lgammafn_sign(x[i], null);
+		return r;
 	}
 
 	public static final double stirlerr(double n)
@@ -438,6 +450,19 @@ public class MathFunctions {
 
 			return -M_PI / (y * sinpiy * value);
 		}
+	}
+
+	/**
+	 * Batch call gamma function
+	 * @param x
+	 * @return an array of results
+	 */
+	public static final double[] gammafn(double[] x) {
+		int n = x.length;
+		double[] r = new double[n];
+		for (int i = 0; i < n; i++)
+			r[i] = gammafn(x[i]);
+		return r;
 	}
 
 	/*

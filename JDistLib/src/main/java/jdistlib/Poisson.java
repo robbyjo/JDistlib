@@ -57,7 +57,7 @@ public class Poisson extends GenericDistribution {
 		// return(R_D_fexp( M_2PI*x, -stirlerr(x)-bd0(x,lambda) ));
 		lambda = -stirlerr(x)-bd0(x,lambda);
 		x = M_2PI*x;
-		return give_log ? -0.5*log(x)+lambda : exp(lambda)/sqrt(x);
+		return give_log ? -0.5*log(x)+lambda : exp(lambda-0.5*log(x));
 	}
 
 	public static final double density(double x, double lambda, boolean give_log) {

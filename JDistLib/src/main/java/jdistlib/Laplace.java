@@ -19,7 +19,7 @@ import static java.lang.Math.abs;
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import static java.lang.Math.signum;
-import static jdistlib.math.Constants.M_LN_2;
+import static jdistlib.math.Constants.M_LN2;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
 
@@ -30,7 +30,7 @@ import jdistlib.rng.RandomEngine;
 public class Laplace extends GenericDistribution {
 	public static final double density(double x, double location, double scale, boolean give_log) {
 		if (Double.isNaN(location) || Double.isInfinite(scale)) return location + scale;
-		double v = -abs(x - location) / scale - M_LN_2 - log(scale);
+		double v = -abs(x - location) / scale - M_LN2 - log(scale);
 		return give_log ? v : exp(v);
 	}
 
@@ -46,13 +46,13 @@ public class Laplace extends GenericDistribution {
 	public static final double quantile(double p, double location, double scale, boolean lower_tail, boolean log_p) {
 		if (log_p) p = exp(p);
 		if (!lower_tail) p = 1 - p;
-		return location - signum(p-0.5) * scale * (M_LN_2 + log(p < 0.5 ? p : 1 - p));
+		return location - signum(p-0.5) * scale * (M_LN2 + log(p < 0.5 ? p : 1 - p));
 	}
 
 	public static final double random(double location, double scale, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = ((int) (134217728 * u1) + random.nextDouble()) / 134217728;
-		return location - signum(u1-0.5) * scale * (M_LN_2 + log(u1 < 0.5 ? u1 : 1 - u1));
+		return location - signum(u1-0.5) * scale * (M_LN2 + log(u1 < 0.5 ? u1 : 1 - u1));
 	}
 
 	public static final double[] random(int n, double location, double scale, RandomEngine random) {

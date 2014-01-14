@@ -37,7 +37,7 @@ public class Constants {
 	/* sqrt(32) */
 	public static final double  M_SQRT_32 = 5.656854249492380195206754896838; 
 
-	public static final double  M_LN_2 = 0.693147180559945309417232121458176568; 
+	public static final double  M_LN2 = 0.693147180559945309417232121458176568; 
 	public static final double  M_LOG10_2 = 0.301029995663981195213738894724493027; 
 
 	public static final double  M_PI   = 3.141592653589793238462643383279502884197169399375; 
@@ -55,7 +55,6 @@ public class Constants {
 	public static final double  M_1_SQRT_2PI = 0.398942280401432677939946059934; 
 	public static final double  M_SQRT_2dPI = 0.79788456080286535587989211986876; 
 
-	public static final double  M_LN2 = 0.693147180559945309417232121458;
 	/* log(sqrt(pi)) = log(pi)/2 : */
 	public static final double  M_LN_SQRT_PI = 0.5723649429247000870717136756765293558; 
 	/* log(sqrt(2*pi)) = log(2*pi)/2 : */

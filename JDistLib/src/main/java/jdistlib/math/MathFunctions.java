@@ -90,7 +90,7 @@ public class MathFunctions {
 	{	return Double.isNaN(x) || (x == Double.POSITIVE_INFINITY) || (x == Double.NEGATIVE_INFINITY); }
 
 	public static final double ldexp(double x, double ex) {
-		return exp(log(x) + ex * Constants.M_LN_2);
+		return exp(log(x) + ex * Constants.M_LN2);
 	}
 
 	/**

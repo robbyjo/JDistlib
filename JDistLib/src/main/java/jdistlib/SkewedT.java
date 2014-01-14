@@ -17,7 +17,7 @@ package jdistlib;
 
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
-import static jdistlib.math.Constants.M_LN_2;
+import static jdistlib.math.Constants.M_LN2;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
 
@@ -31,7 +31,7 @@ public class SkewedT extends GenericDistribution {
 		double
 			v = gamma + 1./gamma,
 			dt = T.density(x < 0 ? (gamma * x) : (x / gamma), df, give_log);
-		return give_log ? M_LN_2 - log(v) + dt : (2 / v) * dt;
+		return give_log ? M_LN2 - log(v) + dt : (2 / v) * dt;
 	}
 
 	public static final double cumulative(double x, double df, double gamma, boolean lower_tail, boolean log_p) {

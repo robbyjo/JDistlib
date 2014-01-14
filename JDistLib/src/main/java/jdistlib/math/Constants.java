@@ -41,7 +41,6 @@ public class Constants {
 	public static final double  M_LOG10_2 = 0.301029995663981195213738894724493027; 
 
 	public static final double  M_PI   = 3.141592653589793238462643383279502884197169399375; 
-	public static final double  M_PI_half = 1.570796326794896619231321691640; 
 	public static final double  M_2PI = 6.283185307179586476925286766559;
 	public static final double  M_LOG_PI = Math.log(M_PI);
 

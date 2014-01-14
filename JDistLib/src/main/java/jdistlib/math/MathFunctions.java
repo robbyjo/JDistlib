@@ -82,6 +82,15 @@ public class MathFunctions {
 		}
 	}
 
+	/**
+	 * Compute sinc(x) = sin(x)/x for x != 0. Return 1 when x == 0.
+	 * @param x
+	 * @return sinc value
+	 */
+	public static final double sinc(double x) {
+		return x == 0 ? 1 : sin(x) / x;
+	}
+
 	// R's finite is not the same as Java's !Double.isInfinite
 	public static final boolean isFinite(double x)
 	{	return !Double.isNaN(x) && (x != Double.POSITIVE_INFINITY) && (x != Double.NEGATIVE_INFINITY); }

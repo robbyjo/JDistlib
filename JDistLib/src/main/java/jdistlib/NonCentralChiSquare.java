@@ -123,14 +123,24 @@ public class NonCentralChiSquare extends GenericDistribution {
 		if(theta < 80) { /* use 110 for Inf, as ppois(110, 80/2, lower.tail=FALSE) is 2e-20 */
 			/* long */ double sum = 0, sum2 = 0, lambda = 0.5*theta, pr = exp(-lambda); // TODO long double
 			//double ans;
-			int i;
 			/* we need to renormalize here: the result could be very close to 1 */
-			for(i = 0; i < 110;  pr *= lambda/++i) {
+			for(int i = 0; i < 110;  pr *= lambda/++i) {
 				sum2 += pr;
 				sum += pr * ChiSquare.cumulative(x, f+2*i, lower_tail, false);
 				if (sum2 >= 1-1e-15) break;
 			}
 			ans = sum/sum2;
+			//*
+			if (sum == 0) {
+				sum = sum2 = Double.NEGATIVE_INFINITY; pr = -lambda;
+				for(int i = 0; i < 110;  pr += log(lambda) - log(++i)) {
+					sum2 = logspace_add(sum2, pr);
+					sum = logspace_add(sum, pr + ChiSquare.cumulative(x, f+2*i, lower_tail, true));
+					if (exp(sum2) >= 1-1e-15) break;
+				}
+				ans = exp(sum - sum2);
+			}
+			//*/
 			return ans;
 		}
 

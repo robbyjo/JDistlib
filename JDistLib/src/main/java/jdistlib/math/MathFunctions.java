@@ -690,13 +690,11 @@ public class MathFunctions {
 	    return (a * lgam - eulers_const) * a - log1pmx (a);
 	}
 
-	static final double logspace_add (double logx, double logy)
-	{
+	public static final double logspace_add (double logx, double logy) {
 	    return max(logx, logy) + log1p (exp (-abs (logx - logy)));
 	}
 
-	static final double logspace_sub (double logx, double logy)
-	{
+	public static final double logspace_sub (double logx, double logy) {
 		logy = logy - logx;
 	    return logx + ((logy) > -M_LN2 ? log(-expm1(logy)) : log1p(-exp(logy)));
 	}

@@ -690,10 +690,26 @@ public class MathFunctions {
 	    return (a * lgam - eulers_const) * a - log1pmx (a);
 	}
 
+	/**
+	 * Compute the log of a sum from logs of terms, i.e.,
+	 *
+	 *     log (exp (logx) + exp (logy))
+	 *
+	 * without causing overflows and without throwing away large handfuls
+	 * of accuracy.
+	 */
 	public static final double logspace_add (double logx, double logy) {
 	    return max(logx, logy) + log1p (exp (-abs (logx - logy)));
 	}
 
+	/**
+	 * Compute the log of a difference from logs of terms, i.e.,
+	 *
+	 *     log (exp (logx) - exp (logy))
+	 *
+	 * without causing overflows and without throwing away large handfuls
+	 * of accuracy.
+	 */
 	public static final double logspace_sub (double logx, double logy) {
 		logy = logy - logx;
 	    return logx + ((logy) > -M_LN2 ? log(-expm1(logy)) : log1p(-exp(logy)));

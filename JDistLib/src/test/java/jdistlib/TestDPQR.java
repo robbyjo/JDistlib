@@ -32,13 +32,22 @@ import static java.lang.Math.log;
 import static java.lang.Math.log1p;
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
+import static jdistlib.DebugFun.*;
 import static jdistlib.math.Constants.DBL_EPSILON;
 import static jdistlib.math.Constants.DBL_MAX;
 import static jdistlib.math.MathFunctions.gammafn;
 import static jdistlib.math.MathFunctions.isInfinite;
 import static jdistlib.math.MathFunctions.round;
 import static jdistlib.math.VectorMath.*;
-import static jdistlib.util.Utilities.*;
+import static jdistlib.util.Utilities.c;
+import static jdistlib.util.Utilities.colon;
+import static jdistlib.util.Utilities.print;
+import static jdistlib.util.Utilities.rec;
+import static jdistlib.util.Utilities.rep;
+import static jdistlib.util.Utilities.rep_each;
+import static jdistlib.util.Utilities.rev;
+import static jdistlib.util.Utilities.seq;
+import static jdistlib.util.Utilities.sort;
 
 /**
  * Ported tests/d-p-q-r-tests.R plus some more.
@@ -87,111 +96,6 @@ public class TestDPQR {
 		//double pdkwbound = Math.min(1, 2*exp(-2*n*s*s)); // P-value of s
 		double qdkwbound = sqrt(log(p0/2)/(-2*n));
 		return s < qdkwbound;
-	}
-
-	static final double rErr(double approx, double truval) {
-		return rErr(approx, truval, 1e-30);
-	}
-
-	static final double rErr(double approx, double truval, double eps) {
-		return abs(truval) >= eps ? 1 - approx / truval : approx - truval;
-	}
-
-	public static final boolean isEqual(double a, double b) {
-		return VectorMath.isEqual(a, b, defaultNumericalError);
-	}
-
-	public static final boolean isEqualScaled(double a, double b) {
-		return VectorMath.isEqualScaled(a, b, defaultNumericalError);
-	}
-
-	public static final boolean allEqual(double[] a, double[] b) {
-		return VectorMath.allEqual(a, b, defaultNumericalError);
-	}
-
-	public static final boolean allEqualScaled(double[] a, double[] b) {
-		return VectorMath.allEqualScaled(a, b, defaultNumericalError);
-	}
-
-	public static final boolean printBool(boolean b) {
-		System.out.println(b ? "[1] TRUE" : "[1] FALSE");
-		return b;
-	}
-
-	public static final boolean printBool(boolean... b) {
-		if (b == null || b.length == 0) return false;
-		System.out.print("[1]");
-		boolean bb = true;
-		for (int i = 0; i < b.length; i++) {
-			System.out.print(b[i] ? " TRUE" : " FALSE");
-			bb = bb & b[i];
-		}
-		System.out.println();
-		return bb;
-	}
-
-	public static final boolean printAllEqual(double[] a, double[] b, double tol) {
-		boolean v = VectorMath.allEqual(a, b, tol);
-		printBool(v);
-		if (v) return true;
-		int n = a.length;
-		boolean[] vv = new boolean[n];
-		for (int i = 0; i < a.length; i++)
-			vv[i] = VectorMath.isEqual(a[i], b[i], tol);
-		System.out.print("True values: ");
-		for (int i = 0; i < n; i++)
-			if (!vv[i])
-				System.out.print(a[i]+ " ");
-		System.out.println();
-
-		System.out.print("Results: ");
-		for (int i = 0; i < n; i++)
-			if (!vv[i])
-				System.out.print(b[i]+ " ");
-		System.out.println();
-
-		System.out.print("|Diff|: ");
-		for (int i = 0; i < n; i++)
-			if (!vv[i])
-				System.out.print(abs(a[i]-b[i])+ " ");
-		System.out.println();
-		return false;
-	}
-
-	public static final boolean printAllEqual(double[] a, double[] b) {
-		return printAllEqual(a, b, defaultNumericalError);
-	}
-
-	public static final boolean printAllEqualScaled(double[] a, double[] b, double tol) {
-		boolean v = VectorMath.allEqualScaled(a, b, tol);
-		printBool(v);
-		if (v) return true;
-		int n = a.length;
-		boolean[] vv = new boolean[n];
-		for (int i = 0; i < a.length; i++)
-			vv[i] = VectorMath.isEqualScaled(a[i], b[i], tol);
-		System.out.print("True values: ");
-		for (int i = 0; i < n; i++)
-			if (!vv[i])
-				System.out.print(a[i]+ " ");
-		System.out.println();
-
-		System.out.print("Results: ");
-		for (int i = 0; i < n; i++)
-			if (!vv[i])
-				System.out.print(b[i]+ " ");
-		System.out.println();
-
-		System.out.print("Relative Diff: ");
-		for (int i = 0; i < n; i++)
-			if (!vv[i])
-				System.out.print(abs(a[i]-b[i])/a[i]+ " ");
-		System.out.println();
-		return false;
-	}
-
-	public static final boolean printAllEqualScaled(double[] a, double[] b) {
-		return printAllEqualScaled(a, b, defaultNumericalError);
 	}
 
 	@Test
@@ -1330,9 +1234,9 @@ public class TestDPQR {
 
 		x = new double[] { 0, 1};
 		ex = new double[] { neginf, inf };
-		if (!allEqual(cauchy.cumulative(ex), x) ||
-			!allEqual(cauchy.quantile(x), ex) ||
-			!allEqual(cauchy.quantile(new double[] {neginf, 0}, true, true), ex)) {
+		if (!DebugFun.allEqual(cauchy.cumulative(ex), x) ||
+			!DebugFun.allEqual(cauchy.quantile(x), ex) ||
+			!DebugFun.allEqual(cauchy.quantile(new double[] {neginf, 0}, true, true), ex)) {
 			System.err.println("Boundary exception error in Cauchy distribution");
 			success = false;
 		}
@@ -1420,7 +1324,7 @@ public class TestDPQR {
 			T t = new T(nu);
 			double[] lfx = t.density(x, true);
 			cur_success &= allFinite(lfx);
-			cur_success &= allEqual(vexp(lfx), t.density(x));
+			cur_success &= DebugFun.allEqual(vexp(lfx), t.density(x));
 		}
 		success &= cur_success;
 		if (!cur_success)
@@ -1540,8 +1444,8 @@ public class TestDPQR {
 			double[] dbx = new double[] {0, 5, 80, 405, 1280, 3125, 6480, 12005, 20480, 32805,
 				50000, 73205, 103680, 142805, 192080, 253125, 327680};
 			double[] cc = vdiv(colon(0., 16.), 16.);
-			success &= allEqual(vtimes(65536, new Beta(5,1).density(cc)), dbx);
-			success &= allEqual(vexp(vplus(16*log(2), new Beta(5,1).density(cc, true))), dbx);
+			success &= DebugFun.allEqual(vtimes(65536, new Beta(5,1).density(cc)), dbx);
+			success &= DebugFun.allEqual(vexp(vplus(16*log(2), new Beta(5,1).density(cc, true))), dbx);
 
 			System.out.println("## the first gave 0, the 2nd NaN in R <= 2.3.0; others use 'TRUE' values");
 			val = NonCentralBeta.density(0.8, 0.5, 5, 1000, false);

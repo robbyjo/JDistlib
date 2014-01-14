@@ -1226,25 +1226,19 @@ public class Spearman extends GenericDistribution {
 	}
 
 	/**
-	 * NOT IMPLEMENTED YET!
+	 * Density. Minimally tested! Implemented as a differential, i.e. (f(x+h) - f(x)) / h
+	 * @param is
+	 * @param n
+	 * @return density value
 	 */
 	public static final double density(double is, int n) {
 		if (n <= spearmanArray.length) {
-			int m = n * (n * n - 1) / 6 + 1;
-			double[]
-				freq = new double[m],
-				g = spearmanArray[n - 1];
-			int l = g.length;
-			System.arraycopy(g, 0, freq, 0, l);
-			for (int i = 0; i < l; i++)
-				freq[m - i - 1] = g[i];
-			int k = ((int) is) / 2 + 1;
-			double sum = 0;
-			for (int i = 0; i < m; i++)
-				sum += freq[i];
-			return freq[k] / sum;
+			return min(1, max(0, cumulative(is, n, true) - cumulative(is - 1, n, true)));
 		}
-		throw new RuntimeException();
+		double
+			lo = cumulative_as89(is, n, true),
+			hi = cumulative_as89(is + 1e-8, n, true);
+		return min(1, max(0, (hi - lo) * 1e8));
 	}
 
 	/**
@@ -1266,9 +1260,10 @@ public class Spearman extends GenericDistribution {
 			f_mid = cumulative(mid, n, true);
 			// When the case is pathological, prefer to shrink the
 			// upper bound when lower_tail == true (shrink the lower bound otherwise)
-			if (f_mid == q && (f_hi == q || f_lo == q) && (hi - lo > 1))
+			if (f_mid == q && (f_hi == q || f_lo == q) && (hi - lo > 2))
 				pathological = true;
 			if (lower_tail) {
+				if (f_lo >= q) return lo;
 				if (f_mid > q) {
 					hi = mid;
 					f_hi = f_mid;
@@ -1277,6 +1272,7 @@ public class Spearman extends GenericDistribution {
 					f_lo = f_mid;
 				}
 			} else {
+				if (f_hi <= q) return hi;
 				if (f_mid < q) {
 					lo = mid;
 					f_lo = f_mid;
@@ -1320,7 +1316,10 @@ public class Spearman extends GenericDistribution {
 	}
 
 	/**
-	 * NOT IMPLEMENTED YET!
+	 * Density. Minimally tested!
+	 * @param x
+	 * @param log set true for log
+	 * @return density value
 	 */
 	@Override
 	public double density(double x, boolean log) {
@@ -1361,5 +1360,7 @@ public class Spearman extends GenericDistribution {
 		double v = cumulative(q, n, true);
 		System.out.println(v);
 		System.out.println(quantile(v, n, true, false));
+		System.out.println(density(q, n));
+		System.out.println(density(3000, 25));
 	}
 }

@@ -515,8 +515,9 @@ public class TestDPQR {
 		for (double df : new double[] { 0.1, 1, 10 }) {
 			for (double ncp : new double[] { 0, 1, 10, 100 }) {
 				for (double xB : new double [] { 2000, 1e6, 1e50, Double.POSITIVE_INFINITY}) {
-					if (!isEqual(NonCentralChiSquare.cumulative(xB, df, ncp, true, false), 1)) {
-						System.err.println(String.format("Error: pchisq(x=%g, df=%g, ncp=%g) = %3.18g. Correct answer = 1", xB, df, ncp));
+					double val = NonCentralChiSquare.cumulative(xB, df, ncp, true, false);
+					if (!isEqual(val, 1)) {
+						System.err.println(String.format("Error: pchisq(x=%g, df=%g, ncp=%g) = %3.18g. Correct answer = 1", xB, df, ncp, val));
 						success = false;
 					}
 				}
@@ -526,7 +527,7 @@ public class TestDPQR {
 		//double cor_val = 49.7766246561514; // This is the value given in d-p-q-r-test.R
 		double val = NonCentralChiSquare.quantile(0.025, 31, 1, false, false); // Inf. loop PR#875
 		if (!isEqual(val, cor_val, 1e-11)) {
-			System.err.println(String.format("Error: qchisq(x=0.025, df=31, ncp=1) = %3.18g. Correct answer = %3.18", val, cor_val));
+			System.err.println(String.format("Error: qchisq(x=0.025, df=31, ncp=1) = %3.18g. Correct answer = %3.18g", val, cor_val));
 			success = false;
 		}
 

@@ -251,6 +251,13 @@ public class VectorMath {
 		return true;
 	}
 
+	public static final boolean allEq(double[] e, double v) {
+		for (double _e : e)
+			if (_e != v)
+				return false;
+		return true;
+	}
+
 	public static final boolean allEqual(double[] e, double[] v) {
 		if (e.length != v.length)
 			throw new RuntimeException();
@@ -471,5 +478,29 @@ public class VectorMath {
 		for (int i = 0; i < n; i++)
 			mx[i] = a[i] < b[i] ? a[i] : b[i];
 		return mx;
+	}
+
+	public static final boolean isEqual(double a, double b, double tol) {
+		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) <= tol);
+	}
+
+	public static final boolean isEqualScaled(double a, double b, double tol) {
+		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b)/(Double.isNaN(a) ? 0 : a) <= tol);
+	}
+
+	public static final boolean allEqual(double[] a, double[] b, double tol) {
+		int n = a.length;
+		if (n != b.length) throw new RuntimeException();
+		for (int i = 0; i < n; i++)
+			if (!isEqual(a[i], b[i], tol)) return false;
+		return true;
+	}
+
+	public static final boolean allEqualScaled(double[] a, double[] b, double tol) {
+		int n = a.length;
+		if (n != b.length) throw new RuntimeException();
+		for (int i = 0; i < n; i++)
+			if (!isEqualScaled(a[i], b[i], tol)) return false;
+		return true;
 	}
 }

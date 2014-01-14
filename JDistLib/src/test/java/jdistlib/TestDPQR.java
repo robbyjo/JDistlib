@@ -98,43 +98,19 @@ public class TestDPQR {
 	}
 
 	public static final boolean isEqual(double a, double b) {
-		return isEqual(a, b, defaultNumericalError);
-	}
-
-	public static final boolean isEqual(double a, double b, double tol) {
-		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) <= tol);
+		return VectorMath.isEqual(a, b, defaultNumericalError);
 	}
 
 	public static final boolean isEqualScaled(double a, double b) {
-		return isEqualScaled(a, b, defaultNumericalError);
-	}
-
-	public static final boolean isEqualScaled(double a, double b, double tol) {
-		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b)/(Double.isNaN(a) ? 0 : a) <= tol);
-	}
-
-	public static final boolean allEqual(double[] a, double[] b, double tol) {
-		int n = a.length;
-		if (n != b.length) throw new RuntimeException();
-		for (int i = 0; i < n; i++)
-			if (!isEqual(a[i], b[i], tol)) return false;
-		return true;
+		return VectorMath.isEqualScaled(a, b, defaultNumericalError);
 	}
 
 	public static final boolean allEqual(double[] a, double[] b) {
-		return allEqual(a, b, defaultNumericalError);
-	}
-
-	public static final boolean allEqualScaled(double[] a, double[] b, double tol) {
-		int n = a.length;
-		if (n != b.length) throw new RuntimeException();
-		for (int i = 0; i < n; i++)
-			if (!isEqualScaled(a[i], b[i], tol)) return false;
-		return true;
+		return VectorMath.allEqual(a, b, defaultNumericalError);
 	}
 
 	public static final boolean allEqualScaled(double[] a, double[] b) {
-		return allEqualScaled(a, b, defaultNumericalError);
+		return VectorMath.allEqualScaled(a, b, defaultNumericalError);
 	}
 
 	public static final boolean printBool(boolean b) {
@@ -155,13 +131,13 @@ public class TestDPQR {
 	}
 
 	public static final boolean printAllEqual(double[] a, double[] b, double tol) {
-		boolean v = allEqual(a, b, tol);
+		boolean v = VectorMath.allEqual(a, b, tol);
 		printBool(v);
 		if (v) return true;
 		int n = a.length;
 		boolean[] vv = new boolean[n];
 		for (int i = 0; i < a.length; i++)
-			vv[i] = isEqual(a[i], b[i], tol);
+			vv[i] = VectorMath.isEqual(a[i], b[i], tol);
 		System.out.print("True values: ");
 		for (int i = 0; i < n; i++)
 			if (!vv[i])
@@ -187,13 +163,13 @@ public class TestDPQR {
 	}
 
 	public static final boolean printAllEqualScaled(double[] a, double[] b, double tol) {
-		boolean v = allEqualScaled(a, b, tol);
+		boolean v = VectorMath.allEqualScaled(a, b, tol);
 		printBool(v);
 		if (v) return true;
 		int n = a.length;
 		boolean[] vv = new boolean[n];
 		for (int i = 0; i < a.length; i++)
-			vv[i] = isEqualScaled(a[i], b[i], tol);
+			vv[i] = VectorMath.isEqualScaled(a[i], b[i], tol);
 		System.out.print("True values: ");
 		for (int i = 0; i < n; i++)
 			if (!vv[i])
@@ -457,7 +433,7 @@ public class TestDPQR {
 						success = false;
 					}
 					double d3 = 1.0 / (Ga * pow(sig, sh)) * pow(x, sh - 1.0) * exp(-x / sig);
-					if (!isEqual(d1, d3, 2 * defaultNumericalError)) { // Still within error limit
+					if (!VectorMath.isEqual(d1, d3, 2 * defaultNumericalError)) { // Still within error limit
 						System.err.println(String.format("Error: scaled dgamma = %3.18g, manually comp dgamma = %3.18g", d1, d3));
 						System.err.println(String.format("x = %g, sh = %g, sig = %g, Ga(sh) = %3.30g", x, sh, sig, Ga));
 						success = false;
@@ -491,7 +467,7 @@ public class TestDPQR {
 		};
 		for (int i = 0; i < scLrg.length; i++) {
 			p = Gamma.cumulative(1e300, 2, scLrg[i], true, true);
-			if (!isEqual(p, ans[i], 2e-15)) {
+			if (!VectorMath.isEqual(p, ans[i], 2e-15)) {
 				System.err.println(String.format("Error: pgamma(1e300, 2, %g) = %3.18g. Correct answer = %3.18g", scLrg[i], p, ans[i]));
 				success = false;
 			}
@@ -526,7 +502,7 @@ public class TestDPQR {
 		double cor_val = 49.77662465605547481573; // This is the value I took from R
 		//double cor_val = 49.7766246561514; // This is the value given in d-p-q-r-test.R
 		double val = NonCentralChiSquare.quantile(0.025, 31, 1, false, false); // Inf. loop PR#875
-		if (!isEqual(val, cor_val, 1e-11)) {
+		if (!VectorMath.isEqual(val, cor_val, 1e-11)) {
 			System.err.println(String.format("Error: qchisq(x=0.025, df=31, ncp=1) = %3.18g. Correct answer = %3.18g", val, cor_val));
 			success = false;
 		}
@@ -538,7 +514,7 @@ public class TestDPQR {
 			for (double xx : new double[] {1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.9, 1.2, df+3, df+7, df+20, df+30, df+35, df+38}) {
 				double pval = NonCentralChiSquare.cumulative(xx, df, 1, true, false);
 				double qval = NonCentralChiSquare.quantile(pval, df, 1, true, false);
-				if (!isEqual(qval, xx, dtol)) {
+				if (!VectorMath.isEqual(qval, xx, dtol)) {
 					System.err.println(String.format("Error: xx=%g, df=%g, ncp=1, pchisq = %3.18g, qchisq = %3.18g != xx", xx, df, pval, qval));
 					success = cur_success = false;
 				}
@@ -556,7 +532,7 @@ public class TestDPQR {
 			double p0 = NonCentralChiSquare.cumulative(q0, 1.2, 10, false, false);
 			double p1 = NonCentralChiSquare.cumulative(q1, 1.2, 10, false, false);
 			// R code: up to 54, but only the first 30 is tested for accuracy
-			if (i < 29 & !isEqual(q0, q1, 1e-5)) {
+			if (i < 29 & !VectorMath.isEqual(q0, q1, 1e-5)) {
 				System.err.println(String.format("Error: psml=%g, q0=%3.18g, q1 = %3.18g", psml, q0, q1));
 				success = cur_success = false;
 			}
@@ -585,7 +561,7 @@ public class TestDPQR {
 					double v2log = Beta.density(p, a, b, true);
 					double v2 = exp(v2log);
 					//System.out.println(String.format("Debug: p=%g, a=%3.18g, b=%3.18g, dbeta(p,a,b) = %3.18g, dbeta(p,a,b,TRUE) = %3.18g", p, a, b, v1, v2log));
-					if (!isEqual(v1, v2, 1e-11)) {
+					if (!VectorMath.isEqual(v1, v2, 1e-11)) {
 						System.err.println(String.format("Error: p=%g, a=%3.18g, b=%3.18g, dbeta(p,a,b) = %3.18g, exp(dbeta(p,a,b,TRUE)) = %3.18g", p, a, b, v1, v2));
 						success = false;
 					}
@@ -649,9 +625,9 @@ public class TestDPQR {
 //			isEqual(q2, -3.090232306167814, 1e-15) &&
 //			isEqual(q3, -9.262340089798408, 1e-15);
 		// These figures are taken from R console
-		boolean cur_success = isEqual(q1, -0.6744897501960817054467, 1e-15) &&
-			isEqual(q2, -3.0902323061678131921326, 1e-15) &&
-			isEqual(q3, -9.2623400897984051738376, 1e-15);
+		boolean cur_success = VectorMath.isEqual(q1, -0.6744897501960817054467, 1e-15) &&
+			VectorMath.isEqual(q2, -3.0902323061678131921326, 1e-15) &&
+			VectorMath.isEqual(q3, -9.2623400897984051738376, 1e-15);
 		success &= cur_success;
 		printBool(cur_success);
 		q1 = Normal.quantile(-1e5, 0, 1, true, true);
@@ -667,7 +643,7 @@ public class TestDPQR {
 			double z = Normal.random_standard(random);
 			double pz = Normal.cumulative(z, 0, 1, true, false);
 			double pz_comp = 1-Normal.cumulative(-z, 0, 1, true, false);
-			if (!isEqual(pz, pz_comp, 1e-15)) {
+			if (!VectorMath.isEqual(pz, pz_comp, 1e-15)) {
 				System.err.println(String.format("Error: z=%3.18g, pnorm(z) = %3.18g, 1-pnorm(-z) = %3.18g", z, pz, pz_comp));
 				success = cur_success = false;
 			}
@@ -683,7 +659,7 @@ public class TestDPQR {
 			for (int df = 1; df <= 10; df++) {
 				double pt = T.cumulative(z, df, true, false);
 				double pt_comp = 1 - T.cumulative(-z, df, true, false);
-				if (!isEqual(pt, pt_comp, 1e-15)) {
+				if (!VectorMath.isEqual(pt, pt_comp, 1e-15)) {
 					System.err.println(String.format("Error: z=%3.18g, df=%d, pt(z,df) = %3.18g, 1-pt(-z,df) = %3.18g", z, df, pt, pt_comp));
 					success = cur_success = false;
 				}
@@ -702,7 +678,7 @@ public class TestDPQR {
 			if (isInfinite(z) || z > -37.5) {
 				double log_pz = log(pz);
 				pz_comp = Normal.cumulative(z, 0, 1, true, true);
-				if (!isEqual(log_pz, pz_comp, 2 * defaultNumericalError)) {
+				if (!VectorMath.isEqual(log_pz, pz_comp, 2 * defaultNumericalError)) {
 					// Special allowance. See bug #10
 					System.err.println(String.format("Error: z=%3.18g, log(pnorm(z)) = %3.18g, pnorm(z, log=TRUE) = %3.18g", z, log_pz, pz_comp));
 					success = cur_success4 = false;
@@ -715,7 +691,7 @@ public class TestDPQR {
 			}
 			if (1e-5 < pz && pz < 1 - 1e-5) {
 				double qnorm_pz = Normal.quantile(pz, 0, 1, true, false);
-				if (!isEqual(z, qnorm_pz, 1e-12)) {
+				if (!VectorMath.isEqual(z, qnorm_pz, 1e-12)) {
 					buf2.append(String.format("Error: z=%3.18g, qnorm(pnorm(z)) = %3.18g", z, qnorm_pz) + "\n");
 					success = cur_success6 = false;
 				}
@@ -1334,7 +1310,7 @@ public class TestDPQR {
 
 		//*
 		success = printBool(isEqual(1, -1e-17/Exponential.cumulative(Exponential.quantile(-1e-17, 1, true, true), 1, true, true)));
-		success &= printBool(isEqual(abs(Gamma.cumulative(30, 100, 1, false, true)), 7.3384686328784e-24, 1e-36));
+		success &= printBool(VectorMath.isEqual(abs(Gamma.cumulative(30, 100, 1, false, true)), 7.3384686328784e-24, 1e-36));
 		success &= printBool(isEqual(1, Cauchy.cumulative(-1e20, 0, 1, true, false) / 3.18309886183791e-21));
 		success &= printBool(isEqual(1, Cauchy.cumulative(+1e15, 0, 1, true, true) / -3.18309886183791e-16)); // PR#6756
 
@@ -1343,7 +1319,7 @@ public class TestDPQR {
 		x = vpow(10, ex);
 		for (double _x : x)
 			if (_x > 1e10)
-				printBool(isEqual(T.cumulative(-_x, 1, true, false), cauchy.cumulative(-_x), 1e-15));
+				printBool(VectorMath.isEqual(T.cumulative(-_x, 1, true, false), cauchy.cumulative(-_x), 1e-15));
 		System.out.println("## for PR#7902:");
 		double[] rec_x = rec(x), mins_x = vmin(x);
 		success &= printAllEqualScaled(mins_x, cauchy.quantile(cauchy.cumulative(mins_x)));
@@ -1362,7 +1338,7 @@ public class TestDPQR {
 		}
 
 		System.out.println("## PR#6757:");
-		if (!isEqualScaled(pow(1e-23, 12), Binomial.cumulative(11, 12, 1e-23, false, false), 1e-12)) {
+		if (!VectorMath.isEqualScaled(pow(1e-23, 12), Binomial.cumulative(11, 12, 1e-23, false, false), 1e-12)) {
 			System.err.println("Extreme tail error in Binomial.cumulative");
 			success = false;
 		}
@@ -1703,13 +1679,13 @@ public class TestDPQR {
 			}
 			F f = new F(12, 50);
 			val = f.cumulative(f.quantile(1e-18));
-			if (!isEqual(1, 1e-18 / val, 1e-10)) {
+			if (!VectorMath.isEqual(1, 1e-18 / val, 1e-10)) {
 				System.err.println(String.format("F.cumulative(F.quantile(1e-18, 12, 50, true, false), true, false) != 1e-18, but produces %3.18g", val));
 				success = false;
 			}
 			f = new F(1e60, 1e90);
 			val = f.quantile(f.cumulative(0.01, true, true), true, true);
-			if (!isEqual(0.01, val, 1e-4)) {
+			if (!VectorMath.isEqual(0.01, val, 1e-4)) {
 				System.err.println(String.format("F.quantile(F.cumulative(0.01, 1e60, 1e90, true, true), true, true) != 0.01, but produces %3.18g", val));
 				success = false;
 			}
@@ -1794,7 +1770,7 @@ public class TestDPQR {
 			// The fix to the above, for x = 0, had a new cancellation problem
 			for (double _x : vtimes(1e12, vpow(2, colon(0., 20)))) {
 				val = NegBinomial.density_mu(0, 1, _x, false);
-				if (!isEqual(1.0/(1.0+_x), val, 1e-13)) {
+				if (!VectorMath.isEqual(1.0/(1.0+_x), val, 1e-13)) {
 					System.err.println(String.format("NegBinomial.density_mu(0, 1, %3.18, false) = %3.18g != %3.18", _x, val, 1.0/(1.0+_x)));
 					success = false;
 				}
@@ -2178,7 +2154,7 @@ public class TestDPQR {
 		result = DistributionTest.fligner_test(x, g);
 		System.out.println(result[0]);
 		System.out.println(result[1]);
-		success &= printBool(isEqual(14.4827810384586079806, result[0], 1e-12) && isEqual(0.01281677918970919316521, result[1], 1e-12));
+		success &= printBool(VectorMath.isEqual(14.4827810384586079806, result[0], 1e-12) && VectorMath.isEqual(0.01281677918970919316521, result[1], 1e-12));
 		System.out.println("Kruskal-Wallis Test");
 		x = new double[] {2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0};
 		g = new int[] {1,1,1,1,1,2,2,2,2,3,3,3,3,3};

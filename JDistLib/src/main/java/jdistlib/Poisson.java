@@ -30,7 +30,7 @@ import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
 public class Poisson extends GenericDistribution {
-	public class RandomState {
+	public static class RandomState {
 		/* These are static --- persistent between calls for same mu : */
 		int l, m;
 
@@ -39,11 +39,9 @@ public class Poisson extends GenericDistribution {
 		double big_l;/* integer "w/o overflow" */
 		double muprev = 0., muprev2 = 0.;/*, muold	 = 0.*/
 	}
-	private static final Poisson singleton = new Poisson();
-	private Poisson() {}
 
 	public static final RandomState create_random_state()
-	{	return singleton.new RandomState(); }
+	{	return new RandomState(); }
 
 	public static final double density_raw(double x, double lambda, boolean give_log) {
 		if (lambda == 0) return( (x == 0) ? (give_log ? 0. : 1.) : (give_log ? Double.NEGATIVE_INFINITY : 0.) );
@@ -216,7 +214,7 @@ public class Poisson extends GenericDistribution {
 			return 0.;
 
 		if (state == null)
-			state = singleton.new RandomState();
+			state = new RandomState();
 		big_mu = mu >= 10.;
 		if(big_mu)
 			new_big_mu = false;

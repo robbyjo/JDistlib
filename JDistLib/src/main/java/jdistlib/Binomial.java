@@ -26,7 +26,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
 
 public class Binomial extends GenericDistribution {
-	public class RandomState {
+	public static class RandomState {
 		public double c, fm, npq, p1, p2, p3, p4, qn;
 		public double xl, xll, xlr, xm, xr;
 
@@ -34,11 +34,9 @@ public class Binomial extends GenericDistribution {
 		public int nsave = -1;
 		public int m;
 	}
-	private static final Binomial singleton = new Binomial();
-	private Binomial() {}
 
 	public static final RandomState create_random_state()
-	{	return singleton.new RandomState(); }
+	{	return new RandomState(); }
 
 	public static final double density_raw(double x, double n, double p, double q, boolean log_p)
 	{
@@ -208,7 +206,7 @@ public class Binomial extends GenericDistribution {
 	}
 
 	public static final double random(double nin, double pp, RandomEngine random, RandomState state) {
-		if (state == null) state = singleton.new RandomState();
+		if (state == null) state = new RandomState();
 
 		double f, f1, f2, u, v, w, w2, x, x1, x2, z, z2;
 		double p, q, np, g, r, al, alv, amaxp, ffm, ynorm;

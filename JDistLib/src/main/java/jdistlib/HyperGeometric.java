@@ -27,7 +27,7 @@ import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
 public class HyperGeometric extends GenericDistribution {
-	public class RandomState {
+	public static class RandomState {
 		public int ks = -1;
 		public int n1s = -1, n2s = -1;
 
@@ -37,11 +37,9 @@ public class HyperGeometric extends GenericDistribution {
 		public double a, d, s, w;
 		public double tn, xl, xr, kl, kr, lamdl, lamdr, p1, p2, p3;
 	}
-	private static final HyperGeometric singleton = new HyperGeometric();
-	private HyperGeometric(){}
 
 	public static final RandomState create_random_state()
-	{	return singleton.new RandomState(); }
+	{	return new RandomState(); }
 
 	public static final double density(double x, double r, double b, double n, boolean give_log)
 	{
@@ -283,7 +281,7 @@ public class HyperGeometric extends GenericDistribution {
 
 		/* These should become `thread_local globals' : */
 		if (state == null)
-			state = singleton.new RandomState();
+			state = new RandomState();
 
 		/* check parameter validity */
 

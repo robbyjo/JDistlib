@@ -588,15 +588,39 @@ public class Tukey extends GenericDistribution {
 		return rand;
 	}
 
+	public static final double density(double x, double rr, double cc, double df, boolean log_p) {
+		return density(x, rr, cc, df, log_p, 1e-10);
+	}
+
+	/**
+	 * Density of Tukey HSD distribution using differentials of the cumulative --- WARNING: Untested!
+	 * @param x
+	 * @param rr
+	 * @param cc
+	 * @param df
+	 * @param log_p
+	 * @param diff tunable delta (set to 1e-10) in the preceding routine
+	 * @return Density value
+	 */
+	public static final double density(double x, double rr, double cc, double df, boolean log_p, double diff) {
+		double
+			hi = cumulative(x + diff, rr, cc, df, true, false),
+			lo = cumulative(x, rr, cc, df, true, false);
+		return log_p ? log(hi - lo) - log(diff) : (hi - lo) / diff;
+	}
+
 	protected double rr, cc, df;
 
 	public Tukey(double rr, double cc, double df) {
 		this.rr = rr; this.cc = cc; this.df = df;
 	}
 
+	/**
+	 * Density of Tukey HSD distribution using differentials of the cumulative --- WARNING: Untested!
+	 */
 	@Override
 	public double density(double x, boolean log) {
-		throw new RuntimeException("Not implemented, sorry!");
+		return density(x, rr, cc, df, log);
 	}
 
 	@Override

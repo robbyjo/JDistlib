@@ -31,6 +31,7 @@ import jdistlib.Binomial;
 import jdistlib.ChiSquare;
 import jdistlib.F;
 import jdistlib.Normal;
+import jdistlib.Poisson;
 import jdistlib.SignRank;
 import jdistlib.T;
 import jdistlib.Wilcoxon;
@@ -546,7 +547,7 @@ public class DistributionTest {
 			case GREATER: p = Binomial.cumulative(n_success - 1, n, p, false, false); break;
 			case LOWER: p = Binomial.cumulative(n_success, n, p, true, false); break;
 		}
-		return new double[] {n_success * 1.0 / n, p};
+		return new double[] {n_success, p};
 	}
 
 	/**
@@ -685,6 +686,65 @@ public class DistributionTest {
 		stat = ((12 * stat / (n * (n + 1)) - 3 * (n + 1)) / (1 - sigma / (n*n*n - n)));
 		double p = ChiSquare.cumulative(stat, k - 1, false, false);
 		return new double[] {stat, p};
+	}
+
+	/**
+	 * Performs an exact test of a simple null hypothesis about the rate parameter in Poisson distribution
+	 * @param num_events number of events.
+	 * @param time time base for event count.
+	 * @param rate hypothesized rate
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] poisson_test(int num_events, double time, double rate, TestKind kind) {
+		if (time < 0 || rate < 0 || num_events < 0) throw new RuntimeException();
+		double m = rate * time, p = Double.NaN;
+		switch (kind) {
+			case TWO_SIDED:
+				if (m == 0) {
+					p = num_events == 0 ? 1 : 0; break;
+				}
+				if (num_events == m) {
+					p = 1; break;
+				}
+				double d = Poisson.density(num_events, m, false), fuzz = (1 + 1e-7) * d, y = 0, N;
+				if (num_events < m) {
+					N = (int) ceil(2 * m - num_events);
+					while (Poisson.density(N, m, false) > d) N *= 2;
+					for (int i = (int) ceil(m); i <= N; i++)
+						if (Poisson.density(i, m, false) <= fuzz)
+							y++;
+					p = Poisson.cumulative(num_events, m, true, false) +
+						Poisson.cumulative(N - y, m, false, false);
+				} else {
+					N = (int) floor(m);
+					for (int i = 0; i < N; i++)
+						if (Poisson.density(i, m, false) <= fuzz)
+							y++;
+					p = Poisson.cumulative(y - 1, m, true, false) +
+						Poisson.cumulative(num_events - 1, m, false, false);
+				}
+				break;
+			case GREATER: p = Poisson.cumulative(num_events-1, m, false, false); break;
+			case LOWER: p = Poisson.cumulative(num_events, m, true, false); break;
+		}
+		return new double[] {num_events, p};
+	}
+
+	/**
+	 * Comparison of Poisson rates
+	 * @param num_events1 number of events for the treatment.
+	 * @param num_events2 number of events for control.
+	 * @param time1 time base for event count for treatment.
+	 * @param time2 time base for event count for control.
+	 * @param rate hypothesized rate
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 * @return
+	 */
+	public static final double[] poisson_test(int num_events1, int num_events2, double time1, double time2, double r, TestKind kind) {
+		if (time1 < 0 || time2 < 0 || r < 0 || num_events1 < 0 || num_events2 < 0) throw new RuntimeException();
+		return binomial_test(num_events1, num_events1+num_events2, r * time1 / (r * time1 + time2), kind);
 	}
 
 	/**

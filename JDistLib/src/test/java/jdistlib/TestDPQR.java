@@ -2066,6 +2066,20 @@ public class TestDPQR {
 		System.out.println(result[0]);
 		System.out.println(result[1]);
 		success &= printBool(isEqual(0.7714285714285722406203, result[0]) && isEqual(0.6799647735788936220303, result[1]));
+		System.out.println("Poisson Test");
+		result = DistributionTest.poisson_test(137, 24.19893, 1, TestKind.TWO_SIDED);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= printBool(isEqual(137, result[0]) && isEqual(2.845227264114483019947e-56, result[1]));
+		result = DistributionTest.poisson_test(11, 6+8+7, 800, 1083+1050+878, 1, TestKind.TWO_SIDED);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= printBool(isEqual(11, result[0]) && isEqual(0.07966863303332952228608, result[1]));
+		System.out.println("Binomial Test");
+		result = DistributionTest.binomial_test(682, 682+243, 0.75, TestKind.TWO_SIDED);
+		System.out.println(result[0]);
+		System.out.println(result[1]);
+		success &= printBool(isEqual(682, result[0]) && isEqual(0.3824915595748519248076, result[1]));
 		return success;
 	}
 

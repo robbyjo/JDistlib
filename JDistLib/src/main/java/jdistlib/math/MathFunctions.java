@@ -3422,4 +3422,65 @@ public class MathFunctions {
 	    }
 	    return log(1 + x);
 	}
+
+	/**
+	 * Calculate harmonic number
+	 * @param n must be positive
+	 * @return value
+	 */
+	public static final double gharmonic(int n) {
+		return gharmonic(n, 1, 0);
+	}
+
+	public static final double gharmonic(int n, double s) {
+		return gharmonic(n, s, 0);
+	}
+
+	/**
+	 * Calculate generalized harmonic number
+	 * @param n must be positive
+	 * @param s
+	 * @param logexponent
+	 * @return a value
+	 */
+	public static final double gharmonic(int n, double s, double logexponent) {
+		if (n <= 0)
+			throw new IllegalArgumentException();
+		double sum = 0;
+		if (logexponent != 0)
+			for (int i = 2; i <= n; i++)
+				sum += pow(log(i), logexponent) * pow(i, -s);
+		else
+			for (int i = 1; i <= n; i++)
+				sum += pow(i, -s);
+		return sum;
+	}
+
+	public static final double lgharmonic(int n) {
+		return lgharmonic(n, 1, 0);
+	}
+
+	public static final double lgharmonic(int n, double s) {
+		return lgharmonic(n, s, 0);
+	}
+
+	/**
+	 * Calculate the log of generalized harmonic number
+	 * @param n must be positive
+	 * @param s
+	 * @param logexponent
+	 * @return a value
+	 */
+	public static final double lgharmonic(int n, double s, double logexponent) {
+		if (n <= 0)
+			throw new IllegalArgumentException();
+		double sum = 0;
+		if (logexponent != 0)
+			for (int i = 2; i <= n; i++)
+				sum = logspace_add(sum, logexponent * log(log(i)) - s * log(i));
+		else
+			for (int i = 1; i <= n; i++)
+				sum = logspace_add(sum, -s * log(i));
+		return sum;
+	}
 }

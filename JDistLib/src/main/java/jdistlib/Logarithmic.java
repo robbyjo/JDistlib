@@ -38,8 +38,8 @@ public class Logarithmic extends GenericDistribution {
 		if (mu <= 0 || mu >= 1 || q <= 0)
 			return Double.NaN;
 		double sum = 0;
-		for (int i = 0; i < q; i++)
-			sum += density(i, mu, false);
+		for (int i = 1; i <= q; i++)
+			sum += exp(i * log(mu) - log(i) -log(-log(1-mu)));
 		sum = lower_tail ? sum : 1 - sum;
 		return log_p ? log(sum) : sum;
 	}
@@ -59,10 +59,13 @@ public class Logarithmic extends GenericDistribution {
 			return Double.POSITIVE_INFINITY;
 		p = log_p ? exp(p) : p;
 		p = lower_tail ? p : 1 - p;
-		for (int i = 1; i <= max_value; i++)
-			if (p <= cumulative(i, mu, true, false))
+		double sum = 0;
+		for (int i = 0; i < max_value; i++) {
+			sum += exp(i * log(mu) - log(i) -log(-log(1-mu)));
+			if (p <= sum)
 				return i;
-		return Double.POSITIVE_INFINITY;
+		}
+		return Double.NaN;
 	}
 
 	public static final double random(double mu, RandomEngine random) {

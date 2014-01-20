@@ -99,7 +99,7 @@ public class Zipf extends GenericDistribution {
 			}
 		} while (hi - lo > 1);
 		if (pathological)
-			System.err.println("Pathological case of Spearman.quantile! Quantile estimate may not be accurate!");
+			System.err.println("Pathological case of Zipf.quantile! Quantile estimate may not be accurate!");
 		if (lower_tail)
 			return f_hi <= p ? hi : f_mid <= p ? mid : lo;
 		return f_lo >= p ? lo : f_mid >= p ? mid : hi;

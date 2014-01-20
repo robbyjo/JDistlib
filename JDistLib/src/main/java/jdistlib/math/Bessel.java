@@ -450,7 +450,7 @@ public class Bessel {
 		if (x < 0) return Double.NaN;
 		int na = (int) floor(alpha);
 
-		if (na < 0) {
+		if (alpha < 0) {
 			/* Using Abramowitz & Stegun  9.6.2 & 9.6.6
 			 * this may not be quite optimal (CPU and accuracy wise) */
 			return i(x, -alpha, expo) + (alpha == na ? 0 :

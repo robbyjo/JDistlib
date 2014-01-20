@@ -400,6 +400,16 @@ public class VectorMath {
 		return map;
 	}
 
+	public static final <T> Map<String, Integer> table(T[] e) {
+		Map<String, Integer> map = new HashMap<String, Integer>();
+		for (T _e : e) {
+			String estr = String.valueOf(_e);
+			Integer i = map.get(estr);
+			map.put(estr, 1 + (i == null ? 0 : i.intValue()));
+		}
+		return map;
+	}
+
 	public static final double[] as_numeric(Collection<String> ll) {
 		int n = ll.size(), i = 0;
 		double[] v = new double[n];

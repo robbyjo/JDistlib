@@ -57,7 +57,9 @@ public class Arcsine extends GenericDistribution {
 		if (Double.isNaN(q) || Double.isNaN(a) || Double.isNaN(b)) return q + a + b;
 		if (b < a) throw new IllegalArgumentException();
 		if (log_p) q = exp(q);
+		if (q < 0 || q > 1) throw new IllegalArgumentException();
 		if (lower_tail) q = 1-q;
+		q = log(q); // Log form comparison
 		double lo = a, hi = b, f_lo = cumulative_raw(lo, a, b), f_hi = cumulative_raw(hi, a, b), mid, f_mid;
 		boolean pathological = false;
 		do {

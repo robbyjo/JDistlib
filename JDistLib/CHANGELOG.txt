@@ -1,5 +1,22 @@
 What's new:
 
+Future version (?):
+* Skewed T distribution (will research various parameterization first)
+
+Version 0.3.2 (Jan 24, 2014):
+* Fixed bug in MathFunctions.lmvgammafn (see ticket #14)
+* Fixed bug in Spearman.quantile (off by 1 issue)
+* Fixed bug in binomial test in DistributionTests
+* Fixed bug in Logarithmic distributions plus some speed up in Logarithmic.quantile
+* Added Bounded Arcsine, Laplace, and Zipf distributions
+* Added density functions for Spearman and Tukey distributions (using differentials; not precise!)
+* Added MathFunctions.sinc, gharmonic, lgharmonic, and sort for various data types
+* Added some incomplete solutions to bug PR#15635
+* Added batch calls for PolyGamma functions
+* Added Poisson test
+* Make MathFunctions.logspace_add and logspace_sub public
+* Removed redundant constants from Constants (M_PI_half, M_LN_2, kLog1OverSqrt2Pi)
+
 Version 0.3.1 (Jan 13, 2014):
 * Added Spearman quantile (using bisection) and random variates (by inversion)
 * Added Order quantile variates (only very minimally tested; caveat emptor!)

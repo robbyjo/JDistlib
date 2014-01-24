@@ -54,6 +54,8 @@ public class TestMathFun {
 		success &= printAllEqual(tetragamma, PolyGamma.tetragamma(x));
 		success &= printAllEqual(pentagamma, PolyGamma.pentagamma(x));
 		success &= printAllEqual(hexagamma, PolyGamma.psigamma(x, 4));
+		double val = MathFunctions.lmvgammafn(1.6, 2);
+		success &= printBool(isEqual(0.4099007359681045015165, val));
 		return success;
 	}
 

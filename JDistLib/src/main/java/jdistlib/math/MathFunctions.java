@@ -33,8 +33,8 @@ public class MathFunctions {
 	public static final double lmvgammafn(double a, int p) {
 		double sum = 0;
 		for (int j = 1; j <= p; j++)
-			sum += lgammafn(a + (1-j)/2);
-		return sum + p*(p-1)/4 * M_LOG_PI;
+			sum += lgammafn(a + (1-j)/2.0);
+		return sum + p*(p-1)/4.0 * M_LOG_PI;
 	}
 
 	public static final double trunc(double x)

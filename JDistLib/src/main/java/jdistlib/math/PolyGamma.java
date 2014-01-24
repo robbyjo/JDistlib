@@ -565,4 +565,20 @@ public class PolyGamma
 	public static final double[] pentagamma(double[] x) {
 		return psigamma(x, 3);
 	}
+
+	/**
+	 * Log of multivariate psigamma function
+	 * By: Roby Joehanes
+	 * @param a
+	 * @param p the dimension or order
+	 * @param deriv digamma = 0, trigamma = 1, ... etc.
+	 * @return log multivariate psigamma
+	 */
+	public static final double lmvpsigammafn(double a, int p, int deriv) {
+		double sum = 0;
+		for (int j = 1; j <= p; j++)
+			sum += log(psigamma(a + (1-j)/2.0, deriv));
+		return sum;
+	}
+
 }

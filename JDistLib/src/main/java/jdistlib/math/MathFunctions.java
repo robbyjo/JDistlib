@@ -3018,7 +3018,7 @@ public class MathFunctions {
 		/* ----------------------------------------------------------------------
 		   Mathematical constants
 		   ----------------------------------------------------------------------*/
-		final double sqrtpi = .9189385332046727417803297; /* == ??? */
+		//final double sqrtpi = .9189385332046727417803297; /* == ??? */
 
 		/* *******************************************************************
 
@@ -3186,7 +3186,7 @@ public class MathFunctions {
 				for (int i = 0; i < 6; ++i) {
 					sum = sum / ysq + c[i];
 				}
-				sum = sum / y - y + sqrtpi;
+				sum = sum / y - y + M_LN_SQRT_2PI; //sqrtpi;
 				sum += (y - .5) * log(y);
 				res = exp(sum);
 			} else {

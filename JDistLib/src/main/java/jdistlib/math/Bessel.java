@@ -33,7 +33,7 @@ import java.util.Arrays;
  * <li>j is Bessel function of the first kind.</li>
  * <li>y is Bessel function of the second kind.</li>
  * <li>i is modified Bessel function of the first kind.</li>
- * <li>k is modified Bessel function of the second kind.</li>
+ * <li>k is modified Bessel function of the third kind.</li>
  * </ul>
  *
  */
@@ -156,75 +156,29 @@ public class Bessel {
 		 */
 		M_eps_sinc = 2.149e-8;
 
-	/**<p>
-	 Calculates Bessel functions J_{n+alpha} (x)
-	 for non-negative argument x, and non-negative order n+alpha, n = 0,1,..,nb-1.
-
-	  <p>Explanation of variables in the calling sequence.<pre>
-
-	 X     - Non-negative argument for which J's are to be calculated.
-	 ALPHA - Fractional part of order for which
-		 J's are to be calculated.  0 <= ALPHA < 1.
-	 NB    - Number of functions to be calculated, NB >= 1.
-		 The first function calculated is of order ALPHA, and the
-		 last is of order (NB - 1 + ALPHA).
-	 B     - Output vector of length NB.  If RJBESL
-		 terminates normally (NCALC=NB), the vector B contains the
-		 functions J/ALPHA/(X) through J/NB-1+ALPHA/(X).
-	 NCALC - Output variable indicating possible errors.
-		 Before using the vector B, the user should check that
-		 NCALC=NB, i.e., all orders have been calculated to
-		 the desired accuracy.	See the following
-
-		 ****************************************************************
-
-	 Error return codes
-
-	    In case of an error,  NCALC != NB, and not all J's are
-	    calculated to the desired accuracy.
-
-	    NCALC < 0:	An argument is out of range. For example,
-	       NBES <= 0, ALPHA < 0 or > 1, or X is too large.
-	       In this case, b[1] is set to zero, the remainder of the
-	       B-vector is not calculated, and NCALC is set to
-	       MIN(NB,0)-1 so that NCALC != NB.
-
-	    NB > NCALC > 0: Not all requested function values could
-	       be calculated accurately.  This usually occurs because NB is
-	       much larger than ABS(X).	 In this case, b[N] is calculated
-	       to the desired accuracy for N <= NCALC, but precision
-	       is lost for NCALC < N <= NB.  If b[N] does not vanish
-	       for N > NCALC (because it is too small to be represented),
-	       and b[N]/b[NCALC] = 10^(-K), then only the first NSIG - K
-	       significant figures of b[N] can be trusted.
-
-
-	  Acknowledgement
-
-		This program is based on a program written by David J. Sookne
-		(2) that computes values of the Bessel functions J or I of float
-		argument and long order.  Modifications include the restriction
-		of the computation to the J Bessel function of non-negative float
-		argument, the extension of the computation to arbitrary positive
-		order, and the elimination of most underflow.
-
-	  References:
-
-		Olver, F.W.J., and Sookne, D.J. (1972)
-		"A Note on Backward Recurrence Algorithms";
-		Math. Comp. 26, 941-947.
-
-		Sookne, D.J. (1973)
-		"Bessel Functions of Real Argument and Integer Order";
-		NBS Jour. of Res. B. 77B, 125-132.
-
-	  Latest modification: March 19, 1990
-
-	  Author: W. J. Cody
-		  Applied Mathematics Division
-		  Argonne National Laboratory
-		  Argonne, IL  60439
-	 *******************************************************************</pre>
+	/**
+	 * <p>Calculates Bessel functions J_{alpha} (x) for non-negative argument x, and non-negative order alpha.
+	 * 
+	 * <p>Acknowledgement
+	 * 
+	 * <p>This program is based on a program written by David J. Sookne (2) that computes values of the Bessel functions J or I of float
+	 * argument and long order.  Modifications include the restriction of the computation to the J Bessel function of non-negative float
+	 * argument, the extension of the computation to arbitrary positive order, and the elimination of most underflow.
+	 * 
+	 * <p>References:<ol>
+	 * <li>Olver, F.W.J., and Sookne, D.J. (1972) "A Note on Backward Recurrence Algorithms"; Math. Comp. 26, 941-947.</li>
+	 * <li>Sookne, D.J. (1973) "Bessel Functions of Real Argument and Integer Order"; NBS Jour. of Res. B. 77B, 125-132.</li>
+	 * </ol>
+	 * 
+	 * <P>Latest modification: March 19, 1990
+	 * 
+	 * <P>@author W. J. Cody
+	 * <P>Applied Mathematics Division<br>
+	 * Argonne National Laboratory<br>
+	 * Argonne, IL  60439
+	 * 
+	 * @param x Non-negative argument for which J's are to be calculated.
+	 * @param alpha Order for which J's are to be calculated.
 	 */
 	public static final double j(double x, double alpha) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
@@ -250,81 +204,31 @@ public class Bessel {
 		return by[nb-1];
 	}
 
-	/**<p>This routine calculates Bessel functions Y_(N+ALPHA) (X)
-	 for non-negative argument X, and non-negative order N+ALPHA.
-
-	 <P>Explanation of variables in the calling sequence<pre>
-
-	 X     - Non-negative argument for which
-		 Y's are to be calculated.
-	 ALPHA - Fractional part of order for which
-		 Y's are to be calculated.  0 <= ALPHA < 1.0.
-	 NB    - Number of functions to be calculated, NB > 0.
-		 The first function calculated is of order ALPHA, and the
-		 last is of order (NB - 1 + ALPHA).
-	 BY    - Output vector of length NB.	If the
-		 routine terminates normally (NCALC=NB), the vector BY
-		 contains the functions Y(ALPHA,X), ... , Y(NB-1+ALPHA,X),
-		 If (0 < NCALC < NB), BY(I) contains correct function
-		 values for I <= NCALC, and contains the ratios
-		 Y(ALPHA+I-1,X)/Y(ALPHA+I-2,X) for the rest of the array.
-	 NCALC - Output variable indicating possible errors.
-		 Before using the vector BY, the user should check that
-		 NCALC=NB, i.e., all orders have been calculated to
-		 the desired accuracy.	See error returns below.
-
-
-	 *******************************************************************
-
-	 Error returns
-
-	  In case of an error, NCALC != NB, and not all Y's are
-	  calculated to the desired accuracy.
-
-	  NCALC < -1:  An argument is out of range. For example,
-		NB <= 0, IZE is not 1 or 2, or IZE=1 and ABS(X) >=
-		XMAX.  In this case, BY[0] = 0.0, the remainder of the
-		BY-vector is not calculated, and NCALC is set to
-		MIN0(NB,0)-2  so that NCALC != NB.
-	  NCALC = -1:  Y(ALPHA,X) >= XINF.  The requested function
-		values are set to 0.0.
-	  1 < NCALC < NB: Not all requested function values could
-		be calculated accurately.  BY(I) contains correct function
-		values for I <= NCALC, and and the remaining NB-NCALC
-		array elements contain 0.0.
-
-
-	 Intrinsic functions required are:
-
-	     DBLE, EXP, INT, MAX, MIN, REAL, SQRT
-
-
-	 Acknowledgement
-
-		This program draws heavily on Temme's Algol program for Y(a,x)
-		and Y(a+1,x) and on Campbell's programs for Y_nu(x).	Temme's
-		scheme is used for  x < THRESH, and Campbell's scheme is used
-		in the asymptotic region.  Segments of code from both sources
-		have been translated into Fortran 77, merged, and heavily modified.
-		Modifications include parameterization of machine dependencies,
-		use of a new approximation for ln(gamma(x)), and built-in
-		protection against over/underflow.
-
-	 References: "Bessel functions J_nu(x) and Y_nu(x) of float
-		      order and float argument," Campbell, J. B.,
-		      Comp. Phy. Comm. 18, 1979, pp. 133-142.
-
-		     "On the numerical evaluation of the ordinary
-		      Bessel function of the second kind," Temme,
-		      N. M., J. Comput. Phys. 21, 1976, pp. 343-350.
-
-	  Latest modification: March 19, 1990
-
-	  Modified by: W. J. Cody
-		       Applied Mathematics Division
-		       Argonne National Laboratory
-		       Argonne, IL  60439
-	 ----------------------------------------------------------------------</pre>*/
+	/**
+	 * <p>This routine calculates Bessel functions Y_{alpha} (x) for non-negative argument X, and non-negative order alpha.
+	 * 
+	 * <P>Acknowledgement
+	 * 
+	 * <P>This program draws heavily on Temme's Algol program for Y(a,x) and Y(a+1,x) and on Campbell's programs for Y_nu(x).
+	 * Temme's scheme is used for  x < THRESH, and Campbell's scheme is used in the asymptotic region.  Segments of code from
+	 * both sources have been translated into Fortran 77, merged, and heavily modified. Modifications include parameterization
+	 * of machine dependencies, use of a new approximation for ln(gamma(x)), and built-in protection against over/underflow.
+	 * 
+	 * <P>References:<ol>
+	 * <li>"Bessel functions J_nu(x) and Y_nu(x) of float order and float argument," Campbell, J. B., Comp. Phy. Comm. 18, 1979, pp. 133-142.</li>
+	 * <li>"On the numerical evaluation of the ordinary Bessel function of the second kind," Temme, N. M., J. Comput. Phys. 21, 1976, pp. 343-350.</li>
+	 * </ol>
+	 * 
+	 * <P>Latest modification: March 19, 1990
+	 * 
+	 * <P>@author Modified by: W. J. Cody
+	 * <P>Applied Mathematics Division<br>
+	 * Argonne National Laboratory<br>
+	 * Argonne, IL  60439
+	 * 
+	 * @param x Non-negative argument for which Y's are to be calculated.
+	 * @param alpha Order for which Y's are to be calculated.
+	 */
 	public static final double y(double x, double alpha) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
@@ -351,94 +255,34 @@ public class Bessel {
 		return by[nb - 1];
 	}
 
-	/**<p>This routine calculates Bessel functions I_(N+ALPHA) (X)
-	 for non-negative argument X, and non-negative order N+ALPHA,
-	 with or without exponential scaling.
-
-
-	 <P>Explanation of variables in the calling sequence <pre>
-
-	 X     - Non-negative argument for which
-		 I's or exponentially scaled I's (I*EXP(-X))
-		 are to be calculated.	If I's are to be calculated,
-		 X must be less than exparg_BESS (IZE=1) or xlrg_BESS_IJ (IZE=2),
-		 (see bessel.h).
-	 ALPHA - Fractional part of order for which
-		 I's or exponentially scaled I's (I*EXP(-X)) are
-		 to be calculated.  0 <= ALPHA < 1.0.
-	 NB    - Number of functions to be calculated, NB > 0.
-		 The first function calculated is of order ALPHA, and the
-		 last is of order (NB - 1 + ALPHA).
-	 IZE   - Type.	IZE = 1 if unscaled I's are to be calculated,
-			    = 2 if exponentially scaled I's are to be calculated.
-	 BI    - Output vector of length NB.	If the routine
-		 terminates normally (NCALC=NB), the vector BI contains the
-		 functions I(ALPHA,X) through I(NB-1+ALPHA,X), or the
-		 corresponding exponentially scaled functions.
-	 NCALC - Output variable indicating possible errors.
-		 Before using the vector BI, the user should check that
-		 NCALC=NB, i.e., all orders have been calculated to
-		 the desired accuracy.	See error returns below.
-
-
-	 *******************************************************************
-	 *******************************************************************
-
-	 Error returns
-
-	  In case of an error,	NCALC != NB, and not all I's are
-	  calculated to the desired accuracy.
-
-	  NCALC < 0:  An argument is out of range. For example,
-	     NB <= 0, IZE is not 1 or 2, or IZE=1 and ABS(X) >= EXPARG_BESS.
-	     In this case, the BI-vector is not calculated, and NCALC is
-	     set to MIN0(NB,0)-1 so that NCALC != NB.
-
-	  NB > NCALC > 0: Not all requested function values could
-	     be calculated accurately.	This usually occurs because NB is
-	     much larger than ABS(X).  In this case, BI[N] is calculated
-	     to the desired accuracy for N <= NCALC, but precision
-	     is lost for NCALC < N <= NB.  If BI[N] does not vanish
-	     for N > NCALC (because it is too small to be represented),
-	     and BI[N]/BI[NCALC] = 10**(-K), then only the first NSIG-K
-	     significant figures of BI[N] can be trusted.
-
-
-	 Intrinsic functions required are:
-
-	     DBLE, EXP, gamma_cody, INT, MAX, MIN, REAL, SQRT
-
-
-	 Acknowledgement
-
-	  This program is based on a program written by David J.
-	  Sookne (2) that computes values of the Bessel functions J or
-	  I of float argument and long order.  Modifications include
-	  the restriction of the computation to the I Bessel function
-	  of non-negative float argument, the extension of the computation
-	  to arbitrary positive order, the inclusion of optional
-	  exponential scaling, and the elimination of most underflow.
-	  An earlier version was published in (3).
-
-	 References: "A Note on Backward Recurrence Algorithms," Olver,
-		      F. W. J., and Sookne, D. J., Math. Comp. 26, 1972,
-		      pp 941-947.
-
-		     "Bessel Functions of Real Argument and Integer Order,"
-		      Sookne, D. J., NBS Jour. of Res. B. 77B, 1973, pp
-		      125-132.
-
-		     "ALGORITHM 597, Sequence of Modified Bessel Functions
-		      of the First Kind," Cody, W. J., Trans. Math. Soft.,
-		      1983, pp. 242-245.
-
-	  Latest modification: May 30, 1989
-
-	  Modified by: W. J. Cody and L. Stoltz
-		       Applied Mathematics Division
-		       Argonne National Laboratory
-		       Argonne, IL  60439
-	</pre>*/
+	/**
+	 * <p>This routine calculates Bessel functions I_{alpha} (x) for non-negative argument x,
+	 * and non-negative order alpha, with or without exponential scaling.
+	 * 
+	 * <P>Acknowledgement
+	 * <P>This program is based on a program written by David J. Sookne (2) that computes values of the Bessel functions J or
+	 * I of float argument and long order.  Modifications include the restriction of the computation to the I Bessel function
+	 * of non-negative float argument, the extension of the computation to arbitrary positive order, the inclusion of optional
+	 * exponential scaling, and the elimination of most underflow. An earlier version was published in (3).
+	 * 
+	 * <P>References:<ol>
+	 * <li>"A Note on Backward Recurrence Algorithms," Olver, F. W. J., and Sookne, D. J., Math. Comp. 26, 1972, pp 941-947.</li>
+	 * <li>"Bessel Functions of Real Argument and Integer Order," Sookne, D. J., NBS Jour. of Res. B. 77B, 1973, pp 125-132.</li>
+	 * <li>"ALGORITHM 597, Sequence of Modified Bessel Functions of the First Kind," Cody, W. J., Trans. Math. Soft., 1983, pp. 242-245.</li>
+	 * </ol>
+	 * 
+	 * <P>Latest modification: May 30, 1989
+	 * 
+	 * <P>@author Modified by: W. J. Cody and L. Stoltz<br>
+	 * Applied Mathematics Division<br>
+	 * Argonne National Laboratory<br>
+	 * Argonne, IL  60439
+	 * 
+	 * @param x Non-negative argument for which I's or exponentially scaled I's (I*EXP(-x)) are to be calculated.
+	 * If I's are to be calculated x must be less than exparg_BESS (=709, when expo == FALSE) or xlrg_BESS_IJ (=1e5, when expo == TRUE)
+	 * @param alpha - Order for which I's or exponentially scaled I's (I*EXP(-x)) are to be calculated.
+	 * @param expo - set true if exponentially scaled I's are to be calculated. Else, if unscaled I's are to be calculated.
+	 */
 	public static final double i(double x, double alpha, boolean expo) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
@@ -463,92 +307,32 @@ public class Bessel {
 		return bi[nb - 1];
 	}
 
-	/**<p>This routine calculates modified Bessel functions
-	  of the third kind, K_(N+ALPHA) (X), for non-negative
-	  argument X, and non-negative order N+ALPHA, with or without
-	  exponential scaling.
-
-	  <P>Explanation of variables in the calling sequence<pre>
-
-	 X     - Non-negative argument for which
-		 K's or exponentially scaled K's (K*EXP(X))
-		 are to be calculated.	If K's are to be calculated,
-		 X must not be greater than XMAX_BESS_K.
-	 ALPHA - Fractional part of order for which
-		 K's or exponentially scaled K's (K*EXP(X)) are
-		 to be calculated.  0 <= ALPHA < 1.0.
-	 NB    - Number of functions to be calculated, NB > 0.
-		 The first function calculated is of order ALPHA, and the
-		 last is of order (NB - 1 + ALPHA).
-	 IZE   - Type.	IZE = 1 if unscaled K's are to be calculated,
-			    = 2 if exponentially scaled K's are to be calculated.
-	 BK    - Output vector of length NB.	If the
-		 routine terminates normally (NCALC=NB), the vector BK
-		 contains the functions K(ALPHA,X), ... , K(NB-1+ALPHA,X),
-		 or the corresponding exponentially scaled functions.
-		 If (0 < NCALC < NB), BK(I) contains correct function
-		 values for I <= NCALC, and contains the ratios
-		 K(ALPHA+I-1,X)/K(ALPHA+I-2,X) for the rest of the array.
-	 NCALC - Output variable indicating possible errors.
-		 Before using the vector BK, the user should check that
-		 NCALC=NB, i.e., all orders have been calculated to
-		 the desired accuracy.	See error returns below.
-
-
-	 *******************************************************************
-
-	 Error returns
-
-	  In case of an error, NCALC != NB, and not all K's are
-	  calculated to the desired accuracy.
-
-	  NCALC < -1:  An argument is out of range. For example,
-		NB <= 0, IZE is not 1 or 2, or IZE=1 and ABS(X) >= XMAX_BESS_K.
-		In this case, the B-vector is not calculated,
-		and NCALC is set to MIN0(NB,0)-2	 so that NCALC != NB.
-	  NCALC = -1:  Either  K(ALPHA,X) >= XINF  or
-		K(ALPHA+NB-1,X)/K(ALPHA+NB-2,X) >= XINF.	 In this case,
-		the B-vector is not calculated.	Note that again
-		NCALC != NB.
-
-	  0 < NCALC < NB: Not all requested function values could
-		be calculated accurately.  BK(I) contains correct function
-		values for I <= NCALC, and contains the ratios
-		K(ALPHA+I-1,X)/K(ALPHA+I-2,X) for the rest of the array.
-
-
-	 Intrinsic functions required are:
-
-	     ABS, AINT, EXP, INT, LOG, MAX, MIN, SINH, SQRT
-
-
-	 Acknowledgement
-
-		This program is based on a program written by J. B. Campbell
-		(2) that computes values of the Bessel functions K of float
-		argument and float order.  Modifications include the addition
-		of non-scaled functions, parameterization of machine
-		dependencies, and the use of more accurate approximations
-		for SINH and SIN.
-
-	 References: "On Temme's Algorithm for the Modified Bessel
-		      Functions of the Third Kind," Campbell, J. B.,
-		      TOMS 6(4), Dec. 1980, pp. 581-586.
-
-		     "A FORTRAN IV Subroutine for the Modified Bessel
-		      Functions of the Third Kind of Real Order and Real
-		      Argument," Campbell, J. B., Report NRC/ERB-925,
-		      National Research Council, Canada.
-
-	  Latest modification: May 30, 1989
-
-	  Modified by: W. J. Cody and L. Stoltz
-		       Applied Mathematics Division
-		       Argonne National Laboratory
-		       Argonne, IL  60439
-
-	 -------------------------------------------------------------------</pre>
-	*/
+	/**
+	 * <p>This routine calculates modified Bessel functions of the third kind, K_{alpha} (x), for non-negative argument x,
+	 * and non-negative order alpha, with or without exponential scaling.
+	 * 
+	 * <P>Acknowledgement
+	 * <P>This program is based on a program written by J. B. Campbell (2) that computes values of the Bessel functions K
+	 * of float argument and float order.  Modifications include the addition of non-scaled functions, parameterization
+	 * of machine dependencies, and the use of more accurate approximations for SINH and SIN.
+	 * 
+	 * <P>References:<ol>
+	 * <li>"On Temme's Algorithm for the Modified Bessel Functions of the Third Kind," Campbell, J. B., TOMS 6(4), Dec. 1980, pp. 581-586.</li>
+	 * <li>"A FORTRAN IV Subroutine for the Modified Bessel Functions of the Third Kind of Real Order and Real Argument," Campbell, J. B., Report NRC/ERB-925, National Research Council, Canada.</li>
+	 * </ol>
+	 * 
+	 * <P>Latest modification: May 30, 1989
+	 * 
+	 * <p>@author Modified by: W. J. Cody and L. Stoltz
+	 * Applied Mathematics Division<br>
+	 * Argonne National Laboratory<br>
+	 * Argonne, IL  60439
+	 * 
+	 * @param x Non-negative argument for which K's or exponentially scaled K's (K*EXP(x)) are to be calculated.
+	 * If K's are to be calculated, X must not be greater than XMAX_BESS_K (=705.342).
+	 * @param alpha Order for which K's or exponentially scaled K's (K*EXP(X)) are to be calculated.
+	 * @param expo - set true if exponentially scaled K's are to be calculated. Else, if unscaled K's are to be calculated.
+	 */
 	public static final double k(double x, double alpha, boolean expo) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;

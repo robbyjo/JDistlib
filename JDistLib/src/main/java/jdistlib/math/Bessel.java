@@ -36,7 +36,6 @@ import java.util.Arrays;
  * <li>k is modified Bessel function of the second kind.</li>
  * </ul>
  *
- * <P>WARNING: STILL BUGGY!
  */
 public class Bessel {
 	/* *******************************************************************
@@ -157,11 +156,11 @@ public class Bessel {
 		 */
 		M_eps_sinc = 2.149e-8;
 
-	/**<pre>
+	/**<p>
 	 Calculates Bessel functions J_{n+alpha} (x)
 	 for non-negative argument x, and non-negative order n+alpha, n = 0,1,..,nb-1.
 
-	  Explanation of variables in the calling sequence.
+	  <p>Explanation of variables in the calling sequence.<pre>
 
 	 X     - Non-negative argument for which J's are to be calculated.
 	 ALPHA - Fractional part of order for which
@@ -251,13 +250,10 @@ public class Bessel {
 		return by[nb-1];
 	}
 
-	/**<pre> ----------------------------------------------------------------------
-
-	 This routine calculates Bessel functions Y_(N+ALPHA) (X)
+	/**<p>This routine calculates Bessel functions Y_(N+ALPHA) (X)
 	 for non-negative argument X, and non-negative order N+ALPHA.
 
-
-	 Explanation of variables in the calling sequence
+	 <P>Explanation of variables in the calling sequence<pre>
 
 	 X     - Non-negative argument for which
 		 Y's are to be calculated.
@@ -355,14 +351,12 @@ public class Bessel {
 		return by[nb - 1];
 	}
 
-	/**<pre> -------------------------------------------------------------------
-
-	 This routine calculates Bessel functions I_(N+ALPHA) (X)
+	/**<p>This routine calculates Bessel functions I_(N+ALPHA) (X)
 	 for non-negative argument X, and non-negative order N+ALPHA,
 	 with or without exponential scaling.
 
 
-	 Explanation of variables in the calling sequence
+	 <P>Explanation of variables in the calling sequence <pre>
 
 	 X     - Non-negative argument for which
 		 I's or exponentially scaled I's (I*EXP(-X))
@@ -469,14 +463,12 @@ public class Bessel {
 		return bi[nb - 1];
 	}
 
-	/**<pre>-------------------------------------------------------------------
-
-	  This routine calculates modified Bessel functions
+	/**<p>This routine calculates modified Bessel functions
 	  of the third kind, K_(N+ALPHA) (X), for non-negative
 	  argument X, and non-negative order N+ALPHA, with or without
 	  exponential scaling.
 
-	  Explanation of variables in the calling sequence
+	  <P>Explanation of variables in the calling sequence<pre>
 
 	 X     - Non-negative argument for which
 		 K's or exponentially scaled K's (K*EXP(X))

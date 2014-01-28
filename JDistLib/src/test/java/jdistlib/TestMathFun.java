@@ -1061,6 +1061,7 @@ public class TestMathFun {
 		return success;
 	}
 
+	@Test
 	public static final boolean test_besselKY() {
 		double Inf = Double.POSITIVE_INFINITY, NegInf = Double.NEGATIVE_INFINITY;
 		double[]

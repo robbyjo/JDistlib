@@ -3,6 +3,9 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
+Version 0.3.3 (Jan 28, 2014):
+* Bessel functions (J, Y, I, K) with fractional orders
+
 Version 0.3.2 (Jan 24, 2014):
 * Fixed bug in MathFunctions.lmvgammafn (see ticket #14)
 * Fixed bug in Spearman.quantile (off by 1 issue)

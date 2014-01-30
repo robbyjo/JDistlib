@@ -3,6 +3,10 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
+Version 0.3.4 (?):
+* Synced with R-patched_2014-01-27_r64898, fixing the following bugs:
+   * pbeta(x, a,b, log.p=TRUE) sometimes lost all precision for very small and very differently sized a,b. (PR#15641)
+
 Version 0.3.3 (Jan 28, 2014):
 * Bessel functions (J, Y, I, K) with fractional orders
 * Added Beta Prime and Kumaraswamy distributions.

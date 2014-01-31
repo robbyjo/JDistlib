@@ -1233,7 +1233,9 @@ public class Spearman extends GenericDistribution {
 	 */
 	public static final double density(double is, int n) {
 		if (n <= spearmanArray.length) {
-			return min(1, max(0, cumulative(is, n, true) - cumulative(is - 1, n, true)));
+			if (is > 0)
+				return min(1, max(0, cumulative(is, n, true) - cumulative(is - 1, n, true)));
+			return min(1, max(0, cumulative(is + 1, n, true) - cumulative(is, n, true)));
 		}
 		double
 			lo = cumulative_as89(is, n, true),

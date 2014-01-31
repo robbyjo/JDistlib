@@ -833,16 +833,23 @@ public class MathFunctions {
 		}
 
 		eps = max(eps, 1e-15);
-		if (max(a,b) < eps * .001) { /* procedure for a and b < 0.001 * eps */
-			/* L230: */
+		boolean a_lt_b = (a < b);
+		if ((a_lt_b ? b : a) < eps * .001) { /* procedure for a and b < 0.001 * eps */
+			// L230:  -- result *independent* of x (!)
+			// *w  = a/(a+b)  and  w1 = b/(a+b)
 			if(log_p) {
-				z = log(a + b);
-				w	= log(b) - z;
-				w1 = log(a) - z;
+				if (a_lt_b) {
+					w  = log1p(-a/(a+b));
+					w1 = log  ( a/(a+b));
+				} else { // b <= a
+					w  = log  ( b/(a+b));
+					w1 = log1p(-b/(a+b));
+				}
 			} else {
 				w	= b / (a + b);
 				w1 = a / (a + b);
 			}
+			// System.out.println(String.format("a & b very small -> simple ratios (%g,%g)", w,w1));
 			return new double[] {w, w1, 0};
 		}
 		//ierr = 0;

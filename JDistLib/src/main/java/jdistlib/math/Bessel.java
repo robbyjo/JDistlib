@@ -157,7 +157,7 @@ public class Bessel {
 		M_eps_sinc = 2.149e-8;
 
 	/**
-	 * <p>Calculates Bessel functions J_{alpha} (x) for non-negative argument x, and non-negative order alpha.
+	 * <p>Calculates Bessel functions J_{alpha} (x) for non-negative argument x, and order alpha.
 	 * 
 	 * <p>Acknowledgement
 	 * 
@@ -205,7 +205,7 @@ public class Bessel {
 	}
 
 	/**
-	 * <p>This routine calculates Bessel functions Y_{alpha} (x) for non-negative argument X, and non-negative order alpha.
+	 * <p>This routine calculates Bessel functions Y_{alpha} (x) for non-negative argument X, and order alpha.
 	 * 
 	 * <P>Acknowledgement
 	 * 
@@ -257,7 +257,7 @@ public class Bessel {
 
 	/**
 	 * <p>This routine calculates Bessel functions I_{alpha} (x) for non-negative argument x,
-	 * and non-negative order alpha, with or without exponential scaling.
+	 * and order alpha, with or without exponential scaling.
 	 * 
 	 * <P>Acknowledgement
 	 * <P>This program is based on a program written by David J. Sookne (2) that computes values of the Bessel functions J or
@@ -309,7 +309,7 @@ public class Bessel {
 
 	/**
 	 * <p>This routine calculates modified Bessel functions of the third kind, K_{alpha} (x), for non-negative argument x,
-	 * and non-negative order alpha, with or without exponential scaling.
+	 * and order alpha, with or without exponential scaling.
 	 * 
 	 * <P>Acknowledgement
 	 * <P>This program is based on a program written by J. B. Campbell (2) that computes values of the Bessel functions K

@@ -125,6 +125,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 			//double ans;
 			/* we need to renormalize here: the result could be very close to 1 */
 			for(int i = 0; i < 110;  pr *= lambda/++i) {
+				// pr == exp(-lambda) lambda^i / i!  ==  dpois(i, lambda)
 				sum2 += pr;
 				sum += pr * ChiSquare.cumulative(x, f+2*i, lower_tail, false);
 				if (sum2 >= 1-1e-15) break;
@@ -169,7 +170,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 				sqrt(DBL_EPSILON) * f2) {
 			/* evade cancellation error */
 			/* t = exp((1 - t)*(2 - t/(f2 + 1))) / sqrt(2*M_PI*(f2 + 1));*/
-			lt = (1 - t)*(2 - t/(f2 + 1)) - 0.5 * log(2*M_PI*(f2 + 1));
+			lt = (1 - t)*(2 - t/(f2 + 1)) - M_LN_SQRT_2PI - 0.5 * log(f2 + 1);
 		}
 		else {
 			/* Usual case 2: careful not to overflow .. : */

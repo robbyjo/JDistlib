@@ -20,8 +20,8 @@
 package jdistlib;
 
 import static java.lang.Math.*;
-import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.isInfinite;
+import static jdistlib.math.MathFunctions.tanpi;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
 
@@ -35,8 +35,8 @@ public class Cauchy extends GenericDistribution {
 
 		y = (x - location) / scale;
 		return give_log ?
-			- log(M_PI * scale * (1. + y * y)) :
-			1. / (M_PI * scale * (1. + y * y));
+			- log(PI * scale * (1. + y * y)) :
+			1. / (PI * scale * (1. + y * y));
 	}
 
 	public static final double cumulative(double x, double location, double scale, boolean lower_tail, boolean log_p)
@@ -55,12 +55,12 @@ public class Cauchy extends GenericDistribution {
 		// for large x, the standard formula suffers from cancellation.
 		// This is from Morten Welinder thanks to  Ian Smith's  atan(1/x) :
 		if (abs(x) > 1) {
-			double y = atan(1.0/x) / M_PI;
+			double y = atan(1.0/x) / PI;
 			//return (x > 0) ? R_D_Clog(y) : R_D_val(-y);
 			return (x > 0) ? (log_p	? log1p(-(y)) : (0.5 - (y) + 0.5)) : (log_p	? log(-y) : (-y));
 		}
 		//return R_D_val(0.5 + atan(x) / M_PI);
-		x = 0.5 + atan(x) / M_PI;
+		x = 0.5 + atan(x) / PI;
 		return (log_p ? log(x) : (x));
 	}
 
@@ -99,7 +99,7 @@ public class Cauchy extends GenericDistribution {
 
 		if (p == 0.5) return location; // avoid 1/Inf below
 		if (p == 0) return location + (lower_tail ? scale : -scale) * Double.NEGATIVE_INFINITY; // p = 1. is handled above
-		return location + (lower_tail ? -scale : scale) / tan(M_PI * p);
+		return location + (lower_tail ? -scale : scale) / tanpi( p);
 		/*	-1/tan(pi * p) = -cot(pi * p) = tan(pi * (p - 1/2))  */
 	}
 
@@ -107,7 +107,7 @@ public class Cauchy extends GenericDistribution {
 	{
 		if (Double.isNaN(location) || isInfinite(scale) || scale < 0) return Double.NaN;
 		if (scale == 0. || isInfinite(location)) return location;
-		return location + scale * tan(M_PI * random.nextDouble());
+		return location + scale * tanpi(random.nextDouble());
 	}
 
 	public static final double[] random(int n, double location, double scale, RandomEngine random) {

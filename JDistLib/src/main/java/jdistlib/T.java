@@ -216,7 +216,7 @@ public class T extends GenericDistribution {
 
 			else { /* P = 0, but maybe = 2*exp(p) ! */
 				if(log_p) /* 1/tan(e) ~ 1/e */
-					q = is_neg_lower ? M_1_PI * exp(-p) : -1./(M_PI * expm1(p));
+					q = is_neg_lower ? M_1_PI * exp(-p) : -1./(PI * expm1(p));
 					else
 						q = Double.POSITIVE_INFINITY;
 			}

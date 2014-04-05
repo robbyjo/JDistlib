@@ -81,7 +81,7 @@ public class NonCentralT extends GenericDistribution {
 		}
 		else {  /* x ~= 0 : -> same value as for  x = 0 */
 			u = lgammafn((df+1)/2) - lgammafn(df/2)
-					- .5*(log(M_PI) + log(df) + ncp*ncp);
+					- (M_LN_SQRT_PI + 0.5*(log(df) + ncp*ncp));
 		}
 
 		return (give_log ? u : exp(u));
@@ -279,7 +279,7 @@ public class NonCentralT extends GenericDistribution {
 			nx = 0.5 * (lx + ux); // could be zero
 			if (cumulative(nx, df, ncp, true, false) > p) ux = nx; else lx = nx;
 		}
-		while ((ux - lx) > accu * abs(nx));
+		while ((ux - lx) > accu * max(abs(lx), abs(ux)));
 
 		return 0.5 * (lx + ux);
 	}

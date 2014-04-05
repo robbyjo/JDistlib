@@ -103,7 +103,6 @@ public class NonCentralBeta extends GenericDistribution {
 					     see PR#11277 */
 
 		double a0, lbeta, c, errbd, temp, x0; //, tmp_c;
-		int j; //, ierr;
 
 		/*long*/ double ans, ax, gx, q, sumq; // TODO long double
 
@@ -134,7 +133,7 @@ public class NonCentralBeta extends GenericDistribution {
 		ans = ax = q * temp;
 
 		/* recurse over subsequent terms until convergence is achieved */
-		j = (int) x0;
+		double j = floor(x0); // x0 could be billions, and is in package EnvStats
 		do {
 			j++;
 			temp -= gx;

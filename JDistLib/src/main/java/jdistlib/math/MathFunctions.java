@@ -235,7 +235,7 @@ public class MathFunctions {
 			return M_LN_SQRT_2PI + (x - 0.5) * log(x) - x + lgammacor(x);
 		}
 		/* else: x < -10; y = -x */
-		sinpiy = abs(sin(M_PI * y));
+		sinpiy = abs(sinpi(y));
 
 		if (sinpiy == 0) { /* Negative integer argument ===
 	    			  Now UNNECESSARY: caught above */
@@ -453,11 +453,11 @@ public class MathFunctions {
 				/* the argument is too near a negative integer. */
 				throw new ArithmeticException("Math Error: PRECISION");
 
-			double sinpiy = sin(M_PI * y);
+			double sinpiy = sinpi(y);
 			if (sinpiy == 0)		/* Negative integer arg - overflow */
 				return Double.POSITIVE_INFINITY;
 
-			return -M_PI / (y * sinpiy * value);
+			return -PI / (y * sinpiy * value);
 		}
 	}
 
@@ -483,7 +483,7 @@ public class MathFunctions {
 	 *	in a manner that should be stable (with small relative error)
 	 *	for all x and M=np. In particular for x/np close to 1, direct
 	 *	evaluation fails, and evaluation is based on the Taylor series
-	 *	of log((1+v)/(1-v)) with v = (x-np)/(x+np).
+	 *	of log((1+v)/(1-v)) with v = (x-M)/(x+M) = (x-np)/(x+np).
 	 */
 	public static final double bd0(double x, double np)
 	{
@@ -497,8 +497,8 @@ public class MathFunctions {
 			s = (x-np)*v;/* s using v -- change by MM */
 			ej = 2*x*v;
 			v = v*v;
-			for (j=1; j < 1000; j++) { /* Taylor series */
-				ej *= v;
+			for (j=1; j < 1000; j++) { /* Taylor series; 1000: no infinite loop as |v| < .1,  v^2000 is "zero" */
+				ej *= v;// = v^(2j+1)
 				s1 = s+ej/((j<<1)+1);
 				if (s1 == s) /* last term was effectively 0 */
 					return s1;
@@ -3125,7 +3125,7 @@ public class MathFunctions {
 			if (res != 0.) {
 				if (yi != trunc(yi * .5) * 2.)
 					parity = true;
-				fact = -M_PI / sin(M_PI * res);
+				fact = -PI / sinpi(res);
 				y += 1.;
 			} else {
 				return(Double.POSITIVE_INFINITY);
@@ -3489,5 +3489,87 @@ public class MathFunctions {
 			for (int i = 1; i <= n; i++)
 				sum = logspace_add(sum, -s * log(i));
 		return sum;
+	}
+
+	public static final double cospi(double x) {
+		if (Double.isNaN(x)) return x;
+		if (isInfinite(x)) return Double.NaN;
+		x = abs(x) % 2.;
+		if (x % 1 == 0.5) return 0;
+		if (x == 1.) return -1.;
+		if (x == 0.) return 1.;
+		return cos(PI * x);
+	}
+
+	public static final double sinpi(double x) {
+		if (Double.isNaN(x)) return x;
+		if (isInfinite(x)) return Double.NaN;
+		x = x % 2.;
+		if (x <= -1) x += 2; else if (x > 1.) x -= 2;
+		if (x == 0. || x == 1.) return 0.;
+		if (x == 0.5) return -1.;
+		if (x == -0.5) return 1.;
+		return sin(PI * x);
+	}
+
+	public static final double tanpi(double x) {
+		if (Double.isNaN(x)) return x;
+		if (isInfinite(x)) return Double.NaN;
+		x = abs(x) % 1.;
+		if (x <= -0.5) x++; else if (x > 0.5) x--;
+		return (x == 0.) ? 0. : ((x == 0.5) ? Double.NaN : tan(PI * x));
+	}
+
+	/**
+	 * Implementation of frexp
+	 * @param x
+	 * @param i an array of 1 element
+	 * @return frexp
+	 */
+	public static final double frexp(double x, int[] i) {
+		int j = 0; // From: http://www.beedub.com/Sprite093/src/lib/c/etc/frexp.c
+		boolean neg = false;
+		if (x < 0) {
+			x = -x;
+			neg = true;
+		}
+		if (x > 1.0) {
+			while (x > 1) {
+				++j;
+				x /= 2;
+			}
+		} else if (x < 0.5) {
+			while (x < 0.5) {
+				--j;
+				x *= 2;
+			}
+		}
+		i[0] = j;
+		return neg ? -x : x;
+	}
+
+	/**
+	 * Implementation of ldexp
+	 * @param x
+	 * @param p
+	 * @return ldexp
+	 */
+	public static final double ldexp(double x, int p) {
+		int[] xx = new int[1]; // From: http://www.beedub.com/Sprite093/src/lib/c/etc/ldexp.c
+		frexp(x, xx);
+		final int MAXSHIFT = 30;
+		int old_exp = xx[0];
+		if (p > 0) {
+			if (p + old_exp > 1023) // Overflow
+				return (x < 0 ? -Double.MAX_VALUE : Double.MAX_VALUE);
+			for ( ; p > MAXSHIFT; p -= MAXSHIFT) // Assuming that we can shift 30 bits at a time
+				x *= (1L << MAXSHIFT);
+			return x * (1L << p);
+		}
+		if (p + old_exp < -1023) // Underflow
+			return 0;
+		for ( ; p < -MAXSHIFT; p += MAXSHIFT)
+			x *= 1.0/(1L << MAXSHIFT); // Multiplication is faster than division
+		return x / (1L << -p);
 	}
 }

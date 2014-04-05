@@ -21,8 +21,10 @@ package jdistlib.math;
 
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
+import static jdistlib.math.MathFunctions.cospi;
 import static jdistlib.math.MathFunctions.gamma_cody;
 import static jdistlib.math.MathFunctions.ldexp;
+import static jdistlib.math.MathFunctions.sinpi;
 import static jdistlib.math.MathFunctions.trunc;
 
 import java.util.Arrays;
@@ -53,11 +55,10 @@ public class Bessel {
 		    increase CPU time without increasing accuracy.  The
 		    truncation error is limited to a relative error of
 		    T=.5*10^(-NSIG).
-	   ENTEN  = 10 ^ K, where K is the largest long such that
+	   ENTEN  = 10 ^ K, where K is the largest int such that
 		    ENTEN is machine-representable in working precision
 	   ENSIG  = 10 ^ NSIG
-	   RTNSIG = 10 ^ (-K) for the smallest long K such that
-		    K >= NSIG/4
+	   RTNSIG = 10 ^ (-K) for the smallest int K such that K >= NSIG/4
 	   ENMTEN = Smallest ABS(X) such that X/4 does not underflow
 	   XINF	  = Largest positive machine number; approximately beta ^ maxexp
 		    == DBL_MAX (defined in  #include <float.h>)
@@ -188,8 +189,8 @@ public class Bessel {
 		if (na < 0) {
 			/* Using Abramowitz & Stegun  9.1.2
 			 * this may not be quite optimal (CPU and accuracy wise) */
-			return j(x, -alpha) * cos(PI * alpha) + (alpha == na ? 0 :
-				y(x, -alpha) * sin(PI * alpha));
+			return j(x, -alpha) * cospi(alpha) + (alpha == na ? 0 :
+				y(x, -alpha) * sinpi(alpha));
 		}
 		int nb = 1 + na;
 		alpha -= (nb - 1);
@@ -237,8 +238,8 @@ public class Bessel {
 		if (na < 0) {
 			/* Using Abramowitz & Stegun  9.1.2
 			 * this may not be quite optimal (CPU and accuracy wise) */
-			return y(x, -alpha) * cos(PI * alpha) + (alpha == na ? 0 :
-				j(x, -alpha) * sin(PI * alpha));
+			return y(x, -alpha) * cospi(alpha) + (alpha == na ? 0 :
+				j(x, -alpha) * sinpi(alpha));
 		}
 		int nb = 1 + na;
 		alpha -= (nb - 1);
@@ -292,7 +293,7 @@ public class Bessel {
 			/* Using Abramowitz & Stegun  9.6.2 & 9.6.6
 			 * this may not be quite optimal (CPU and accuracy wise) */
 			return i(x, -alpha, expo) + (alpha == na ? 0 :
-				k(x, -alpha, expo) * (!expo? 2. : 2.*exp(-2.*x))/PI * sin(-PI * alpha));
+				k(x, -alpha, expo) * (!expo? 2. : 2.*exp(-2.*x))/PI * sinpi(-alpha));
 		}
 		int nb = 1 + na;
 		alpha -= (nb - 1);
@@ -820,7 +821,7 @@ public class Bessel {
 				if (abs(nu) < M_eps_sinc)
 					c = M_1_PI;
 				else
-					c = nu / sin(nu * M_PI);
+					c = nu / sinpi(nu);
 
 				/* ------------------------------------------------------------
 			       Computation of sinh(f)/f
@@ -864,9 +865,9 @@ public class Bessel {
 				if (abs(c) < M_eps_sinc)
 					r = 1.;
 				else
-					r = sin(c) / c;
+					r = sinpi(nu/2.) / c;
 
-				r = M_PI * c * r * r;
+				r = PI * c * r * r;
 				c = 1.;
 				d = -b * b;
 				h = 0.;
@@ -894,7 +895,7 @@ public class Bessel {
 			       -------------------------------------------------------------- */
 				c = (.5 - nu) * (.5 + nu);
 				b = ex + ex;
-				e = ex * M_1_PI * cos(nu * M_PI) / DBL_EPSILON;
+				e = ex * M_1_PI * cospi(nu) / DBL_EPSILON;
 				e *= e;
 				p = 1.;
 				q = -ex;

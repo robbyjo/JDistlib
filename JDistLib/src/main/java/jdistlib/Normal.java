@@ -19,6 +19,10 @@
  */
 package jdistlib;
 
+import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
+import jdistlib.rng.RandomEngine;
+
 import static java.lang.Double.isNaN;
 import static java.lang.Double.NaN;
 import static java.lang.Double.NEGATIVE_INFINITY;
@@ -26,10 +30,8 @@ import static java.lang.Double.POSITIVE_INFINITY;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.isInfinite;
+import static jdistlib.math.MathFunctions.ldexp;
 import static jdistlib.math.MathFunctions.trunc;
-import jdistlib.generic.GenericDistribution;
-import jdistlib.math.MathFunctions;
-import jdistlib.rng.RandomEngine;
 
 /**
  * 
@@ -52,9 +54,39 @@ public class Normal extends GenericDistribution {
 
 		x = (x - mu) / sigma;
 		if (MathFunctions.isInfinite(x)) return (give_log ? NEGATIVE_INFINITY : 0.);
-		return give_log ?
-				-(M_LN_SQRT_2PI + 0.5 * x * x + log(sigma))
-				: M_1_SQRT_2PI * exp(-0.5 * x * x) / sigma;
+		if (give_log)
+			return -(M_LN_SQRT_2PI + 0.5 * x * x + log(sigma));
+		if (x < 5) return M_1_SQRT_2PI * exp(-0.5 * x * x) / sigma;
+	    /* ELSE:
+
+	     * x*x  may lose upto about two digits accuracy for "large" x
+	     * Morten Welinder's proposal for PR#15620
+	     * https://bugs.r-project.org/bugzilla/show_bug.cgi?id=15620
+
+	     * -- 1 --  No hoop jumping when we underflow to zero anyway:
+
+	     *  -x^2/2 <         log(2)*.Machine$double.min.exp  <==>
+	     *     x   > sqrt(-2*log(2)*.Machine$double.min.exp) =IEEE= 37.64031
+	     * but "thanks" to denormalized numbers, underflow happens a bit later,
+	     *  effective.D.MIN.EXP <- with(.Machine, double.min.exp + double.ulp.digits)
+	     * for IEEE, DBL_MIN_EXP is -1022 but "effective" is -1074
+	     * ==> boundary = sqrt(-2*log(2)*(.Machine$double.min.exp + .Machine$double.ulp.digits))
+	     *              =IEEE=  38.58601
+	     * [on one x86_64 platform, effective boundary a bit lower: 38.56804]
+	     */
+	    if (x > sqrt(-2*M_LN2*(DBL_MIN_EXP + 1-DBL_MANT_DIG))) return 0.;
+
+	    /* Now, to get full accuracy, split x into two parts,
+	     *  x = x1+x2, such that |x2| <= 2^-16.
+	     * Assuming that we are using IEEE doubles, that means that
+	     * x1*x1 is error free for x<1024 (but we have x < 38.6 anyway).
+	     * If we do not have IEEE this is still an improvement over the naive formula.
+	     */
+	    double x1 = //  R_forceint(x * 65536) / 65536 =
+	    	ldexp( rint(ldexp(x, 16)), -16);
+	    double x2 = x - x1;
+	    return M_1_SQRT_2PI / sigma *
+	    	(exp(-0.5 * x1 * x1) * exp( (-0.5 * x2 - x1) * x2 ) );
 	}
 
 	public static final double cumulative_standard(double x) {

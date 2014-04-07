@@ -179,7 +179,7 @@ public class Utilities {
 		// Negatives are always placed at the end of the array in the reverse order.
 		// So, scan to find the point
 		if (a[n - 1] < 0)
-			for (int i = n - 1; a[i] < 0; i--)
+			for (int i = n - 1; a[i] < 0 && i > 0; i--)
 				data[numNegs++] = Double.longBitsToDouble(a[i]);
 		if (numNegs > 0)
 			for (int i = numNegs; i < n; i++)
@@ -229,7 +229,7 @@ public class Utilities {
 		// Negatives are always placed at the end of the array in the reverse order.
 		// So, scan to find the point
 		if (a[n - 1] < 0)
-			for (int i = n - 1; a[i] < 0; i--) {
+			for (int i = n - 1; a[i] < 0 && i > 0; i--) {
 				data[numNegs] = Double.longBitsToDouble(a[i]);
 				idx[numNegs++] = idx_a[i];
 			}
@@ -285,7 +285,7 @@ public class Utilities {
 		// Negatives are always placed at the end of the array in the reverse order.
 		// So, scan to find the point
 		if (a[n - 1] < 0)
-			for (int i = n - 1; a[i] < 0; i--) {
+			for (int i = n - 1; a[i] < 0 && i > 0; i--) {
 				data[numNegs] = Double.longBitsToDouble(a[i]);
 				obj[numNegs++] = (T) idx_a[i];
 			}
@@ -330,7 +330,7 @@ public class Utilities {
 		int numNegs = 0;
 		// Negatives are always placed at the end of the array in the correct order.
 		// So, scan to find the point
-		for (int i = n - 1; a[i] < 0; i--, numNegs++) ;
+		for (int i = n - 1; a[i] < 0 && i > 0; i--, numNegs++) ;
 		if (numNegs > 0) {
 			System.arraycopy(a, n - numNegs, b, 0, numNegs);
 			System.arraycopy(a, 0, a, numNegs, n - numNegs);
@@ -373,7 +373,7 @@ public class Utilities {
 		// Negatives are always placed at the end of the array in the reverse order.
 		// So, scan to find the point
 		if (a[n - 1] < 0)
-			for (int i = n - 1; a[i] < 0; i--) {
+			for (int i = n - 1; a[i] < 0 && i > 0; i--) {
 				data[numNegs] = a[i];
 				idx[numNegs++] = idx_a[i];
 			}
@@ -424,7 +424,7 @@ public class Utilities {
 		// Negatives are always placed at the end of the array in the reverse order.
 		// So, scan to find the point
 		if (a[n - 1] < 0)
-			for (int i = n - 1; a[i] < 0; i--) {
+			for (int i = n - 1; a[i] < 0 && i > 0; i--) {
 				data[numNegs] = a[i];
 				idx[numNegs++] = (T) idx_a[i];
 			}
@@ -470,7 +470,7 @@ public class Utilities {
 		int numNegs = 0;
 		// Negatives are always placed at the end of the array in the correct order.
 		// So, scan to find the point
-		for (int i = n - 1; a[i] < 0; i--, numNegs++) ;
+		for (int i = n - 1; a[i] < 0 && i > 0; i--, numNegs++) ;
 		if (numNegs > 0) {
 			System.arraycopy(a, n - numNegs, b, 0, numNegs);
 			System.arraycopy(a, 0, a, numNegs, n - numNegs);
@@ -513,7 +513,7 @@ public class Utilities {
 		// Negatives are always placed at the end of the array in the reverse order.
 		// So, scan to find the point
 		if (a[n - 1] < 0)
-			for (int i = n - 1; a[i] < 0; i--) {
+			for (int i = n - 1; a[i] < 0 && i > 0; i--) {
 				data[numNegs] = a[i];
 				idx[numNegs++] = idx_a[i];
 			}
@@ -564,7 +564,7 @@ public class Utilities {
 		// Negatives are always placed at the end of the array in the reverse order.
 		// So, scan to find the point
 		if (a[n - 1] < 0)
-			for (int i = n - 1; a[i] < 0; i--) {
+			for (int i = n - 1; a[i] < 0 && i > 0; i--) {
 				data[numNegs] = a[i];
 				idx[numNegs++] = (T) idx_a[i];
 			}
@@ -868,4 +868,21 @@ public class Utilities {
 			r[i++] = _s;
 		return r;
 	}
+
+	/*
+	public static final void main (String[] args) {
+		int n = 100;
+		double[] x = new double[n];
+		for (int i = 0; i < n; i++)
+			x[i] = Math.random() * 100 - 50;
+		sort(x);
+		boolean sorted = true;
+		for (int i = 1; i < n; i++)
+			if (x[i-1] > x[i]) {
+				sorted = false;
+				break;
+			}
+		System.out.println(sorted);
+	}
+	//*/
 }

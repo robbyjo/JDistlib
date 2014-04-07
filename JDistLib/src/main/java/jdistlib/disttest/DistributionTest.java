@@ -737,10 +737,8 @@ public class DistributionTest {
 	 * @param num_events2 number of events for control.
 	 * @param time1 time base for event count for treatment.
 	 * @param time2 time base for event count for control.
-	 * @param rate hypothesized rate
 	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
-	 * @return
 	 */
 	public static final double[] poisson_test(int num_events1, int num_events2, double time1, double time2, double r, TestKind kind) {
 		if (time1 < 0 || time2 < 0 || r < 0 || num_events1 < 0 || num_events2 < 0) throw new RuntimeException();

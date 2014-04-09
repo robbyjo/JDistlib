@@ -2,12 +2,13 @@ What's new:
 
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
+* Pending fix for bug #15635. Will double check.
 
 Version 0.3.4 (Apr 7, 2014):
 * Synced with R-rc_2014-04-04_r65373, fixing the following bugs:
    * pbeta(x, a,b, log.p=TRUE) sometimes lost all precision for very small and very differently sized a,b. (PR#15641)
-   * More precise Normal density when x > 5
-   * Adding sinpi, cospi, and tanpi for more precise Bessel function and Cauchy distribution computations
+   * More precise Normal density when x > 5 (PR#15620)
+   * Adding sinpi, cospi, and tanpi for more precise Bessel function and Cauchy distribution computations (PR#15529)
 * Fixed bug #16, infinite loop in sort functions when the numbers are all negatives (Thanks Gilad Wallach and Idan Peretz!).
 * Imported a lot of comments to sync with the latest R function
 * Fixes comment on Bessel functions---Bessel functions can handle negatives already!

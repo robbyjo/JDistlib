@@ -900,7 +900,7 @@ public class MathFunctions {
 				if (b0 <= 1.0) {
 					kase = 100; // goto L_w_bpser;
 				}
-				else if (x0 >= 0.29) {
+				else if (x0 >= 0.29) { /* was 0.3, PR#13786 */
 					kase = 110; // goto L_w1_bpser;
 				}
 				else if (x0 < 0.1 && pow(x0*b0, a0) <= 0.7) {

@@ -61,7 +61,7 @@ public class Poisson extends GenericDistribution {
 	public static final double density(double x, double lambda, boolean give_log) {
 		if(Double.isNaN(x) || Double.isNaN(lambda)) return x + lambda;
 		if (lambda < 0) return Double.NaN;
-		if (abs((x) - round(x)) > 1e-7) return (give_log ? Double.NEGATIVE_INFINITY : 0.); // Non integer
+		if (isNonInt(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.); // Non integer
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		return density_raw(round(x), lambda, give_log) ;
 	}

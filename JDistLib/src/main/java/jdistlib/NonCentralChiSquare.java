@@ -63,7 +63,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 
 		if(mid == 0) {
 			/* underflow to 0 -- maybe numerically correct; maybe can be more accurate,
-			 * particularly when  give_log = TRUE */
+			 * particularly when  give_log = true */
 			/* Use  central-chisq approximation formula when appropriate;
 			 * ((FIXME: the optimal cutoff also depends on (x,df);  use always here? )) */
 			if(give_log || ncp > 1000.) {
@@ -102,7 +102,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 	}
 
 	@SuppressWarnings("unused")
-	public static final double cumulative_raw(double x, double f, double theta, double errmax, double reltol, int itrmax, boolean lower_tail) {
+	public static final double cumulative_raw(double x, double f, double theta, double errmax, double reltol, int itrmax, boolean lower_tail, boolean log_p) {
 		double lam, x2, f2, term, bound, f_x_2n, f_2n;
 		double l_lam = -1., l_x = -1.; /* initialized for -Wall */
 		int n;
@@ -120,31 +120,55 @@ public class NonCentralChiSquare extends GenericDistribution {
 		}
 		if(MathFunctions.isInfinite(x)) return lower_tail ? 1. : 0.;
 
-		if(theta < 80) { /* use 110 for Inf, as ppois(110, 80/2, lower.tail=FALSE) is 2e-20 */
+		if(theta < 80) { /* use 110 for Inf, as ppois(110, 80/2, lower.tail=false) is 2e-20 */
 			/* long */ double sum = 0, sum2 = 0, lambda = 0.5*theta, pr = exp(-lambda); // TODO long double
 			//double ans;
-			/* we need to renormalize here: the result could be very close to 1 */
-			for(int i = 0; i < 110;  pr *= lambda/++i) {
-				// pr == exp(-lambda) lambda^i / i!  ==  dpois(i, lambda)
-				sum2 += pr;
-				sum += pr * ChiSquare.cumulative(x, f+2*i, lower_tail, false);
-				if (sum2 >= 1-1e-15) break;
-			}
-			ans = sum/sum2;
-			//*
-			if (sum == 0) {
-				sum = sum2 = Double.NEGATIVE_INFINITY; pr = -lambda;
-				for(int i = 0; i < 110;  pr += log(lambda) - log(++i)) {
+			int i;
+			// Have  pgamma(x,s) < x^s / Gamma(s+1) (< and ~= for small x)
+			// ==> pchisq(x, f) = pgamma(x, f/2, 2) = pgamma(x/2, f/2)
+			//          <  (x/2)^(f/2) / Gamma(f/2+1) < eps
+			// <==>  f/2 * log(x/2) - log(Gamma(f/2+1)) < log(eps) ( ~= -708.3964 )
+			// <==>        log(x/2) < 2/f*(log(Gamma(f/2+1)) + log(eps))
+			// <==> log(x) < log(2) + 2/f*(log(Gamma(f/2+1)) + log(eps))
+			if(lower_tail && f > 0. &&
+				log(x) < M_LN2 + 2/f*(lgammafn(f/2. + 1) + _dbl_min_exp)) {
+				// all  pchisq(x, f+2*i, lower_tail, false), i=0,...,110 would underflow to 0.
+				// ==> work in log scale
+				sum = sum2 = Double.NEGATIVE_INFINITY;
+				pr = -lambda;
+				/* we need to renormalize here: the result could be very close to 1 */
+				for(i = 0; i < 110;  pr += log(lambda) - log(++i)) { // TODO long double log
 					sum2 = logspace_add(sum2, pr);
 					sum = logspace_add(sum, pr + ChiSquare.cumulative(x, f+2*i, lower_tail, true));
-					if (exp(sum2) >= 1-1e-15) break;
+					if (sum2 >= -1e-15) /*<=> EXP(sum2) >= 1-1e-15 */ break;
 				}
-				ans = exp(sum - sum2);
+				ans = sum - sum2;
+				//#ifdef DEBUG_pnch
+				//	    REprintf("pnchisq(x=%g, f=%g, th.=%g); th. < 80, logspace: i=%d, ans=(sum=%g)-(sum2=%g)\n",
+				//		     x,f,theta, i, (double)sum, (double)sum2);
+				//#endif
+				return (double) (log_p ? ans : exp(ans)); // TODO long double exp
 			}
-			//*/
-			return ans;
-		}
-
+			else {
+			    sum = sum2 = 0;
+			    pr = exp(-lambda); // does this need a feature test? // TODO long double exp
+			    /* we need to renormalize here: the result could be very close to 1 */
+			    for(i = 0; i < 110;  pr *= lambda/++i) {
+			    	// pr == exp(-lambda) lambda^i / i!  ==  dpois(i, lambda)
+			    	sum2 += pr;
+			    	// pchisq(*, i, *) is  strictly decreasing to 0 for lower_tail=true
+			    	//                 and strictly increasing to 1 for lower_tail=false
+			    	sum += pr * ChiSquare.cumulative(x, f+2*i, lower_tail, false);
+			    	if (sum2 >= 1-1e-15) break;
+				}
+				ans = sum/sum2;
+				//#ifdef DEBUG_pnch
+				//	    REprintf("pnchisq(x=%g, f=%g, theta=%g); theta < 80: i=%d, sum=%g, sum2=%g\n",
+				//		     x,f,theta, i, (double)sum, (double)sum2);
+				//#endif
+				return (double) (log_p ? log(ans) : ans); // TODO long double log
+			}
+		} // if(theta < 80)
 
 		lam = .5 * theta;
 		lamSml = (-lam < _dbl_min_exp);
@@ -166,7 +190,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		f_x_2n = f - x;
 
 		if(f2 * DBL_EPSILON > 0.125 && /* very large f and x ~= f: probably needs */
-				abs(t = x2 - f2) <         /* another algorithm anyway */
+				abs(t = x2 - f2) <         /* another algorithm anyway */ // TODO long abs
 				sqrt(DBL_EPSILON) * f2) {
 			/* evade cancellation error */
 			/* t = exp((1 - t)*(2 - t/(f2 + 1))) / sqrt(2*M_PI*(f2 + 1));*/
@@ -181,13 +205,13 @@ public class NonCentralChiSquare extends GenericDistribution {
 		if(tSml) {
 			if (x > f + theta +  5* sqrt( 2*(f + 2*theta))) {
 				/* x > E[X] + 5* sigma(X) */
-				return lower_tail ? 1. : 0.; /* FIXME: We could be more accurate than 0. */
+				return lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.); /* FIXME: could be more accurate than 0. */
 			} /* else */
 			l_x = log(x);
 			ans = term = t = 0.;
 		}
 		else {
-			t = exp(lt);
+			t = exp(lt); // TODO long double exp
 			ans = term = v * t;
 		}
 
@@ -226,7 +250,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 				lt += l_x - log(f_2n);/* t <- t * (x / f2n) */
 				if(lt >= _dbl_min_exp) {
 					/* no underflow anymore ==> change regime */
-					t = exp(lt); /* the first non-0 't' */
+					t = exp(lt); /* the first non-0 't' */ // TODO long double exp
 					tSml = false;
 				}
 			} else {
@@ -243,7 +267,8 @@ public class NonCentralChiSquare extends GenericDistribution {
 			// MATHLIB_WARNING2(_("pnchisq(x=%g, ..): not converged in %d iter."), x, itrmax);
 			System.err.println("NonCentralChiSquare.density non-convergence error");
 		}
-		return lower_tail ? ans : 1 - ans;
+		//return R_DT_val(ans);
+		return (lower_tail ? (log_p	? log(ans) : (ans))  : (log_p ? log1p(-(ans)) : (0.5 - (ans) + 0.5)));
 	}
 
 	/*
@@ -265,23 +290,24 @@ public class NonCentralChiSquare extends GenericDistribution {
 
 		if (df < 0. || ncp < 0.) return Double.NaN;
 
-		ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, lower_tail);
+		ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, lower_tail, log_p);
 		if(ncp >= 80) {
 			if(lower_tail) {
-				ans = min(ans, 1.0);  /* e.g., pchisq(555, 1.01, ncp = 80) */
+				ans = min(ans, log_p ? 0. : 1.);  /* e.g., pchisq(555, 1.01, ncp = 80) */
 			} else { /* !lower_tail */
 				/* since we computed the other tail cancellation is likely */
-				if(ans < 1e-10) {
+				if(ans < (log_p ? (-10. * M_LN10) : 1e-10)) {
 					//ML_ERROR(ME_PRECISION, "pnchisq");
 					System.err.println("Precision error NonCentralChiSquare.cumulative");
 				}
-				ans = max(ans, 0.0);  /* Precaution PR#7099 */
+				if (!log_p) ans = max(ans, 0.0);  /* Precaution PR#7099 */
 			}
 		}
-		if (!log_p) return ans;
-		/* if ans is near one, we can do better using the other tail */
-		if (ncp >= 80 || ans < 1 - 1e-8) return log(ans);
-		ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, !lower_tail);
+		if (!log_p || ans < -1e-8)
+			return ans;
+		// prob. = exp(ans) is near one: we can do better using the other tail
+		// FIXME: (sum,sum2) will be the same (=> return them as well and reuse here ?)
+		ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, !lower_tail, false);
 		return log1p(-ans);
 	}
 
@@ -321,6 +347,9 @@ public class NonCentralChiSquare extends GenericDistribution {
 				return lower_tail ? Double.POSITIVE_INFINITY : 0;
 		}
 
+		//pp = R_D_qIv(p);
+		pp = (log_p ? exp(p) : (p));
+		if(pp > 1 - DBL_EPSILON) return lower_tail ? Double.POSITIVE_INFINITY : 0.0;
 
 		/* Invert pnchisq(.) :
 		 * 1. finding an upper and lower bound */
@@ -335,43 +364,38 @@ public class NonCentralChiSquare extends GenericDistribution {
 			if(ux < 0) ux = 1;
 			ux0 = ux;
 		}
-		//p = R_D_qIv(p);
-		p = (log_p ? exp(p) : (p));
 
 		if(!lower_tail && ncp >= 80) {
-			/* pnchisq is only for lower.tail = TRUE */
-			if(p < 1e-10) {
+			/* pnchisq is only for lower.tail = true */
+			if(pp < 1e-10) {
 				//ML_ERROR(ME_PRECISION, "qnchisq");
 				System.err.println("Precision error NonCentralChiSquare.quantile");
 			}
-			p = 1. - p;
+			p = log_p ? -expm1(p) : (0.5 - (p) + 0.5);
 			lower_tail = true;
+		} else {
+			p = pp;
 		}
 
+		pp = min(1 - DBL_EPSILON, p * (1 + Eps));
 		if(lower_tail) {
-			if(p > 1 - DBL_EPSILON) return Double.POSITIVE_INFINITY;
-			pp = min(1 - DBL_EPSILON, p * (1 + Eps));
-			for(/*ux = ux*/;
-					ux < DBL_MAX &&
-					cumulative_raw(ux, df, ncp, Eps, rEps, 10000, true) < pp;
-					ux *= 2);
+			for(; ux < DBL_MAX &&
+				cumulative_raw(ux, df, ncp, Eps, rEps, 10000, true, false) < pp;
+				ux *= 2);
 			pp = p * (1 - Eps);
 			for(lx = min(ux0, DBL_MAX);
-					lx > DBL_MIN &&
-					cumulative_raw(lx, df, ncp, Eps, rEps, 10000, true) > pp;
-					lx *= 0.5);
+				lx > DBL_MIN &&
+				cumulative_raw(lx, df, ncp, Eps, rEps, 10000, true, false) > pp;
+				lx *= 0.5);
 		}
 		else {
-			if(p > 1 - DBL_EPSILON) return 0.0;
-			pp = min(1 - DBL_EPSILON, p * (1 + Eps));
-			for(/*ux = ux*/;
-					ux < DBL_MAX &&
-					cumulative_raw(ux, df, ncp, Eps, rEps, 10000, false) > pp;
-					ux *= 2);
+			for(; ux < DBL_MAX &&
+				cumulative_raw(ux, df, ncp, Eps, rEps, 10000, false, false) > pp;
+				ux *= 2);
 			pp = p * (1 - Eps);
 			for(lx = min(ux0, DBL_MAX);
-					lx > DBL_MIN &&
-					cumulative_raw(lx, df, ncp, Eps, rEps, 10000, false) < pp;
+				lx > DBL_MIN &&
+				cumulative_raw(lx, df, ncp, Eps, rEps, 10000, false, false) < pp;
 					lx *= 0.5);
 		}
 
@@ -379,21 +403,19 @@ public class NonCentralChiSquare extends GenericDistribution {
 		if(lower_tail) {
 			do {
 				nx = 0.5 * (lx + ux);
-				if (cumulative_raw(nx, df, ncp, accu, racc, 100000, true) > p)
+				if (cumulative_raw(nx, df, ncp, accu, racc, 100000, true, false) > p)
 					ux = nx;
 				else
 					lx = nx;
-			}
-			while ((ux - lx) / nx > accu);
+			} while ((ux - lx) / nx > accu);
 		} else {
 			do {
 				nx = 0.5 * (lx + ux);
-				if (cumulative_raw(nx, df, ncp, accu, racc, 100000, false) < p)
+				if (cumulative_raw(nx, df, ncp, accu, racc, 100000, false, false) < p)
 					ux = nx;
 				else
 					lx = nx;
-			}
-			while ((ux - lx) / nx > accu);
+			} while ((ux - lx) / nx > accu);
 		}
 		return 0.5 * (ux + lx);
 	}

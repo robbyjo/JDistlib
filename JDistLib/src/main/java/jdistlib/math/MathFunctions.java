@@ -2925,7 +2925,7 @@ public class MathFunctions {
 		if (n < 0) {
 			return lchoose(-n+ k-1, k);
 		}
-		else if (abs((n) - rint(n)) <= 1e-7) { // (R_IS_INT(n)) {
+		else if (!isNonInt(n)) { // (R_IS_INT(n)) {
 			if(n < k) return Double.NEGATIVE_INFINITY;
 			/* k <= n :*/
 			if(n - k < 2) return lchoose(n, n-k); /* <- Symmetry */
@@ -2952,14 +2952,14 @@ public class MathFunctions {
 			System.err.println(String.format("'k' (%.2f) must be integer, rounded to %.0f", k0, k));
 		if (k < k_small_max) {
 			int j;
-			if(n-k < k && n >= 0 && (abs((n) - rint(n)) <= 1e-7)) k = n-k; /* <- Symmetry */
+			if(n-k < k && n >= 0 && !isNonInt(n)) k = n-k; /* <- Symmetry */
 			if (k <	 0) return 0.;
 			if (k == 0) return 1.;
 			/* else: k >= 1 */
 			r = n;
 			for(j = 2; j <= k; j++)
 				r *= (n-j+1)/j;
-			return (abs((n) - rint(n)) <= 1e-7) ? rint(r) : r;
+			return !isNonInt(n) ? rint(r) : r;
 			/* might have got rounding errors */
 		}
 		/* else: k >= k_small_max */
@@ -2968,7 +2968,7 @@ public class MathFunctions {
 			if (((k) != 2 * floor((k) / 2.))) r = -r;
 			return r;
 		}
-		else if ((abs((n) - rint(n)) <= 1e-7)) {
+		else if (!isNonInt(n)) {
 			if(n < k) return 0.;
 			if(n - k < k_small_max) return choose(n, n-k); /* <- Symmetry */
 			return rint(exp(lfastchoose(n, k)));
@@ -3572,4 +3572,7 @@ public class MathFunctions {
 			x *= 1.0/(1L << MAXSHIFT); // Multiplication is faster than division
 		return x / (1L << -p);
 	}
+
+	public static final boolean isNonInt(double x)
+	{	return (abs((x) - rint(x)) > 1e-7*max(1, abs(x))); }
 }

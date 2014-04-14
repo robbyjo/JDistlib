@@ -43,33 +43,35 @@ public class HyperGeometric extends GenericDistribution {
 
 	public static final double density(double x, double r, double b, double n, boolean give_log)
 	{
-	    double p, q, p1, p2, p3;
+		double p, q, p1, p2, p3;
 
-	    if (Double.isNaN(x) || Double.isNaN(r) || Double.isNaN(b) || Double.isNaN(n)) return x + r + b + n;
+		if (Double.isNaN(x) || Double.isNaN(r) || Double.isNaN(b) || Double.isNaN(n)) return x + r + b + n;
 
-	    if ((r < 0. || (abs((r) - rint(r)) > 1e-7)) ||
-	    	(b < 0. || (abs((b) - rint(b)) > 1e-7)) ||
-	    	(n < 0. || (abs((n) - rint(n)) > 1e-7)) || n > r+b) return Double.NaN;
-	    //if (R_D_negInonint(x))
-	    if (x < 0. || (abs((x) - rint(x)) > 1e-7))
-	    	return(give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if ((r < 0. || isNonInt(r)) ||
+			(b < 0. || isNonInt(b)) ||
+			(n < 0. || isNonInt(n)) || n > r+b) return Double.NaN;
+		if (x < 0.) return(give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (isNonInt(x)) {
+			System.err.println("WARNING: Non-integer x in HyperGeometric.density");
+			return(give_log ? Double.NEGATIVE_INFINITY : 0.);
+		}
 
-	    x = rint(x); // x = R_D_forceint(x);
-	    r = rint(r); // r = R_D_forceint(r);
-	    b = rint(b); // b = R_D_forceint(b);
-	    n = rint(n); // n = R_D_forceint(n);
+		x = rint(x); // x = R_D_forceint(x);
+		r = rint(r); // r = R_D_forceint(r);
+		b = rint(b); // b = R_D_forceint(b);
+		n = rint(n); // n = R_D_forceint(n);
 
-	    if (n < x || r < x || n - x > b) return(give_log ? Double.NEGATIVE_INFINITY : 0.);
-	    if (n == 0) return((x == 0) ? (give_log ? 0. : 1.) : (give_log ? Double.NEGATIVE_INFINITY : 0.));
+		if (n < x || r < x || n - x > b) return(give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (n == 0) return((x == 0) ? (give_log ? 0. : 1.) : (give_log ? Double.NEGATIVE_INFINITY : 0.));
 
-	    p = ((double)n)/((double)(r+b));
-	    q = ((double)(r+b-n))/((double)(r+b));
+		p = ((double)n)/((double)(r+b));
+		q = ((double)(r+b-n))/((double)(r+b));
 
-	    p1 = Binomial.density_raw(x, r, p,q,give_log);
-	    p2 = Binomial.density_raw(n-x,b, p,q,give_log);
-	    p3 = Binomial.density_raw(n,r+b, p,q,give_log);
+		p1 = Binomial.density_raw(x, r, p,q,give_log);
+		p2 = Binomial.density_raw(n-x,b, p,q,give_log);
+		p3 = Binomial.density_raw(n,r+b, p,q,give_log);
 
-	    return( (give_log) ? p1 + p2 - p3 : p1*p2/p3 );
+		return( (give_log) ? p1 + p2 - p3 : p1*p2/p3 );
 	}
 
 	/* * Current implementation based on posting
@@ -97,13 +99,13 @@ public class HyperGeometric extends GenericDistribution {
 		/*
 		 * Calculate
 		 *
-		 *	    phyper (x, NR, NB, n, true, false)
+		 *		phyper (x, NR, NB, n, true, false)
 		 *   [log]  ----------------------------------
-		 *	       dhyper (x, NR, NB, n, false)
+		 *		   dhyper (x, NR, NB, n, false)
 		 *
 		 * without actually calling phyper.  This assumes that
 		 *
-		 *     x * (NR + NB) <= n * NR
+		 *	 x * (NR + NB) <= n * NR
 		 *
 		 */
 		/* long */ double sum = 0; // TODO long double
@@ -160,7 +162,7 @@ public class HyperGeometric extends GenericDistribution {
 
 	static final double lfastchoose(double n, double k)
 	{
-	    return -log(n + 1.) - lbeta(n - k + 1., k + 1.);
+		return -log(n + 1.) - lbeta(n - k + 1., k + 1.);
 	}
 
 	public static final double quantile (double p, double NR, double NB, double n, boolean lower_tail, boolean log_p)
@@ -205,7 +207,7 @@ public class HyperGeometric extends GenericDistribution {
 
 		small_N = (N < 1000); /* won't have underflow in product below */
 		/* if N is small,  term := product.ratio( bin.coef );
-	       otherwise work with its logarithm to protect against underflow */
+		   otherwise work with its logarithm to protect against underflow */
 		term = lfastchoose(NR, xr) + lfastchoose(NB, xb) - lfastchoose(N, n);
 		if(small_N) term = exp(term);
 		NR -= xr;
@@ -423,10 +425,10 @@ public class HyperGeometric extends GenericDistribution {
 				if (state.m < 100 || ix <= 50) {
 					/* explicit evaluation */
 					/* The original algorithm (and TOMS 668) have
-			   f = f * i * (n2 - k + i) / (n1 - i) / (k - i);
-		       in the (m > ix) case, but the definition of the
-		       recurrence relation on p134 shows that the +1 is
-		       needed. */
+					   f = f * i * (n2 - k + i) / (n1 - i) / (k - i);
+					   in the (m > ix) case, but the definition of the
+					   recurrence relation on p134 shows that the +1 is
+					   needed. */
 					f = 1.0;
 					if (state.m < ix) {
 						for (i = state.m + 1; i <= ix; i++)

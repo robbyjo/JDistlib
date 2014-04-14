@@ -113,8 +113,6 @@ public class Wilcoxon extends GenericDistribution {
 	    //n = floor(n + 0.5);
 	    if (m <= 0 || n <= 0) return Double.NaN;
 
-	    //if (abs(x - floor(x + 0.5)) > 1e-7) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-	    // x = floor(x + 0.5);
 	    if ((x < 0) || (x > m * n))
 		return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 

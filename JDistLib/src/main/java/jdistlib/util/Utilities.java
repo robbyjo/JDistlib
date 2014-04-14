@@ -3,8 +3,10 @@ package jdistlib.util;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import jdistlib.rng.MersenneTwister;
 import jdistlib.rng.RandomEngine;
@@ -675,6 +677,40 @@ public class Utilities {
 				i2 = random.nextInt(n);
 			double t = e[i1]; e[i1] = e[i2]; e[i2] = t;
 		}
+	}
+
+	/**
+	 * Sample from 1 to n, with size s, without replacement---with default random engine
+	 * @param n
+	 * @param s
+	 * @return a sampled array of size s
+	 */
+	public static final double[] sample_int(int n, int s) {
+		return sample_int(n, s, new MersenneTwister());
+	}
+
+	/**
+	 * Sample from 1 to n, with size s, without replacement
+	 * @param n
+	 * @param s
+	 * @param random random engine
+	 * @return a sampled array of size s
+	 */
+	public static final double[] sample_int(int n, int s, RandomEngine random) {
+		// This code might be subpar in performance, but it works for me.
+		double[] rand = new double[s];
+		Set<Integer> set = new HashSet<Integer>();
+		for (int i = 0; i < s; i++) {
+			do {
+				int j = (int) (Math.floor(random.random() * n) + 1);
+				if (!set.contains(j)) {
+					set.add(j);
+					rand[i] = j;
+					break;
+				}
+			} while (true);
+		}
+		return rand;
 	}
 
 	public static final double[] unique(double[] e) {

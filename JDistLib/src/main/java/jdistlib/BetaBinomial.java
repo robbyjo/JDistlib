@@ -15,12 +15,12 @@
  */
 package jdistlib;
 
-import static java.lang.Math.abs;
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
 import static java.lang.Math.rint;
 import static jdistlib.math.MathFunctions.lgammafn;
 import static jdistlib.math.MathFunctions.isInfinite;
+import static jdistlib.math.MathFunctions.isNonInt;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
 
@@ -42,7 +42,7 @@ public class BetaBinomial extends GenericDistribution {
 	public static final double density(double x, double mu, double sigma, double bd, boolean give_log) {
 		if (Double.isNaN(x) || Double.isNaN(mu) || Double.isNaN(sigma) || Double.isNaN(bd)) return x + mu + sigma + bd;
 		if (x < 0 || mu < 0 || mu > 1 || sigma <= 0 || bd < x) return Double.NaN;
-	    if((abs((x) - rint(x)) > 1e-7) || (abs((bd) - rint(bd)) > 1e-7))
+	    if(isNonInt(x) || isNonInt(bd))
 	    	return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 	    x = rint(x);
 		double
@@ -68,7 +68,7 @@ public class BetaBinomial extends GenericDistribution {
 	public static final double cumulative(double q, double mu, double sigma, double bd, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(q) || Double.isNaN(mu) || Double.isNaN(sigma) || Double.isNaN(bd)) return q + mu + sigma + bd;
 		if (q < 0 || mu < 0 || mu > 1 || sigma <= 0 || bd < q) return Double.NaN;
-	    if((abs((q) - rint(q)) > 1e-7) || (abs((bd) - rint(bd)) > 1e-7))
+	    if(isNonInt(q) || isNonInt(bd))
 	    	return (log_p ? Double.NEGATIVE_INFINITY : 0.);
 	    q = rint(q);
 	    double sum = 0;
@@ -93,7 +93,7 @@ public class BetaBinomial extends GenericDistribution {
 	public static final double quantile(double p, double mu, double sigma, double bd, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(p) || Double.isNaN(mu) || Double.isNaN(sigma) || Double.isNaN(bd)) return p + mu + sigma + bd;
 		if (p < 0 || p > 1 || mu < 0 || mu > 1 || sigma <= 0 || bd < 0) return Double.NaN;
-	    if(abs((bd) - rint(bd)) > 1e-7)
+	    if(isNonInt(bd))
 	    	return (log_p ? Double.NEGATIVE_INFINITY : 0.);
 		if (log_p) p = exp(p);
 		if (!lower_tail) p = 1-p;

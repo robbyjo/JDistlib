@@ -70,7 +70,7 @@ public class SignRank extends GenericDistribution {
 	    //n = floor(n + 0.5);
 	    //if (n <= 0) return Double.NaN;
 
-	    // if (abs(x - floor(x + 0.5)) > 1e-7) return(R_D__0);
+	    // if (isNonInt(x)) return(R_D__0);
 	    // x = floor(x + 0.5);
 	    if ((x < 0) || (x > (n * (n + 1) / 2)))
 	    	return(give_log? Double.NEGATIVE_INFINITY : 0.);

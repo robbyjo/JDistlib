@@ -33,7 +33,7 @@ public class NegBinomial extends GenericDistribution {
 
 		if (prob <= 0 || prob > 1 || size < 0) return Double.NaN;
 		//R_D_nonint_check(x);
-		if((abs((x) - rint(x)) > 1e-7)) {
+		if(isNonInt(x)) {
 			//MATHLIB_WARNING("non-integer x = %f", x);
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
@@ -56,7 +56,7 @@ public class NegBinomial extends GenericDistribution {
 
 		if (mu < 0 || size < 0) return Double.NaN;
 		// R_D_nonint_check(x);
-		if((abs((x) - rint(x)) > 1e-7)) {
+		if(isNonInt(x)) {
 			//MATHLIB_WARNING("non-integer x = %f", x);
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}

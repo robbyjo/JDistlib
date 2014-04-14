@@ -46,6 +46,7 @@ import static jdistlib.util.Utilities.rec;
 import static jdistlib.util.Utilities.rep;
 import static jdistlib.util.Utilities.rep_each;
 import static jdistlib.util.Utilities.rev;
+import static jdistlib.util.Utilities.sample_int;
 import static jdistlib.util.Utilities.seq;
 import static jdistlib.util.Utilities.sort;
 
@@ -1809,6 +1810,52 @@ public class TestDPQR {
 				System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(200, 4, 0.001, true, true) = %3.18g != -3.851e-42", val));
 				success = false;
 			}
+			// The following test is a response to bug PR#15635
+			double[] lp = new double[201];
+			for (int i = 0; i <= 200; i++) {
+				val = pow(2, -i);
+				lp[i] = NonCentralChiSquare.cumulative(val, 100, 1, true, true);
+				if (isInfinite(lp[i])) {
+					System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(%3.18g, 100, 1, true, true) is not finite", val));
+					success = false;
+				}
+				if (lp[i] >= -184) {
+					System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(%3.18g, 100, 1, true, true) = %3.18g >= -184", val, lp[i]));
+					success = false;
+				}
+			}
+			if (!isEqualScaled(lp[200], -7115.10693158)) {
+				System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(2^-200, 100, 1, true, true) = %3.18g != -7.115.10693158", lp[201]));
+				success = false;
+			}
+			double[] dlp = diff(lp);
+			double[] dd = new double[dlp.length - 30];
+			for (int i = 0; i < dd.length; i++)
+				dd[i] = abs(dlp[i + 30] - -34.65735902799);
+			print(range(dd));
+			for (int i = 0; i < dlp.length; i++)
+				if (-34.66 >= dlp[i] || dlp[i] >= -34.41) {
+					System.err.println(String.format("Precision loss: %3.18g not within -34.41 and -34.66", dlp[i]));
+					success = false;
+				}
+			for (int i = 0; i < dd.length; i++)
+				if (dd[i] >= 1e-8) {
+					System.err.println(String.format("Precision loss: Differential error of %3.18g >= 1e-8 detected!", dd[i]));
+					success = false;
+				}
+			for (double e: c(0., 2e-16)) {
+				val = NonCentralChiSquare.cumulative(1, 1.01, 80*(1-e), true, true);
+				if (!isEqualScaled(val, -34.57369629)) {
+					System.err.println(String.format("Continuity error detected: NonCentralChiSquare.cumulative(1, 1.01, 80*(1-%g), true, true) = %3.18g != -34.57369629", e, val));
+					success = false;
+				}
+				val = NonCentralChiSquare.cumulative(2, 1.01, 80*(1-e), true, true);
+				if (!isEqualScaled(val, -31.31514671)) {
+					System.err.println(String.format("Continuity error detected: NonCentralChiSquare.cumulative(2, 1.01, 80*(1-%g), true, true) = %3.18g != -31.31514671", e, val));
+					success = false;
+				}
+			}
+			// Test for PR#15635 ends
 		}
 
 		{
@@ -1860,6 +1907,38 @@ public class TestDPQR {
 				success = false;
 			}
 			// pbx had two -Inf; y was all Inf  for R <= 2.15.3;  PR#15162
+		}
+
+		// For bug PR#15734
+		{
+			System.out.println("## pbinom(), dbinom(), dhyper(),.. : R allows \"almost integer\" n");
+			double[] arr = sample_int(10000, 1000);
+			for (int i = 0; i < arr.length; i++) {
+				double[] n = vtimes((arr[i] / 100), vpow(10., colon(2, 20)));
+				for (int j = 0; j < n.length; j++) {
+					val = Binomial.density(1, n[j], 0.5, false);
+					if (Double.isNaN(val)) {
+						System.err.println(String.format("NaN detected in Binomial.density(1, %g, 0.5, false)", n[j]));
+						success = false;
+					}
+					val = Binomial.cumulative(1, n[j], 0.5, true, false);
+					if (Double.isNaN(val)) {
+						System.err.println(String.format("NaN detected in Binomial.cumulative(1, %g, 0.5, true, false)", n[j]));
+						success = false;
+					}
+					val = Poisson.density(n[j], n[j], false);
+					if (Double.isNaN(val)) {
+						System.err.println(String.format("NaN detected in Poisson.density(%g, %g, false)", n[j], n[j]));
+						success = false;
+					}
+					val = HyperGeometric.density(n[j]+1, n[j]+5, n[j]+5, n[j], false);
+					if (Double.isNaN(val)) {
+						System.err.println(String.format("NaN detected in HyperGeometric.density(%g, %g, %g, %g, false)", n[j]+1, n[j]+5, n[j]+5, n[j]));
+						success = false;
+					}
+				}
+			}
+			System.out.println("## check was too tight for large n in R <= 3.1.0 (PR#15734)");
 		}
 		//*/
 		return success;

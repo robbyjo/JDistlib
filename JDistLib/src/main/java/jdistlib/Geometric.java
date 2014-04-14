@@ -21,8 +21,8 @@ package jdistlib;
 
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
+import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
 public class Geometric extends GenericDistribution {
@@ -33,11 +33,11 @@ public class Geometric extends GenericDistribution {
 		if (p <= 0 || p > 1) return Double.NaN;
 
 		//R_D_nonint_check(x);
-		if((abs((x) - rint(x)) > 1e-7)) {
+		if(isNonInt(x)) {
 			//MATHLIB_WARNING("non-integer x = %f", x);
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
-		if (x < 0 || MathFunctions.isInfinite(x) || p == 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (x < 0 || isInfinite(x) || p == 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		//x = R_D_forceint(x);
 		x = rint(x);
 		/* prob = (1-p)^x, stable for small p */
@@ -51,7 +51,7 @@ public class Geometric extends GenericDistribution {
 		if (p <= 0 || p > 1) return Double.NaN;
 
 		if (x < 0.) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
-		if (MathFunctions.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if (isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		x = floor(x +1e-7);
 
 		if(p == 1.) { /* we cannot assume IEEE */
@@ -95,7 +95,7 @@ public class Geometric extends GenericDistribution {
 
 	public static final double random(double p, RandomEngine random)
 	{
-	    if (MathFunctions.isInfinite(p) || p <= 0 || p > 1) return Double.NaN;
+	    if (isInfinite(p) || p <= 0 || p > 1) return Double.NaN;
 	    return Poisson.random(Exponential.random_standard(random) * ((1 - p) / p), random);
 	}
 

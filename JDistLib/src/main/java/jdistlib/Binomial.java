@@ -76,10 +76,10 @@ public class Binomial extends GenericDistribution {
 	    if (Double.isNaN(x) || Double.isNaN(n) || Double.isNaN(p)) return x + n + p;
 
 	    //if (p < 0 || p > 1 || R_D_negInonint(n))
-	    if (p < 0 || p > 1 || (n < 0. || (abs((n) - round(n)) > 1e-7)))
+	    if (p < 0 || p > 1 || (n < 0. || isNonInt(n)))
 			return Double.NaN;
 	    //R_D_nonint_check(x);
-	    if((abs((x) - rint(x)) > 1e-7))
+	    if(isNonInt(x))
 	    	return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 	    if (x < 0 || isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 
@@ -93,7 +93,7 @@ public class Binomial extends GenericDistribution {
 	{
 		if (Double.isNaN(x) || Double.isNaN(n) || Double.isNaN(p)) return x + n + p;
 		if (isInfinite(n) || isInfinite(p)) return Double.NaN;
-		if((abs((n) - rint(n)) > 1e-7)) return Double.NaN;
+		if(isNonInt(n)) return Double.NaN;
 		n = rint(n);
 		/* PR#8560: n=0 is a valid value */
 		if(n < 0 || p < 0 || p > 1) return Double.NaN;

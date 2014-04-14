@@ -869,6 +869,20 @@ public class Utilities {
 		return r;
 	}
 
+	public static final boolean any(boolean... x) {
+		for (boolean _x: x)
+			if (_x)
+				return true;
+		return false;
+	}
+
+	public static final boolean anyNA(double... x) {
+		for (double _x: x)
+			if (Double.isNaN(_x))
+				return true;
+		return false;
+	}
+
 	/*
 	public static final void main (String[] args) {
 		int n = 100;

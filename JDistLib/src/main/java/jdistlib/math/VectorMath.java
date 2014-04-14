@@ -490,6 +490,16 @@ public class VectorMath {
 		return mx;
 	}
 
+	public static final double[] range(double[] e) {
+		int n = e.length;
+		double mx = e[0], mn = e[0];
+		for (int i = 1; i < n; i++) {
+			if (e[i] > mx) mx = e[i];
+			else if (e[i] < mn) mn = e[i];
+		}
+		return new double[] { mn, mx };
+	}
+
 	public static final boolean isEqual(double a, double b, double tol) {
 		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) <= tol);
 	}

@@ -1,0 +1,97 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.ysb33r.gradle:bintray:1.0'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.2.3'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'artifactory'
+apply plugin: 'maven'
+apply plugin: 'bintray-publish'
+
+version = '0.3.5-SNAPSHOT'
+group = 'joehanes.roby.math'
+archivesBaseName = 'jdistlib'
+
+// Javadoc in this codeset fails doclint on JDK8, so let's turn it off
+// As per http://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
+if (JavaVersion.current().isJava8Compatible()) {
+    allprojects {
+        tasks.withType(Javadoc) {
+            options.addStringOption('Xdoclint:none', '-quiet')
+        }
+    }
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    testCompile 'junit:junit:4.10'
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'JDistLib', 'Implementation-Version': version
+    }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+    description "An archive of the JavaDocs for Maven Central"
+    classifier "javadoc"
+    from javadoc
+}
+
+artifacts {
+    archives sourcesJar, javadocJar
+}
+
+artifactory {
+    publish {
+        contextUrl = 'http://oss.jfrog.org'
+        repository {
+            repoKey = 'oss-snapshot-local'
+            username = project.properties.bintrayUserName
+            password = project.properties.bintrayApiKey
+        }
+    }
+}
+
+artifactoryPublish {
+    onlyIf { version.endsWith("SNAPSHOT") }
+}
+
+install {
+    repositories.mavenInstaller {
+        pom.artifactId = archivesBaseName
+    }
+}
+
+uploadArchives  {
+    repositories {
+        if(!version.endsWith("SNAPSHOT")) {
+            bintrayMavenDeployer {
+                username    project.properties.bintrayUserName
+                apiKey      project.properties.bintrayApiKey
+                repoOwner   'jdistlib'
+                repoName    'jdistlib'
+                packageName project.properties.archivesBaseName
+                description 'Java library of statistical distribution '
+                tags        'java','statistics','distributions','maths'
+            }
+        }
+    }
+}

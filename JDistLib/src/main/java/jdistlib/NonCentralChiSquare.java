@@ -347,10 +347,6 @@ public class NonCentralChiSquare extends GenericDistribution {
 				return lower_tail ? Double.POSITIVE_INFINITY : 0;
 		}
 
-		//pp = R_D_qIv(p);
-		pp = (log_p ? exp(p) : (p));
-		if(pp > 1 - DBL_EPSILON) return lower_tail ? Double.POSITIVE_INFINITY : 0.0;
-
 		/* Invert pnchisq(.) :
 		 * 1. finding an upper and lower bound */
 		{
@@ -365,20 +361,22 @@ public class NonCentralChiSquare extends GenericDistribution {
 			ux0 = ux;
 		}
 
+		//p = R_D_qIv(p);
+		p = (log_p ? exp(p) : (p));
+
 		if(!lower_tail && ncp >= 80) {
 			/* pnchisq is only for lower.tail = true */
-			if(pp < 1e-10) {
+			if(p < 1e-10) {
 				//ML_ERROR(ME_PRECISION, "qnchisq");
 				System.err.println("Precision error NonCentralChiSquare.quantile");
 			}
-			p = log_p ? -expm1(p) : (0.5 - (p) + 0.5);
+			p = 1. - p;
 			lower_tail = true;
-		} else {
-			p = pp;
 		}
 
-		pp = min(1 - DBL_EPSILON, p * (1 + Eps));
 		if(lower_tail) {
+			if(p > 1 - DBL_EPSILON) return Double.POSITIVE_INFINITY;
+			pp = min(1 - DBL_EPSILON, p * (1 + Eps));
 			for(; ux < DBL_MAX &&
 				cumulative_raw(ux, df, ncp, Eps, rEps, 10000, true, false) < pp;
 				ux *= 2);
@@ -389,6 +387,8 @@ public class NonCentralChiSquare extends GenericDistribution {
 				lx *= 0.5);
 		}
 		else {
+			if(p > 1 - DBL_EPSILON) return 0.0;
+			pp = min(1 - DBL_EPSILON, p * (1 + Eps));
 			for(; ux < DBL_MAX &&
 				cumulative_raw(ux, df, ncp, Eps, rEps, 10000, false, false) > pp;
 				ux *= 2);

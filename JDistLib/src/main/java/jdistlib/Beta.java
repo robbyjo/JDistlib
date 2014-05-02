@@ -136,6 +136,11 @@ public class Beta extends GenericDistribution {
 			pp = q; qq = p; swap_tail = true;
 		}
 
+		if (q / p > 1e7) { // Tentative patch for PR#15755
+			double temp = pp; pp = qq; qq = temp;
+			swap_tail = !swap_tail;
+		}
+
 		/* calculate the initial approximation */
 
 		/* y := {fast approximation of} qnorm(1 - a) :*/

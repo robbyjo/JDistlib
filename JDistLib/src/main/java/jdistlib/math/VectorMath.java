@@ -383,6 +383,18 @@ public class VectorMath {
 		return sum;
 	}
 
+	public static final double sum_kahan(double[] e) {
+		double sum = e[0], c = 0;
+		int n = e.length;
+		for (int i = 1; i < n; i++) {
+			double y = e[i] - c,
+				t = sum + y;
+			c = (t - sum) - y;
+			sum = t;
+		}
+		return sum - c;
+	}
+
 	public static final double sum(Map<String, Integer> e) {
 		double sum = 0;
 		for (int v: e.values())

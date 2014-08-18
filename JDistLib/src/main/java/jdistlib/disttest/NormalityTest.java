@@ -19,8 +19,6 @@ import java.util.Set;
 
 import jdistlib.ChiSquare;
 import jdistlib.Normal;
-
-import static java.lang.Math.PI;
 import static java.lang.Math.abs;
 import static java.lang.Math.asin;
 import static java.lang.Math.exp;
@@ -359,7 +357,48 @@ public class NormalityTest {
 	public static final double jarque_bera_pvalue(double value)
 	{	return ChiSquare.cumulative(value, 2, true, false); }
 
+	/**
+	 * Perform Kolmogorov-Smirnov two-sided normality test.
+	 * @param X
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] kolmogorov_smirnov_test(double[] X) {
+		return DistributionTest.kolmogorov_smirnov_test(X, new Normal());
+	}
+
+	/**
+	 * Computation of Kolmogorov-Smirnov statistics. Deprecated. Please use kolmogorov_smirnov_test instead.
+	 * @deprecated
+	 * @param X
+	 * @return
+	 */
 	public static final double kolmogorov_smirnov_statistic(double[] X) {
+		return DistributionTest.kolmogorov_smirnov_statistic(X, new Normal(), TestKind.TWO_SIDED);
+	}
+
+	/**
+	 * Computation of Kolmogorov-Smirnov p-value. Deprecated. Please use kolmogorov_smirnov_test instead.
+	 * @deprecated
+	 * @param d
+	 * @param X
+	 * @return p-value
+	 */
+	public static final double kolmogorov_smirnov_pvalue(double d, double[] X) {
+		int nX = X.length;
+		Set<Double> set = new HashSet<Double>(nX);
+		for (double x: X)
+			set.add(x);
+		if (set.size() < nX)
+			return DistributionTest.kolmogorov_smirnov_pvalue_inexact(d, nX);
+		return DistributionTest.kolmogorov_smirnov_pvalue_exact(d, nX);
+	}
+
+	/**
+	 * Exactly identical as kolmogorov_smirnov_statistic
+	 * @param X
+	 * @return test statistic
+	 */
+	public static final double kolmogorov_lilliefors_statistic(double[] X) {
 		int n = X.length;
 		double
 			sum = 0,
@@ -396,107 +435,6 @@ public class NormalityTest {
 		}
 		return max;
 	}
-
-	/**
-	 * 
-	 * @param d
-	 * @param X The original array with which you invoked kolmogorov_smirnov_statistic
-	 * @return p-value
-	 */
-	public static final double kolmogorov_smirnov_pvalue(double d, double[] X) {
-		int n = X.length;
-		Set<Double> set = new HashSet<Double>(n);
-		for (double x: X)
-			set.add(x);
-		if (set.size() < n)
-			return kolmogorov_smirnov_pvalue_with_ties(d, X);
-		int
-			k = (int) (n * d) + 1,
-			m = 2 * k - 1,
-			mm = m * m;
-		double
-			h = k - n * d,
-			H[] = new double[mm],
-			Q[] = new double[mm];
-		for (int i = 0; i < m; i++)
-			for (int j = 0; j < m; j++)
-				H[i * m + j] = i - j + 1 < 0 ? 0 : 1;
-
-		for(int i = 0; i < m; i++) {
-			H[i * m] -= pow(h, i + 1);
-			H[(m - 1) * m + i] -= pow(h, (m - i));
-		}
-		H[(m - 1) * m] += ((2 * h - 1 > 0) ? pow(2 * h - 1, m) : 0);
-		for (int i = 0; i < m; i++)
-			for (int j = 0; j < m; j++)
-				if(i - j + 1 > 0)
-					for(int g = 1; g <= i - j + 1; g++)
-						H[i * m + j] /= g;
-		int eH = 0;
-		double eQ = m_power(H, eH, Q, 0, m, n);
-		double s = Q[(k - 1) * m + k - 1];
-		for(int i = 1; i <= n; i++) {
-			s = s * i / n;
-			if(s < 1e-140) {
-				s *= 1e140;
-				eQ -= 140;
-			}
-		}
-		s *= pow(10., eQ);
-		return 1 - s;
-	}
-
-	/**
-	 * Calculate an approximation of P-Value of Kolmogorov-Smirnov Normality test.
-	 * Don't call this routine unless you're absolutely sure that some elements in X
-	 * tie with some others.
-	 * 
-	 * @param d
-	 * @param X
-	 * @return p-value with ties
-	 */
-	private static final double kolmogorov_smirnov_pvalue_with_ties(double d, double[] X) {
-		final double
-			kKSTolerance = 1e-6,
-			kPiSqDiv8 = PI * PI / 8,
-			k1Sqrt2Pi = 1 / sqrt(2 * PI);
-		int
-			n = X.length,
-			k_max = (int) sqrt(2 - log(kKSTolerance));
-		d = sqrt(n) * d;
-
-		double z, w, s;
-		if (d < 1) {
-			z = -kPiSqDiv8 / (d * d);
-			w = log(d);
-			s = 0;
-			for (int k = 1; k < k_max; k += 2)
-				s += exp(k * k * z - w);
-			return 1 - s / k1Sqrt2Pi;
-		}
-
-		z = -2 * d * d;
-		s = -1;
-		int k = 1;
-		double
-			old = 0,
-			neww = 1;
-		while (abs(old - neww) > kKSTolerance) {
-			old = neww;
-			neww += 2 * s * exp(z * k * k);
-			s *= -1;
-			k++;
-		}
-		return 1 - neww;
-	}
-
-	/**
-	 * Exactly identical as kolmogorov_smirnov_statistic
-	 * @param X
-	 * @return test statistic
-	 */
-	public static final double kolmogorov_lilliefors_statistic(double[] X)
-	{	return kolmogorov_smirnov_statistic(X); }
 
 	/**
 	 * 
@@ -595,59 +533,4 @@ public class NormalityTest {
 		return result;
 	}
 
-	/**
-	 * Helper function for Kolmogorov-Smirnov
-	 * @param A
-	 * @param eA
-	 * @param V
-	 * @param eV
-	 * @param m
-	 * @param n
-	 * @return result of power series
-	 */
-	private static final int m_power(double[] A, int eA, double[] V, int eV, int m, int n) {
-		double[] B = new double[m * m];
-		int eB;
-
-		if(n == 1) {
-			for (int i = 0; i < m * m; i++)
-				V[i] = A[i];
-			return eA;
-		}
-		eV = m_power(A, eA, V, eV, m, n / 2);
-		m_multiply(V, V, B, m);
-		eB = 2 * eV;
-		if((n & 1) == 0) {
-			for (int i = 0; i < m * m; i++)
-				V[i] = B[i];
-			eV = eB;
-		} else {
-			m_multiply(A, B, V, m);
-			eV = eA + eB;
-	    }
-		int mdiv2 = m / 2;
-		if(V[mdiv2 * m + mdiv2] > 1e140) {
-			for (int i = 0; i < m * m; i++)
-				V[i] = V[i] * 1e-140;
-			eV += 140;
-		}
-		return eV;
-	}
-
-	/**
-	 * Helper function for Kolmogorov-Smirnov
-	 * @param A
-	 * @param B
-	 * @param C
-	 * @param m multiplication of a vector-shaped matrix
-	 */
-	private static final void m_multiply(double[] A, double[] B, double[] C, int m) {
-		for (int i = 0; i < m; i++)
-			for (int j = 0; j < m; j++) {
-				double s = 0.0;
-				for (int k = 0; k < m; k++)
-					s+= A[i * m + k] * B[k * m + j];
-				C[i * m + j] = s;
-			}
-	}
 }

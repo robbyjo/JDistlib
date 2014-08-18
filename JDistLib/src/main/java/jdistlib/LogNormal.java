@@ -40,7 +40,7 @@ public class LogNormal extends GenericDistribution{
 
 	public static final double cumulative(double x, double meanlog, double sdlog, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(meanlog) || Double.isNaN(sdlog)) return x + meanlog + sdlog;
-		if(sdlog <= 0) return Double.NaN;
+		if(sdlog < 0) return Double.NaN;
 		if (x > 0) return Normal.cumulative(log(x), meanlog, sdlog, lower_tail, log_p);
 		// return R_DT_0;
 		return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));

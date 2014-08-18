@@ -14,11 +14,6 @@
  */
 package jdistlib.disttest;
 
-import static java.lang.Math.*;
-import static jdistlib.util.Utilities.*;
-import static jdistlib.math.VectorMath.*;
-import static jdistlib.disttest.Utils.calculate_ecdf;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,7 +30,13 @@ import jdistlib.Poisson;
 import jdistlib.SignRank;
 import jdistlib.T;
 import jdistlib.Wilcoxon;
-
+import jdistlib.generic.GenericDistribution;
+import static java.lang.Math.*;
+import static jdistlib.math.Constants.M_1_SQRT_2PI;
+import static jdistlib.math.Constants.M_PISQ_8;
+import static jdistlib.math.MathFunctions.lchoose;
+import static jdistlib.util.Utilities.*;
+import static jdistlib.math.VectorMath.*;
 
 /**
  * Comparing two distributions
@@ -44,104 +45,289 @@ import jdistlib.Wilcoxon;
  */
 public class DistributionTest {
 	/**
-	 * Compute the Kolmogorov-Smirnov test to test between two distribution.
-	 * Note: I don't multiply the D score with sqrt(nX*nY / (nX + nY)), which
-	 * is needed for P-value computation
+	 * Compute the Kolmogorov-Smirnov test to test between two distribution, two-sided.
 	 * 
 	 * @param X an array with length of nX
 	 * @param Y an array with length of nY
-	 * @return K-S statistics
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
-	public static final double kolmogorov_smirnov_statistic(double[] X, double[] Y) {
-		int
-			nX = X.length,
-			nY = Y.length,
-			idxX = 0,
-			idxY = 0;
-		double
-			sortedX[] = new double[nX],
-			sortedY[] = new double[nY],
-			maxDiv = 0;
-		System.arraycopy(X, 0, sortedX, 0, nX);
-		System.arraycopy(Y, 0, sortedY, 0, nY);
-		sort(sortedX);
-		sort(sortedY);
-	
-		// Pathological case
-		if (sortedX[nX - 1] < sortedY[0] || sortedY[nY - 1] < sortedX[0])
-			return 1.0;
-		// Scan for duplicate values
-		double
-			cdfX[] = calculate_ecdf(sortedX),
-			cdfY[] = calculate_ecdf(sortedY),
-			pX = 0,
-			pY = 0,
-			div = 0;
-		while (idxX < nX && idxY < nY) {
-			double
-				x = sortedX[idxX],
-				y = sortedY[idxY];
-			if (y < x) {
-				pY = cdfY[idxY];
-				idxY++;
-			} else if (y > x) {
-				pX = cdfX[idxX];
-				idxX++;
-			} else {
-				pX = cdfX[idxX];
-				pY = cdfY[idxY];
-				idxX++; idxY++;
-			}
-			div = abs(pX - pY);
-			//div = abs(idxX / ((double) nX) - (idxY - 1.0) / nY);
-			if (div > maxDiv)
-				maxDiv = div;
-		}
-		return maxDiv;
+	public static final double[] kolmogorov_smirnov_test(double[] X, double[] Y) {
+		return kolmogorov_smirnov_test(X, Y, TestKind.TWO_SIDED);
 	}
 
 	/**
-	 * Compute the P-value out of the D-score produced by <tt>kolmogorov_smirnov_statistic</tt>.
+	 * Compute the Kolmogorov-Smirnov test to test between two distribution.
 	 * 
-	 * @param maxDiv
-	 * @param lengthX
-	 * @param lengthY
-	 * @return p-value
+	 * @param X an array with length of nX
+	 * @param Y an array with length of nY
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
-	public static final double kolmogorov_smirnov_pvalue(double maxDiv, int lengthX, int lengthY) {
-		/*
+	public static final double[] kolmogorov_smirnov_test(double[] X, double[] Y, TestKind kind) {
+		int
+			nX = X.length,
+			nY = Y.length,
+			n_total = nX + nY;
 		Set<Double> set = new HashSet<Double>();
-		for (double x: X)
-			set.add(x);
-		m = set.size();
-		set.clear();
-		for (double y: Y)
-			set.add(y);
-		n = set.size();
-		set.clear();
-		set = null;
-		//*/
-	
-		if (lengthX > lengthY) {
-			int temp = lengthY;
-			lengthY = lengthX;
-			lengthX = temp;
+		double w[] = c(X, Y);
+		int[] ow = order(w);
+		double z[] = new double[n_total], cs = 0;
+		for (int i = 0; i < n_total; i++) {
+			cs += (ow[i] <= nX ? 1.0 / nX : -1.0/nY);
+			z[i] = cs;
+			set.add(w[i]);
 		}
+		int new_n = set.size();
+		// Has ties
+		if (new_n < n_total) {
+			double[] dz = new double[n_total], new_z = new double[new_n];
+			System.arraycopy(w, 0, dz, 0, n_total);
+			sort(dz);
+			dz = diff(dz);
+			for (int i = 0, j = 0; i < dz.length; i++) {
+				if (dz[i] != 0)
+					new_z[j++] = z[i];
+			}
+			new_z[new_n-1] = z[n_total-1];
+			z = new_z;
+		}
+		double maxDiv = Double.NaN, pval = maxDiv;
+		switch(kind) {
+			case TWO_SIDED: maxDiv = max(vabs(z)); break;
+			case LOWER: maxDiv = -min(z); break;
+			case GREATER: maxDiv = max(z); break;
+		}
+
+		// Has ties
+		if (new_n < n_total) {
+			double n = nX * nY * 1.0 / (nX + nY);
+			if (kind != TestKind.TWO_SIDED) {
+				pval = exp(-2 * n * maxDiv * maxDiv);
+			} else {
+				double tol = 1e-10;
+				double d = sqrt(n) * maxDiv;
+				if (d < 1) {
+					int k_max = (int) sqrt(2 - log(tol));
+					double
+						z_star = -M_PISQ_8 / (d * d),
+						w_star = log(d),
+						s = 0;
+					for (int k = 1; k < k_max; k += 2)
+						s += exp(k * k * z_star - w_star);
+					pval = 1 - s / M_1_SQRT_2PI;
+				} else {
+					int k = 1;
+					double
+						z_star = -2 * d * d,
+						s = -1,
+						oldval = 0,
+						newval = 1;
+					while (abs(oldval - newval) > tol) {
+						oldval = newval;
+						newval += 2 * s * exp(z_star * k * k);
+						s *= -1;
+						k++;
+					}
+					pval = 1 - newval;
+				}
+			}
+		} else {
+			if (nX > nY) {
+				int temp = nY;
+				nY = nX;
+				nX = temp;
+			}
+
+			double
+				q = (0.5 + floor(maxDiv * nX * nY - 1e-7)) / (nX * nY),
+				u[] = new double[nY + 1];
+
+			for (int j = 0; j <= nY; j++)
+				u[j] = (j / nY) > q ? 0: 1;
+			for(int i = 1; i <= nX; i++) {
+				double w_star = (double)(i) / ((double)(i + nY));
+				u[0] = (i / nX) > q ? 0 : w_star * u[0];
+				for(int j = 1; j <= nY; j++)
+					u[j] = abs(i / nX - j / nY) > q ? 0 : w_star * u[j] + u[j - 1];
+			}
+			pval = 1 - u[nY];
+		}
+		return new double[] { maxDiv, pval };
+	}
+
+	/**
+	 * Compute the Kolmogorov-Smirnov test to test between X and a known reference distribution, two-sided.
+	 * 
+	 * @param X an array with length of nX
+	 * @param dist reference distribution
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] kolmogorov_smirnov_test(double[] X, GenericDistribution dist) {
+		return kolmogorov_smirnov_test(X, dist, TestKind.TWO_SIDED);
+	}
+
+	/**
+	 * Compute the Kolmogorov-Smirnov test to test between X and a known reference distribution.
+	 * 
+	 * @param X an array with length of nX
+	 * @param dist reference distribution
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] kolmogorov_smirnov_test(double[] X, GenericDistribution dist, TestKind kind) {
+		int n = X.length;
+		double[] sortedX = new double[n];
+		System.arraycopy(X, 0, sortedX, 0, n);
+		sort(sortedX);
+		boolean hasTies = false;
+		double maxX = Long.MIN_VALUE, minX = Long.MAX_VALUE;
+		for (int i = 0; i < n; i++) {
+			if (i > 0 && sortedX[i] == sortedX[i - 1])
+				hasTies = true;
+			double val = dist.cumulative(sortedX[i]) - (i * 1.0 / n);
+			if (maxX < val)
+				maxX = val;
+			else if (minX > val)
+				minX = val;
+		}
+		double maxDiv = Double.NaN, pval = Double.NaN;
+		switch(kind) {
+			case TWO_SIDED: maxDiv = max(maxX, 1.0/n - minX); break;
+			case LOWER: maxDiv = maxX; break;
+			case GREATER: maxDiv = 1.0/n - minX; break;
+		}
+		pval = hasTies ? kolmogorov_smirnov_pvalue_inexact(maxDiv, n) : kolmogorov_smirnov_pvalue_exact(maxDiv, n);
+		return new double[] { maxDiv, pval };
+	}
+
+	static final double kolmogorov_smirnov_statistic(double[] X, GenericDistribution dist, TestKind kind) {
+		int n = X.length;
+		double[] sortedX = new double[n];
+		System.arraycopy(X, 0, sortedX, 0, n);
+		sort(sortedX);
+		double maxX = Long.MIN_VALUE, minX = Long.MAX_VALUE;
+		for (int i = 0; i < n; i++) {
+			double val = dist.cumulative(sortedX[i]) - (i * 1.0 / n);
+			if (maxX < val)
+				maxX = val;
+			else if (minX > val)
+				minX = val;
+		}
+		switch(kind) {
+			case TWO_SIDED: return max(maxX, 1.0/n - minX);
+			case LOWER: return maxX;
+			case GREATER: return 1.0/n - minX;
+		}
+		return Double.NaN;
+	}
+
+	static final double kolmogorov_smirnov_pvalue_inexact(double d, int n) {
+		double pval;
+		if (d >= 1)
+			pval = 0;
+		else if (d <= 0)
+			pval = 1;
+		else {
+			int max_j = (int) floor(n * (1 - d));
+			double s = 0, invN = 1.0 / n;
+			for (int j = 0; j <= max_j; j++)
+				s += exp(lchoose(n, j) + (n - j) * log(1 - d - j * invN) + (j - 1) * log(d + j * invN));
+			pval = d * s;
+		}
+		return pval;
+	}
+
+	static final double kolmogorov_smirnov_pvalue_exact(double d, int n) {
+		int
+			k = (int) (n * d) + 1,
+			m = 2 * k - 1,
+			mm = m * m;
 		double
-			q = floor(maxDiv * lengthX * lengthY - 1e-7) / (lengthX * lengthY),
-			u[] = new double[lengthY + 1],
-			md = lengthX,
-			nd = lengthY;
-	
-		for (int j = 0; j <= lengthY; j++)
-			u[j] = (j / nd) > q ? 0: 1;
-		for(int i = 1; i <= lengthX; i++) {
-			double w = (double)(i) / ((double)(i + lengthY));
-			u[0] = (i / md) > q ? 0 : w * u[0];
-			for(int j = 1; j <= lengthY; j++)
-				u[j] = abs(i / md - j / nd) > q ? 0 : w * u[j] + u[j - 1];
+			h = k - n * d,
+			H[] = new double[mm],
+			Q[] = new double[mm];
+		for (int i = 0; i < m; i++)
+			for (int j = 0; j < m; j++)
+				H[i * m + j] = i - j + 1 < 0 ? 0 : 1;
+
+		for(int i = 0; i < m; i++) {
+			H[i * m] -= pow(h, i + 1);
+			H[(m - 1) * m + i] -= pow(h, (m - i));
 		}
-		return 1 - u[lengthY];
+		H[(m - 1) * m] += ((2 * h - 1 > 0) ? pow(2 * h - 1, m) : 0);
+		for (int i = 0; i < m; i++)
+			for (int j = 0; j < m; j++)
+				if(i - j + 1 > 0)
+					for(int g = 1; g <= i - j + 1; g++)
+						H[i * m + j] /= g;
+		int eH = 0;
+		double eQ = m_power(H, eH, Q, 0, m, n);
+		double s = Q[(k - 1) * m + k - 1];
+		for(int i = 1; i <= n; i++) {
+			s = s * i / n;
+			if(s < 1e-140) {
+				s *= 1e140;
+				eQ -= 140;
+			}
+		}
+		s *= pow(10., eQ);
+		return 1 - s;
+	}
+
+	/**
+	 * Helper function for Kolmogorov-Smirnov
+	 * @param A
+	 * @param eA
+	 * @param V
+	 * @param eV
+	 * @param m
+	 * @param n
+	 * @return result of power series
+	 */
+	private static final int m_power(double[] A, int eA, double[] V, int eV, int m, int n) {
+		double[] B = new double[m * m];
+		int eB;
+
+		if(n == 1) {
+			for (int i = 0; i < m * m; i++)
+				V[i] = A[i];
+			return eA;
+		}
+		eV = m_power(A, eA, V, eV, m, n / 2);
+		m_multiply(V, V, B, m);
+		eB = 2 * eV;
+		if((n & 1) == 0) {
+			for (int i = 0; i < m * m; i++)
+				V[i] = B[i];
+			eV = eB;
+		} else {
+			m_multiply(A, B, V, m);
+			eV = eA + eB;
+	    }
+		int mdiv2 = m / 2;
+		if(V[mdiv2 * m + mdiv2] > 1e140) {
+			for (int i = 0; i < m * m; i++)
+				V[i] = V[i] * 1e-140;
+			eV += 140;
+		}
+		return eV;
+	}
+
+	/**
+	 * Helper function for Kolmogorov-Smirnov
+	 * @param A
+	 * @param B
+	 * @param C
+	 * @param m multiplication of a vector-shaped matrix
+	 */
+	private static final void m_multiply(double[] A, double[] B, double[] C, int m) {
+		for (int i = 0; i < m; i++)
+			for (int j = 0; j < m; j++) {
+				double s = 0.0;
+				for (int k = 0; k < m; k++)
+					s+= A[i * m + k] * B[k * m + j];
+				C[i * m + j] = s;
+			}
 	}
 
 	/**
@@ -751,7 +937,7 @@ public class DistributionTest {
 	 * @param Y
 	 * @return statistic
 	 */
-	private static final double cramer_vonmises_statistic(double[] X, double[] Y) {
+	static final double cramer_vonmises_statistic(double[] X, double[] Y) {
 		int
 			nX = X.length,
 			nY = Y.length,
@@ -785,14 +971,44 @@ public class DistributionTest {
 		return val;
 	}
 
+	static final void kstest_example() {
+		double x[] = { 1.16004168838821208886714, -1.05547634926559497081655, -1.32072420295666459466588,  0.23915046399456202363965,
+			 0.12803724906074620548679,  0.05569133699728501252224, -0.81250026875197078890523, -0.25270560923205648284906,
+			 -0.18064235632836450617944, -1.68851736711207101038212,  0.45201765941273730486927, -0.82239514187785234256012,
+			 -1.28431746020543480213405, -1.11673394115548996197163,  0.35484674303354840629865,  0.69469717363334693160937,
+			  0.80814838465816862811408, -0.21328821452795371227396, -1.27614688227021422228802,  0.70701146687565052939561,
+			  0.50751733987764702238366,  0.03272845258879651664241,  0.35783108099085625397606,  0.44208900297507758292426,
+			 -0.52069082447125036861024, -0.55763158717776695194601, -0.41633151696193471114071,  0.26769602419784399582880,
+			 -0.74987234035877792237557, -0.41904535934255054963060,  0.89257906144225818145799, -0.07190597453573960295969,
+			  0.73302279756488808448722, -0.10734082387514076728507,  0.69406629605031111562852, -0.15263137425121245382975,
+			 -1.19674895163987238255743,  0.66757167860376609436202, -0.81494857018266397830075,  0.80040931005785931340313,
+			  0.80754967242376574088070, -1.56916928352228968179816, -1.35167386137606548857093,  1.16318789818012624515120,
+			  0.28936206000057662635072,  0.52290491081517120885991, -0.05762605570118027598081, -0.14176370966120629968366,
+			 -0.37619927990739526757480, -1.06736558034971595887441};
+		double y[] = { 0.40490121906623244285583, 0.24850796000100672245026, 0.10222866409458220005035, 0.62853105599060654640198,
+				0.61955126281827688217163, 0.28701157541945576667786, 0.95149635546840727329254, 0.01087409863248467445374,
+				0.63707210076972842216492, 0.61038276972249150276184, 0.09210657258518040180206, 0.64758135029114782810211,
+				0.48832037649117410182953, 0.10307366680353879928589, 0.86465166741982102394104, 0.68774600140750408172607,
+				0.76253556110896170139313, 0.52018100558780133724213, 0.61665696790441870689392, 0.77783631114289164543152,
+				0.89877208555117249488831, 0.83583764336071908473969, 0.92252740426920354366302, 0.83699792949482798576355,
+				0.35809992859140038490295, 0.59004115150310099124908, 0.60853263596072793006897, 0.13569264346733689308167,
+				0.38345616171136498451233, 0.91171105671674013137817};
+		double[] p = kolmogorov_smirnov_test(x, y);
+		System.out.println(p[0]);
+		System.out.println(p[1]);
+		p = kolmogorov_smirnov_test(x, new Normal());
+		System.out.println(p[0]);
+		System.out.println(p[1]);
+	}
+
 	public static final void main(String[] args) {
-		double[] x = new double[] {
-			-1.2315764307891696738295, 0.1076666048919862200828, -0.2507677102611699515577,	0.1865730243313593050836,
+		kstest_example();
+		System.exit(0);
+		double[] x = { -1.2315764307891696738295, 0.1076666048919862200828, -0.2507677102611699515577,	0.1865730243313593050836,
 			0.7674721840239807635342, -0.1874640529241502207025, 0.1376975996921310230192, 0.3722658431557314684390,
 			1.8257862598243677076937, -1.4691239378183402752853
 		};
-		double[] y = new double[] {
-			2.633833206002905935605, -1.041337574910569774289, -1.081121838223072728624, 2.702460192243479220053,
+		double[] y = { 2.633833206002905935605, -1.041337574910569774289, -1.081121838223072728624, 2.702460192243479220053,
 			1.626548966201278201282, 1.336642538096019183769, 1.075145021293279601338, 1.543056949670002397923,
 			-0.085039987328253241472, 1.357930215887039437916
 		};

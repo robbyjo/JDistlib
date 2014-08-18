@@ -402,6 +402,27 @@ public class VectorMath {
 		return sum;
 	}
 
+	/**
+	 * Standardize the value in x (i.e., (x - mean(x)) / sd(x))
+	 * @param x
+	 * @return
+	 */
+	public static final double[] standardize(double[] x) {
+		double sum = 0, sumsq = 0;
+		int n = x.length, nm1 = n-1;
+		double[] new_x = new double[n];
+		for (int i = 0; i < n; i++) {
+			double v = x[i];
+			sum += v / n; // guard against overflow
+			sumsq += v * v / nm1;
+		}
+		sumsq = sqrt(sumsq - (sum / nm1) * sum * n);
+		for (int i = 0; i < n; i++) {
+			new_x[i] = (x[i] - sum) / sumsq;
+		}
+		return new_x;
+	}
+
 	public static final Map<String, Integer> table(double[] e) {
 		Map<String, Integer> map = new HashMap<String, Integer>();
 		for (double _e : e) {

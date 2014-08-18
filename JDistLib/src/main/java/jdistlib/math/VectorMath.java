@@ -405,7 +405,7 @@ public class VectorMath {
 	/**
 	 * Standardize the value in x (i.e., (x - mean(x)) / sd(x))
 	 * @param x
-	 * @return
+	 * @return standardized values
 	 */
 	public static final double[] standardize(double[] x) {
 		double sum = 0, sumsq = 0;

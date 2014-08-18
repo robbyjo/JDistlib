@@ -370,7 +370,7 @@ public class NormalityTest {
 	 * Computation of Kolmogorov-Smirnov statistics. Deprecated. Please use kolmogorov_smirnov_test instead.
 	 * @deprecated
 	 * @param X
-	 * @return
+	 * @return statistic
 	 */
 	public static final double kolmogorov_smirnov_statistic(double[] X) {
 		return DistributionTest.kolmogorov_smirnov_statistic(X, new Normal(), TestKind.TWO_SIDED);

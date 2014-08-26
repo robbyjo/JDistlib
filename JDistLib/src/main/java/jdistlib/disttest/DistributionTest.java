@@ -579,7 +579,7 @@ public class DistributionTest {
 		int nx = x.length, ny = y.length, n = nx + ny;
 		if (paired)
 			return wilcoxon_test(vmin(x, y), mu, correction, kind);
-		double[] r = rank(c(vmin(x, mu), y));
+		double[] r = mu == 0 ? rank(c(x, y)) : rank(c(vmin(x, mu), y));
 		double w = -nx * (nx + 1) / 2, p = Double.NaN, limit = nx * ny / 2.0;
 		for (int i = 0; i < nx; i++)
 			w += r[i];

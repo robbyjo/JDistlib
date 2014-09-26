@@ -1306,12 +1306,26 @@ public class SmoothSpline
 				kDefaultTolerance, kDefaultMaxNumIterations);
 	}
 
+	public static final SmoothSplineResult fit(double[] x, double[] y)
+	{
+		return fit(x,y, null, SmoothSplineCriterion.NO_CRITERION, 1, 0, Double.NaN,
+			kDefaultSmoothingParamLowerBound, kDefaultSmoothingParamUpperBound,
+			kDefaultTolerance, kDefaultMaxNumIterations);
+	}
+
+	public static final SmoothSplineResult fit(double[] x, double[] y, double[] weights)
+	{
+		return fit(x,y,weights, SmoothSplineCriterion.NO_CRITERION, 1, 0, Double.NaN,
+			kDefaultSmoothingParamLowerBound, kDefaultSmoothingParamUpperBound,
+			kDefaultTolerance, kDefaultMaxNumIterations);
+	}
+
 	public static final SmoothSplineResult fit(double[] x, double[] y, double[] weights,
 		SmoothSplineCriterion criterion, double penalty, double df)
 	{
 		return fit(x,y,weights,criterion, penalty, df, Double.NaN,
-				kDefaultSmoothingParamLowerBound, kDefaultSmoothingParamUpperBound,
-				kDefaultTolerance, kDefaultMaxNumIterations);
+			kDefaultSmoothingParamLowerBound, kDefaultSmoothingParamUpperBound,
+			kDefaultTolerance, kDefaultMaxNumIterations);
 	}
 
 	/**

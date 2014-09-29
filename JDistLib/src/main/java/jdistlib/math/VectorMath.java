@@ -533,6 +533,11 @@ public class VectorMath {
 		return new double[] { mn, mx };
 	}
 
+	public static final double iqr(double[] e) {
+		double[] v = quantile0(e, new double[] {0.75, 0.25});
+		return v[0] - v[1];
+	}
+
 	public static final boolean isEqual(double a, double b, double tol) {
 		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b) <= tol);
 	}

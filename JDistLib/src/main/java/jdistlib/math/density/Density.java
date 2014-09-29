@@ -131,6 +131,10 @@ public class Density {
 		return density(x, Bandwidth.NRD0, 1, Kernel.GAUSSIAN, null, 0, 512, Double.NaN, Double.NaN, 3);
 	}
 
+	public static final Density density(double[] x, double adjust) {
+		return density(x, Bandwidth.NRD0, adjust, Kernel.GAUSSIAN, null, 0, 512, Double.NaN, Double.NaN, 3);
+	}
+
 	private static final double[] bindist(double[] x, double[] w, double xlo, double xhi, int n, double totMass) {
 		int ylen = 2*n;
 		double[] y = new double[ylen];

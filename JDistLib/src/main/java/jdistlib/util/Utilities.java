@@ -45,6 +45,14 @@ public class Utilities {
 		return d;
 	}
 
+	public static final double[] seq_int(double from, double to, int length_out) {
+		double[] d = new double[length_out];
+		double delta = (to - from) / (length_out - 1.0);
+		for (int i = 0 ; i < length_out; i++)
+			d[i] = from + i * delta;
+		return d;
+	}
+
 	public static final double[] seq(double from, double to, double by) {
 		int n = (int) Math.ceil((to - from + 1e-15) / by);
 		double[] d = new double[n];

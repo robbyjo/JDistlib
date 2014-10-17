@@ -1,8 +1,7 @@
 /*
- * Roby Joehanes and James C. Nelson
- * Department of Plant Pathology, Kansas State University, Manhattan, Kansas, USA
+ * Roby Joehanes
  * 
- * Copyright 2007 Roby Joehanes and James C. Nelson.
+ * Copyright 2007 Roby Joehanes
  * This file is distributed under the GNU General Public License version 3.0.
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,8 +31,6 @@ import java.io.*;
 
 // Please don't modify anything in this class as this class already
 // profiled very well by the author. -- RJ 2006/04/24
-// But not well coded in Java, as local variables were hiding members with
-// the same name. Refactored to eliminate this error/warning cause, CN 8.3.06
 
 
 /** 

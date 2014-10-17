@@ -1,8 +1,7 @@
 /*
- * Roby Joehanes and James C. Nelson
- * Department of Plant Pathology, Kansas State University, Manhattan, Kansas, USA
+ * Roby Joehanes
  * 
- * Copyright 2007 Roby Joehanes and James C. Nelson.
+ * Copyright 2007 Roby Joehanes
  * This file is distributed under the GNU General Public License version 3.0.
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +14,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-/**
- * 
  */
 package jdistlib.rng;
 

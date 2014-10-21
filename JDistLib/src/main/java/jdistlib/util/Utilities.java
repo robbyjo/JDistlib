@@ -260,6 +260,7 @@ public class Utilities {
 	 * @param data
 	 * @param obj an auxiliary array of objects
 	 */
+	@SuppressWarnings("unchecked")
 	public static final <T> void sort(double[] data, T[] obj) {
 		// N=5*10^8: Radix = 9919, Quick = 16971 (ms).
 		int
@@ -399,6 +400,7 @@ public class Utilities {
 			}
 	}
 
+	@SuppressWarnings("unchecked")
 	public static final <T> void sort(int[] data, T[] idx) {
 		// N=5*10^8: Radix = 9919, Quick = 16971 (ms).
 		int
@@ -539,6 +541,7 @@ public class Utilities {
 			}
 	}
 
+	@SuppressWarnings("unchecked")
 	public static final <T> void sort(long[] data, T[] idx) {
 		// N=5*10^8: Radix = 9919, Quick = 16971 (ms).
 		int
@@ -732,6 +735,7 @@ public class Utilities {
 		return r;
 	}
 
+	@SuppressWarnings("unchecked")
 	public static final <S> S[] unique(S[] e) {
 		LinkedHashSet<S> set = new LinkedHashSet<S>(e.length);
 		for (S _e : e)

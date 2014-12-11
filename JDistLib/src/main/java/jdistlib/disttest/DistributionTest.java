@@ -45,14 +45,40 @@ import static jdistlib.math.VectorMath.*;
  */
 public class DistributionTest {
 	/**
-	 * Compute the Kolmogorov-Smirnov test to test between two distribution, two-sided.
+	 * Compute the Kolmogorov-Smirnov test to test between two distribution, two-sided, exact p-value.
+	 * If there are ties, then p-values will be inexact!
 	 * 
 	 * @param X an array with length of nX
 	 * @param Y an array with length of nY
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
 	public static final double[] kolmogorov_smirnov_test(double[] X, double[] Y) {
-		return kolmogorov_smirnov_test(X, Y, TestKind.TWO_SIDED);
+		return kolmogorov_smirnov_test(X, Y, TestKind.TWO_SIDED, true);
+	}
+
+	/**
+	 * Compute the Kolmogorov-Smirnov test to test between two distribution, two-sided.
+	 * 
+	 * @param X an array with length of nX
+	 * @param Y an array with length of nY
+	 * @param isExact whether the p-value should be computed with the exact method or not (takes a long time). If there are ties, this option is ignored.
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] kolmogorov_smirnov_test(double[] X, double[] Y, boolean isExact) {
+		return kolmogorov_smirnov_test(X, Y, TestKind.TWO_SIDED, isExact);
+	}
+
+	/**
+	 * Compute the Kolmogorov-Smirnov test to test between two distribution, exact p-value.
+	 * If there are ties, then p-values will be inexact!
+	 * 
+	 * @param X an array with length of nX
+	 * @param Y an array with length of nY
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] kolmogorov_smirnov_test(double[] X, double[] Y, TestKind kind) {
+		return kolmogorov_smirnov_test(X, Y, kind, true);
 	}
 
 	/**
@@ -61,9 +87,10 @@ public class DistributionTest {
 	 * @param X an array with length of nX
 	 * @param Y an array with length of nY
 	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @param isExact whether the p-value should be computed with the exact method or not (takes a long time). If there are ties, this option is ignored.
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
-	public static final double[] kolmogorov_smirnov_test(double[] X, double[] Y, TestKind kind) {
+	public static final double[] kolmogorov_smirnov_test(double[] X, double[] Y, TestKind kind, boolean isExact) {
 		int
 			nX = X.length,
 			nY = Y.length,
@@ -99,8 +126,8 @@ public class DistributionTest {
 		}
 
 		// Has ties
-		if (new_n < n_total) {
-			double n = nX * nY * 1.0 / (nX + nY);
+		if (new_n < n_total || !isExact) {
+			double n = nX * (nY * 1.0 / (nX + nY));
 			if (kind != TestKind.TWO_SIDED) {
 				pval = exp(-2 * n * maxDiv * maxDiv);
 			} else {
@@ -140,15 +167,16 @@ public class DistributionTest {
 
 			double
 				q = (0.5 + floor(maxDiv * nX * nY - 1e-7)) / (nX * nY),
-				u[] = new double[nY + 1];
+				u[] = new double[nY + 1],
+				dx = 1.0 / nX, dy = 1.0 / nY;
 
 			for (int j = 0; j <= nY; j++)
 				u[j] = (j / nY) > q ? 0: 1;
 			for(int i = 1; i <= nX; i++) {
 				double w_star = (double)(i) / ((double)(i + nY));
-				u[0] = (i / nX) > q ? 0 : w_star * u[0];
+				u[0] = (i * dx) > q ? 0 : w_star * u[0];
 				for(int j = 1; j <= nY; j++)
-					u[j] = abs(i / nX - j / nY) > q ? 0 : w_star * u[j] + u[j - 1];
+					u[j] = abs(i * dx - j * dy) > q ? 0 : w_star * u[j] + u[j - 1];
 			}
 			pval = 1 - u[nY];
 		}
@@ -156,14 +184,40 @@ public class DistributionTest {
 	}
 
 	/**
-	 * Compute the Kolmogorov-Smirnov test to test between X and a known reference distribution, two-sided.
+	 * Compute the Kolmogorov-Smirnov test to test between X and a known reference distribution, two-sided, exact p-value.
+	 * If there are ties, then p-values will be inexact!
 	 * 
 	 * @param X an array with length of nX
 	 * @param dist reference distribution
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
 	public static final double[] kolmogorov_smirnov_test(double[] X, GenericDistribution dist) {
-		return kolmogorov_smirnov_test(X, dist, TestKind.TWO_SIDED);
+		return kolmogorov_smirnov_test(X, dist, TestKind.TWO_SIDED, true);
+	}
+
+	/**
+	 * Compute the Kolmogorov-Smirnov test to test between X and a known reference distribution, exact p-value.
+	 * If there are ties, then p-values will be inexact!
+	 * 
+	 * @param X an array with length of nX
+	 * @param dist reference distribution
+	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] kolmogorov_smirnov_test(double[] X, GenericDistribution dist, TestKind kind) {
+		return kolmogorov_smirnov_test(X, dist, kind, true);
+	}
+
+	/**
+	 * Compute the Kolmogorov-Smirnov test to test between X and a known reference distribution, two-sided.
+	 * 
+	 * @param X an array with length of nX
+	 * @param dist reference distribution
+	 * @param isExact whether the p-value should be computed with the exact method or not (takes a long time). If there are ties, this option is ignored.
+	 * @return an array of two elements: The first is the test statistic, the second is the p-value
+	 */
+	public static final double[] kolmogorov_smirnov_test(double[] X, GenericDistribution dist, boolean isExact) {
+		return kolmogorov_smirnov_test(X, dist, TestKind.TWO_SIDED, isExact);
 	}
 
 	/**
@@ -172,9 +226,10 @@ public class DistributionTest {
 	 * @param X an array with length of nX
 	 * @param dist reference distribution
 	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
+	 * @param isExact whether the p-value should be computed with the exact method or not (takes a long time). If there are ties, this option is ignored.
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
-	public static final double[] kolmogorov_smirnov_test(double[] X, GenericDistribution dist, TestKind kind) {
+	public static final double[] kolmogorov_smirnov_test(double[] X, GenericDistribution dist, TestKind kind, boolean isExact) {
 		int n = X.length;
 		double[] sortedX = new double[n];
 		System.arraycopy(X, 0, sortedX, 0, n);
@@ -196,7 +251,7 @@ public class DistributionTest {
 			case LOWER: maxDiv = maxX; break;
 			case GREATER: maxDiv = 1.0/n - minX; break;
 		}
-		pval = hasTies ? kolmogorov_smirnov_pvalue_inexact(maxDiv, n) : kolmogorov_smirnov_pvalue_exact(maxDiv, n);
+		pval = hasTies || !isExact ? kolmogorov_smirnov_pvalue_inexact(maxDiv, n) : kolmogorov_smirnov_pvalue_exact(maxDiv, n);
 		return new double[] { maxDiv, pval };
 	}
 

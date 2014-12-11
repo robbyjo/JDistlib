@@ -2194,6 +2194,24 @@ public class TestDPQR {
 		System.out.println(p[1]);
 	}
 
+	static final void kstest_example2() {
+		int n = 50000;
+		double[] x = new double[n], y = new double[n];
+		long time1, time2;
+		for (int i = 0; i < n; i++) {
+			x[i] = random.nextDouble();
+			y[i] = random.nextDouble();
+		}
+		time1 = System.currentTimeMillis();
+		System.out.println(kolmogorov_smirnov_test(x, y)[1]);
+		time2 = System.currentTimeMillis();
+		System.out.println("Time (Exact) = " + (time2 - time1));
+		time1 = System.currentTimeMillis();
+		System.out.println(kolmogorov_smirnov_test(x, y, false)[1]);
+		time2 = System.currentTimeMillis();
+		System.out.println("Time (Inexact) = " + (time2 - time1));
+	}
+
 	public static final void norm_test() {
 		double[] x = {4281.099776,4376.951826,4378.025799,4613.572586,4666.54245,4675.439476,
 			4709.961628,4709.999973,4709.999973,4709.999973,4743.40979,4751.232853,4756.295879,

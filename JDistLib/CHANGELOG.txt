@@ -3,6 +3,11 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
+Version 0.3.7 (Dec 10, 2014):
+* Fix for bug #19 regarding Kolmogorov-Smirnov (KS) test
+* Added option to allow inexact KS p-value computation method, if needed. Default option is still exact method. See bug #19 entry for details.
+* Fixed integer overflow bug when computing KS exact method---only happen with big data sets.
+
 Version 0.3.6 (Aug 18, 2014):
 * Fix for bug #18
 * Added generalized one-distribution Kolmogorov-Smirnov test

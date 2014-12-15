@@ -100,7 +100,7 @@ public class DistributionTest {
 		int[] ow = order(w);
 		double z[] = new double[n_total], cs = 0;
 		for (int i = 0; i < n_total; i++) {
-			cs += (ow[i] <= nX ? 1.0 / nX : -1.0/nY);
+			cs += (ow[i]+1 <= nX ? 1.0 / nX : -1.0/nY);
 			z[i] = cs;
 			set.add(w[i]);
 		}
@@ -171,7 +171,7 @@ public class DistributionTest {
 				dx = 1.0 / nX, dy = 1.0 / nY;
 
 			for (int j = 0; j <= nY; j++)
-				u[j] = (j / nY) > q ? 0: 1;
+				u[j] = (j * dy) > q ? 0: 1;
 			for(int i = 1; i <= nX; i++) {
 				double w_star = (double)(i) / ((double)(i + nY));
 				u[0] = (i * dx) > q ? 0 : w_star * u[0];

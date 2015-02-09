@@ -32,7 +32,6 @@ import jdistlib.T;
 import jdistlib.Wilcoxon;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.approx.ApproximationFunction;
-import jdistlib.math.approx.ApproximationType;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.M_1_SQRT_2PI;
 import static jdistlib.math.Constants.M_PISQ_8;

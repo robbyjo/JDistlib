@@ -32,8 +32,7 @@ public class ApproximationFunction implements UnivariateFunction
 		mY[],
 		mLo,
 		mHi,
-		mLeftCompromise,
-		mRightCompromise;
+		mCompromise;
 	protected ApproximationType mType;
 
 	public ApproximationFunction(ApproximationType t, double[] x, double[] y, double lo, double hi, double compromise)
@@ -44,52 +43,84 @@ public class ApproximationFunction implements UnivariateFunction
 		mY = y;
 		mLo = lo;
 		mHi = hi;
-		mLeftCompromise = compromise;
-		mRightCompromise = 1 - compromise;
+		mCompromise = compromise;
 		mType = t;
 	}
 
 	/* (non-Javadoc)
 	 * @see qmath.IFunction#eval(double)
 	 */
-	public double eval(double x)
-	{
-		int
-			left = 0,
-			right = mX.length - 1;
-		if (x < mX[left])
-			return mLo;
-		if (x > mX[right])
-			return mHi;
-		while(left < right - 1)
-		{
-			int mid = (left + right)/2;
-			if(x < mX[mid])
-				right = mid;
-			else
-				left = mid;
-		}
-		if(x == mX[right])
-			return mY[right];
-		if(x == mX[left])
-			return mY[left];
-		switch (mType)
-		{
+	public double eval(double x) {
+		switch (mType) {
 			case CONSTANT:
-				x = mY[left] * mLeftCompromise + mY[right] * mRightCompromise;
-				break;
+				return constant(x, mX, mY, mLo, mHi, mCompromise);
 			case LINEAR:
-				x = mY[left] + (mY[right] - mY[left]) * ((x - mX[left])/(mX[right] - mX[left]));
-				break;
+				return linear(x, mX, mY, mLo, mHi);
 			default:
 				throw new RuntimeException();
 		}
-		return x;
 	}
 
 	public void setParameters(double... params) {
 	}
 
 	public void setObjects(Object... obj) {
+	}
+
+	/**
+	 * Linear approximation
+	 * @param v
+	 * @param x
+	 * @param y
+	 * @param lo
+	 * @param hi
+	 * @return Approximated value
+	 */
+	public static final double linear(double v, double[] x, double[] y, double lo, double hi) {
+		int
+			left = 0,
+			right = x.length - 1;
+		if (v < x[left])
+			return lo;
+		if (v > x[right])
+			return hi;
+		while(left < right - 1) {
+			int mid = (left + right)/2;
+			if(v < x[mid]) right = mid; else left = mid;
+		}
+		if(v == x[right])
+			return y[right];
+		if(v == x[left])
+			return y[left];
+		return v = y[left] + (y[right] - y[left]) * ((v - x[left])/(x[right] - x[left]));
+	}
+
+	/**
+	 * Constant approximation
+	 * @param v
+	 * @param x
+	 * @param y
+	 * @param lo
+	 * @param hi
+	 * @param compromise
+	 * @return Approximated value
+	 */
+	public static final double constant(double v, double[] x, double[] y, double lo, double hi, double compromise) {
+		int
+			left = 0,
+			right = x.length - 1;
+		if (v < x[left])
+			return lo;
+		if (v > x[right])
+			return hi;
+		while(left < right - 1) {
+			int mid = (left + right)/2;
+			if(v < x[mid]) right = mid; else left = mid;
+		}
+		if(v == x[right])
+			return y[right];
+		if(v == x[left])
+			return y[left];
+		return y[left] * compromise + y[right] * (1-compromise);
 	}
 }

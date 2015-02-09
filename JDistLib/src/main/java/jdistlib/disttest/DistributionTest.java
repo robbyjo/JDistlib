@@ -1243,25 +1243,25 @@ public class DistributionTest {
 		 *   *xl = x[low];  *xu = x[high];
 		 * rather return the (low, high) indices -- automagically via lo_hi[]  */
 		dip /= (2*n);
-		int nn = qDiptabN.length - 1, max_n = qDiptabN[nn], n0, n1, i_n, i2;
-		double f_n = 0;
+		int nn = qDiptabN.length - 1, max_n = qDiptabN[nn], prn = qDiptab[0].length;
+		double zz[] = new double[prn];
 		if (n > max_n) {
-			n0 = n1 = max_n;
-			i2 = i_n = nn;
+			double sqn0 = sqrt(max_n);
+			for (int j = 0; j < prn; j++)
+				zz[j] = sqn0 * qDiptab[nn][j];
 		} else {
-			i_n = nn;
+			int i_n = nn;
 			while(n < qDiptabN[i_n]) i_n--;
-			i2 = i_n + 1;
-			n0 = qDiptabN[i_n];
-			n1 = qDiptabN[i2];
-			f_n = (n - n0) * 1.0/(n1 - n0);
+			int i2 = i_n + 1,
+				n0 = qDiptabN[i_n],
+				n1 = qDiptabN[i2];
+			double f_n = (n - n0) * 1.0/(n1 - n0), sqn0 = sqrt(n0), sqn1 = sqrt(n1);
+			for (int j = 0; j < prn; j++) {
+				double y0 = sqn0 * qDiptab[i_n][j];
+				zz[j] = y0 + f_n * (sqn1 * qDiptab[i2][j] - y0);
+			}
 		}
-		double
-			y_0[] = vtimes(sqrt(n0), qDiptab[i_n]),
-			y_1[] = vtimes(sqrt(n1), qDiptab[i2]),
-			sD = sqrt(n) * dip,
-			zz[] = vplus(y_0, vtimes(f_n, vmin(y_1, y_0)));
-		double pval = 1 - new ApproximationFunction(ApproximationType.LINEAR, zz, qDiptabPr, 0, 1, 0).eval(sD);
+		double pval = 1 - ApproximationFunction.linear(sqrt(n) * dip, zz, qDiptabPr, 0, 1);
 		return new double[] {dip, pval, low-1, high-1};
 	}
 

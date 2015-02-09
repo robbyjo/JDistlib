@@ -561,4 +561,16 @@ public class VectorMath {
 			if (!isEqualScaled(a[i], b[i], tol)) return false;
 		return true;
 	}
+
+	public static final boolean isSorted(double[] a, boolean ascending) {
+		int n = a.length;
+		if (ascending) {
+			for (int i = 1; i < n; i++)
+				if (a[i-1] > a[i]) return false;
+		} else {
+			for (int i = 1; i < n; i++)
+				if (a[i-1] < a[i]) return false;
+		}
+		return true;
+	}
 }

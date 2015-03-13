@@ -91,7 +91,7 @@ public class Beta extends GenericDistribution {
 		final double const3 = 0.99229;
 		final double const4 = 0.04481;
 		int i_pb, i_inn;
-		double a, adj, logbeta, g, h, pp, p_, prev, qq, r, s, t, tx, w, y, yprev;
+		double a, la, adj, logbeta, g, h, pp, p_, prev, qq, r, s, t, tx, w, y, wprev;
 		double acu;
 		double xinbta;
 		boolean swap_tail;
@@ -121,7 +121,22 @@ public class Beta extends GenericDistribution {
 		//p_ = R_DT_qIv(alpha);/* lower_tail prob (in any case) */
 	    p_ = (log_p ? (lower_tail ? exp(alpha) : - expm1(alpha)) : (lower_tail ? (alpha) : (0.5 - (alpha) + 0.5)));
 
-		if(log_p && (p_ == 0. || p_ == 1.))
+	    if (p == 0 || q == 0 || Double.isInfinite(p) || Double.isInfinite(q)) {
+	    	if(p == 0 && q == 0) { // point mass 1/2 at each of {0,1} :
+	    	    if(alpha < (log_p ? -M_LN2 : 0.5)) return 0.;
+	    	    if(alpha > (log_p ? -M_LN2 : 0.5)) return 1.;
+	    	    // else:  alpha == "1/2"
+	    	    return 0.5;
+	    	} else if (p == 0 || p/q == 0) { // point mass 1 at 0 - "flipped around"
+	    	    return 0.;
+	    	} else if (q == 0 || q/p == 0) { // point mass 1 at 0 - "flipped around"
+	    	    return 1;
+	    	}
+	    	// else:  p = q = Inf : point mass 1 at 1/2
+	    	return 0.5;
+	    }
+
+	    if(log_p && (p_ == 0. || p_ == 1.))
 			return p_; /* better than NaN or infinite loop;
 			      FIXME: suboptimal, since -Inf < alpha ! */
 
@@ -131,20 +146,17 @@ public class Beta extends GenericDistribution {
 		/* change tail if necessary;  afterwards   0 < a <= 1/2	 */
 		if (p_ <= 0.5) {
 			a = p_;	pp = p; qq = q; swap_tail = false;
+			la = lower_tail ? (log_p ? (alpha) : log(alpha)) : (log_p ? ((alpha) > -M_LN2 ? log(-expm1(alpha)) : log1p(-exp(alpha))) : log1p(-alpha));
 		} else { /* change tail, swap  p <-> q :*/
 			a = (!lower_tail && !log_p)? alpha : 1 - p_;
+			la = lower_tail ? (log_p ? ((alpha) > -M_LN2 ? log(-expm1(alpha)) : log1p(-exp(alpha))) : log1p(-alpha)) : (log_p ? (alpha) : log(alpha));
 			pp = q; qq = p; swap_tail = true;
-		}
-
-		if (q / p > 1e7) { // Tentative patch for PR#15755
-			double temp = pp; pp = qq; qq = temp;
-			swap_tail = !swap_tail;
 		}
 
 		/* calculate the initial approximation */
 
 		/* y := {fast approximation of} qnorm(1 - a) :*/
-		r = sqrt(-2 * log(a));
+		r = sqrt(-2 * la);
 		y = r - (const1 + const2 * r) / (1. + (const3 + const4 * r) * r);
 		if (pp > 1 && qq > 1) {
 			r = (y * y - 3.) / 6.;
@@ -156,7 +168,7 @@ public class Beta extends GenericDistribution {
 		} else {
 			r = qq + qq;
 			t = 1. / (9. * qq);
-			t = r * pow(1. - t + y * sqrt(t), 3.0);
+			t = r * pow(1. - t + y * sqrt(t), 3);
 			if (t <= 0.)
 				xinbta = 1. - exp((log1p(-a)+ log(qq) + logbeta) / qq);
 			else {
@@ -168,12 +180,23 @@ public class Beta extends GenericDistribution {
 			}
 		}
 
+	    /* Desired accuracy for Newton iterations (below) should depend on  (a,p)
+	     * This is from Remark .. on AS 109, adapted.
+	     * However, it's not clear if this is "optimal" for IEEE double prec.
+
+	     * acu = fmax2(acu_min, pow(10., -25. - 5./(pp * pp) - 1./(a * a)));
+
+	     * NEW: 'acu' accuracy NOT for squared adjustment, but simple;
+	     * ---- i.e.,  "new acu" = sqrt(old acu)
+	    */
+		acu = max(acu_min, pow(10.0, -13.0 - 2.5/(pp * pp) - 0.5/(a * a)));
+
 		/* solve for x by a modified newton-raphson method, */
 		/* using the function pbeta_raw */
 
 		r = 1 - pp;
 		t = 1 - qq;
-		yprev = 0.;
+		wprev = 0.;
 		adj = 1;
 		/* Sometimes the approximation is negative! */
 		if (xinbta < lower)
@@ -181,34 +204,22 @@ public class Beta extends GenericDistribution {
 		else if (xinbta > upper)
 			xinbta = 0.5;
 
-		/* Desired accuracy should depend on  (a,p)
-		 * This is from Remark .. on AS 109, adapted.
-		 * However, it's not clear if this is "optimal" for IEEE double prec.
-
-		 * acu = fmax2(acu_min, pow(10., -25. - 5./(pp * pp) - 1./(a * a)));
-
-		 * NEW: 'acu' accuracy NOT for squared adjustment, but simple;
-		 * ---- i.e.,  "new acu" = sqrt(old acu)
-
-		 */
-		acu = max(acu_min, pow(10.0, -13.0 - 2.5/(pp * pp) - 0.5/(a * a)));
 		tx = prev = 0.;	/* keep -Wall happy */
-
 		for (i_pb=0; i_pb < 1000; i_pb++) {
 			y = cumulative_raw(xinbta, pp, qq, /*lower_tail = */ true, false);
 			if(isInfinite(y))
 				return Double.NaN;
 
-			y = (y - a) *
+			w = (y - a) *
 					exp(logbeta + r * log(xinbta) + t * log1p(-xinbta));
-			if (y * yprev <= 0.)
+			if (w * wprev <= 0.)
 				prev = max(abs(adj),fpu);
 			g = 1;
 			for (i_inn=0; i_inn < 1000;i_inn++) {
-				adj = g * y;
+				adj = g * w;
 				if (abs(adj) < prev) {
 					tx = xinbta - adj; /* trial new x */
-					if (tx >= 0. && tx <= 1) {
+					if (0. <= tx && tx <= 1) {
 						if (prev <= acu || abs(y) <= acu) //goto L_converged;
 							return swap_tail ? 1 - xinbta : xinbta;
 						if (tx != 0. && tx != 1)
@@ -220,7 +231,7 @@ public class Beta extends GenericDistribution {
 			if (abs(tx - xinbta) < 1e-15*xinbta) // goto L_converged;
 				return swap_tail ? 1 - xinbta : xinbta;
 			xinbta = tx;
-			yprev = y;
+			wprev = w;
 		}
 		/*-- NOT converged: Iteration count --*/
 		//ML_ERROR(ME_PRECISION, "qbeta");

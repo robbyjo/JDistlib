@@ -749,12 +749,40 @@ public class MathFunctions {
 	    return logx + ((logy) > -M_LN2 ? log(-expm1(logy)) : log1p(-exp(logy)));
 	}
 
+	/*
+	 * Compute the log of a sum from logs of terms, i.e.,
+	 *
+	 *     log (sum_i  exp (logx[i]) ) =
+	 *     log (e^M * sum_i  e^(logx[i] - M) ) =
+	 *     M + log( sum_i  e^(logx[i] - M)
+	 *
+	 * without causing overflows or throwing much accuracy.
+	 */
+	public static final double logspace_sum (double[] logx)
+	{
+		int n = logx.length;
+	    if(n == 0) return Double.NEGATIVE_INFINITY; // = log( sum(<empty>) )
+	    if(n == 1) return logx[0];
+	    if(n == 2) return logspace_add(logx[0], logx[1]);
+	    // else (n >= 3) :
+	    int i;
+	    // Mx := max_i log(x_i)
+	    double Mx = logx[0];
+	    for(i = 1; i < n; i++) if(Mx < logx[i]) Mx = logx[i];
+	    // LDOUBLE s = (LDOUBLE) 0.; // TODO long double
+	    //for(i = 0; i < n; i++) s += EXP(logx[i] - Mx);
+	    //return Mx + (double) LOG(s);
+	    double s = 0.;
+	    for(i = 0; i < n; i++) s += exp(logx[i] - Mx);
+	    return Mx + (double) log(s);
+	}
+
 	/* Based on C translation of ACM TOMS 708
 	   Please do not change this, e.g. to use R's versions of the
 	   ancillary routines, without investigating the error analysis as we
 	   do need very high relative accuracy.  This version has about
 	   14 digits accuracy.
-	*/
+	 */
 	/** <pre>-----------------------------------------------------------------------
 	 *	      Evaluation of the Incomplete Beta function I_x(a,b)
 	 *		       --------------------
@@ -774,7 +802,13 @@ public class MathFunctions {
 	 *	  ierr = 5  if x + y != 1
 	 *	  ierr = 6  if x = a = 0
 	 *	  ierr = 7  if y = b = 0
-	 *	  ierr = 8  "error" in bgrat()
+	 *	  ierr = 8	(not used currently)
+	 *	  ierr = 9  NaN in a, b, x, or y
+	 *	  ierr = 10     (not used currently)
+	 *	  ierr = 11  bgrat() error code 1 [+ warning in bgrat()]
+	 *	  ierr = 12  bgrat() error code 2   (no warning here)
+	 *	  ierr = 13  bgrat() error code 3   (no warning here)
+	 *	  ierr = 14  bgrat() error code 4 [+ WARNING in bgrat()]
 	 * --------------------
 	 *     Written by Alfred H. Morris, Jr.
 	 *	  Naval Surface Warfare Center
@@ -785,15 +819,16 @@ public class MathFunctions {
 	public static final double[] bratio(double a, double b, double x, double y, boolean log_p)
 	{
 		boolean do_swap;
-		int n = 0, kase = 0;
-		double z, a0, b0, x0, y0, eps, lambda = 0, w, w1;
+		int n = 0, kase = 0, ierr1[] = {0};
+		double z, a0, b0, x0, y0, lambda = 0, w, w1;
 
 		/*  eps is a machine dependent constant: the smallest
 		 *      floating point number for which   1.0 + eps > 1.0 */
-		eps = 2.0 * DBL_EPSILON; /* == DBL_EPSILON (in R, Rmath) */
+		double eps = 2. * DBL_EPSILON; /* == DBL_EPSILON (in R, Rmath) */
 
 		/* ----------------------------------------------------------------------- */
 		w = w1 = (log_p ? Double.NEGATIVE_INFINITY : 0.);
+		if (Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(a) || Double.isNaN(b)) return new double[] {w, w1, 9};
 
 		if (a < 0.0 || b < 0.0)   return new double[] {w, w1, 1};
 		if (a == 0.0 && b == 0.0) return new double[] {w, w1, 2};
@@ -804,14 +839,14 @@ public class MathFunctions {
 
 		if (abs(z) > eps * 3.0) return new double[] {w, w1, 5};
 
-		if (x == 0.0)
+		if (x == 0.)
 		{
 			if (a == 0.0) return new double[] {w, w1, 6};
 			w  = (log_p ? Double.NEGATIVE_INFINITY : 0.);
 			w1 = (log_p ? 0. : 1.);
 			return new double[] {w, w1, 0};
 		}
-		if (y == 0.0)
+		if (y == 0.)
 		{
 			if (b == 0.0) return new double[] {w, w1, 7};
 			w  = (log_p ? 0. : 1.);
@@ -819,13 +854,13 @@ public class MathFunctions {
 			return new double[] {w, w1, 0};
 
 		}
-		if (a == 0.0)
+		if (a == 0.)
 		{
 			w  = (log_p ? 0. : 1.);
 			w1 = (log_p ? Double.NEGATIVE_INFINITY : 0.);
 			return new double[] {w, w1, 0};
 		}
-		if (b == 0.0)
+		if (b == 0.)
 		{
 			w  = (log_p ? Double.NEGATIVE_INFINITY : 0.);
 			w1 = (log_p ? 0. : 1.);
@@ -854,7 +889,7 @@ public class MathFunctions {
 		}
 		//ierr = 0;
 
-		if(min(a,b) <= 1.0) {
+		if(min(a,b) <= 1.) {
 			/*             PROCEDURE FOR a0 <= 1 OR b0 <= 1 */
 
 			do_swap = (x > 0.5);
@@ -879,7 +914,7 @@ public class MathFunctions {
 				return new double[] {w, w1, 0};
 			}
 
-			if (a0 < min(eps, eps * b0) && b0 * x0 <= 1.0) { /* L90: */
+			if (a0 < min(eps, eps * b0) && b0 * x0 <= 1.) { /* L90: */
 				w1 = apser(a0, b0, x0, eps);
 				w = 0.5 - w1 + 0.5;
 				// goto L_end_from_w1;
@@ -896,8 +931,8 @@ public class MathFunctions {
 			}
 
 			boolean did_bup = false;
-			if (max(a0,b0) > 1.0) { /* L20:  min(a,b) <= 1 < max(a,b)  */
-				if (b0 <= 1.0) {
+			if (max(a0,b0) > 1.) { /* L20:  min(a,b) <= 1 < max(a,b)  */
+				if (b0 <= 1.) {
 					kase = 100; // goto L_w_bpser;
 				}
 				else if (x0 >= 0.29) { /* was 0.3, PR#13786 */
@@ -905,7 +940,7 @@ public class MathFunctions {
 				}
 				else if (x0 < 0.1 && pow(x0*b0, a0) <= 0.7) {
 					kase = 100; //goto L_w_bpser;
-				} else if (b0 > 15.0) {
+				} else if (b0 > 15.) {
 					w1 = 0.;
 					// goto L131;
 					kase = 131;
@@ -928,14 +963,15 @@ public class MathFunctions {
 				//L131:
 				//bgrat(b0, a0, y0, x0, w1, 15*eps, &ierr1, FALSE);
 				//goto L_end_from_w1;
-				w1 = bgrat(b0, a0, y0, x0, w1, 15*eps /*, ierr1*/, false);
-				if (w1 == 0) { // "almost surely" from underflow, try more: [2013-03-04]
+				w1 = bgrat(b0, a0, y0, x0, w1, 15*eps, ierr1, false);
+				if (w1 == 0 || (0 < w1 && w1 < 1e-310)) { // w1=0 or very close:
+					// "almost surely" from underflow, try more: [2013-03-04]
 					// FIXME: it is even better to do this in bgrat *directly* at least for the case
 					//  !did_bup, i.e., where *w1 = (0 or -Inf) on entry
 					w1 = did_bup // re-do that part on log scale:
 						? bup(b0-n, a0, y0, x0, n, eps, true) 
 						: Double.NEGATIVE_INFINITY;
-					w1 = bgrat(b0, a0, y0, x0, w1, 15*eps /*, ierr1*/, true);
+					w1 = bgrat(b0, a0, y0, x0, w1, 15*eps, ierr1, true);
 					//goto L_end_from_w1_log;
 					if(log_p) {
 						w = ((w1) > -M_LN2 ? log(-expm1(w1)) : log1p(-exp(w1)));
@@ -946,7 +982,7 @@ public class MathFunctions {
 					if (do_swap) { /* swap */
 						double t = w; w = w1; w1 = t;
 					}
-					return new double[] {w, w1, 0};
+					return new double[] {w, w1, (ierr1[0] > 0) ? 10 + ierr1[0] : 0};
 				}
 				//if(w1 < 0) MATHLIB_WARNING4("bratio(a=%g, b=%g, x=%g): bgrat() -> w1 = %g", a,b,x, w1);
 				//goto L_end_from_w1;
@@ -959,7 +995,7 @@ public class MathFunctions {
 				if (do_swap) { /* swap */
 					double t = w; w = w1; w1 = t;
 				}
-				return new double[] {w, w1, 0};
+				return new double[] {w, w1, (ierr1[0] > 0) ? 10 + ierr1[0] : 0};
 			}
 		} else {
 			/*             PROCEDURE FOR a0 > 1 AND b0 > 1 */
@@ -968,7 +1004,7 @@ public class MathFunctions {
 			else
 				lambda = a - (a + b) * x;
 
-			do_swap = (lambda < 0.0);
+			do_swap = (lambda < 0.);
 			if (do_swap) {
 				lambda = -lambda;
 				//SET_0_swap;
@@ -980,17 +1016,17 @@ public class MathFunctions {
 				b0 = b;  y0 = y;
 			}
 
-			if (b0 < 40.0) {
+			if (b0 < 40.) {
 				if (b0 * x0 <= 0.7 || (log_p && lambda > 650.))
 					kase = 100; // goto L_w_bpser;
 				else
 					kase = 140; // goto L140;
 			}
 			else if (a0 > b0) { /* ----  a0 > b0 >= 40  ---- */
-				if (b0 <= 100.0 || lambda > b0 * 0.03) {
+				if (b0 <= 100. || lambda > b0 * 0.03) {
 					kase = 120; // goto L_bfrac;
 				}
-			} else if (a0 <= 100.0) {
+			} else if (a0 <= 100.) {
 				kase = 120; // goto L_bfrac;
 			} else if (lambda > a0 * 0.03) {
 				kase = 120; // goto L_bfrac;
@@ -999,7 +1035,7 @@ public class MathFunctions {
 			/* else if none of the above    L180: */
 			if (kase == 0)
 			{
-				w = basym(a0, b0, lambda, eps * 100.0, log_p);
+				w = basym(a0, b0, lambda, eps * 100., log_p);
 				w1 = log_p ? ((w) > -M_LN2 ? log(-expm1(w)) : log1p(-exp(w))) : 0.5 - w + 0.5;
 				// goto L_end_after_log;
 				if (do_swap) { /* swap */
@@ -1010,6 +1046,7 @@ public class MathFunctions {
 		}
 
 		// EVALUATION OF THE APPROPRIATE ALGORITHM
+		int ierr = 0;
 		switch(kase)
 		{
 			case 100:
@@ -1023,7 +1060,7 @@ public class MathFunctions {
 				// goto L_end_after_log;
 				break;
 			case 120:
-				w = bfrac(a0, b0, x0, y0, lambda, eps * 15.0, log_p);
+				w = bfrac(a0, b0, x0, y0, lambda, eps * 15., log_p);
 				w1 = log_p ? ((w) > -M_LN2 ? log(-expm1(w)) : log1p(-exp(w))) : 0.5 - w + 0.5;
 				// goto L_end_after_log;
 				break;
@@ -1057,12 +1094,12 @@ public class MathFunctions {
 					break;
 				}
 				/* L150: */
-				if (a0 <= 15.0) {
+				if (a0 <= 15.) {
 					n = 20;
 					w += bup(a0, b0, x0, y0, n, eps, false);
 					a0 += n;
 				}
-				w = bgrat(a0, b0, x0, y0, w, 15*eps, false);
+				w = bgrat(a0, b0, x0, y0, w, 15*eps, ierr1, false);
 				// goto L_end_from_w;
 				if(log_p) {
 					w1 = log1p(-w);
@@ -1070,6 +1107,7 @@ public class MathFunctions {
 				} else {
 					w1 = 0.5 - w + 0.5;
 				}
+				if (ierr1[0] > 0) ierr = 10 + ierr1[0];
 				break;
 			default:
 				throw new RuntimeException();
@@ -1077,7 +1115,7 @@ public class MathFunctions {
 		if (do_swap) { /* swap */
 			double t = w; w = w1; w1 = t;
 		}
-		return new double[] {w, w1, 0};
+		return new double[] {w, w1, ierr};
 	}
 
 	public static final double fpser(double a, double b, double x, double eps, boolean log_p)
@@ -1695,7 +1733,7 @@ public class MathFunctions {
 		}
 	} /* brcmp1 */
 
-	public static final double bgrat(double a, double b, double x, double y, double w, double eps, boolean log_w)
+	public static final double bgrat(double a, double b, double x, double y, double w, double eps, int[] ierr, boolean log_w)
 	{
 		/* -----------------------------------------------------------------------
 		 *     Asymptotic Expansion for I_x(A,B)  when a is larger than b.
@@ -1704,16 +1742,16 @@ public class MathFunctions {
 		 *     eps is the tolerance used.
 		 *     ierr is a variable that reports the status of the results.
 		 * ----------------------------------------------------------------------- */
-
-		double c[] = new double[30], d[] = new double[30];
+		final int n_terms_bgrat = 30;
+		double c[] = new double[n_terms_bgrat], d[] = new double[n_terms_bgrat];
 		double bm1 = b - 0.5 - 0.5,
 			nu = a + bm1 * 0.5, /* nu = a + (b-1)/2 =: T, in (9.1) of Didonato & Morris(1992), p.362 */
 			lnx = (y > 0.375) ? log(x) : alnrel(-y),
 			z = -nu * lnx; // z =: u in (9.1) of D.&M.(1992)
 
-		if (b * z == 0.0) { /* should *never* happen */
+		if (b * z == 0.) { /* should *never* happen */
 			/* L_Error:    THE EXPANSION CANNOT BE COMPUTED */
-			//*ierr = 1;
+			ierr[0] = 1;
 			return w;
 		}
 
@@ -1736,7 +1774,7 @@ public class MathFunctions {
 
 		if (log_u == Double.NEGATIVE_INFINITY) {
 			/* L_Error:    THE EXPANSION CANNOT BE COMPUTED */
-			//*ierr = 2;
+			ierr[0] = 2;
 			return w;
 		}
 
@@ -1753,7 +1791,7 @@ public class MathFunctions {
 			j = q_r,
 			sum = j,
 			t = 1.0, cn = 1.0, n2 = 0.;
-		for (int n = 1; n <= 30; ++n) {
+		for (int n = 1; n <= n_terms_bgrat; ++n) {
 			double bp2n = b + n2;
 			j = (bp2n * (bp2n + 1.0) * j + (z + bp2n + 1.0) * t) * v;
 			n2 += 2.;
@@ -1774,19 +1812,20 @@ public class MathFunctions {
 			sum += dj;
 			if (sum <= 0.0) {
 				/* L_Error:    THE EXPANSION CANNOT BE COMPUTED */
-				//*ierr = 3;
+				ierr[0] = 3;
 				return w;
 			}
 			if (abs(dj) <= eps * (sum + l)) {
 				break;
-			} else if(n == 30) {
+			} else if(n == n_terms_bgrat) { // never? ; please notify R-core if seen:
+				ierr[0] = 4;
 				//MATHLIB_WARNING4("bgrat(a=%g, b=%g, x=%g,..): did *not* converge; rel.err=%g",
 				//a,b,x, abs(dj) /(sum + l));
 			}
 		}
 
 		/*                    ADD THE RESULTS TO W */
-		//*ierr = 0;
+		ierr[0] = 0;
 		return log_w // *w is in log space already:
 			? logspace_add(w, log_u + log(sum))
 			: w + (u_0? exp(log_u + log(sum)) : u * sum);

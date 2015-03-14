@@ -3,6 +3,12 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
+Version 0.3.9 (Mar 13, 2014):
+* Sync with the development branch of R 3.2.x
+* Fix for the second half of PR#15554 regarding Bessel.J and Bessel.Y with huge alpha (>= 2^61)
+* Fix for bug #17 regarding the accuracy of Beta.quantile (PR#15755)
+* Added MathFunctions.logspace_sum (per 3.2.x API feature)
+
 Version 0.3.8 (Dec 15, 2014):
 * Fix for bug #20 regarding Kolmogorov-Smirnov (KS) test. Thanks, Gilad Wallach and Eran Avidan!
 

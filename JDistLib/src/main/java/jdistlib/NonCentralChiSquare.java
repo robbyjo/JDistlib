@@ -27,6 +27,7 @@ import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
 public class NonCentralChiSquare extends GenericDistribution {
+	static final double _dbl_min_exp = M_LN2 * DBL_MIN_EXP;
 	/*
 	 * The density of the noncentral chi-squared distribution with "df"
 	 * degrees of freedom and noncentrality parameter "ncp".
@@ -311,114 +312,267 @@ public class NonCentralChiSquare extends GenericDistribution {
 		return log1p(-ans);
 	}
 
-	public static final double quantile(double p, double df, double ncp, boolean lower_tail, boolean log_p) {
-		final double accu = 1e-13;
-		final double racc = 4*DBL_EPSILON;
-		/* these two are for the "search" loops, can have less accuracy: */
-		final double Eps = 1e-11; /* must be > accu */
-		final double rEps= 1e-10; /* relative tolerance ... */
+	public static final double quantile(double x, double df, double ncp, boolean lower_tail, boolean log_p) {
+		double ans;
 
-		double ux, lx, ux0, nx, pp;
-
-		if (Double.isNaN(p) || Double.isNaN(df) || Double.isNaN(ncp)) return p + df + ncp;
-		if (MathFunctions.isInfinite(df)) return Double.NaN;
+		if (Double.isNaN(x) || Double.isNaN(df) || Double.isNaN(ncp)) return x + df + ncp;
+		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp)) return Double.NaN;
 
 		/* Was
 		 * df = floor(df + 0.5);
 		 * if (df < 1 || ncp < 0) return Double.NaN;
 		 */
 		if (df < 0 || ncp < 0) return Double.NaN;
-
-		//R_Q_P01_boundaries(p, 0, ML_POSINF);
-		if (log_p) {
-			if(p > 0)
-				return Double.NaN;
-			if(p == 0) /* upper bound*/
-				return lower_tail ? Double.POSITIVE_INFINITY : 0;
-			if(p == Double.NEGATIVE_INFINITY)
-				return lower_tail ? 0 : Double.POSITIVE_INFINITY;
-		}
-		else { /* !log_p */
-			if(p < 0 || p > 1)
-				return Double.NaN;
-			if(p == 0)
-				return lower_tail ? 0 : Double.POSITIVE_INFINITY;
-			if(p == 1)
-				return lower_tail ? Double.POSITIVE_INFINITY : 0;
-		}
-
-		//pp = R_D_qIv(p);
-		pp = (log_p ? exp(p) : (p));
-		if(pp > 1 - DBL_EPSILON) return lower_tail ? Double.POSITIVE_INFINITY : 0.0;
-
-		/* Invert pnchisq(.) :
-		 * 1. finding an upper and lower bound */
-		{
-			/* This is Pearson's (1959) approximation,
-	          which is usually good to 4 figs or so.  */
-			double b, c, ff;
-			b = (ncp*ncp)/(df + 3*ncp);
-			c = (df + 3*ncp)/(df + 2*ncp);
-			ff = (df + 2 * ncp)/(c*c);
-			ux = b + c * ChiSquare.quantile(p, ff, lower_tail, log_p);
-			if(ux < 0) ux = 1;
-			ux0 = ux;
-		}
-
-		if(!lower_tail && ncp >= 80) {
-			/* pnchisq is only for lower.tail = true */
-			if(pp < 1e-10) {
-				//ML_ERROR(ME_PRECISION, "qnchisq");
-				System.err.println("Precision error NonCentralChiSquare.quantile");
+		ans = quantile_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, lower_tail, log_p);
+		if(ncp >= 80) {
+			if(lower_tail) {
+				ans = min(ans, log_p ? 0. : 1.);  /* e.g., pchisq(555, 1.01, ncp = 80) */
+			} else { /* !lower_tail */
+				/* since we computed the other tail cancellation is likely */
+				//if(ans < (log_p ? (-10. * M_LN10) : 1e-10)) ML_ERROR(ME_PRECISION, "pnchisq");
+				if(ans < (log_p ? (-10. * M_LN10) : 1e-10)) throw new RuntimeException("Precision error in NonCentralChiSquare.quantile");
+				if(!log_p) ans = max(ans, 0.0);  /* Precaution PR#7099 */
 			}
-			p = 1. - p;
-			lower_tail = true;
+		}
+		if (!log_p || ans < -1e-8)
+			return ans;
+		// else log_p  &&  ans > -1e-8
+		// prob. = exp(ans) is near one: we can do better using the other tail
+		//#ifdef DEBUG_pnch
+		//	REprintf("   pnchisq_raw(*, log_p): ans=%g => 2nd call, other tail\n", ans);
+		//#endif
+		// FIXME: (sum,sum2) will be the same (=> return them as well and reuse here ?)
+		ans = quantile_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, !lower_tail, false);
+		return log1p(-ans);
+	}
+
+	private static final double quantile_raw(double x, double f, double theta /* = ncp */,
+			double errmax, double reltol, int itrmax, boolean lower_tail, boolean log_p) {
+		double lam, x2, f2, term, bound, f_x_2n, f_2n;
+		double l_lam = -1., l_x = -1.; /* initialized for -Wall */
+		int n;
+		@SuppressWarnings("unused")
+		boolean lamSml, tSml, is_r, is_b, is_it;
+		// LDOUBLE ans, u, v, t, lt, lu =-1; // TODO long double
+		double ans, u, v, t, lt, lu =-1;
+
+		if (x <= 0.) {
+			if(x == 0. && f == 0.)
+				return lower_tail ? exp(-0.5*theta) : -expm1(-0.5*theta);
+				/* x < 0  or {x==0, f > 0} */
+				return lower_tail ? 0. : 1.;
+		}
+		if(Double.isInfinite(x)) return lower_tail ? 1. : 0.;
+
+		/* This is principally for use from qnchisq */
+		// #ifndef MATHLIB_STANDALONE
+		// R_CheckUserInterrupt();
+		// #endif
+
+		if(theta < 80) { /* use 110 for Inf, as ppois(110, 80/2, lower.tail=FALSE) is 2e-20 */
+			// LDOUBLE sum, sum2, lambda = 0.5 * theta, pr, ans; // TODO long double
+			double sum, sum2, lambda = 0.5 * theta, pr;
+			int i;
+			// Have  pgamma(x,s) < x^s / Gamma(s+1) (< and ~= for small x)
+			// ==> pchisq(x, f) = pgamma(x, f/2, 2) = pgamma(x/2, f/2)
+			//                  <  (x/2)^(f/2) / Gamma(f/2+1) < eps
+			// <==>  f/2 * log(x/2) - log(Gamma(f/2+1)) < log(eps) ( ~= -708.3964 )
+			// <==>        log(x/2) < 2/f*(log(Gamma(f/2+1)) + log(eps))
+			// <==> log(x) < log(2) + 2/f*(log(Gamma(f/2+1)) + log(eps))
+			if(lower_tail && f > 0. &&
+					log(x) < M_LN2 + 2/f*(lgammafn(f/2. + 1) + _dbl_min_exp)) {
+				// all  pchisq(x, f+2*i, lower_tail, FALSE), i=0,...,110 would underflow to 0.
+				// ==> work in log scale
+				sum = sum2 = Double.NEGATIVE_INFINITY;
+				pr = -lambda;
+				/* we need to renormalize here: the result could be very close to 1 */
+				//for(i = 0; i < 110;  pr += LOG(lambda) - LOG(++i)) { // TODO long double
+				for(i = 0; i < 110;  pr += log(lambda) - log(++i)) {
+					sum2 = logspace_add(sum2, pr);
+					sum = logspace_add(sum, pr + ChiSquare.cumulative(x, f+2*i, lower_tail, true));
+					if (sum2 >= -1e-15) /*<=> EXP(sum2) >= 1-1e-15 */ break;
+				}
+				ans = sum - sum2;
+				//#ifdef DEBUG_pnch
+				//REprintf("pnchisq(x=%g, f=%g, th.=%g); th. < 80, logspace: i=%d, ans=(sum=%g)-(sum2=%g)\n",
+				//		x,f,theta, i, (double)sum, (double)sum2);
+				//#endif
+				// return (double) (log_p ? ans : EXP(ans)); // TODO long double
+				return (double) (log_p ? ans : exp(ans));
+			}
+			else {
+				sum = sum2 = 0;
+				//pr = EXP(-lambda); // does this need a feature test? // TODO long double
+				pr = exp(-lambda); // does this need a feature test?
+				/* we need to renormalize here: the result could be very close to 1 */
+				for(i = 0; i < 110;  pr *= lambda/++i) {
+					// pr == exp(-lambda) lambda^i / i!  ==  dpois(i, lambda)
+					sum2 += pr;
+					// pchisq(*, i, *) is  strictly decreasing to 0 for lower_tail=TRUE
+					//                 and strictly increasing to 1 for lower_tail=FALSE
+					sum += pr * ChiSquare.cumulative(x, f+2*i, lower_tail, false);
+					if (sum2 >= 1-1e-15) break;
+				}
+				ans = sum/sum2;
+				//#ifdef DEBUG_pnch
+				//REprintf("pnchisq(x=%g, f=%g, theta=%g); theta < 80: i=%d, sum=%g, sum2=%g\n",
+				//		x,f,theta, i, (double)sum, (double)sum2);
+				//#endif
+				// return (double) (log_p ? LOG(ans) : ans); // TODO long double
+				return (double) (log_p ? log(ans) : ans);
+			}
+		} // if(theta < 80)
+
+		// else: theta == ncp >= 80 --------------------------------------------
+		//#ifdef DEBUG_pnch
+		//REprintf("pnchisq(x=%g, f=%g, theta=%g >= 80): ",x,f,theta);
+		//#endif
+		// Series expansion ------- FIXME: log_p=TRUE, lower_tail=FALSE only applied at end
+
+		lam = .5 * theta;
+		lamSml = (-lam < _dbl_min_exp);
+		if(lamSml) {
+			/* MATHLIB_ERROR(
+		   "non centrality parameter (= %g) too large for current algorithm",
+		   theta) */
+			u = 0;
+			lu = -lam;/* == ln(u) */
+			l_lam = log(lam);
 		} else {
-			p = pp;
+			u = exp(-lam);
 		}
 
-		if(lower_tail) {
-			if(p > 1 - DBL_EPSILON) return Double.POSITIVE_INFINITY;
-			for(; ux < DBL_MAX &&
-				cumulative_raw(ux, df, ncp, Eps, rEps, 10000, true, false) < pp;
-				ux *= 2);
-			pp = p * (1 - Eps);
-			for(lx = min(ux0, DBL_MAX);
-				lx > DBL_MIN &&
-				cumulative_raw(lx, df, ncp, Eps, rEps, 10000, true, false) > pp;
-				lx *= 0.5);
+		/* evaluate the first term */
+		v = u;
+		x2 = .5 * x;
+		f2 = .5 * f;
+		f_x_2n = f - x;
+
+		//#ifdef DEBUG_pnch
+		//REprintf("-- v=exp(-th/2)=%g, x/2= %g, f/2= %g\n",v,x2,f2);
+		//#endif
+
+		if(f2 * DBL_EPSILON > 0.125 && /* very large f and x ~= f: probably needs */
+				//FABS(t = x2 - f2) <         /* another algorithm anyway */ // TODO long double
+				abs(t = x2 - f2) <
+				sqrt(DBL_EPSILON) * f2) {
+			/* evade cancellation error */
+			/* t = exp((1 - t)*(2 - t/(f2 + 1))) / sqrt(2*M_PI*(f2 + 1));*/
+			lt = (1 - t)*(2 - t/(f2 + 1)) - M_LN_SQRT_2PI - 0.5 * log(f2 + 1);
+			//#ifdef DEBUG_pnch
+			//REprintf(" (case I) ==> ");
+			//#endif
 		}
 		else {
-			if(p > 1 - DBL_EPSILON) return 0.0;
-			for(; ux < DBL_MAX &&
-				cumulative_raw(ux, df, ncp, Eps, rEps, 10000, false, false) > pp;
-				ux *= 2);
-			pp = p * (1 - Eps);
-			for(lx = min(ux0, DBL_MAX);
-				lx > DBL_MIN &&
-				cumulative_raw(lx, df, ncp, Eps, rEps, 10000, false, false) < pp;
-					lx *= 0.5);
+			/* Usual case 2: careful not to overflow .. : */
+			lt = f2*log(x2) -x2 - lgammafn(f2 + 1);
+		}
+		//#ifdef DEBUG_pnch
+		//REprintf(" lt= %g", lt);
+		//#endif
+
+		tSml = (lt < _dbl_min_exp);
+		if(tSml) {
+			//#ifdef DEBUG_pnch
+			//REprintf(" is very small\n");
+			//#endif
+			if (x > f + theta +  5* sqrt( 2*(f + 2*theta))) {
+				/* x > E[X] + 5* sigma(X) */
+				//return R_DT_1; /* FIXME: could be more accurate than 0. */
+				return (log_p ? 0. : 1.);
+			} /* else */
+			l_x = log(x);
+			ans = term = 0.; t = 0;
+		}
+		else {
+			// t = EXP(lt); // TODO long double
+			t = exp(lt);
+			//#ifdef DEBUG_pnch
+			//REprintf(", t=exp(lt)= %g\n", t);
+			//#endif
+			ans = term = (double) (v * t);
 		}
 
-		/* 2. interval (lx,ux)  halving : */
-		if(lower_tail) {
-			do {
-				nx = 0.5 * (lx + ux);
-				if (cumulative_raw(nx, df, ncp, accu, racc, 100000, true, false) > p)
-					ux = nx;
-				else
-					lx = nx;
-			} while ((ux - lx) / nx > accu);
-		} else {
-			do {
-				nx = 0.5 * (lx + ux);
-				if (cumulative_raw(nx, df, ncp, accu, racc, 100000, false, false) < p)
-					ux = nx;
-				else
-					lx = nx;
-			} while ((ux - lx) / nx > accu);
+		for (n = 1, f_2n = f + 2., f_x_2n += 2.;  ; n++, f_2n += 2, f_x_2n += 2) {
+			//#ifdef DEBUG_pnch_n
+			//REprintf("\n _OL_: n=%d",n);
+			//#endif
+			//#ifndef MATHLIB_STANDALONE
+			//if(n % 1000) R_CheckUserInterrupt();
+			//#endif
+			/* f_2n    === f + 2*n
+			 * f_x_2n  === f - x + 2*n   > 0  <==> (f+2n)  >   x */
+			if (f_x_2n > 0) {
+				/* find the error bound and check for convergence */
+
+				bound = (double) (t * x / f_x_2n);
+				//#ifdef DEBUG_pnch_n
+				//REprintf("\n L10: n=%d; term= %g; bound= %g",n,term,bound);
+				//#endif
+				is_r = is_it = false;
+				/* convergence only if BOTH absolute and relative error < 'bnd' */
+				if (((is_b = (bound <= errmax)) &&
+						(is_r = (term <= reltol * ans))) || (is_it = (n > itrmax)))
+				{
+					//#ifdef DEBUG_pnch
+					//REprintf("BREAK n=%d %s; bound= %g %s, rel.err= %g %s\n",
+					//		n, (is_it ? "> itrmax" : ""),
+					//		bound, (is_b ? "<= errmax" : ""),
+					//		term/ans, (is_r ? "<= reltol" : ""));
+					//#endif
+					break; /* out completely */
+				}
+
+			}
+
+			/* evaluate the next term of the */
+			/* expansion and then the partial sum */
+
+			if(lamSml) {
+				lu += l_lam - log(n); /* u = u* lam / n */
+				if(lu >= _dbl_min_exp) {
+					/* no underflow anymore ==> change regime */
+					//#ifdef DEBUG_pnch_n
+					//REprintf(" n=%d; nomore underflow in u = exp(lu) ==> change\n", n);
+					//#endif
+					//v = u = EXP(lu); /* the first non-0 'u' */ // TODO long double
+					v = u = exp(lu); /* the first non-0 'u' */
+					lamSml = false;
+				}
+			} else {
+				u *= lam / n;
+				v += u;
+			}
+			if(tSml) {
+				lt += l_x - log(f_2n);/* t <- t * (x / f2n) */
+				if(lt >= _dbl_min_exp) {
+					/* no underflow anymore ==> change regime */
+					//#ifdef DEBUG_pnch
+					//REprintf("  n=%d; nomore underflow in t = exp(lt) ==> change\n", n);
+					//#endif
+					//t = EXP(lt); /* the first non-0 't' */ // TODO long double
+					t = exp(lt); /* the first non-0 't' */
+					tSml = false;
+				}
+			} else {
+				t *= x / f_2n;
+			}
+			if(!lamSml && !tSml) {
+				term = (double) (v * t);
+				ans += term;
+			}
+
+		} /* for(n ...) */
+
+		if (is_it) {
+			// MATHLIB_WARNING2(_("pnchisq(x=%g, ..): not converged in %d iter."), x, itrmax);
+			System.out.println(String.format("pnchisq(x=%g, ..): not converged in %d iter.", x, itrmax));
 		}
-		return 0.5 * (ux + lx);
+		//#ifdef DEBUG_pnch
+		//REprintf("\n == L_End: n=%d; term= %g; bound=%g\n",n,term,bound);
+		//#endif
+		//return (double) R_DT_val(ans);
+		return (double) (lower_tail ? (log_p ? log(ans) : (ans)) : (log_p ? log1p(-(ans)) : (0.5 - (ans) + 0.5)));
 	}
 
 	/**<pre>

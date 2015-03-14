@@ -189,8 +189,8 @@ public class Bessel {
 		if (na < 0) {
 			/* Using Abramowitz & Stegun  9.1.2
 			 * this may not be quite optimal (CPU and accuracy wise) */
-			return j(x, -alpha) * cospi(alpha) + (alpha == na ? 0 :
-				y(x, -alpha) * sinpi(alpha));
+			return (alpha - na == 0.5) ? 0 : j(x, -alpha) * cospi(alpha) + (alpha == na ? 0 :
+				y(x, -alpha) * sinpi(alpha)); // PR#15554 fix
 		}
 		int nb = 1 + na;
 		alpha -= (nb - 1);
@@ -238,8 +238,8 @@ public class Bessel {
 		if (na < 0) {
 			/* Using Abramowitz & Stegun  9.1.2
 			 * this may not be quite optimal (CPU and accuracy wise) */
-			return y(x, -alpha) * cospi(alpha) + (alpha == na ? 0 :
-				j(x, -alpha) * sinpi(alpha));
+			return (alpha - na == 0.5) ? 0 : y(x, -alpha) * cospi(alpha) + (alpha == na ? 0 :
+				j(x, -alpha) * sinpi(alpha)); // PR#15554 fix
 		}
 		int nb = 1 + na;
 		alpha -= (nb - 1);

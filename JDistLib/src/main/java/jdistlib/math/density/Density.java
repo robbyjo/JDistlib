@@ -46,7 +46,7 @@ public class Density {
 			if (weights != null && weights[i] < 0) throw new RuntimeException();
 			double wt =  weights == null ? 1: weights[i];
 			wsum += wt;
-			if (Double.isFinite(x[i])) {
+			if (!Double.isInfinite(x[i])) {
 				newx[nx] = x[i];
 				new_wt[nx] = wt;
 				totMass += wt;
@@ -143,7 +143,7 @@ public class Density {
 
 		for(int i = 0; i < ylen; i++) y[i] = 0;
 		for(int i = 0; i < xlen; i++) {
-			if(Double.isFinite(x[i])) {
+			if(!Double.isInfinite(x[i])) {
 				double xpos = (x[i] - xlo) / xdelta;
 				int ix = (int) floor(xpos);
 				double fx = xpos - ix;

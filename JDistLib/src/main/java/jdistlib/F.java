@@ -130,6 +130,7 @@ public class F extends GenericDistribution {
 			return df2 / ChiSquare.quantile(p, df2, !lower_tail, log_p);
 		}
 
+		// FIXME: (1/qb - 1) = (1 - qb)/qb; if we know qb ~= 1, should use other tail
 		p = (1. / Beta.quantile(p, df2/2, df1/2, !lower_tail, log_p) - 1.) * (df2 / df1);
 		//return !Double.isNaN(p) ? p : Double.NaN;
 		return p;

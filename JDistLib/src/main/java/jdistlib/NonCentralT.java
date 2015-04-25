@@ -28,13 +28,14 @@ import jdistlib.rng.RandomEngine;
 
 public class NonCentralT extends GenericDistribution {
 	/**<pre>
-	 *    The non-central t density is
+	 *    From Johnson, Kotz and Balakrishnan (1995) [2nd ed.; formula (31.15), p.516],
+	 *    the non-central t density is
 	 *
-	 *	   f(x, df, ncp) =
-	 *		df^(df/2) * exp(-.5*ncp^2) /
-	 *		(sqrt(pi)*gamma(df/2)*(df+x^2)^((df+1)/2)) *
-	 *		sum_{k=0}^Inf  gamma((df + k + df)/2)*ncp^k /
-	 *				prod(1:k)*(2*x^2/(df+x^2))^(k/2)
+	 *      f(x, df, ncp) =
+	 *
+	 *        exp(-.5*ncp^2) * gamma((df+1)/2) / (sqrt(pi*df)* gamma(df/2)) * (df/(df+x^2))^((df+1)/2) *
+	 *          sum_{j=0}^Inf  gamma((df+j+1)/2)/(factorial(j)* gamma((df+1)/2)) * (x*ncp*sqrt(2)/sqrt(df+x^2))^ j
+	 *
 	 *
 	 *    The functional relationship
 	 *
@@ -49,7 +50,9 @@ public class NonCentralT extends GenericDistribution {
 	 *    is used for x=0.
 	 *
 	 *    All calculations are done on log-scale to increase stability.
-	 * </pre>
+	 *
+	 * FIXME: pnt() is known to be inaccurate in the (very) left tail and for ncp > 38
+	 *       ==> use a direct log-space summation formula in that case	 * </pre>
 	 */
 	public static final double density(double x, double df, double ncp, boolean give_log) {
 		double u;

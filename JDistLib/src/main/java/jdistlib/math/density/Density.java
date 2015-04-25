@@ -16,6 +16,7 @@ package jdistlib.math.density;
 
 import java.util.Arrays;
 
+import jdistlib.math.MathFunctions;
 import jdistlib.math.VectorMath;
 import jdistlib.math.approx.ApproximationFunction;
 import jdistlib.math.approx.ApproximationType;
@@ -46,7 +47,7 @@ public class Density {
 			if (weights != null && weights[i] < 0) throw new RuntimeException();
 			double wt =  weights == null ? 1: weights[i];
 			wsum += wt;
-			if (!Double.isInfinite(x[i])) {
+			if (MathFunctions.isFinite(x[i])) {
 				newx[nx] = x[i];
 				new_wt[nx] = wt;
 				totMass += wt;
@@ -143,7 +144,7 @@ public class Density {
 
 		for(int i = 0; i < ylen; i++) y[i] = 0;
 		for(int i = 0; i < xlen; i++) {
-			if(!Double.isInfinite(x[i])) {
+			if(MathFunctions.isFinite(x[i])) {
 				double xpos = (x[i] - xlo) / xdelta;
 				int ix = (int) floor(xpos);
 				double fx = xpos - ix;

@@ -475,6 +475,11 @@ public class TestDPQR {
 				}
 			}
 		}
+		/* This part of the test is highly dependent on the random number generation and is therefore not applicable
+		 * sp <- sample(pab, 50)
+		 *	if(!interactive()) stopifnot(which(isI <- sp == -Inf) == c(3, 11, 15, 20, 22, 23, 30, 39, 42, 43, 46, 47, 49),
+		 *   all.equal(range(sp[!isI]), c(-2906.123981, 2.197270387)))
+		 */
 		return success;
 	}
 
@@ -508,6 +513,8 @@ public class TestDPQR {
 			success &= (val == (i >= 4 ? 1 : 0));
 		}
 		System.out.println();
+		// R 3.2.x seems to change this part into an imperative form (i.e., using stopifnot). But the test is still fundamentally the same.
+		// JDistlib got it right too.
 		System.out.print("d.sI");
 		for (int i = 0; i < xx.length; i++) {
 			val = Normal.density(xx[i], 3, Double.POSITIVE_INFINITY, false);
@@ -1244,6 +1251,9 @@ public class TestDPQR {
 			success = false;
 		}
 
+		//## PR#15521 :
+		success &= VectorMath.isEqualScaled(cauchy.quantile(1 - 1.0/4096), 1303.7970381453319163, 1e-14);
+
 		System.out.println("## PR#6757:");
 		if (!VectorMath.isEqualScaled(pow(1e-23, 12), Binomial.cumulative(11, 12, 1e-23, false, false), 1e-12)) {
 			System.err.println("Extreme tail error in Binomial.cumulative");
@@ -1263,6 +1273,7 @@ public class TestDPQR {
 			success &= printAllEqualScaled(vmin(x), pgamma.cumulative(x, false, true));
 		}
 		x = vpow(2, colon(-1022, -900));
+		// ## where all completely off in R 2.0.1
 		Gamma g = new Gamma(10, 1);
 		success &= printAllEqual(vmin(g.cumulative(x, true, true), vtimes(10, vlog(x))), rep(-15.104412573076, x.length), 1e-12);
 		g = new Gamma(0.1, 1);
@@ -1686,6 +1697,23 @@ public class TestDPQR {
 		}
 
 		{
+			final double maxerr = 9*DBL_EPSILON;
+			for (int expo: new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 50, 100, 150, 200, 250, 300}) {
+				for (int i = 1; i <= 7; i++) {
+					double
+						mu = i * pow(10, expo),
+						NB = NegBinomial.density_mu(5, 1e305, mu, true),
+						P = Poisson.density(5, mu, true),
+						abserr = abs(rErr(NB, P));
+					if (abserr >= maxerr) {
+						System.err.println(String.format("abs(NegBinomial.density_mu(5, 1e305, mu=%3.18, log=true) - Poisson.density(5, %3.18, log=true)) = %3.18 > %3.18 (%3.18 vs. %3.18)", mu, mu, abserr, maxerr, NB, P));
+						success = false;
+					}
+				}
+			}
+			//## wrong in 3.1.0 and earlier
+		}
+		{
 			System.out.println("## Non-central F for large x");
 			x = vtimes(1e16, vpow(1.1, colon(0., 20)));
 			NonCentralF f = new NonCentralF(1, 1, 20);
@@ -1812,6 +1840,8 @@ public class TestDPQR {
 				System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(200, 4, 0.001, true, true) = %3.18g != -3.851e-42", val));
 				success = false;
 			}
+			// ## jumped to zero too early up to R 2.10.1 (PR#14216)
+			System.out.println("## left \"extreme tail\"");
 			// The following test is a response to bug PR#15635
 			double[] lp = new double[201];
 			for (int i = 0; i <= 200; i++) {
@@ -1910,7 +1940,85 @@ public class TestDPQR {
 			}
 			// pbx had two -Inf; y was all Inf  for R <= 2.15.3;  PR#15162
 		}
-
+		{
+			System.out.println("## dnorm(x) for \"large\" |x|");
+			val = Normal.density(35+pow(3, -9), 0, 1, false);
+			if (abs(1 - val/ 3.933395747534971e-267) >= 1e-15) {
+				System.err.println(String.format("Precision loss at Normal.density(35+3^-9, 0, 1, false) %3.18 != 3.933395747534971e-267", val));
+				success = false;
+			}
+		}
+		{
+			System.out.println("## pbeta(x, <small a>,<small b>, .., log):");
+			final double loghalf = log(1.0/2), pow2_60 = pow(2, -60);
+			double[] ldp = new double[25];
+			for (int i = 0; i < ldp.length; i++)
+				ldp[i] = Beta.cumulative(0.5, pow(2, -91-i), pow2_60, true, true);
+			ldp = diff(vlog(diff(ldp)));
+			for (int i = 0; i < ldp.length; i++)
+				if (abs(ldp[i] - loghalf) >= 1e-9) {
+					System.err.println(String.format("Precision loss %3.18 vs %3.18", ldp[i], loghalf));
+					success = false;
+				}
+			// ## pbeta(*, log) lost all precision here, for R <= 3.0.x (PR#15641)
+		}
+		{
+			System.out.println("## \"stair function\" effect (from denormalized numbers)");
+			double[] dpx = new double[101];
+			for (int i = 0; i < 101; i++) {
+				dpx[i] = Beta.cumulative(.9833 + i*1e-6, 43779, 0.06728, true, true);
+				if (i == 0) {
+					if (!isEqual(dpx[0], -746.0986886924, 1e-12)) {
+						System.err.println(String.format("Precision loss pbeta(.9833, 43779, 0.06728, true, true) = %3.18 vs -746.0986886924", dpx[0]));
+						success = false;
+					}
+				}
+			}
+			dpx = diff(dpx);
+			for (int i = 0; i < dpx.length; i++) {
+				if (dpx[i] <= 0.0445741 || dpx[i] >= 0.0445783) {
+					System.err.println(String.format("Stair case detected %3.18 outside (0.0445741, 0.0445783) range", dpx[i]));
+					success = false;
+				}
+			}
+			dpx = diff(dpx);
+			for (int i = 0; i < dpx.length; i++) {
+				if (dpx[i] <= -4.2e-8 || dpx[i] >= -4.18e-8) {
+					System.err.println(String.format("Stair case detected %3.18 outside (-4.2e-8, -4.18e-8) range", dpx[i]));
+					success = false;
+				}
+			}
+			// ## were way off in R <= 3.1.0
+		}
+		{
+			long time1, cB, c1, c2;
+			time1 = System.currentTimeMillis();
+			double p0 = Beta.cumulative(.9999, 1e30, 1.001, true, true);
+			cB = (long) Math.max(.001, System.currentTimeMillis() - time1);
+			time1 = System.currentTimeMillis();
+			double p1 = Beta.cumulative(1 - 1e-9, 1e30, 1.001, true, true);
+			c1 = System.currentTimeMillis() - time1;
+			time1 = System.currentTimeMillis();
+			double p2 = Beta.cumulative(1 - 1e-12, 1e30, 1.001, true, true);
+			c2 = System.currentTimeMillis() - time1;
+			if (!VectorMath.isEqualScaled(p0, -1.000050003333e26, 1e-10)) {
+				System.err.println(String.format("Beta.cumulative(.9999, 1e30, 1.001, true, true) = %3.18 != -1.000050003333e26", p0));
+				success = false;
+			}
+			if (!VectorMath.isEqualScaled(p1, -1e-21, 1e-6)) {
+				System.err.println(String.format("Beta.cumulative(1 - 1e-9, 1e30, 1.001, true, true) = %3.18 != -1e21", p1));
+				success = false;
+			}
+			if (!VectorMath.isEqualScaled(p2, -9.9997788e17, 1e-14)) {
+				System.err.println(String.format("Beta.cumulative(1 - 1e-12, 1e30, 1.001, true, true) = %3.18 != -9.9997788e17", p2));
+				success = false;
+			}
+			if (c1 > 1000*cB || c2 > 1000*cB) {
+				System.err.println("Near infinite loop when computing Beta cumulative with x close to 1, huge alpha, and beta near to 1");
+				success = false;
+			}
+			// ## (almost?) infinite loop in R <= 3.1.0
+		}
 		// For bug PR#15734
 		{
 			System.out.println("## pbinom(), dbinom(), dhyper(),.. : R allows \"almost integer\" n");

@@ -1706,7 +1706,7 @@ public class TestDPQR {
 						P = Poisson.density(5, mu, true),
 						abserr = abs(rErr(NB, P));
 					if (abserr >= maxerr) {
-						System.err.println(String.format("abs(NegBinomial.density_mu(5, 1e305, mu=%3.18, log=true) - Poisson.density(5, %3.18, log=true)) = %3.18 > %3.18 (%3.18 vs. %3.18)", mu, mu, abserr, maxerr, NB, P));
+						System.err.println(String.format("abs(NegBinomial.density_mu(5, 1e305, mu=%g, log=true) - Poisson.density(5, %g, log=true)) = %3.18g > %3.18g (%3.18g vs. %3.18g)", mu, mu, abserr, maxerr, NB, P));
 						success = false;
 					}
 				}
@@ -1944,7 +1944,7 @@ public class TestDPQR {
 			System.out.println("## dnorm(x) for \"large\" |x|");
 			val = Normal.density(35+pow(3, -9), 0, 1, false);
 			if (abs(1 - val/ 3.933395747534971e-267) >= 1e-15) {
-				System.err.println(String.format("Precision loss at Normal.density(35+3^-9, 0, 1, false) %3.18 != 3.933395747534971e-267", val));
+				System.err.println(String.format("Precision loss at Normal.density(35+3^-9, 0, 1, false) %3.18g != 3.933395747534971e-267", val));
 				success = false;
 			}
 		}
@@ -1957,7 +1957,7 @@ public class TestDPQR {
 			ldp = diff(vlog(diff(ldp)));
 			for (int i = 0; i < ldp.length; i++)
 				if (abs(ldp[i] - loghalf) >= 1e-9) {
-					System.err.println(String.format("Precision loss %3.18 vs %3.18", ldp[i], loghalf));
+					System.err.println(String.format("Precision loss %3.18g vs %3.18g", ldp[i], loghalf));
 					success = false;
 				}
 			// ## pbeta(*, log) lost all precision here, for R <= 3.0.x (PR#15641)
@@ -1969,7 +1969,7 @@ public class TestDPQR {
 				dpx[i] = Beta.cumulative(.9833 + i*1e-6, 43779, 0.06728, true, true);
 				if (i == 0) {
 					if (!isEqual(dpx[0], -746.0986886924, 1e-12)) {
-						System.err.println(String.format("Precision loss pbeta(.9833, 43779, 0.06728, true, true) = %3.18 vs -746.0986886924", dpx[0]));
+						System.err.println(String.format("Precision loss pbeta(.9833, 43779, 0.06728, true, true) = %3.18g vs -746.0986886924", dpx[0]));
 						success = false;
 					}
 				}
@@ -1977,20 +1977,21 @@ public class TestDPQR {
 			dpx = diff(dpx);
 			for (int i = 0; i < dpx.length; i++) {
 				if (dpx[i] <= 0.0445741 || dpx[i] >= 0.0445783) {
-					System.err.println(String.format("Stair case detected %3.18 outside (0.0445741, 0.0445783) range", dpx[i]));
+					System.err.println(String.format("Stair case detected %3.18g outside (0.0445741, 0.0445783) range", dpx[i]));
 					success = false;
 				}
 			}
 			dpx = diff(dpx);
 			for (int i = 0; i < dpx.length; i++) {
 				if (dpx[i] <= -4.2e-8 || dpx[i] >= -4.18e-8) {
-					System.err.println(String.format("Stair case detected %3.18 outside (-4.2e-8, -4.18e-8) range", dpx[i]));
+					System.err.println(String.format("Stair case detected %3.18g outside (-4.2e-8, -4.18e-8) range", dpx[i]));
 					success = false;
 				}
 			}
 			// ## were way off in R <= 3.1.0
 		}
-		{
+		{	// TODO: JDistlib fails here
+			System.out.println("## Infinite loop check");
 			long time1, cB, c1, c2;
 			time1 = System.currentTimeMillis();
 			double p0 = Beta.cumulative(.9999, 1e30, 1.001, true, true);
@@ -2002,15 +2003,15 @@ public class TestDPQR {
 			double p2 = Beta.cumulative(1 - 1e-12, 1e30, 1.001, true, true);
 			c2 = System.currentTimeMillis() - time1;
 			if (!VectorMath.isEqualScaled(p0, -1.000050003333e26, 1e-10)) {
-				System.err.println(String.format("Beta.cumulative(.9999, 1e30, 1.001, true, true) = %3.18 != -1.000050003333e26", p0));
+				System.err.println(String.format("Beta.cumulative(.9999, 1e30, 1.001, true, true) = %3.18g != -1.000050003333e26", p0));
 				success = false;
 			}
 			if (!VectorMath.isEqualScaled(p1, -1e-21, 1e-6)) {
-				System.err.println(String.format("Beta.cumulative(1 - 1e-9, 1e30, 1.001, true, true) = %3.18 != -1e21", p1));
+				System.err.println(String.format("Beta.cumulative(1 - 1e-9, 1e30, 1.001, true, true) = %3.18g != -1e21", p1));
 				success = false;
 			}
 			if (!VectorMath.isEqualScaled(p2, -9.9997788e17, 1e-14)) {
-				System.err.println(String.format("Beta.cumulative(1 - 1e-12, 1e30, 1.001, true, true) = %3.18 != -9.9997788e17", p2));
+				System.err.println(String.format("Beta.cumulative(1 - 1e-12, 1e30, 1.001, true, true) = %3.18g != -9.9997788e17", p2));
 				success = false;
 			}
 			if (c1 > 1000*cB || c2 > 1000*cB) {
@@ -2050,6 +2051,94 @@ public class TestDPQR {
 			}
 			System.out.println("## check was too tight for large n in R <= 3.1.0 (PR#15734)");
 		}
+		{	// TODO: JDistlib fails here
+			System.out.println("## [dpqr]beta(*, a,b) where a and/or b are Inf");
+			if (Beta.cumulative(.1, Double.POSITIVE_INFINITY, 40, true, false) != 0) {
+				System.err.println("Beta.cumulative(.1, Inf, 40, true, false) != 0");
+				success = false;
+			}
+			if (Beta.cumulative(.5, 40, Double.POSITIVE_INFINITY, true, false) != 1) {
+				System.err.println("Beta.cumulative(.5, 40, Inf, true, false) != 1");
+				success = false;
+			}
+			if (Beta.cumulative(.4, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, true, false) != 0) {
+				System.err.println("Beta.cumulative(.5, Inf, Inf, true, false) != 0");
+				success = false;
+			}
+			if (Beta.cumulative(.5, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, true, false) != 1) {
+				System.err.println("Beta.cumulative(.5, Inf, Inf, true, false) != 1");
+				success = false;
+			}
+			// ## gave infinite loop (or NaN) in R <= 3.1.0
+			if (Beta.quantile(.9, Double.POSITIVE_INFINITY, 100, true, false) != 1) {
+				System.err.println("Beta.quantile(.9, Inf, 100, true, false) != 1");
+				success = false;
+			}
+			if (Beta.quantile(.1, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, true, false) != 0.5) {
+				System.err.println("Beta.quantile(.1, Inf, Inf, true, false) != 0.5");
+				success = false;
+			}
+			System.out.println("## range check (in \"close\" cases):");
+			for (double v: vpow(-2, c(-10, -100, -1000))) {
+				if (!Double.isNaN(Beta.quantile(v, 2, 3, true, true))) {
+					System.err.println(String.format("Beta.quantile(%3.18g, 2, 3, true, true) != NaN", v));
+					success = false;
+				}
+			}
+			for (double v: c(-.1, -1e-300, 1.25)) {
+				if (!Double.isNaN(Beta.quantile(v, 2, 3, true, false))) {
+					System.err.println(String.format("Beta.quantile(%3.18g, 2, 3, true, false) != NaN", v));
+					success = false;
+				}
+			}
+		}
+		{
+			System.out.println("## lognormal boundary case sdlog = 0:");
+			for (int i = 0; i <= 8; i++) {
+				double p = i / 8.0;
+				int mean = i % 0 == 0 ? 1 : 2;
+				double v1 = LogNormal.quantile(p, mean, 0, true, false),
+					v2 = LogNormal.quantile(p, mean, 1e-200, true, false);
+				if (!isEqual(v1, v2)) {
+					System.err.println(String.format("LogNormal.quantile(%3.4g, %d, 0, true, false) %3.18g != %3.18g LogNormal.quantile(%3.4g, %d, 0, true, false)", p, mean, v1, v2, p, mean));
+					success = false;
+				}
+			}
+			for (int i = -10; i <= 10; i++) {
+				val = LogNormal.density(pow(2, i), 0, 0, false);
+				if (i == 0) {
+					if (val != Double.POSITIVE_INFINITY) {
+						System.err.println(String.format("LogNormal.density(1, 0, 0, false) %3.18g != Inf", val));
+						success = false;
+					}
+				} else {
+					if (val != 0) {
+						System.err.println(String.format("LogNormal.density(%3.18, 0, 0, false) %3.18g != 0", pow(2, i), val));
+						success = false;
+					}
+				}
+			}
+		}
+		{
+			System.out.println("## qbeta(*, a,b) when  a,b << 1 : can easily fail");
+			System.out.println(Beta.quantile(pow(2, -28), 0.125, pow(2, -26), true, false));
+			double a = 1.0/8, oldp = 0;
+			for (int i = 4; i <= 200; i++) {
+				double
+					b = pow(2, -i),
+					alpha = b / 4,
+					qq = Beta.quantile(alpha, a, b, true, false),
+					pp = Beta.cumulative(qq, a, b, true, false);
+				if (pp <= 0 || (i > 4 && pp - oldp >= 0) || abs(1 - pp/alpha) >= 4e-15) {
+					System.err.println(String.format("b = %3.18, alpha = %3.18, Beta.quantile(alpha, 0.125, b, true, false) %3.18 != Beta.cumulative(%3.18, 0.125, b, true, false) %3.18",
+						b, alpha, qq, qq, pp));
+					System.err.println(String.format("diff(pp) = %3.18", pp - oldp));
+					success = false;
+				}
+				oldp = pp;
+			}
+		}
+		// TODO Add more test cases here
 		//*/
 		return success;
 	}
@@ -2471,22 +2560,22 @@ public class TestDPQR {
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
 		//System.out.println(NonCentralChiSquare.cumulative(1e-5, 100, 1, true, false));
-		test_binom();
-		test_geom();
-		test_hyper();
-		test_negbin();
-		test_poisson();
-		test_signrank();
-		test_wilcox();
-		test_gamma();
-		test_noncentralchisq();
-		test_beta();
-		test_normal();
-		test_random();
+//		test_binom();
+//		test_geom();
+//		test_hyper();
+//		test_negbin();
+//		test_poisson();
+//		test_signrank();
+//		test_wilcox();
+//		test_gamma();
+//		test_noncentralchisq();
+//		test_beta();
+//		test_normal();
+//		test_random();
 		test_extreme();
-		test_dkwtest();
-		test_disttest();
-		norm_test();
+//		test_dkwtest();
+//		test_disttest();
+//		norm_test();
 		System.exit(0);
 	}
 }

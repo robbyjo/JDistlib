@@ -62,6 +62,7 @@ public class NegBinomial extends GenericDistribution {
 		}
 
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (x == 0 && size==0) return (give_log ? 0. : 1.);
 		//x = R_D_forceint(x);
 		x = rint(x);
 		if(x == 0) { /* be accurate, both for n << mu, and n >> mu :*/
@@ -70,7 +71,8 @@ public class NegBinomial extends GenericDistribution {
 		}
 		if(x < 1e-10 * size) { /* don't use dbinom_raw() but MM's formula: */
 			/* FIXME --- 1e-8 shows problem; rather use algdiv() from ./toms708.c */
-			x = x * log(size*mu / (size+mu)) - mu - lgammafn(x+1) + log1p(x*(x-1)/(2*size));
+			p = (size < mu ? log(size/(1 + size/mu)) : log(mu / (1 + mu/size)));
+			x = x * p - mu - lgammafn(x+1) + log1p(x*(x-1)/(2*size));
 			return (give_log ? (x) : exp(x));
 		}
 		/* else: no unnecessary cancellation inside dbinom_raw, when

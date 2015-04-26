@@ -21,6 +21,7 @@ import jdistlib.disttest.DistributionTest;
 import jdistlib.disttest.NormalityTest;
 import jdistlib.disttest.TestKind;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.math.VectorMath;
 import jdistlib.rng.MersenneTwister;
 import jdistlib.rng.RandomEngine;
@@ -2113,7 +2114,7 @@ public class TestDPQR {
 					}
 				} else {
 					if (val != 0) {
-						System.err.println(String.format("LogNormal.density(%3.18, 0, 0, false) %3.18g != 0", pow(2, i), val));
+						System.err.println(String.format("LogNormal.density(%3.18g, 0, 0, false) %3.18g != 0", pow(2, i), val));
 						success = false;
 					}
 				}
@@ -2130,13 +2131,140 @@ public class TestDPQR {
 					qq = Beta.quantile(alpha, a, b, true, false),
 					pp = Beta.cumulative(qq, a, b, true, false);
 				if (pp <= 0 || (i > 4 && pp - oldp >= 0) || abs(1 - pp/alpha) >= 4e-15) {
-					System.err.println(String.format("b = %3.18, alpha = %3.18, Beta.quantile(alpha, 0.125, b, true, false) %3.18 != Beta.cumulative(%3.18, 0.125, b, true, false) %3.18",
+					System.err.println(String.format("b = %3.18g, alpha = %3.18g, Beta.quantile(alpha, 0.125, b, true, false) %3.18g != Beta.cumulative(%3.18g, 0.125, b, true, false) %3.18g",
 						b, alpha, qq, qq, pp));
-					System.err.println(String.format("diff(pp) = %3.18", pp - oldp));
+					System.err.println(String.format("diff(pp) = %3.18g", pp - oldp));
 					success = false;
 				}
 				oldp = pp;
 			}
+		}
+		{
+			System.out.println("## orig. qbeta() using *many* Newton steps; case where we \"know the truth\"");
+			x = vpow(2, c(-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-100,-200,-250,-300,-400,-500,-600,-700,-800,-900,-1000));
+			double[] pb = new double [] { //## via Rmpfr's roundMpfr(pbetaI(x, a,b, log.p=TRUE, precBits = 2048), 64) :
+			    -40.7588797271766572448, -57.7574063441183625303, -74.9287878018119846216,
+			    -92.1806244636893542185, -109.471318248524419364, -126.781111923947395655,
+			    -144.100375042814531426, -161.424352961544612370, -178.750683324909148353,
+			    -196.078188674895169383, -213.406281209657976525, -230.734667259724367416,
+			    -248.063200048177428608, -1721.00081201679567511, -3453.86876341665894863,
+			    -4320.30273911659058550, -5186.73671481652222237, -6919.60466621638549567,
+			    -8652.47261761624876897, -10385.3405690161120427, -12118.2085204159753165,
+			    -13851.0764718158385902, -15583.9444232157018631, -17316.8123746155651368
+			};
+			for (int i = 0; i < x.length; i++) {
+				double qp = Beta.quantile(pb[i], 25, 6, true, true);
+				if (qp <= 0 || !isEqual(qp, x[i], 1e-15)) {
+					System.err.println(String.format("Beta.quantile(%3.18g, 25, 6, true, true) = %3.18g <= 0 != %3.18g", pb[i], qp, x[i]));
+					success = false;
+				}
+			}
+		}
+		{
+			System.out.println("## qbeta(), PR#15755");
+			double qp = Beta.quantile(0.6948886, 0.0672788, 226390, true, false);
+			if (qp >= 2e-8 || !isEqual(0.6948886, val = Beta.cumulative(qp, 0.0672788, 226390, true, false))) {
+				System.err.println(String.format("Beta.quantile(0.6948886, 0.0672788, 226390, true, false) = %3.18g", qp));
+				System.err.println(String.format("Beta.cumulative(%3.18g, 0.0672788, 226390, true, false) = %3.18g != 0.6948886", qp, val));
+				success = false;
+				
+			}
+			System.out.println("## less extreme example, same phenomenon:");
+			double a = 43779, b = 0.06728;
+			qp = Beta.quantile(0.695, b, a, true, false);
+			val = Beta.cumulative(qp, b, a, true, false);
+			if (!isEqual(0.695, val)) {
+				System.err.println(String.format("Beta.quantile(0.695, 0.06728, 43779, true, false) = %3.18g", qp));
+				System.err.println(String.format("Beta.cumulative(%3.18g, 0.06728, 43779, true, false) = %3.18g != 0.695", qp, val));
+				success = false;
+			}
+			x = vmin(vexp(seq(0, 14, pow(2, -9))));
+			double[] qx = new double[x.length], pqx = new double[x.length];
+			long time1 = System.currentTimeMillis();
+			for (int i = 0; i < x.length; i++)
+				qx[i] = Beta.quantile(x[i], a, b, true, true);
+			long c1 = System.currentTimeMillis() - time1;
+			for (int i = 0; i < x.length; i++)
+				pqx[i] = Beta.cumulative(qx[i], a, b, true, true);
+			success &= printAllEqual(x, pqx, 2e-15);
+			System.out.println("## note that qx[x > -exp(2)] is too close to 1 to get full accuracy:");
+			System.out.println("## i2 <- x > -exp(2); all.equal(x[i2], pqx[i2], tol= 0)#-> 5.849e-12");
+			System.out.println("System time = " + c1/1000.0);
+
+			System.out.println("## was Inf, and much slower, for R <= 3.1.0");
+			double[] x3 = vdiv(colon(-15450.0, -15700), pow(2, 11));
+			double[] pq3 = new double[x3.length];
+			for (int i = 0; i < x3.length; i++)
+				pq3[i] = Beta.cumulative(Beta.quantile(x3[i], a, b, true, true), a, b, true, true);
+			double[] vv = vabs(vmin(pq3, x3));
+			double vmean = mean(vv), vmax = max(vv);
+			if (vmean >= 4e-12 || vmax >= 8e-12) {
+				System.err.println(String.format("Mean(pq3 - x3) = %3.18g, Max(pq3 - x3) = %3.18g", vmean, vmax));
+				success = false;
+			}
+		}
+		{
+			for (int i = 1; i <= 323; i++) {
+				double lp = -pow(10, -i),
+					qq = Beta.quantile(lp, .2, .03, true, true);
+				if (1 - qq >= 1e-15) {
+					System.err.println(String.format("1 - Beta.quantile(%3.18g, 0.2, 0.03, true, true) = %3.18g > 1e-15", lp, 1 - qq));
+					success = false;
+				}
+			}
+			System.out.println("# warnings in R <= 3.1.0");
+			if (!Double.isNaN(val = Beta.quantile(0.5, 2, 3, true, true))) {
+				System.err.println(String.format("Beta.quantile(0.5, 2, 3, true, true) = %3.18g != NaN", val));
+				success = false;
+			}
+			if (!Double.isNaN(val = Beta.quantile(-0.1, 2, 3, true, true))) {
+				System.err.println(String.format("Beta.quantile(-0.1, 2, 3, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+			if (!Double.isNaN(val = Beta.quantile(1.25, 2, 3, true, true))) {
+				System.err.println(String.format("Beta.quantile(1.25, 2, 3, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+			System.out.println("# typically qq == 1  exactly");
+			System.out.println("## failed in intermediate versions");
+			double a = pow(2, -8);
+			for (int i = 200; i <= 500; i++) {
+				double b = pow(2, i),
+					pq = Beta.cumulative(Beta.quantile(1.0/8, a, b, true, false), a, b, true, false);
+				if ((val = abs(pq - 1.0/8)) > 1.0/8) {
+					System.err.println(String.format("|Beta.cumulative(Beta.quantile(1.0/8, 2^-8, %3.18g, true, false), 2^-8, %3.18g, true, false) -1/8| = %3.18g > 1/8", b, b, val));
+					success = false;
+				}
+			}
+			System.out.println("## whereas  qbeta() would underflow to 0 \"too early\", for R <= 3.1.0");
+			System.out.println("#");
+			System.out.println("## very extreme tails on both sides");
+			for (double xx : c(1e-300, 1e-12, 1e-5, 0.1, 0.21, 0.3)) {
+				val = Beta.quantile(xx, pow(2, -12), pow(2, -10), true, false);
+				if (val != 0) {
+					System.err.println(String.format("Beta.quantile(%3.18g, 2^-12, 2^-19, true, false) = %3.18g != 0", xx, val));
+					success = false;
+				}
+			}
+			double[] ax = vpow(10, colon(-8, -323));
+			for (int i = 0; i < ax.length; i++) {
+				val = Beta.quantile(0.95, ax[i], 20, true, false);
+				if (MathFunctions.isInfinite(val) || val >= 1e-300) {
+					System.err.println(String.format("Beta.quantile(0.95, %3.18g, 20, true, false) = %3.18g >= 1e-300", ax[i], val));
+					success = false;
+				}
+			}
+
+			long time1 = System.currentTimeMillis();
+			for (int i = 0; i < ax.length; i++) {
+				val = Beta.quantile(0.95, ax[i], ax[i], true, false);
+				if (val != 1) {
+					System.err.println(String.format("Beta.quantile(0.95, %3.18g, %3.18g, true, false) = %3.18g != 1", ax[i], ax[i], val));
+					success = false;
+				}
+			}
+			long ct2 = System.currentTimeMillis() - time1;
+			System.out.println("System time = " + (ct2 / 1000.0));
 		}
 		// TODO Add more test cases here
 		//*/

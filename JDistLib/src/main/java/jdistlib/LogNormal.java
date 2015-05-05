@@ -29,7 +29,12 @@ public class LogNormal extends GenericDistribution{
 	public static final double density(double x, double meanlog, double sdlog, boolean give_log) {
 		double y;
 		if (Double.isNaN(x) || Double.isNaN(meanlog) || Double.isNaN(sdlog)) return x + meanlog + sdlog;
-		if(sdlog <= 0) return Double.NaN;
+		if(sdlog <= 0) {
+			if(sdlog < 0) return Double.NaN;
+			// sdlog == 0 :
+			return (log(x) == meanlog) ? Double.POSITIVE_INFINITY : (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		}
+
 		if(x <= 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		y = (log(x) - meanlog) / sdlog;
 		return (give_log ?

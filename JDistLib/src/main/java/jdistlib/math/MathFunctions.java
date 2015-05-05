@@ -1281,9 +1281,9 @@ public class MathFunctions {
 			}
 		}
 
-		if (!log_p && (ans == 0.0 || a <= eps * 0.1)) {
-			return ans;
-		}
+	    if (ans == (log_p ? Double.NEGATIVE_INFINITY : 0.) || (!log_p && a <= eps * 0.1)) {
+	    	return ans;
+        }
 
 		/* ----------------------------------------------------------------------- */
 		/*		       COMPUTE THE SERIES */
@@ -1298,7 +1298,15 @@ public class MathFunctions {
 			c *= (0.5 - b / n + 0.5) * x;
 			w = c / (a + n);
 			sum += w;
-		} while (abs(w) > tol);
+		} while (n < 1e7 && abs(w) > tol);
+		if(abs(w) > tol) { // the series did not converge (in time)
+			// warn only when the result seems to matter:
+			if(( log_p && !(a*sum > -1. && abs(log1p(a * sum)) < eps*abs(ans))) ||
+					(!log_p && abs(a*sum + 1) != 1.))
+				System.err.println(String.format(
+						" bpser(a=%g, b=%g, x=%g,...) did not converge (n=1e7, |w|/tol=%g > 1; A=%g)",
+						a,b,x, abs(w)/tol, ans));
+		}
 
 		if(log_p) {
 			if (a*sum > -1.0) ans += log1p(a * sum);

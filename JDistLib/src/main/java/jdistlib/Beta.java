@@ -23,6 +23,7 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 import jdistlib.util.Bool3;
 
@@ -112,6 +113,9 @@ public class Beta extends GenericDistribution {
 
 	public static final double quantile (double alpha, double p, double q, boolean lower_tail, boolean log_p)
 	{
+		if (Double.isNaN(p) || Double.isNaN(q) || Double.isNaN(alpha)) return p + q + alpha;
+		if (p < 0. || q < 0.) return Double.NaN;
+
 		final double USE_LOG_X_CUTOFF = -5.;
 		final int n_NEWTON_FREE = 4;
 
@@ -179,7 +183,7 @@ public class Beta extends GenericDistribution {
 			return Double.NaN;
 		}
 
-	    if (p == 0 || q == 0 || Double.isInfinite(p) || Double.isInfinite(q)) {
+	    if (p == 0 || q == 0 || MathFunctions.isInfinite(p) || MathFunctions.isInfinite(q)) {
 	    	if(p == 0 && q == 0) { // point mass 1/2 at each of {0,1} :
 	    	    if(alpha < (log_p ? -M_LN2 : 0.5)) return give_log_q ? Double.NEGATIVE_INFINITY : 0;
 	    	    if(alpha > (log_p ? -M_LN2 : 0.5)) return give_log_q ? 0 : 1;

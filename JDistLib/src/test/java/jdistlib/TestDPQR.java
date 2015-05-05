@@ -1969,7 +1969,7 @@ public class TestDPQR {
 			for (int i = 0; i < 101; i++) {
 				dpx[i] = Beta.cumulative(.9833 + i*1e-6, 43779, 0.06728, true, true);
 				if (i == 0) {
-					if (!isEqual(dpx[0], -746.0986886924, 1e-12)) {
+					if (!isEqualScaled(dpx[0], -746.0986886924, 1e-12)) {
 						System.err.println(String.format("Precision loss pbeta(.9833, 43779, 0.06728, true, true) = %3.18g vs -746.0986886924", dpx[0]));
 						success = false;
 					}
@@ -1991,7 +1991,7 @@ public class TestDPQR {
 			}
 			// ## were way off in R <= 3.1.0
 		}
-		{	// TODO: JDistlib fails here
+		{
 			System.out.println("## Infinite loop check");
 			long time1, cB, c1, c2;
 			time1 = System.currentTimeMillis();
@@ -2052,7 +2052,7 @@ public class TestDPQR {
 			}
 			System.out.println("## check was too tight for large n in R <= 3.1.0 (PR#15734)");
 		}
-		{	// TODO: JDistlib fails here
+		{
 			System.out.println("## [dpqr]beta(*, a,b) where a and/or b are Inf");
 			if (Beta.cumulative(.1, Double.POSITIVE_INFINITY, 40, true, false) != 0) {
 				System.err.println("Beta.cumulative(.1, Inf, 40, true, false) != 0");
@@ -2097,7 +2097,7 @@ public class TestDPQR {
 			System.out.println("## lognormal boundary case sdlog = 0:");
 			for (int i = 0; i <= 8; i++) {
 				double p = i / 8.0;
-				int mean = i % 0 == 0 ? 1 : 2;
+				int mean = i % 2 == 0 ? 1 : 2;
 				double v1 = LogNormal.quantile(p, mean, 0, true, false),
 					v2 = LogNormal.quantile(p, mean, 1e-200, true, false);
 				if (!isEqual(v1, v2)) {
@@ -2186,7 +2186,7 @@ public class TestDPQR {
 			long c1 = System.currentTimeMillis() - time1;
 			for (int i = 0; i < x.length; i++)
 				pqx[i] = Beta.cumulative(qx[i], a, b, true, true);
-			success &= printAllEqual(x, pqx, 2e-15);
+			success &= printAllEqualScaled(x, pqx, 2e-15);
 			System.out.println("## note that qx[x > -exp(2)] is too close to 1 to get full accuracy:");
 			System.out.println("## i2 <- x > -exp(2); all.equal(x[i2], pqx[i2], tol= 0)#-> 5.849e-12");
 			System.out.println("System time = " + c1/1000.0);
@@ -2217,11 +2217,11 @@ public class TestDPQR {
 				System.err.println(String.format("Beta.quantile(0.5, 2, 3, true, true) = %3.18g != NaN", val));
 				success = false;
 			}
-			if (!Double.isNaN(val = Beta.quantile(-0.1, 2, 3, true, true))) {
+			if (!Double.isNaN(val = Beta.quantile(-0.1, 2, 3, true, false))) {
 				System.err.println(String.format("Beta.quantile(-0.1, 2, 3, true, false) = %3.18g != NaN", val));
 				success = false;
 			}
-			if (!Double.isNaN(val = Beta.quantile(1.25, 2, 3, true, true))) {
+			if (!Double.isNaN(val = Beta.quantile(1.25, 2, 3, true, false))) {
 				System.err.println(String.format("Beta.quantile(1.25, 2, 3, true, false) = %3.18g != NaN", val));
 				success = false;
 			}

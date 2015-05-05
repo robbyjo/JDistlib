@@ -3,7 +3,7 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
-Version 0.3.9 (April 25, 2015):
+Version 0.3.9 (May 5, 2015):
 * Sync with the development branch of R 3.2.x (dated April 24, 2015)
 * Fix for the second half of PR#15554 regarding Bessel.J and Bessel.Y with huge alpha (>= 2^61)
 * Fix for bug #17 regarding the accuracy of Beta.quantile (PR#15755)

@@ -23,7 +23,6 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
-import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 import jdistlib.util.Bool3;
 
@@ -36,8 +35,24 @@ public class Beta extends GenericDistribution {
 	    /* NaNs propagated correctly */
 	    if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
 
-	    if (a <= 0 || b <= 0) return Double.NaN;;
+	    if (a < 0 || b < 0) return Double.NaN;
 	    if (x < 0 || x > 1) return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+
+	    // limit cases for (a,b), leading to point masses
+	    if(a == 0 || b == 0 || isInfinite(a) || !isInfinite(b)) {
+		if(a == 0 && b == 0) { // point mass 1/2 at each of {0,1} :
+		    if (x == 0 || x == 1) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+		}
+		if (a == 0 || a/b == 0) { // point mass 1 at 0
+		    if (x == 0) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+		}
+		if (b == 0 || b/a == 0) { // point mass 1 at 1
+		    if (x == 1) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+		}
+		// else, remaining case:  a = b = Inf : point mass 1 at 1/2
+		if (x == 0.5) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+	    }
+
 	    if (x == 0) {
 		if(a > 1) return(log_p ? Double.NEGATIVE_INFINITY : 0.);
 		if(a < 1) return(Double.POSITIVE_INFINITY);
@@ -56,11 +71,27 @@ public class Beta extends GenericDistribution {
 	    return (log_p ? (lval) : exp(lval));
 	}
 
-	public static final double cumulative_raw(double x, double pin, double qin, boolean lower_tail, boolean log_p)
+	public static final double cumulative_raw(double x, double a, double b, boolean lower_tail, boolean log_p)
 	{
+	    // treat limit cases correctly here:
+	    if(a == 0 || b == 0 || isInfinite(a) || isInfinite(b)) {
+		// NB:  0 < x < 1 :
+		if(a == 0 && b == 0) // point mass 1/2 at each of {0,1} :
+		    return (log_p ? -M_LN2 : 0.5);
+		if (a == 0 || a/b == 0) // point mass 1 at 0 ==> P(X <= x) = 1, all x > 0
+		    return (lower_tail ? (log_p ? 0. : 1.) : log_p ? Double.NEGATIVE_INFINITY : 0.);
+		if (b == 0 || b/a == 0) // point mass 1 at 1 ==> P(X <= x) = 0, all x < 1
+		    return (lower_tail ? log_p ? Double.NEGATIVE_INFINITY : 0. : (log_p ? 0. : 1.));
+		// else, remaining case:  a = b = Inf : point mass 1 at 1/2
+		if (x < 0.5)
+		    return (lower_tail ? log_p ? Double.NEGATIVE_INFINITY : 0. : (log_p ? 0. : 1.));
+		// else,  x >= 0.5 :
+		    return (lower_tail ? (log_p ? 0. : 1.) : log_p ? Double.NEGATIVE_INFINITY : 0.);
+	    }
+	    // Now:  0 < a < Inf;  0 < b < Inf
 	    double x1 = 0.5 - x + 0.5, w, wc;
 	    int ierr;
-	    double[] temp = MathFunctions.bratio(pin, qin, x, x1, log_p); /* -> ./toms708.c */
+	    double[] temp = bratio(a, b, x, x1, log_p); /* -> ./toms708.c */
 	    w = temp[0]; wc = temp[1]; ierr = (int) temp[2];
 	    // ierr in {10,14} <==> bgrat() error code ierr-10 in 1:4; for 1 and 4, warned *there*
 	    if(ierr > 0 && ierr != 11 && ierr != 14)
@@ -69,14 +100,14 @@ public class Beta extends GenericDistribution {
 	    return lower_tail ? w : wc;
 	} /* pbeta_raw() */
 
-	public static final double cumulative(double x, double pin, double qin, boolean lower_tail, boolean log_p)
+	public static final double cumulative(double x, double a, double b, boolean lower_tail, boolean log_p)
 	{
-	    if (Double.isNaN(x) || Double.isNaN(pin) || Double.isNaN(qin)) return x + pin + qin;
-	    if (pin <= 0 || qin <= 0) return Double.NaN;;
+	    if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
+	    if (a <= 0 || b <= 0) return Double.NaN;
 
 	    if (x <= 0)	return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 	    if (x >= 1)	return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
-	    return cumulative_raw(x, pin, qin, lower_tail, log_p);
+	    return cumulative_raw(x, a, b, lower_tail, log_p);
 	}
 
 	public static final double quantile (double alpha, double p, double q, boolean lower_tail, boolean log_p)

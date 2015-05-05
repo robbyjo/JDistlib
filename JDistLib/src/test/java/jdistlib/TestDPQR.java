@@ -1934,8 +1934,8 @@ public class TestDPQR {
 			}
 			b = vlog(b);
 			val = mean(vabs(vmin(b, y))) / mean(b);
-			printBool(abs(val) > 0.0002);
-			if (abs(val) > 0.0002) {
+			printBool(abs(val) <= 0.00002);
+			if (abs(val) > 0.00002) {
 				System.err.println("Precision loss at log(-Beta.cumulative(x, 0.5, 2200+, false, true))");
 				success = false;
 			}

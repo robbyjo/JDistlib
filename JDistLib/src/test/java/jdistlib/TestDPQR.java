@@ -1443,8 +1443,8 @@ public class TestDPQR {
 			System.out.println("## dbeta(*, ncp):");
 			double[] a = new LogNormal(0, 1).random(100);
 			for (double a_ : a) {
-				if (Beta.density(0, 1, a_, false) != a_) {
-					System.err.println(String.format("Error: Beta.density(0, 1, %3.18g, false) != %3.18g", a_, a_));
+				if ((val = NonCentralBeta.density(0, 1, a_, 0, false)) != a_) {
+					System.err.println(String.format("Error: Beta.density(0, 1, %3.18g, false) %3.18g != %3.18g", a_, val, a_));
 					success = false;
 				}
 				if (NonCentralBeta.density(0, 0.9, 2.2, a_, false) != inf) {

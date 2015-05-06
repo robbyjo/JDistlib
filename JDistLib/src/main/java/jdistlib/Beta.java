@@ -40,18 +40,18 @@ public class Beta extends GenericDistribution {
 	    if (x < 0 || x > 1) return(log_p ? Double.NEGATIVE_INFINITY : 0.);
 
 	    // limit cases for (a,b), leading to point masses
-	    if(a == 0 || b == 0 || isInfinite(a) || !isInfinite(b)) {
-		if(a == 0 && b == 0) { // point mass 1/2 at each of {0,1} :
-		    if (x == 0 || x == 1) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
-		}
-		if (a == 0 || a/b == 0) { // point mass 1 at 0
-		    if (x == 0) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
-		}
-		if (b == 0 || b/a == 0) { // point mass 1 at 1
-		    if (x == 1) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
-		}
-		// else, remaining case:  a = b = Inf : point mass 1 at 1/2
-		if (x == 0.5) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+	    if(a == 0 || b == 0 || isInfinite(a) || isInfinite(b)) {
+	    	if(a == 0 && b == 0) { // point mass 1/2 at each of {0,1} :
+	    		if (x == 0 || x == 1) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+	    	}
+	    	if (a == 0 || a/b == 0) { // point mass 1 at 0
+	    		if (x == 0) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+	    	}
+	    	if (b == 0 || b/a == 0) { // point mass 1 at 1
+	    		if (x == 1) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
+	    	}
+	    	// else, remaining case:  a = b = Inf : point mass 1 at 1/2
+	    	if (x == 0.5) return(Double.POSITIVE_INFINITY); /* else */ return(log_p ? Double.NEGATIVE_INFINITY : 0.);
 	    }
 
 	    if (x == 0) {

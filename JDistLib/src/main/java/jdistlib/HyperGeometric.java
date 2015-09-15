@@ -28,14 +28,13 @@ import jdistlib.rng.RandomEngine;
 
 public class HyperGeometric extends GenericDistribution {
 	public static class RandomState {
-		public int ks = -1;
-		public int n1s = -1, n2s = -1;
-
-		public int k, m;
-		public int minjx, maxjx, n1, n2;
-
-		public double a, d, s, w;
-		public double tn, xl, xr, kl, kr, lamdl, lamdr, p1, p2, p3;
+		public int ks = -1, n1s = -1, n2s = -1;
+		public int k, m, minjx, maxjx, n1, n2;
+		public double tn;
+		// II:
+		public double w;
+		// III:
+		public double a, d, s, xl, xr, kl, kr, lamdl, lamdr, p1, p2, p3;
 	}
 
 	public static final RandomState create_random_state()
@@ -266,10 +265,8 @@ public class HyperGeometric extends GenericDistribution {
 
 	public static final double random(double nn1in, double nn2in, double kkin, RandomEngine random, RandomState state)
 	{
-		final double con = 57.56462733;
 		final double deltal = 0.0078;
 		final double deltau = 0.0034;
-		final double scale = 1e25;
 
 		/* extern double afc(int); */
 
@@ -277,9 +274,7 @@ public class HyperGeometric extends GenericDistribution {
 		int i, ix;
 		boolean reject, setup1, setup2;
 
-		double e, f, g, p, r, t, u, v, y;
-		double de, dg, dr, ds, dt, gl, gu, nk, nm, ub;
-		double xk, xm, xn, y1, ym, yn, yk, alv;
+		double e, f, g, r, t, y;
 
 		/* These should become `thread_local globals' : */
 		if (state == null)
@@ -351,35 +346,35 @@ public class HyperGeometric extends GenericDistribution {
 			}
 			return ix;
 
-		} else if (state.m - state.minjx < 10) { /* II: inverse transformation ---------- */
+		} else if (state.m - state.minjx < 10) { // II: (Scaled) algorithm HIN (inverse transformation) ----
+			final double scale = 1e25; // scaling factor against (early) underflow
+			final double con = 57.5646273248511421; // 25*log(10) = log(scale) { <==> exp(con) == scale }
 			if (setup1 || setup2) {
-				if (state.k < state.n2) {
-					state.w = exp(con + afc(state.n2) + afc(state.n1 + state.n2 - state.k)
-							- afc(state.n2 - state.k) - afc(state.n1 + state.n2));
-				} else {
-					state.w = exp(con + afc(state.n1) + afc(state.k)
-							- afc(state.k - state.n2) - afc(state.n1 + state.n2));
-				}
+			    double lw; // log(w);  w = exp(lw) * scale = exp(lw + log(scale)) = exp(lw + con)
+			    if (state.k < state.n2) {
+			    	lw = afc(state.n2) + afc(state.n1 + state.n2 - state.k) - afc(state.n2 - state.k) - afc(state.n1 + state.n2);
+			    } else {
+			    	lw = afc(state.n1) + afc(     state.k     ) - afc(state.k - state.n2) - afc(state.n1 + state.n2);
+			    }
+			    state.w = exp(lw + con);
 			}
+			double p, u;
 			L10: while (true) {
 				p = state.w;
 				ix = state.minjx;
 				u = random.nextDouble() * scale;
-				L20: while (true) {
-					if (u > p) {
-						u -= p;
-						p *= (state.n1 - ix) * (state.k - ix);
-						ix++;
-						p = p / ix / (state.n2 - state.k + ix);
-						if (ix > state.maxjx)
-							continue L10;
-						continue L20;
-					}
-					break L10;
+				while (u > p) {
+					u -= p;
+					p *= (state.n1 - ix) * (state.k - ix);
+					ix++;
+					p = p / ix / (state.n2 - state.k + ix);
+					if (ix > state.maxjx)
+						continue L10;
 				}
+				break;
 			}
-		} else { /* III : h2pe --------------------------------------------- */
-
+		} else { /* III : H2PE Algorithm --------------------------------------- */
+			double u,v;
 			if (setup1 || setup2) {
 				state.s = sqrt((state.tn - state.k) * state.k * state.n1 * state.n2 / (state.tn - 1) / state.tn / state.tn);
 
@@ -441,6 +436,8 @@ public class HyperGeometric extends GenericDistribution {
 						reject = false;
 					}
 				} else {
+				    double de, dg, dr, ds, dt, gl, gu, nk, nm, ub;
+				    double xk, xm, xn, y1, ym, yn, yk, alv;
 					/* squeeze using upper and lower bounds */
 					y = ix;
 					y1 = y + 1.0;

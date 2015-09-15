@@ -3,6 +3,11 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
+Version 0.4.1 (September 15, 2015):
+* Sync with R version 3.2.2 (dated August 14, 2015)
+* Fix for bug PR#16475: qt(*, df=Inf, ncp=.) now uses the natural qnorm() limit instead of returning NaN.
+* Fix for bug PR#16489: rhyper(nn, <large>) now works correctly.
+
 Version 0.4.0 (May 6, 2015):
 * Fixed typos on Beta.density that caused failures on regression tests.
 

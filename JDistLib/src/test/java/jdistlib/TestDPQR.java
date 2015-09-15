@@ -1464,8 +1464,8 @@ public class TestDPQR {
 
 			System.out.println("## the first gave 0, the 2nd NaN in R <= 2.3.0; others use 'TRUE' values");
 			val = NonCentralBeta.density(0.8, 0.5, 5, 1000, false);
-			if (val != 3.001852308908624616864e-35) {
-				System.err.println(String.format("Precision loss: NonCentralBeta.density(0.8, 0.5, 5, 1000, false) %3.18g != 3.001852308908624616864e-35", val));
+			if (DebugFun.isEqual(val, 3.001852308908624616864e-35)) {
+				System.err.println(String.format("Precision loss: NonCentralBeta.density(0.8, 0.5, 5, 1000, false) %3.18g != 3.0018523089086246e-35", val));
 				success = false;
 			}
 			// Integration tests --- We cannot do this until the integration engine is up and running
@@ -2688,18 +2688,18 @@ public class TestDPQR {
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
 		//System.out.println(NonCentralChiSquare.cumulative(1e-5, 100, 1, true, false));
-//		test_binom();
-//		test_geom();
-//		test_hyper();
-//		test_negbin();
-//		test_poisson();
-//		test_signrank();
-//		test_wilcox();
-//		test_gamma();
-//		test_noncentralchisq();
-//		test_beta();
-//		test_normal();
-//		test_random();
+		test_binom();
+		test_geom();
+		test_hyper();
+		test_negbin();
+		test_poisson();
+		test_signrank();
+		test_wilcox();
+		test_gamma();
+		test_noncentralchisq();
+		test_beta();
+		test_normal();
+		test_random();
 		test_extreme();
 //		test_dkwtest();
 //		test_disttest();

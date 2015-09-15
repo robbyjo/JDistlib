@@ -32,9 +32,10 @@ public class NonCentralT extends GenericDistribution {
 	 *    the non-central t density is
 	 *
 	 *      f(x, df, ncp) =
-	 *
-	 *        exp(-.5*ncp^2) * gamma((df+1)/2) / (sqrt(pi*df)* gamma(df/2)) * (df/(df+x^2))^((df+1)/2) *
-	 *          sum_{j=0}^Inf  gamma((df+j+1)/2)/(factorial(j)* gamma((df+1)/2)) * (x*ncp*sqrt(2)/sqrt(df+x^2))^ j
+	 *            df^(df/2) * exp(-.5*ncp^2) /
+	 *            (sqrt(pi)*gamma(df/2)*(df+x^2)^((df+1)/2)) *
+	 *            sum_{k=0}^Inf  gamma((df + k + df)/2)*ncp^k /
+	 *                            prod(1:k)*(2*x^2/(df+x^2))^(k/2)
 	 *
 	 *
 	 *    The functional relationship
@@ -50,9 +51,7 @@ public class NonCentralT extends GenericDistribution {
 	 *    is used for x=0.
 	 *
 	 *    All calculations are done on log-scale to increase stability.
-	 *
-	 * FIXME: pnt() is known to be inaccurate in the (very) left tail and for ncp > 38
-	 *       ==> use a direct log-space summation formula in that case	 * </pre>
+	 * </pre>
 	 */
 	public static final double density(double x, double df, double ncp, boolean give_log) {
 		double u;
@@ -234,7 +233,8 @@ public class NonCentralT extends GenericDistribution {
 		double ux, lx, nx, pp;
 
 		if (Double.isNaN(p) || Double.isNaN(df) || Double.isNaN(ncp)) return p + df + ncp;
-		if (MathFunctions.isInfinite(df)) return Double.NaN;
+		if (MathFunctions.isInfinite(df))
+			return Normal.quantile(p, ncp, 1, lower_tail, log_p); // Fix for Bug#16475
 
 		/* Was
 		 * df = floor(df + 0.5);

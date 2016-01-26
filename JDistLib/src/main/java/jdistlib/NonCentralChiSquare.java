@@ -40,16 +40,15 @@ public class NonCentralChiSquare extends GenericDistribution {
 		/* long */ double sum, term; // TODO long double
 
 		if (Double.isNaN(x) || Double.isNaN(df) || Double.isNaN(ncp)) return x + df + ncp;
-		if (ncp < 0 || df <= 0) return Double.NaN;
 
-		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp))
+		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp) || ncp < 0 || df <= 0)
 			return Double.NaN;
 
 		if(x < 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if(x == 0 && df < 2.)
 			return Double.POSITIVE_INFINITY;
 		if(ncp == 0)
-			return ChiSquare.density(x, df, give_log);
+			return (df > 0) ? ChiSquare.density(x, df, give_log) : (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if(x == Double.POSITIVE_INFINITY) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 
 		ncp2 = 0.5 * ncp;
@@ -115,15 +114,19 @@ public class NonCentralChiSquare extends GenericDistribution {
 		/*= -708.3964 for IEEE double precision */
 
 		if (x <= 0.) {
-			if(x == 0. && f == 0.)
-				return lower_tail ? exp(-0.5*theta) : -expm1(-0.5*theta);
-				/* x < 0  or {x==0, f > 0} */
-				return lower_tail ? 0. : 1.;
+			if(x == 0. && f == 0.) {
+				double _L = -0.5*theta;
+				// return lower_tail ? R_D_exp(_L) : (log_p ? R_Log1_Exp(_L) : -expm1(_L));
+				return lower_tail ? (log_p	?  (_L)	 : exp(_L)) : (log_p ? ((_L) > -M_LN2 ? log(-expm1(_L)) : log1p(-exp(_L))) : -expm1(_L));
+			}
+			/* x < 0  or {x==0, f > 0} */
+			// return R_DT_0;
+			return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		}
-		if(MathFunctions.isInfinite(x)) return lower_tail ? 1. : 0.;
+		// if(!R_FINITE(x))	return R_DT_1;
+		if(MathFunctions.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 
 		if(theta < 80) { /* use 110 for Inf, as ppois(110, 80/2, lower.tail=false) is 2e-20 */
-			/* long */ double sum = 0, sum2 = 0, lambda = 0.5*theta, pr = exp(-lambda); // TODO long double
 			//double ans;
 			int i;
 			// Have  pgamma(x,s) < x^s / Gamma(s+1) (< and ~= for small x)
@@ -136,10 +139,10 @@ public class NonCentralChiSquare extends GenericDistribution {
 				log(x) < M_LN2 + 2/f*(lgammafn(f/2. + 1) + _dbl_min_exp)) {
 				// all  pchisq(x, f+2*i, lower_tail, false), i=0,...,110 would underflow to 0.
 				// ==> work in log scale
+				double sum, sum2, lambda = 0.5*theta, pr = -lambda; 
 				sum = sum2 = Double.NEGATIVE_INFINITY;
-				pr = -lambda;
 				/* we need to renormalize here: the result could be very close to 1 */
-				for(i = 0; i < 110;  pr += log(lambda) - log(++i)) { // TODO long double log
+				for(i = 0; i < 110;  pr += log(lambda) - log(++i)) {
 					sum2 = logspace_add(sum2, pr);
 					sum = logspace_add(sum, pr + ChiSquare.cumulative(x, f+2*i, lower_tail, true));
 					if (sum2 >= -1e-15) /*<=> EXP(sum2) >= 1-1e-15 */ break;
@@ -149,9 +152,10 @@ public class NonCentralChiSquare extends GenericDistribution {
 				//	    REprintf("pnchisq(x=%g, f=%g, th.=%g); th. < 80, logspace: i=%d, ans=(sum=%g)-(sum2=%g)\n",
 				//		     x,f,theta, i, (double)sum, (double)sum2);
 				//#endif
-				return (double) (log_p ? ans : exp(ans)); // TODO long double exp
+				return (double) (log_p ? ans : exp(ans));
 			}
 			else {
+				double lambda = 0.5*theta, sum, sum2, pr; // TODO long double
 			    sum = sum2 = 0;
 			    pr = exp(-lambda); // does this need a feature test? // TODO long double exp
 			    /* we need to renormalize here: the result could be very close to 1 */
@@ -455,10 +459,8 @@ public class NonCentralChiSquare extends GenericDistribution {
 		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(lambda) || df < 0. || lambda < 0.)
 			return Double.NaN;
 
-		if(lambda == 0.) {
-			if (df == 0.) return Double.NaN;
-			return Gamma.random(df / 2., 2., random);
-		}
+		if(lambda == 0.)
+			return (df == 0.) ? 0 : Gamma.random(df / 2., 2., random);
 		double r = Poisson.random( lambda / 2., random);
 		if (r > 0.)  r = ChiSquare.random(2. * r, random);
 		if (df > 0.) r += Gamma.random(df / 2., 2., random);

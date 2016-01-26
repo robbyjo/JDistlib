@@ -5,6 +5,9 @@ Future version (?):
 
 Version 0.4.2 (?):
 * Fix for bug #26: Allow warnings to be cast as an exception.
+* Sync with R-devel (Jan 24, 2016-r69993)
+* Fix for bug PR#16521: rchisq(*, df=0, ncp=0) now returns 0 instead of NaN, and dchisq(*, df=0, ncp=*) also no longer returns NaN in limit cases (where the limit is unique)
+* Fix for pchisq(*, df=0, ncp > 0, log.p=TRUE) no longer underflows (for ncp > ~60). 
 
 Version 0.4.1 (September 15, 2015):
 * Sync with R version 3.2.2 (dated August 14, 2015)

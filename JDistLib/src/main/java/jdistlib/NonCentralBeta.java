@@ -25,6 +25,7 @@ import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
+import jdistlib.util.Debug;
 
 public class NonCentralBeta extends GenericDistribution {
 	public static final double density(double x, double a, double b, double ncp, boolean give_log) {
@@ -149,10 +150,12 @@ public class NonCentralBeta extends GenericDistribution {
 		if (errbd > errmax) {
 			// ML_ERROR(ME_PRECISION, "pnbeta");
 			System.err.println("Precision error NonCentralBeta.cumulative");
+			if (Debug.warningAsError) throw new RuntimeException("Precision error NonCentralBeta.cumulative");
 		}
 		if (j >= itrmax + x0) {
 			//ML_ERROR(ME_NOCONV, "pnbeta");
 			System.err.println("Non-convergence error NonCentralBeta.cumulative");
+			if (Debug.warningAsError) throw new RuntimeException("Non-convergence error NonCentralBeta.cumulative");
 		}
 
 		return ans;
@@ -168,6 +171,7 @@ public class NonCentralBeta extends GenericDistribution {
 		if(ans > 1 - 1e-10) {
 			// ML_ERROR(ME_PRECISION, "pnbeta");
 			System.err.println("Precision error NonCentralBeta.cumulative");
+			if (Debug.warningAsError) throw new RuntimeException("Precision error NonCentralBeta.cumulative");
 		}
 		ans = min(ans, 1.0);  /* Precaution */
 		return log_p ? log1p(-ans) : (1 - ans);

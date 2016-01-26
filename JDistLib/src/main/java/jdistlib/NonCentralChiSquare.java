@@ -25,6 +25,7 @@ import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
+import jdistlib.util.Debug;
 
 public class NonCentralChiSquare extends GenericDistribution {
 	static final double _dbl_min_exp = M_LN2 * DBL_MIN_EXP;
@@ -267,6 +268,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		if (is_it) {
 			// MATHLIB_WARNING2(_("pnchisq(x=%g, ..): not converged in %d iter."), x, itrmax);
 			System.err.println("NonCentralChiSquare.density non-convergence error");
+			if (Debug.warningAsError) throw new RuntimeException("NonCentralChiSquare.density non-convergence error");
 		}
 		//return R_DT_val(ans);
 		return (lower_tail ? (log_p	? log(ans) : (ans))  : (log_p ? log1p(-(ans)) : (0.5 - (ans) + 0.5)));
@@ -300,6 +302,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 				if(ans < (log_p ? (-10. * M_LN10) : 1e-10)) {
 					//ML_ERROR(ME_PRECISION, "pnchisq");
 					System.err.println("Precision error NonCentralChiSquare.cumulative");
+					if (Debug.warningAsError) throw new RuntimeException("Precision error NonCentralChiSquare.cumulative");
 				}
 				if (!log_p) ans = max(ans, 0.0);  /* Precaution PR#7099 */
 			}
@@ -366,7 +369,10 @@ public class NonCentralChiSquare extends GenericDistribution {
 
 		if(!lower_tail && ncp >= 80) {
 			/* in this case, pnchisq() works via lower_tail = TRUE */
-			if(pp < 1e-10) System.err.println("Precision loss detected in NonCentralChiSquare.quantile");
+			if(pp < 1e-10) {
+				System.err.println("Precision loss detected in NonCentralChiSquare.quantile");
+				if (Debug.warningAsError) throw new RuntimeException("Precision loss detected in NonCentralChiSquare.quantile");
+			}
 			p = /* R_DT_qIv(p)*/ log_p ? -expm1(p) : (0.5 - (p) + 0.5);
 			lower_tail = true;
 		} else {

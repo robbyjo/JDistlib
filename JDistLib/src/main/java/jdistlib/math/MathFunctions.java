@@ -22,6 +22,8 @@ package jdistlib.math;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 
+import jdistlib.util.Debug;
+
 public class MathFunctions {
 	/**
 	 * Log of multivariate gamma function
@@ -250,6 +252,7 @@ public class MathFunctions {
 			 * the argument is too near a negative integer. */
 			//ML_ERROR(ME_PRECISION, "lgamma");
 			System.err.println("lgamma precision error!");
+			if (Debug.warningAsError) throw new RuntimeException("lgamma precision error!");
 		}
 		return ans;
 	}
@@ -1302,10 +1305,13 @@ public class MathFunctions {
 		if(abs(w) > tol) { // the series did not converge (in time)
 			// warn only when the result seems to matter:
 			if(( log_p && !(a*sum > -1. && abs(log1p(a * sum)) < eps*abs(ans))) ||
-					(!log_p && abs(a*sum + 1) != 1.))
-				System.err.println(String.format(
+					(!log_p && abs(a*sum + 1) != 1.)) {
+				String errstr = String.format(
 						" bpser(a=%g, b=%g, x=%g,...) did not converge (n=1e7, |w|/tol=%g > 1; A=%g)",
-						a,b,x, abs(w)/tol, ans));
+						a,b,x, abs(w)/tol, ans);
+				System.err.println(errstr);
+				if (Debug.warningAsError) throw new RuntimeException(errstr);
+			}
 		}
 
 		if(log_p) {
@@ -2960,9 +2966,12 @@ public class MathFunctions {
 		k = rint(k);
 		/* NaNs propagated correctly */
 		if(Double.isNaN(n) || Double.isNaN(k)) return n + k;
-		if (abs(k - k0) > 1e-7)
+		if (abs(k - k0) > 1e-7) {
 			//MATHLIB_WARNING2(_("'k' (%.2f) must be integer, rounded to %.0f"), k0, k);
-			System.err.println(String.format("'k' (%.2f) must be integer, rounded to %.0f", k0, k));
+			String errstr = String.format("'k' (%.2f) must be integer, rounded to %.0f", k0, k);
+			System.err.println(errstr);
+			if (Debug.warningAsError) throw new RuntimeException(errstr);
+		}
 		if (k < 2) {
 			if (k <	 0) return Double.NEGATIVE_INFINITY;
 			if (k == 0) return 0.;
@@ -2995,9 +3004,12 @@ public class MathFunctions {
 		k = rint(k);
 		/* NaNs propagated correctly */
 		if(Double.isNaN(n) || Double.isNaN(k)) return n + k;
-		if (abs(k - k0) > 1e-7)
+		if (abs(k - k0) > 1e-7) {
 			//MATHLIB_WARNING2(_("'k' (%.2f) must be integer, rounded to %.0f"), k0, k);
-			System.err.println(String.format("'k' (%.2f) must be integer, rounded to %.0f", k0, k));
+			String errstr = String.format("'k' (%.2f) must be integer, rounded to %.0f", k0, k);
+			System.err.println(errstr);
+			if (Debug.warningAsError) throw new RuntimeException(errstr);
+		}
 		if (k < k_small_max) {
 			int j;
 			if(n-k < k && n >= 0 && !isNonInt(n)) k = n-k; /* <- Symmetry */
@@ -3473,6 +3485,7 @@ public class MathFunctions {
 	    if (x < xmin) {
 		/* answer less than half precision because x too near -1 */
 	    	System.err.println("Precision loss warning at log1p");
+			if (Debug.warningAsError) throw new RuntimeException("Precision loss warning at log1p");
 	    	//ML_ERROR(ME_PRECISION, "log1p");
 	    }
 	    return log(1 + x);

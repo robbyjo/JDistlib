@@ -25,6 +25,7 @@ import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
+import jdistlib.util.Debug;
 
 /**
  *   <P> Computes the probability and quantile that the maximum of rr studentized
@@ -401,6 +402,7 @@ public class Tukey extends GenericDistribution {
 		if(otsum > eps2) { /* not converged */
 			//ML_ERROR(ME_PRECISION, "ptukey");
 			System.err.println("Precision error at Tukey.cumulative");
+			if (Debug.warningAsError) throw new RuntimeException("Precision error at Tukey.cumulative");
 		}
 		if (ans > 1.)
 			ans = 1.;
@@ -563,6 +565,7 @@ public class Tukey extends GenericDistribution {
 		/* The process did not converge in 'maxiter' iterations */
 		//ML_ERROR(ME_NOCONV, "qtukey");
 		System.err.println("Non-convergence error in Tukey.quantile");
+		if (Debug.warningAsError) throw new RuntimeException("Non-convergence error in Tukey.quantile");
 		return ans;
 	}
 

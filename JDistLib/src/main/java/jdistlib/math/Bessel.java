@@ -29,6 +29,8 @@ import static jdistlib.math.MathFunctions.trunc;
 
 import java.util.Arrays;
 
+import jdistlib.util.Debug;
+
 /**
  * Collection of Bessel functions.
  * <ul>
@@ -197,10 +199,13 @@ public class Bessel {
 		double[] by = new double[nb];
 		int ncalc = j_internal(x, alpha, by);
 		if (ncalc != nb) {
-			if (ncalc < 0)
+			if (ncalc < 0) {
 				System.err.println(String.format("bessel_j(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
-			else
+				if (Debug.warningAsError) throw new RuntimeException(String.format("bessel_j(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
+			} else {
 				System.err.println(String.format("bessel_j(%g,nu=%g): precision lost in result", x, alpha+(double) nb-1));
+				if (Debug.warningAsError) throw new RuntimeException(String.format("bessel_j(%g,nu=%g): precision lost in result", x, alpha+(double) nb-1));
+			}
 		}
 		return by[nb-1];
 	}
@@ -248,10 +253,13 @@ public class Bessel {
 		if (ncalc != nb) {
 			if (ncalc == -1)
 				return Double.POSITIVE_INFINITY;
-			if (ncalc < -1)
+			if (ncalc < -1) {
 				System.err.println(String.format("bessel_y(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
-			else
+				if (Debug.warningAsError) throw new RuntimeException(String.format("bessel_y(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
+			} else {
 				System.err.println(String.format("bessel_y(%g,nu=%g): precision lost in result", x, alpha+(double) nb-1));
+				if (Debug.warningAsError) throw new RuntimeException(String.format("bessel_y(%g,nu=%g): precision lost in result", x, alpha+(double) nb-1));
+			}
 		}
 		return by[nb - 1];
 	}
@@ -300,10 +308,13 @@ public class Bessel {
 		double[] bi = new double[nb];
 		int ncalc = i_internal(x, alpha, expo, bi);
 		if (ncalc != nb) {
-			if (ncalc < 0)
+			if (ncalc < 0) {
 				System.err.println(String.format("bessel_i(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
-			else
+				if (Debug.warningAsError) throw new RuntimeException(String.format("bessel_i(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
+			} else {
 				System.err.println(String.format("bessel_i(%g,nu=%g): precision lost in result", x, alpha+(double) nb-1));
+				if (Debug.warningAsError) throw new RuntimeException(String.format("bessel_i(%g,nu=%g): precision lost in result", x, alpha+(double) nb-1));
+			}
 		}
 		return bi[nb - 1];
 	}
@@ -344,10 +355,13 @@ public class Bessel {
 		double[] bk = new double[nb];
 		int ncalc = k_internal(x, alpha, expo, bk);
 		if (ncalc != nb) {
-			if (ncalc < 0)
+			if (ncalc < 0) {
 				System.err.println(String.format("bessel_k(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
-			else
+				if (Debug.warningAsError) throw new RuntimeException(String.format("bessel_k(%g): ncalc (=%ld) != nb (=%ld); alpha=%g. Arg. out of range?", x, ncalc, nb, alpha));
+			} else {
 				System.err.println(String.format("bessel_k(%g,nu=%g): precision lost in result", x, alpha+(double) nb-1));
+				if (Debug.warningAsError) throw new RuntimeException(String.format("bessel_k(%g,nu=%g): precision lost in result", x, alpha+(double) nb-1));
+			}
 		}
 		return bk[nb - 1];
 	}

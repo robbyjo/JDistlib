@@ -17,6 +17,8 @@ package jdistlib;
 
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
+import jdistlib.util.Debug;
+
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 
@@ -89,8 +91,10 @@ public class Arcsine extends GenericDistribution {
 				}
 			}
 		} while (hi - lo > 1);
-		if (pathological)
+		if (pathological) {
 			System.err.println("Pathological case of Arcsine.quantile! Quantile estimate may not be accurate!");
+			if (Debug.warningAsError) throw new RuntimeException("Pathological case of Arcsine.quantile! Quantile estimate may not be accurate!");
+		}
 		if (lower_tail)
 			return f_hi <= q ? hi : f_mid <= q ? mid : lo;
 		return f_lo >= q ? lo : f_mid >= q ? mid : hi;

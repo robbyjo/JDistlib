@@ -23,6 +23,8 @@ package jdistlib.math;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 
+import jdistlib.util.Debug;
+
 /**
  * Function optimization routines. Currently only Brent's minimization routine.
  * Maybe I'll add Nelder-Meade or other fancier methods.
@@ -119,6 +121,7 @@ public class Optimization {
 			}
 			if (iterNo >= maxiter) {
 				System.err.println("Warning: Convergence failure in optimize function!");
+				if (Debug.warningAsError) throw new RuntimeException("Warning: Convergence failure in optimize function!");
 				break;
 			}
 		}
@@ -230,6 +233,7 @@ public class Optimization {
 
 		}
 		System.err.println("Warning: Convergence failure in zeroin function!");
+		if (Debug.warningAsError) throw new RuntimeException("Warning: Convergence failure in zeroin function!");
 		return b;
 	}
 

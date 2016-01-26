@@ -26,6 +26,7 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 import jdistlib.util.Bool3;
+import jdistlib.util.Debug;
 
 public class Beta extends GenericDistribution {
 
@@ -505,6 +506,7 @@ public class Beta extends GenericDistribution {
 					{ // ML_ERR_return_NAN :
 						//ML_ERROR(ME_DOMAIN, "");
 						System.err.println("MEDOMAIN on Beta.quantile");
+						if (Debug.warningAsError) throw new RuntimeException("MEDOMAIN on Beta.quantile");
 						//qb[0] = qb[1] = ML_NAN; return;
 						return Double.NaN;
 					}
@@ -573,11 +575,13 @@ public class Beta extends GenericDistribution {
 				if(!(log_ && y == Double.NEGATIVE_INFINITY &&
 						// e.g. qbeta(-1e-10, .2, .03, log=TRUE) cannot get accurate ==> do NOT warn
 						Beta.cumulative_raw(DBL_1__eps, // = 1 - eps
-								pp, qq, true, true) > la + 2))
+								pp, qq, true, true) > la + 2)) {
 					//MATHLIB_WARNING2( // low accuracy for more platform independent output:
-					System.err.println(String.format(
+					String errstr = String.format(
 							"qbeta(a, *) =: x0 with |pbeta(x0,*%s) - alpha| = %.5g is not accurate",
-							(log_ ? ", log_" : ""), abs(y - (log_ ? la : a))));
+							(log_ ? ", log_" : ""), abs(y - (log_ ? la : a)));
+				if (Debug.warningAsError) throw new RuntimeException(errstr);
+				}
 			}
 		}
 

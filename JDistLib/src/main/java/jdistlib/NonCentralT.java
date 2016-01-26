@@ -25,6 +25,7 @@ import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
+import jdistlib.util.Debug;
 
 public class NonCentralT extends GenericDistribution {
 	/**<pre>
@@ -161,6 +162,7 @@ public class NonCentralT extends GenericDistribution {
 				//ML_ERROR(ME_UNDERFLOW, "pnt");
 				//ML_ERROR(ME_RANGE, "pnt"); /* |ncp| too large */
 				System.err.println("Underflow error in NonCentralT.cumulative");
+				if (Debug.warningAsError) throw new RuntimeException("Underflow error in NonCentralT.cumulative");
 				return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 			}
 			q = M_SQRT_2dPI * p * del;
@@ -197,6 +199,7 @@ public class NonCentralT extends GenericDistribution {
 				if(s < -1.e-10) { /* happens e.g. for (t,df,ncp)=(40,10,38.5), after 799 it.*/
 					//ML_ERROR(ME_PRECISION, "pnt");
 					System.err.println("Precision error in NonCentralT.cumulative");
+					if (Debug.warningAsError) throw new RuntimeException("Underflow error in NonCentralT.cumulative");
 					//goto finis;
 					break;
 				}
@@ -206,8 +209,10 @@ public class NonCentralT extends GenericDistribution {
 			}
 			/* non-convergence:*/
 			//ML_ERROR(ME_NOCONV, "pnt");
-			if (!conv)
-			System.err.println("Non-convergence error in NonCentralT.cumulative");
+			if (!conv) {
+				System.err.println("Non-convergence error in NonCentralT.cumulative");
+				if (Debug.warningAsError) throw new RuntimeException("Underflow error in NonCentralT.cumulative");
+			}
 		} else { /* x = t = 0 */
 			tnc = 0.;
 		}
@@ -218,7 +223,7 @@ public class NonCentralT extends GenericDistribution {
 		if(tnc > 1 - 1e-10 && lower_tail) {
 			//ML_ERROR(ME_PRECISION, "pnt{final}");
 			System.err.println("Precision error in final section of NonCentralT.cumulative");
-
+			if (Debug.warningAsError) throw new RuntimeException("Precision error in final section of NonCentralT.cumulative");
 		}
 
 		//return R_DT_val(min(tnc, 1.) /* Precaution */);

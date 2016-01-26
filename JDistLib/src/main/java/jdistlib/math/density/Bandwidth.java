@@ -16,6 +16,7 @@ package jdistlib.math.density;
 
 import jdistlib.math.Optimization;
 import jdistlib.math.UnivariateFunction;
+import jdistlib.util.Debug;
 
 import static java.lang.Math.*;
 import static jdistlib.math.VectorMath.*;
@@ -148,8 +149,10 @@ public class Bandwidth {
 		fun.setParameters(n, dd);
 		fun.setObjects(cnt);
 		double h = Optimization.optimize(fun, lower, upper, tol, 1000);
-		if(h < lower+tol | h > upper-tol)
+		if(h < lower+tol | h > upper-tol) {
 			System.err.println("Warning: minimum occurred at one end of the range");
+			if (Debug.warningAsError) throw new RuntimeException("Warning: minimum occurred at one end of the range");
+		}
 		return h;
 	}
 

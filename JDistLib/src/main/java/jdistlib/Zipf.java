@@ -24,6 +24,7 @@ import static jdistlib.math.MathFunctions.lgharmonic;
 import static jdistlib.math.MathFunctions.logspace_add;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
+import jdistlib.util.Debug;
 
 /**
  * Zipf distribution
@@ -98,8 +99,10 @@ public class Zipf extends GenericDistribution {
 				}
 			}
 		} while (hi - lo > 1);
-		if (pathological)
+		if (pathological) {
 			System.err.println("Pathological case of Zipf.quantile! Quantile estimate may not be accurate!");
+			if (Debug.warningAsError) throw new RuntimeException("Pathological case of Zipf.quantile! Quantile estimate may not be accurate!");
+		}
 		if (lower_tail)
 			return f_hi <= p ? hi : f_mid <= p ? mid : lo;
 		return f_lo >= p ? lo : f_mid >= p ? mid : hi;

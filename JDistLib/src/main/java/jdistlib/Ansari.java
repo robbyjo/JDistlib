@@ -25,6 +25,7 @@ import static java.util.Arrays.*;
 import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
+import jdistlib.util.Debug;
 
 /**
  * Ansari-Bradley test statistic
@@ -159,6 +160,7 @@ public class Ansari extends GenericDistribution {
 			if(xi < 0 || xi > 1) {
 				//error(_("probabilities outside [0,1] in qansari()"));
 				System.err.println("probabilities outside [0,1] in Ansari.quantile");
+				if (Debug.warningAsError) throw new RuntimeException("probabilities outside [0,1] in Ansari.quantile");
 				result[i] = Integer.MIN_VALUE;
 			}
 			if(xi == 0)
@@ -195,6 +197,7 @@ public class Ansari extends GenericDistribution {
 		if(xi < 0 || xi > 1) {
 			//error(_("probabilities outside [0,1] in qansari()"));
 			System.err.println("probabilities outside [0,1] in Ansari.quantile");
+			if (Debug.warningAsError) throw new RuntimeException("probabilities outside [0,1] in Ansari.quantile");
 			return Integer.MIN_VALUE;
 		}
 		if(xi == 0)

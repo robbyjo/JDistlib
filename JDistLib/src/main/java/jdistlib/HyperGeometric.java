@@ -25,6 +25,7 @@ import static jdistlib.math.MathFunctions.*;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
+import jdistlib.util.Debug;
 
 public class HyperGeometric extends GenericDistribution {
 	public static class RandomState {
@@ -52,6 +53,7 @@ public class HyperGeometric extends GenericDistribution {
 		if (x < 0.) return(give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (isNonInt(x)) {
 			System.err.println("WARNING: Non-integer x in HyperGeometric.density");
+			if (Debug.warningAsError) throw new RuntimeException("WARNING: Non-integer x in HyperGeometric.density");
 			return(give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
 

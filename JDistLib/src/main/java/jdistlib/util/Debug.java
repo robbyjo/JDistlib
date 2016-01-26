@@ -17,18 +17,11 @@
  */
 package jdistlib.util;
 
-/**
- * Three-state boolean: TRUE, FALSE, NA
- * @author Roby Joehanes
- *
- */
-public enum Bool3 {
-	TRUE, FALSE, NA;
-	public boolean v() {
-		if (this == NA)
-			throw new RuntimeException();
-		if (this == TRUE)
-			return true;
-		return false;
-	}
+public class Debug {
+	/**
+	 * Set to true if JDistlib should throw an exception if there is convergence / precision problem.
+	 * 
+	 * See ticket #26.
+	 */
+	public static final boolean warningAsError = false;
 }

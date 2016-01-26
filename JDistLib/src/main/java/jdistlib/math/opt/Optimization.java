@@ -18,11 +18,12 @@
 /**
  * 
  */
-package jdistlib.math;
+package jdistlib.math.opt;
 
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 
+import jdistlib.math.UnivariateFunction;
 import jdistlib.util.Debug;
 
 /**

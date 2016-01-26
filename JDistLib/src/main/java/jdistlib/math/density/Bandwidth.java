@@ -14,8 +14,8 @@
  */
 package jdistlib.math.density;
 
-import jdistlib.math.Optimization;
 import jdistlib.math.UnivariateFunction;
+import jdistlib.math.opt.Optimization;
 import jdistlib.util.Debug;
 
 import static java.lang.Math.*;

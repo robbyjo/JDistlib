@@ -20,8 +20,8 @@
 package jdistlib;
 
 import jdistlib.generic.GenericDistribution;
-import jdistlib.math.Optimization;
 import jdistlib.math.UnivariateFunction;
+import jdistlib.math.opt.Optimization;
 import jdistlib.rng.RandomEngine;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.DBL_MIN;

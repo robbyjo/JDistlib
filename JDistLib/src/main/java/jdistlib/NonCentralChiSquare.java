@@ -22,6 +22,8 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
+
+import jdistlib.exception.PrecisionException;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
@@ -271,8 +273,8 @@ public class NonCentralChiSquare extends GenericDistribution {
 
 		if (is_it) {
 			// MATHLIB_WARNING2(_("pnchisq(x=%g, ..): not converged in %d iter."), x, itrmax);
-			System.err.println("NonCentralChiSquare.density non-convergence error");
-			if (Debug.warningAsError) throw new RuntimeException("NonCentralChiSquare.density non-convergence error");
+			System.err.println("NonCentralChiSquare.cumulative_raw non-convergence error");
+			if (Debug.warningAsError) throw new PrecisionException("NonCentralChiSquare.cumulative_raw non-convergence error", (lower_tail ? (log_p	? log(ans) : (ans))  : (log_p ? log1p(-(ans)) : (0.5 - (ans) + 0.5))));
 		}
 		//return R_DT_val(ans);
 		return (lower_tail ? (log_p	? log(ans) : (ans))  : (log_p ? log1p(-(ans)) : (0.5 - (ans) + 0.5)));
@@ -292,6 +294,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 	 */
 	public static final double cumulative(double x, double df, double ncp, boolean lower_tail, boolean log_p) {
 		double ans;
+		boolean exception = false;
 		if (Double.isNaN(x) || Double.isNaN(df) || Double.isNaN(ncp)) return x + df + ncp;
 		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp)) return Double.NaN;
 
@@ -306,7 +309,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 				if(ans < (log_p ? (-10. * M_LN10) : 1e-10)) {
 					//ML_ERROR(ME_PRECISION, "pnchisq");
 					System.err.println("Precision error NonCentralChiSquare.cumulative");
-					if (Debug.warningAsError) throw new RuntimeException("Precision error NonCentralChiSquare.cumulative");
+					if (Debug.warningAsError) exception = true;
 				}
 				if (!log_p) ans = max(ans, 0.0);  /* Precaution PR#7099 */
 			}
@@ -316,7 +319,9 @@ public class NonCentralChiSquare extends GenericDistribution {
 		// prob. = exp(ans) is near one: we can do better using the other tail
 		// FIXME: (sum,sum2) will be the same (=> return them as well and reuse here ?)
 		ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, !lower_tail, false);
-		return log1p(-ans);
+		ans = log1p(-ans);
+		if (exception) throw new PrecisionException("Precision error NonCentralChiSquare.cumulative", ans);
+		return ans;
 	}
 
 	public static final double quantile(double p, double df, double ncp, boolean lower_tail, boolean log_p) {

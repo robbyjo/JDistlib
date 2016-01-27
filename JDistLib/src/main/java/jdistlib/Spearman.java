@@ -20,6 +20,8 @@
 package jdistlib;
 
 import static java.lang.Math.*;
+
+import jdistlib.exception.PrecisionException;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
 import jdistlib.util.Debug;
@@ -1287,7 +1289,10 @@ public class Spearman extends GenericDistribution {
 		} while (hi - lo > 1);
 		if (pathological) {
 			System.err.println("Pathological case of Spearman.quantile! Quantile estimate may not be accurate!");
-			if (Debug.warningAsError) throw new RuntimeException("Pathological case of Spearman.quantile! Quantile estimate may not be accurate!");
+			if (Debug.warningAsError) {
+				double ans = (lower_tail) ? (f_hi <= q ? hi : f_mid <= q ? mid : lo) : (f_lo >= q ? lo : f_mid >= q ? mid : hi);
+				throw new PrecisionException("Pathological case of Spearman.quantile! Quantile estimate may not be accurate!", ans);
+			}
 		}
 		if (lower_tail)
 			return f_hi <= q ? hi : f_mid <= q ? mid : lo;

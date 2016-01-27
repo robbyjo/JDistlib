@@ -22,6 +22,8 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
+
+import jdistlib.exception.PrecisionException;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
@@ -402,7 +404,11 @@ public class Tukey extends GenericDistribution {
 		if(otsum > eps2) { /* not converged */
 			//ML_ERROR(ME_PRECISION, "ptukey");
 			System.err.println("Precision error at Tukey.cumulative");
-			if (Debug.warningAsError) throw new RuntimeException("Precision error at Tukey.cumulative");
+			if (Debug.warningAsError) {
+				if (ans > 1) ans = 1;
+				ans = (lower_tail ? (log_p ? log(ans) : (ans))  : (log_p	? log1p(-(ans)) : (0.5 - (ans) + 0.5)));
+				throw new PrecisionException("Precision error at Tukey.cumulative", ans);
+			}
 		}
 		if (ans > 1.)
 			ans = 1.;
@@ -565,7 +571,7 @@ public class Tukey extends GenericDistribution {
 		/* The process did not converge in 'maxiter' iterations */
 		//ML_ERROR(ME_NOCONV, "qtukey");
 		System.err.println("Non-convergence error in Tukey.quantile");
-		if (Debug.warningAsError) throw new RuntimeException("Non-convergence error in Tukey.quantile");
+		if (Debug.warningAsError) throw new PrecisionException("Non-convergence error in Tukey.quantile", ans);
 		return ans;
 	}
 

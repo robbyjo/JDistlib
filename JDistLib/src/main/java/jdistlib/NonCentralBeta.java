@@ -22,6 +22,8 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
+
+import jdistlib.exception.PrecisionException;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
@@ -150,12 +152,12 @@ public class NonCentralBeta extends GenericDistribution {
 		if (errbd > errmax) {
 			// ML_ERROR(ME_PRECISION, "pnbeta");
 			System.err.println("Precision error NonCentralBeta.cumulative");
-			if (Debug.warningAsError) throw new RuntimeException("Precision error NonCentralBeta.cumulative");
+			if (Debug.warningAsError) throw new PrecisionException("Precision error NonCentralBeta.cumulative", ans);
 		}
 		if (j >= itrmax + x0) {
 			//ML_ERROR(ME_NOCONV, "pnbeta");
 			System.err.println("Non-convergence error NonCentralBeta.cumulative");
-			if (Debug.warningAsError) throw new RuntimeException("Non-convergence error NonCentralBeta.cumulative");
+			if (Debug.warningAsError) throw new PrecisionException("Non-convergence error NonCentralBeta.cumulative", ans);
 		}
 
 		return ans;
@@ -171,7 +173,7 @@ public class NonCentralBeta extends GenericDistribution {
 		if(ans > 1 - 1e-10) {
 			// ML_ERROR(ME_PRECISION, "pnbeta");
 			System.err.println("Precision error NonCentralBeta.cumulative");
-			if (Debug.warningAsError) throw new RuntimeException("Precision error NonCentralBeta.cumulative");
+			if (Debug.warningAsError) throw new PrecisionException("Precision error NonCentralBeta.cumulative", log_p ? log1p(-min(ans, 1.0)): (1 - ans));
 		}
 		ans = min(ans, 1.0);  /* Precaution */
 		return log_p ? log1p(-ans) : (1 - ans);

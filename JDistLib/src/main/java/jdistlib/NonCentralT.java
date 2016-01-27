@@ -22,6 +22,8 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
+
+import jdistlib.exception.PrecisionException;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
@@ -113,6 +115,7 @@ public class NonCentralT extends GenericDistribution {
 		double albeta, a, b, del, errbd, lambda, rxb, tt, x;
 		/* long */ double geven, godd, p, q, s, tnc, xeven, xodd; // TODO long double
 		int it; boolean negdel;
+		boolean exception = false;
 
 		/* note - itrmax and errmax may be changed to suit one's needs. */
 
@@ -162,7 +165,7 @@ public class NonCentralT extends GenericDistribution {
 				//ML_ERROR(ME_UNDERFLOW, "pnt");
 				//ML_ERROR(ME_RANGE, "pnt"); /* |ncp| too large */
 				System.err.println("Underflow error in NonCentralT.cumulative");
-				if (Debug.warningAsError) throw new RuntimeException("Underflow error in NonCentralT.cumulative");
+				if (Debug.warningAsError) throw new PrecisionException("Underflow error in NonCentralT.cumulative", lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 				return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 			}
 			q = M_SQRT_2dPI * p * del;

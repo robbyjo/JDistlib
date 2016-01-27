@@ -292,15 +292,26 @@ public class NonCentralChiSquare extends GenericDistribution {
 	 *    Algorithm AS275: Computing the non-central chi-squared
 	 *    distribution function. Appl.Statist., 41, 478-482.
 	 */
+	@SuppressWarnings("unused")
 	public static final double cumulative(double x, double df, double ncp, boolean lower_tail, boolean log_p) {
 		double ans;
 		boolean exception = false;
+		PrecisionException ee = null;
 		if (Double.isNaN(x) || Double.isNaN(df) || Double.isNaN(ncp)) return x + df + ncp;
 		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp)) return Double.NaN;
 
 		if (df < 0. || ncp < 0.) return Double.NaN;
 
-		ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, lower_tail, log_p);
+		if (Debug.warningAsError) {
+			try {
+				ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, lower_tail, log_p);				
+			} catch (PrecisionException e) {
+				ee = e;
+				exception = true;
+			}
+		} else {
+			ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, lower_tail, log_p);
+		}
 		if(ncp >= 80) {
 			if(lower_tail) {
 				ans = min(ans, log_p ? 0. : 1.);  /* e.g., pchisq(555, 1.01, ncp = 80) */
@@ -318,9 +329,22 @@ public class NonCentralChiSquare extends GenericDistribution {
 			return ans;
 		// prob. = exp(ans) is near one: we can do better using the other tail
 		// FIXME: (sum,sum2) will be the same (=> return them as well and reuse here ?)
-		ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, !lower_tail, false);
+		if (Debug.warningAsError) {
+			try {
+				ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, !lower_tail, false);
+			} catch (PrecisionException e) {
+				ee = new PrecisionException(e.getMessage(), ee, e.getValue());
+				exception = true;
+			}
+		} else {
+			ans = cumulative_raw(x, df, ncp, 1e-12, 8*DBL_EPSILON, 1000000, !lower_tail, false);
+		}
 		ans = log1p(-ans);
-		if (exception) throw new PrecisionException("Precision error NonCentralChiSquare.cumulative", ans);
+		if (exception) {
+			if (ee == null)
+				throw new PrecisionException("Precision error NonCentralChiSquare.cumulative", ans);
+			throw new PrecisionException("Precision error NonCentralChiSquare.cumulative", ee, ans);
+		}
 		return ans;
 	}
 

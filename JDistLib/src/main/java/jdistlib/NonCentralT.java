@@ -111,11 +111,12 @@ public class NonCentralT extends GenericDistribution {
 	 *    M_SQRT_2dPI  = 1/ {gamma(1.5) * sqrt(2)} = sqrt(2 / pi)
 	 *    M_LN_SQRT_PI = ln(sqrt(pi)) = ln(pi)/2
 	 */
+	@SuppressWarnings("unused")
 	public static final double cumulative(double t, double df, double ncp, boolean lower_tail, boolean log_p) {
 		double albeta, a, b, del, errbd, lambda, rxb, tt, x;
 		/* long */ double geven, godd, p, q, s, tnc, xeven, xodd; // TODO long double
 		int it; boolean negdel;
-		boolean exception = false;
+		String exception = null;
 
 		/* note - itrmax and errmax may be changed to suit one's needs. */
 
@@ -202,7 +203,7 @@ public class NonCentralT extends GenericDistribution {
 				if(s < -1.e-10) { /* happens e.g. for (t,df,ncp)=(40,10,38.5), after 799 it.*/
 					//ML_ERROR(ME_PRECISION, "pnt");
 					System.err.println("Precision error in NonCentralT.cumulative");
-					if (Debug.warningAsError) throw new RuntimeException("Underflow error in NonCentralT.cumulative");
+					if (Debug.warningAsError && exception == null) exception = "Underflow error in NonCentralT.cumulative";
 					//goto finis;
 					break;
 				}
@@ -214,7 +215,7 @@ public class NonCentralT extends GenericDistribution {
 			//ML_ERROR(ME_NOCONV, "pnt");
 			if (!conv) {
 				System.err.println("Non-convergence error in NonCentralT.cumulative");
-				if (Debug.warningAsError) throw new RuntimeException("Underflow error in NonCentralT.cumulative");
+				if (Debug.warningAsError && exception == null) exception = "Underflow error in NonCentralT.cumulative";
 			}
 		} else { /* x = t = 0 */
 			tnc = 0.;
@@ -226,12 +227,14 @@ public class NonCentralT extends GenericDistribution {
 		if(tnc > 1 - 1e-10 && lower_tail) {
 			//ML_ERROR(ME_PRECISION, "pnt{final}");
 			System.err.println("Precision error in final section of NonCentralT.cumulative");
-			if (Debug.warningAsError) throw new RuntimeException("Precision error in final section of NonCentralT.cumulative");
+			if (Debug.warningAsError && exception == null) exception = "Precision error in final section of NonCentralT.cumulative";
 		}
 
 		//return R_DT_val(min(tnc, 1.) /* Precaution */);
 		tnc = min(tnc, 1.);
-		return (lower_tail ? (log_p ? log(tnc) : (tnc))  : (log_p	? log1p(-(tnc)) : (0.5 - (tnc) + 0.5)));
+		tnc = (lower_tail ? (log_p ? log(tnc) : (tnc))  : (log_p	? log1p(-(tnc)) : (0.5 - (tnc) + 0.5)));
+		if (exception != null) throw new PrecisionException(exception, tnc);
+		return tnc;
 	}
 
 	public static final double quantile(double p, double df, double ncp, boolean lower_tail, boolean log_p) {

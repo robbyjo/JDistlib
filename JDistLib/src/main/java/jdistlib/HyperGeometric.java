@@ -287,12 +287,27 @@ public class HyperGeometric extends GenericDistribution {
 		if(MathFunctions.isInfinite(nn1in) || MathFunctions.isInfinite(nn2in) || MathFunctions.isInfinite(kkin))
 			return Double.NaN;
 
-		nn1 = (int) rint(nn1in); // floor(nn1in+0.5);
-		nn2 = (int) rint(nn2in); // floor(nn2in+0.5);
-		kk	= (int) rint(kkin); // floor(kkin +0.5);
+		nn1in = (int) rint(nn1in); // floor(nn1in+0.5);
+		nn1in = (int) rint(nn2in); // floor(nn2in+0.5);
+		kkin  = (int) rint(kkin); // floor(kkin +0.5);
 
-		if (nn1 < 0 || nn2 < 0 || kk < 0 || kk > nn1 + nn2)
+		if (nn1in < 0 || nn2in < 0 || kkin < 0 || kkin > nn1in + nn2in)
 			return Double.NaN;
+
+		if (nn1in >= Integer.MAX_VALUE || nn2in >= Integer.MAX_VALUE || kkin >= Integer.MAX_VALUE) {
+			/* large n -- evade integer overflow (and inappropriate algorithms)
+	    	   -------- */
+			// FIXME: Much faster to give rbinom() approx when appropriate; -> see Kuensch(1989)
+			// Johnson, Kotz,.. p.258 (top) mention the *four* different binomial approximations
+			if(kkin == 1.) { // Bernoulli
+				return Binomial.random(kkin, nn1in / (nn1in + nn2in), random);
+			}
+			// Slow, but safe: return  F^{-1}(U)  where F(.) = phyper(.) and  U ~ U[0,1]
+			return quantile(random.nextDouble(), nn1in, nn2in, kkin, false, false);
+		}
+		nn1 = (int)nn1in;
+		nn2 = (int)nn2in;
+		kk  = (int)kkin;
 
 		/* if new parameter values, initialize */
 		reject = true;

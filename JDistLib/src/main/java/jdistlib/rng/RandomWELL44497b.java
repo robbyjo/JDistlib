@@ -28,7 +28,7 @@ public class RandomWELL44497b extends RandomEngine
 	private static final int W = 32, R = 1391, P = 15,
 		MASKU = (0xffffffff>>>(W-P)), MASKL = ~MASKU, // M1 = 23, M2 = 481, M3 = 229,
 		TEMPERB = 0x93dd1400, TEMPERC = 0xfa118000;
-	private static final double FACT = 2.32830643653869628906e-10;
+	//private static final double FACT = 2.32830643653869628906e-10;
 
 	private boolean mHaveNextGaussian = false;
 	private double mNextGaussian;
@@ -59,8 +59,8 @@ public class RandomWELL44497b extends RandomEngine
 		double v1, v2, s;
 
 		do {
-			v1 = nextInt() * FACT;
-			v2 = nextInt() * FACT;
+			v1 = nextDouble();
+			v2 = nextDouble();
 			s = v1 * v1 + v2 * v2;
 		} while (s >= 1 || s==0);
 		double multiplier = Math.sqrt(-2 * Math.log(s)/s);
@@ -71,7 +71,7 @@ public class RandomWELL44497b extends RandomEngine
 
 	// Shamelessly taken from Colt
 	public double nextDouble() {
-		return nextInt() * FACT;
+		return ((((long)(nextInt() >>> 6)) << 27) + (nextInt() >>> 5)) / (double)(1L << 53);
 	}
 
 	public float nextFloat() {

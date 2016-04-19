@@ -341,6 +341,20 @@ public class VectorMath {
 	}
 
 	/**
+	 * Return summary statistics
+	 * @param e
+	 * @return an array of 6 elements: Min, Q1, Median, Mean, Q3, Max
+	 */
+	public static final double[] summary(double[] e) {
+		int n = e.length;
+		double[] v = new double[e.length];
+		System.arraycopy(e, 0, v, 0, n);
+		sort(v);
+		double[] s = quantile(v, new double[] {0.25, 0.5, 0.75});
+		return new double[] {v[0], s[0], s[1], mean(v), s[2], v[n - 1]};
+	}
+
+	/**
 	 * Get the median
 	 * @param e does not need to be sorted
 	 * @return median value

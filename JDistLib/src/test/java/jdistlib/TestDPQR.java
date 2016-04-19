@@ -1230,7 +1230,7 @@ public class TestDPQR {
 		success &= printBool(isEqual(1, Cauchy.cumulative(+1e15, 0, 1, true, true) / -3.18309886183791e-16)); // PR#6756
 
 		Cauchy cauchy = new Cauchy(0, 1);
-		double[] ex = new double[] {1,2,5,10,15,20,25,50,100,200,300, Double.POSITIVE_INFINITY};
+		double[] ex = new double[] {1,2,5,10,15,20,25,50,100,200,300, inf};
 		x = vpow(10, ex);
 		for (double _x : x)
 			if (_x > 1e10)
@@ -2054,28 +2054,28 @@ public class TestDPQR {
 		}
 		{
 			System.out.println("## [dpqr]beta(*, a,b) where a and/or b are Inf");
-			if (Beta.cumulative(.1, Double.POSITIVE_INFINITY, 40, true, false) != 0) {
+			if (Beta.cumulative(.1, inf, 40, true, false) != 0) {
 				System.err.println("Beta.cumulative(.1, Inf, 40, true, false) != 0");
 				success = false;
 			}
-			if (Beta.cumulative(.5, 40, Double.POSITIVE_INFINITY, true, false) != 1) {
+			if (Beta.cumulative(.5, 40, inf, true, false) != 1) {
 				System.err.println("Beta.cumulative(.5, 40, Inf, true, false) != 1");
 				success = false;
 			}
-			if (Beta.cumulative(.4, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, true, false) != 0) {
+			if (Beta.cumulative(.4, inf, inf, true, false) != 0) {
 				System.err.println("Beta.cumulative(.5, Inf, Inf, true, false) != 0");
 				success = false;
 			}
-			if (Beta.cumulative(.5, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, true, false) != 1) {
+			if (Beta.cumulative(.5, inf, inf, true, false) != 1) {
 				System.err.println("Beta.cumulative(.5, Inf, Inf, true, false) != 1");
 				success = false;
 			}
 			// ## gave infinite loop (or NaN) in R <= 3.1.0
-			if (Beta.quantile(.9, Double.POSITIVE_INFINITY, 100, true, false) != 1) {
+			if (Beta.quantile(.9, inf, 100, true, false) != 1) {
 				System.err.println("Beta.quantile(.9, Inf, 100, true, false) != 1");
 				success = false;
 			}
-			if (Beta.quantile(.1, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, true, false) != 0.5) {
+			if (Beta.quantile(.1, inf, inf, true, false) != 0.5) {
 				System.err.println("Beta.quantile(.1, Inf, Inf, true, false) != 0.5");
 				success = false;
 			}
@@ -2108,7 +2108,7 @@ public class TestDPQR {
 			for (int i = -10; i <= 10; i++) {
 				val = LogNormal.density(pow(2, i), 0, 0, false);
 				if (i == 0) {
-					if (val != Double.POSITIVE_INFINITY) {
+					if (val != inf) {
 						System.err.println(String.format("LogNormal.density(1, 0, 0, false) %3.18g != Inf", val));
 						success = false;
 					}
@@ -2265,6 +2265,104 @@ public class TestDPQR {
 			}
 			long ct2 = System.currentTimeMillis() - time1;
 			System.out.println("System time = " + (ct2 / 1000.0));
+		}
+		{
+			System.out.println("## qt(*, df=Inf, .)  gave NaN in  R <= 3.2.1");
+			for (int i = 0; i <= 32; i++) {
+				double p = i / 32.0,
+					t = NonCentralT.quantile(p, inf, 5, true, false),
+					n = Normal.quantile(p, 5, 1, true, false);
+				if (!isEqual(t, n)) {
+					System.err.println(String.format("qt(%d/32, Inf, 5) = %3.18g != qnorm(%d/32, 5, 1) = %3.18g", i, t, i, n));
+					success = false;
+				}
+			}
+		}
+		{
+			System.out.println("## rhyper(*, <large>);  PR#16489");
+			double[] N = HyperGeometric.random(100, 8000, 1e9-8000, 1e6, random);
+			print(summary(N));
+			val = abs(mean(N) - 8);
+			if (val >= 1.5) {
+				System.err.println(String.format("abs(mean(N) - 8) = %3.18g >= 1.5", val));
+				success = false;
+			}
+		}
+		// We cannot do the following test:
+		// set.seed(17)
+		// stopifnot(rhyper(1, 3024, 27466, 251) == 25,
+		//          rhyper(1,  329,  3059, 225) == 22)
+
+		{
+			System.out.println("## *chisq(*, df=0, ncp=0) == Point mass at 0");
+			for (int i = 0; i < 32; i++) {
+				val = ChiSquare.random(0, random);
+				if (val != 0) {
+					System.err.println(String.format("rchisq(df=0, ncp=0) = %3.18g != 0", val));
+					success = false;
+				}
+			}
+			val = ChiSquare.density(0, 0, false);
+			if (MathFunctions.isFinite(val)) {
+				System.err.println(String.format("dchisq(0, df=0, ncp=0) = %3.18g != Inf", val));
+				success = false;
+			}
+			for (int i = 1; i <= 16; i++) {
+				val = ChiSquare.density(i / 16.0, 0, false);
+				if (val != 0) {
+					System.err.println(String.format("dchisq(%d/16, df=0, ncp=0) = %3.18g != 0", i, val));
+					success = false;
+				}
+			}
+			System.out.println("## gave all NaN's  for R <= 3.2.2");
+		}
+		{
+			System.out.println("## pchisq(*, df=0, ncp > 0, log.p=TRUE) :");
+			double[] th = vtimes(10, c(colon(1.0, 9), vpow(10, c(1.0, 2, 3, 7))));
+			for (int i = 0; i < th.length; i++) {
+				val = NonCentralChiSquare.cumulative(0, 0, th[i], true, true);
+				if (!isEqual(val, -th[i]/2, 1e-15)) {
+					System.err.println(String.format("pchisq(0, df=0, ncp=%3.18g) = %3.18g != %3.18g", th[i], val, -th[i]/2));
+					success = false;
+				}
+			}
+		}
+		{
+			System.out.println("## pnbinom (-> C's bratio())");
+			val = NegBinomial.cumulative_mu(1e308, 1e308, 5, true, false);
+			// Not infinite loop
+			System.out.println("## gave infinite loop on some 64b platforms in R <= 3.2.3");
+		}
+		{
+			System.out.println("## [dpqr]nbinom(*, mu, size=Inf) -- PR#16727");
+			x = new double[] {0, 1, 2, 3, 1e10, 1e100, 1e308, inf};
+			double val2;
+			for (int i = 0; i < x.length; i++) {
+				val = NegBinomial.density_mu(x[i], inf, 5, false);
+				val2 = Poisson.density(x[i], 5, false);
+				if (val != val2) {
+					System.err.println(String.format("NegBinomial.density_mu(%g, Inf, mu=5) = %3.18g != %3.18g", x[i], val, val2));
+					success = false;
+				}
+				val = NegBinomial.cumulative_mu(x[i], inf, 5, false, false);
+				val2 = Poisson.cumulative(x[i], 5, false, false);
+				if (val != val2) {
+					System.err.println(String.format("NegBinomial.cumulative_mu(%g, Inf, mu=5) = %3.18g != %3.18g", x[i], val, val2));
+					success = false;
+				}
+			}
+			for (int i = 0; i <= 16; i++) {
+				val = NegBinomial.quantile_mu(i / 16.0, inf, 5, false, false);
+				val2 = Poisson.quantile(i / 16.0, 5, false, false);
+				if (val != val2) {
+					System.err.println(String.format("NegBinomial.quantile_mu(%g, Inf, mu=5) = %3.18g != %3.18g", (i / 16.0), val, val2));
+					success = false;
+				}
+			}
+			double[] NI = NegBinomial.random_mu(32, inf, 5, new MersenneTwister(1));
+			double[] N2 = NegBinomial.random_mu(32, 1e308, 5, new MersenneTwister(1));
+			printAllEqual(NI, N2);
+			System.out.println("## size = Inf -- mostly gave NaN  in R <= 3.2.3");
 		}
 		// TODO Add more test cases here
 		//*/

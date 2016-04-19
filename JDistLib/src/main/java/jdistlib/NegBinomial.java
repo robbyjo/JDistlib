@@ -226,6 +226,8 @@ public class NegBinomial extends GenericDistribution {
 	}
 
 	public static final double quantile_mu(double p, double size, double mu, boolean lower_tail, boolean log_p) {
+		if (size == Double.POSITIVE_INFINITY)
+			return Poisson.quantile(p, mu, lower_tail, log_p);
 		/* FIXME!  Implement properly!! (not losing accuracy for very large size (prob ~= 1)*/
 		return quantile(p, size, /* prob = */ size/(size+mu), lower_tail, log_p);
 	}
@@ -238,10 +240,25 @@ public class NegBinomial extends GenericDistribution {
 	    return (prob == 1) ? 0 : Poisson.random(Gamma.random(size, (1 - prob) / prob, random), random);
 	}
 
+	public static final double random_mu(double size, double mu, RandomEngine random) {
+	    if(MathFunctions.isInfinite(mu) || size <= 0 || mu < 0)
+	    	/* prob = 1 is ok, PR#1218 */
+	    	return Double.NaN;
+	    if (MathFunctions.isInfinite(size)) size = Double.MAX_VALUE / 2; // '/2' to prevent rgamma() returning Inf
+	    return (mu == 0) ? 0 : Poisson.random(Gamma.random(size, mu / size, random), random);
+	}
+
 	public static final double[] random(int n, double size, double prob, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
 			rand[i] = random(size, prob, random);
+		return rand;
+	}
+
+	public static final double[] random_mu(int n, double size, double mu, RandomEngine random) {
+		double[] rand = new double[n];
+		for (int i = 0; i < n; i++)
+			rand[i] = random_mu(size, mu, random);
 		return rand;
 	}
 

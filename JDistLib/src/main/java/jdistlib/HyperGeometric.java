@@ -238,7 +238,6 @@ public class HyperGeometric extends GenericDistribution {
 	{
 		final double al[] =
 			{
-				0.0,
 				0.0,/*ln(0!)=ln(1)*/
 				0.0,/*ln(1!)=ln(1)*/
 				0.69314718055994530941723212145817,/*ln(2) */
@@ -518,7 +517,7 @@ public class HyperGeometric extends GenericDistribution {
 				}
 				if (reject)
 					continue L30;
-				break L30;
+				break;
 			}
 		}
 

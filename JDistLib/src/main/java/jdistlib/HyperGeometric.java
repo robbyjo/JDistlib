@@ -236,28 +236,34 @@ public class HyperGeometric extends GenericDistribution {
 
 	static final double afc(int i)
 	{
+		// If (i > 7), use Stirling's approximation, otherwise use table lookup.
 		final double al[] =
 			{
-				0.0,/*ln(0!)=ln(1)*/
-				0.0,/*ln(1!)=ln(1)*/
-				0.69314718055994530941723212145817,/*ln(2) */
-				1.79175946922805500081247735838070,/*ln(6) */
-				3.17805383034794561964694160129705,/*ln(24)*/
-				4.78749174278204599424770093452324,
-				6.57925121201010099506017829290394,
-				8.52516136106541430016553103634712
-				/*, 10.60460290274525022841722740072165*/
+					0.0,/*ln(0!)=ln(1)*/
+					0.0,/*ln(1!)=ln(1)*/
+					0.69314718055994530941723212145817,/*ln(2) */
+					1.79175946922805500081247735838070,/*ln(6) */
+					3.17805383034794561964694160129705,/*ln(24)*/
+					4.78749174278204599424770093452324,
+					6.57925121201010099506017829290394,
+					8.52516136106541430016553103634712
+					/* 10.60460290274525022841722740072165, approx. value below =
+					   10.6046028788027; rel.error = 2.26 10^{-9}
+
+		  FIXME: Use constants and if(n > ..) decisions from ./stirlerr.c
+		  -----  will be even *faster* for n > 500 (or so)
+					 */
 			};
 
 		if (i < 0) {
-			//MATHLIB_WARNING(("rhyper.c: afc(i), i=%d < 0 -- SHOULD NOT HAPPEN!\n"), i);
-			return -1;/* unreached (Wall) */
+			return -1; // unreached
 		}
 		if (i <= 7)
 			return al[i];
+		// else i >= 8 :
 		double di = i, i2 = di*di;
-	    return (di + 0.5) * log(di) - di + M_LN_SQRT_2PI +
-	    	(0.0833333333333333 - 0.00277777777777778 / i2) / di;
+		return (di + 0.5) * log(di) - di + M_LN_SQRT_2PI +
+			(0.0833333333333333 - 0.00277777777777778 / i2) / di;
 	}
 	public static final double random(double nn1in, double nn2in, double kkin, RandomEngine random)
 	{	return random(nn1in, nn2in, kkin, random, null); }
@@ -267,7 +273,7 @@ public class HyperGeometric extends GenericDistribution {
 
 		int nn1, nn2, kk;
 		int ix;
-		boolean reject, setup1, setup2;
+		boolean setup1, setup2;
 
 		/* These should become `thread_local globals' : */
 		if (state == null)
@@ -278,13 +284,12 @@ public class HyperGeometric extends GenericDistribution {
 		if(MathFunctions.isInfinite(nn1in) || MathFunctions.isInfinite(nn2in) || MathFunctions.isInfinite(kkin))
 			return Double.NaN;
 
-		nn1in = (int) rint(nn1in); // floor(nn1in+0.5);
-		nn1in = (int) rint(nn2in); // floor(nn2in+0.5);
-		kkin  = (int) rint(kkin); // floor(kkin +0.5);
+		nn1in = (int) rint(nn1in);
+		nn2in = (int) rint(nn2in);
+		kkin  = (int) rint(kkin);
 
 		if (nn1in < 0 || nn2in < 0 || kkin < 0 || kkin > nn1in + nn2in)
 			return Double.NaN;
-
 		if (nn1in >= Integer.MAX_VALUE || nn2in >= Integer.MAX_VALUE || kkin >= Integer.MAX_VALUE) {
 			/* large n -- evade integer overflow (and inappropriate algorithms)
 	    	   -------- */
@@ -294,14 +299,13 @@ public class HyperGeometric extends GenericDistribution {
 				return Binomial.random(kkin, nn1in / (nn1in + nn2in), random);
 			}
 			// Slow, but safe: return  F^{-1}(U)  where F(.) = phyper(.) and  U ~ U[0,1]
-			return quantile(random.nextDouble(), nn1in, nn2in, kkin, false, false);
+			return HyperGeometric.quantile(random.nextDouble(), nn1in, nn2in, kkin, false, false);
 		}
 		nn1 = (int)nn1in;
 		nn2 = (int)nn2in;
 		kk  = (int)kkin;
 
 		/* if new parameter values, initialize */
-		reject = true;
 		if (nn1 != state.n1s || nn2 != state.n2s) {
 			setup1 = true;	setup2 = true;
 		} else if (kk != state.ks) {
@@ -324,24 +328,20 @@ public class HyperGeometric extends GenericDistribution {
 		if (setup2) {
 			state.ks = kk;
 			if (kk + kk >= state.tn) {
-				state.k = (int) (state.tn - kk);
+				state.k = (int)(state.tn - kk);
 			} else {
 				state.k = kk;
 			}
 		}
 		if (setup1 || setup2) {
-			state.m = (int) ((state.k + 1.0) * (state.n1 + 1.0) / (state.tn + 2.0));
-			state.minjx = max(0,state.k - state.n2);
+			state.m = (int) ((state.k + 1.) * (state.n1 + 1.) / (state.tn + 2.));
+			state.minjx = max(0, state.k - state.n2);
 			state.maxjx = min(state.n1, state.k);
 		}
 		/* generate random variate --- Three basic cases */
 
 		if (state.minjx == state.maxjx) { /* I: degenerate distribution ---------------- */
 			ix = state.maxjx;
-			/* return ix;
-		   No, need to unmangle <TSL>*/
-			/* return appropriate variate */
-
 			if (kk + kk >= state.tn) {
 				if (nn1 > nn2) {
 					ix = kk - nn2 + ix;
@@ -356,33 +356,38 @@ public class HyperGeometric extends GenericDistribution {
 
 		} else if (state.m - state.minjx < 10) { // II: (Scaled) algorithm HIN (inverse transformation) ----
 			final double scale = 1e25; // scaling factor against (early) underflow
-			final double con = 57.5646273248511421; // 25*log(10) = log(scale) { <==> exp(con) == scale }
+			final double con = 57.5646273248511421;
+			// 25*log(10) = log(scale) { <==> exp(con) == scale }
 			if (setup1 || setup2) {
-			    double lw; // log(w);  w = exp(lw) * scale = exp(lw + log(scale)) = exp(lw + con)
-			    if (state.k < state.n2) {
-			    	lw = afc(state.n2) + afc(state.n1 + state.n2 - state.k) - afc(state.n2 - state.k) - afc(state.n1 + state.n2);
-			    } else {
-			    	lw = afc(state.n1) + afc(     state.k     ) - afc(state.k - state.n2) - afc(state.n1 + state.n2);
-			    }
-			    state.w = exp(lw + con);
+				double lw; // log(w);  w = exp(lw) * scale = exp(lw + log(scale)) = exp(lw + con)
+				if (state.k < state.n2) {
+					lw = afc(state.n2) + afc(state.n1 + state.n2 - state.k) - afc(state.n2 - state.k) - afc(state.n1 + state.n2);
+				} else {
+					lw = afc(state.n1) + afc(     state.k     ) - afc(state.k - state.n2) - afc(state.n1 + state.n2);
+				}
+				state.w = exp(lw + con);
 			}
 			double p, u;
-			L10: while (true) {
-				p = state.w;
-				ix = state.minjx;
-				u = random.nextDouble() * scale;
-				while (u > p) {
-					u -= p;
-					p *= (state.n1 - ix) * (state.k - ix);
-					ix++;
-					p = p / ix / (state.n2 - state.k + ix);
-					if (ix > state.maxjx)
-						continue L10;
+			L10:
+				while (true) {
+					p = state.w;
+					ix = state.minjx;
+					u = random.nextDouble() * scale;
+					while (u > p) {
+						u -= p;
+						p *= ((double) state.n1 - ix) * (state.k - ix);
+						ix++;
+						p = p / ix / (state.n2 - state.k + ix);
+						if (ix > state.maxjx)
+							continue L10;
+						// FIXME  if(p == 0.)  we also "have lost"  => goto L10
+					}
+					break;
 				}
-				break;
-			}
 		} else { /* III : H2PE Algorithm --------------------------------------- */
+
 			double u,v;
+
 			if (setup1 || setup2) {
 				state.s = sqrt((state.tn - state.k) * state.k * state.n1 * state.n2 / (state.tn - 1) / state.tn / state.tn);
 
@@ -407,118 +412,124 @@ public class HyperGeometric extends GenericDistribution {
 				state.p3 = state.p2 + state.kr / state.lamdr;
 			}
 			int n_uv = 0;
-			L30: while(true) {
-				u = random.nextDouble() * state.p3;
-				v = random.nextDouble();
-				n_uv++;
-				if(n_uv >= 10000) {
-					throw new RuntimeException("HyperGeometry.random() branch III: giving up after 1000 rejections");
-				}
-				if (u < state.p1) {		/* rectangular region */
-					ix = (int) (state.xl + u);
-				} else if (u <= state.p2) {	/* left tail */
-					ix = (int) (state.xl + log(v) / state.lamdl);
-					if (ix < state.minjx)
-						continue L30;
-					v = v * (u - state.p1) * state.lamdl;
-				} else {		/* right tail */
-					ix = (int) (state.xr - log(v) / state.lamdr);
-					if (ix > state.maxjx)
-						continue L30;
-					v = v * (u - state.p2) * state.lamdr;
-				}
-
-				/* acceptance/rejection test */
-
-				if (state.m < 100 || ix <= 50) {
-					/* explicit evaluation */
-					/* The original algorithm (and TOMS 668) have
-					   f = f * i * (n2 - k + i) / (n1 - i) / (k - i);
-					   in the (m > ix) case, but the definition of the
-					   recurrence relation on p134 shows that the +1 is
-					   needed. */
-					double f = 1.0;
-					if (state.m < ix) {
-						for (int i = state.m + 1; i <= ix; i++)
-							f = f * (state.n1 - i + 1) * (state.k - i + 1) / (state.n2 - state.k + i) / i;
-					} else if (state.m > ix) {
-						for (int i = ix + 1; i <= state.m; i++)
-							f = f * i * (state.n2 - state.k + i) / (state.n1 - i + 1) / (state.k - i + 1);
+			L30:
+				while(true) {
+					u = random.nextDouble() * state.p3;
+					v = random.nextDouble();
+					n_uv++;
+					if(n_uv >= 10000) {
+						throw new RuntimeException("HyperGeometry.random() branch III: giving up after 1000 rejections");
 					}
-					if (v <= f) {
-						reject = false;
-					}
-				} else {
-					final double deltal = 0.0078;
-					final double deltau = 0.0034;
 
-					double e, g, r, t, y;
-				    double de, dg, dr, ds, dt, gl, gu, nk, nm, ub;
-				    double xk, xm, xn, y1, ym, yn, yk, alv;
-					/* squeeze using upper and lower bounds */
-					y = ix;
-					y1 = y + 1.0;
-					ym = y - state.m;
-					yn = state.n1 - y + 1.0;
-					yk = state.k - y + 1.0;
-					nk = state.n2 - state.k + y1;
-					r = -ym / y1;
-					state.s = ym / yn;
-					t = ym / yk;
-					e = -ym / nk;
-					g = yn * yk / (y1 * nk) - 1.0;
-					dg = 1.0;
-					if (g < 0.0)
-						dg = 1.0 + g;
-					gu = g * (1.0 + g * (-0.5 + g / 3.0));
-					gl = gu - .25 * (g * g * g * g) / dg;
-					xm = state.m + 0.5;
-					xn = state.n1 - state.m + 0.5;
-					xk = state.k - state.m + 0.5;
-					nm = state.n2 - state.k + xm;
-					ub = y * gu - state.m * gl + deltau
-							+ xm * r * (1. + r * (-0.5 + r / 3.0))
-							+ xn * state.s * (1. + state.s * (-0.5 + state.s / 3.0))
-							+ xk * t * (1. + t * (-0.5 + t / 3.0))
-							+ nm * e * (1. + e * (-0.5 + e / 3.0));
-					/* test against upper bound */
-					alv = log(v);
-					if (alv > ub) {
-						reject = true;
-					} else {
-						/* test against lower bound */
-						dr = xm * (r * r * r * r);
-						if (r < 0.0)
-							dr /= (1.0 + r);
-						ds = xn * (state.s * state.s * state.s * state.s);
-						if (state.s < 0.0)
-							ds /= (1.0 + state.s);
-						dt = xk * (t * t * t * t);
-						if (t < 0.0)
-							dt /= (1.0 + t);
-						de = nm * (e * e * e * e);
-						if (e < 0.0)
-							de /= (1.0 + e);
-						if (alv < ub - 0.25 * (dr + ds + dt + de)
-								+ (y + state.m) * (gl - gu) - deltal) {
+					if (u < state.p1) {		/* rectangular region */
+						ix = (int) (state.xl + u);
+					} else if (u <= state.p2) {	/* left tail */
+						ix = (int) (state.xl + log(v) / state.lamdl);
+						if (ix < state.minjx)
+							continue L30;
+						v = v * (u - state.p1) * state.lamdl;
+					} else {		/* right tail */
+						ix = (int) (state.xr - log(v) / state.lamdr);
+						if (ix > state.maxjx)
+							continue L30;
+						v = v * (u - state.p2) * state.lamdr;
+					}
+
+					/* acceptance/rejection test */
+					boolean reject = true;
+
+					if (state.m < 100 || ix <= 50) {
+						/* explicit evaluation */
+						/* The original algorithm (and TOMS 668) have
+	    		   f = f * i * (n2 - k + i) / (n1 - i) / (k - i);
+	    	       in the (m > ix) case, but the definition of the
+	    	       recurrence relation on p134 shows that the +1 is
+	    	       needed. */
+						int i;
+						double f = 1.0;
+						if (state.m < ix) {
+							for (i = state.m + 1; i <= ix; i++)
+								f = f * (state.n1 - i + 1) * (state.k - i + 1) / (state.n2 - state.k + i) / i;
+						} else if (state.m > ix) {
+							for (i = ix + 1; i <= state.m; i++)
+								f = f * i * (state.n2 - state.k + i) / (state.n1 - i + 1) / (state.k - i + 1);
+						}
+						if (v <= f) {
 							reject = false;
 						}
-						else {
-							/* * Stirling's formula to machine accuracy
-							 */
-							if (alv <= (state.a - afc(ix) - afc(state.n1 - ix)
-									- afc(state.k - ix) - afc(state.n2 - state.k + ix))) {
+					} else {
+
+						final double deltal = 0.0078;
+						final double deltau = 0.0034;
+
+						double e, g, r, t, y;
+						double de, dg, dr, ds, dt, gl, gu, nk, nm, ub;
+						double xk, xm, xn, y1, ym, yn, yk, alv;
+
+						/* squeeze using upper and lower bounds */
+						y = ix;
+						y1 = y + 1.0;
+						ym = y - state.m;
+						yn = state.n1 - y + 1.0;
+						yk = state.k - y + 1.0;
+						nk = state.n2 - state.k + y1;
+						r = -ym / y1;
+						state.s = ym / yn;
+						t = ym / yk;
+						e = -ym / nk;
+						g = yn * yk / (y1 * nk) - 1.0;
+						dg = 1.0;
+						if (g < 0.0)
+							dg = 1.0 + g;
+						gu = g * (1.0 + g * (-0.5 + g / 3.0));
+						gl = gu - .25 * (g * g * g * g) / dg;
+						xm = state.m + 0.5;
+						xn = state.n1 - state.m + 0.5;
+						xk = state.k - state.m + 0.5;
+						nm = state.n2 - state.k + xm;
+						ub = y * gu - state.m * gl + deltau
+								+ xm * r * (1. + r * (-0.5 + r / 3.0))
+								+ xn * state.s * (1. + state.s * (-0.5 + state.s / 3.0))
+								+ xk * t * (1. + t * (-0.5 + t / 3.0))
+								+ nm * e * (1. + e * (-0.5 + e / 3.0));
+						/* test against upper bound */
+						alv = log(v);
+						if (alv > ub) {
+							reject = true;
+						} else {
+							/* test against lower bound */
+							dr = xm * (r * r * r * r);
+							if (r < 0.0)
+								dr /= (1.0 + r);
+							ds = xn * (state.s * state.s * state.s * state.s);
+							if (state.s < 0.0)
+								ds /= (1.0 + state.s);
+							dt = xk * (t * t * t * t);
+							if (t < 0.0)
+								dt /= (1.0 + t);
+							de = nm * (e * e * e * e);
+							if (e < 0.0)
+								de /= (1.0 + e);
+							if (alv < ub - 0.25 * (dr + ds + dt + de)
+									+ (y + state.m) * (gl - gu) - deltal) {
 								reject = false;
-							} else {
-								reject = true;
+							}
+							else {
+								/* * Stirling's formula to machine accuracy
+								 */
+								if (alv <= (state.a - afc(ix) - afc(state.n1 - ix)
+										- afc(state.k - ix) - afc(state.n2 - state.k + ix))) {
+									reject = false;
+								} else {
+									reject = true;
+								}
 							}
 						}
-					}
-				}
-				if (reject)
-					continue L30;
-				break;
-			}
+					} // else
+					if (reject)
+						continue L30;
+					break;
+				} // end while(true) L30
 		}
 
 		/* return appropriate variate */

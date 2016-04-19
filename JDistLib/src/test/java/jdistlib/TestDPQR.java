@@ -2279,6 +2279,7 @@ public class TestDPQR {
 			}
 		}
 		{
+			// TODO
 			System.out.println("## rhyper(*, <large>);  PR#16489");
 			double[] N = HyperGeometric.random(100, 8000, 1e9-8000, 1e6, random);
 			print(summary(N));
@@ -2288,11 +2289,20 @@ public class TestDPQR {
 				success = false;
 			}
 		}
-		// We cannot do the following test:
-		// set.seed(17)
-		// stopifnot(rhyper(1, 3024, 27466, 251) == 25,
-		//          rhyper(1,  329,  3059, 225) == 22)
-
+		{
+			// We cannot do the following test because it is highly dependent on RNG seed and implementation
+//			MersenneTwister rng = new MersenneTwister(17);
+//			val = HyperGeometric.random(3024, 27466, 251, rng);
+//			double val2 = HyperGeometric.random(329, 3059, 225, rng);
+//			if (val != 25) {
+//				System.err.println(String.format("NegBinomial.random(3024, 27466, 251) = %3.18g != 25", val));
+//				success = false;
+//			}
+//			if (val2 != 22) {
+//				System.err.println(String.format("NegBinomial.random(329, 3059, 225) = %3.18g != 22", val2));
+//				success = false;
+//			}
+		}
 		{
 			System.out.println("## *chisq(*, df=0, ncp=0) == Point mass at 0");
 			for (int i = 0; i < 32; i++) {

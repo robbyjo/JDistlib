@@ -3,6 +3,9 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
+Version 0.4.3 (April 19, 2015):
+* Fix for bug #27: Regression on bug PR#16489
+
 Version 0.4.2 (April 19, 2015):
 * Fix for bug #26: Allow warnings to be cast as an exception.
 * Sync with R-devel (Apr 18, 2016-r70508)

@@ -969,7 +969,7 @@ public class MathFunctions {
 				//bgrat(b0, a0, y0, x0, w1, 15*eps, &ierr1, FALSE);
 				//goto L_end_from_w1;
 				w1 = bgrat(b0, a0, y0, x0, w1, 15*eps, ierr1, false);
-				if (w1 == 0 || (0 < w1 && w1 < Double.MIN_VALUE)) { // w1=0 or very close:
+				if (w1 == 0 || (0 < w1 && w1 < 1e-322)) { // w1=0 or very close:
 					// "almost surely" from underflow, try more: [2013-03-04]
 					// FIXME: it is even better to do this in bgrat *directly* at least for the case
 					//  !did_bup, i.e., where *w1 = (0 or -Inf) on entry

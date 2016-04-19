@@ -22,6 +22,7 @@ package jdistlib;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
+
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
@@ -248,35 +249,26 @@ public class HyperGeometric extends GenericDistribution {
 				8.52516136106541430016553103634712
 				/*, 10.60460290274525022841722740072165*/
 			};
-		double di, value;
 
 		if (i < 0) {
 			//MATHLIB_WARNING(("rhyper.c: afc(i), i=%d < 0 -- SHOULD NOT HAPPEN!\n"), i);
 			return -1;/* unreached (Wall) */
-		} else if (i <= 7) {
-			value = al[i + 1];
-		} else {
-			di = i;
-			value = (di + 0.5) * log(di) - di + 0.08333333333333 / di
-					- 0.00277777777777 / di / di / di + 0.9189385332;
 		}
-		return value;
+		if (i <= 7)
+			return al[i];
+		double di = i, i2 = di*di;
+	    return (di + 0.5) * log(di) - di + M_LN_SQRT_2PI +
+	    	(0.0833333333333333 - 0.00277777777777778 / i2) / di;
 	}
 	public static final double random(double nn1in, double nn2in, double kkin, RandomEngine random)
 	{	return random(nn1in, nn2in, kkin, random, null); }
 
-	public static final double random(double nn1in, double nn2in, double kkin, RandomEngine random, RandomState state)
-	{
-		final double deltal = 0.0078;
-		final double deltau = 0.0034;
-
+	public static final double random(double nn1in, double nn2in, double kkin, RandomEngine random, RandomState state) {
 		/* extern double afc(int); */
 
 		int nn1, nn2, kk;
-		int i, ix;
+		int ix;
 		boolean reject, setup1, setup2;
-
-		double e, f, g, r, t, y;
 
 		/* These should become `thread_local globals' : */
 		if (state == null)
@@ -415,9 +407,14 @@ public class HyperGeometric extends GenericDistribution {
 				state.p2 = state.p1 + state.kl / state.lamdl;
 				state.p3 = state.p2 + state.kr / state.lamdr;
 			}
+			int n_uv = 0;
 			L30: while(true) {
 				u = random.nextDouble() * state.p3;
 				v = random.nextDouble();
+				n_uv++;
+				if(n_uv >= 10000) {
+					throw new RuntimeException("HyperGeometry.random() branch III: giving up after 1000 rejections");
+				}
 				if (u < state.p1) {		/* rectangular region */
 					ix = (int) (state.xl + u);
 				} else if (u <= state.p2) {	/* left tail */
@@ -441,18 +438,22 @@ public class HyperGeometric extends GenericDistribution {
 					   in the (m > ix) case, but the definition of the
 					   recurrence relation on p134 shows that the +1 is
 					   needed. */
-					f = 1.0;
+					double f = 1.0;
 					if (state.m < ix) {
-						for (i = state.m + 1; i <= ix; i++)
+						for (int i = state.m + 1; i <= ix; i++)
 							f = f * (state.n1 - i + 1) * (state.k - i + 1) / (state.n2 - state.k + i) / i;
 					} else if (state.m > ix) {
-						for (i = ix + 1; i <= state.m; i++)
+						for (int i = ix + 1; i <= state.m; i++)
 							f = f * i * (state.n2 - state.k + i) / (state.n1 - i + 1) / (state.k - i + 1);
 					}
 					if (v <= f) {
 						reject = false;
 					}
 				} else {
+					final double deltal = 0.0078;
+					final double deltau = 0.0034;
+
+					double e, g, r, t, y;
 				    double de, dg, dr, ds, dt, gl, gu, nk, nm, ub;
 				    double xk, xm, xn, y1, ym, yn, yk, alv;
 					/* squeeze using upper and lower bounds */

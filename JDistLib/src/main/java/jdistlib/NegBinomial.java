@@ -39,8 +39,11 @@ public class NegBinomial extends GenericDistribution {
 		}
 
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+	    /* limiting case as size approaches zero is point mass at zero */
+	    if (x == 0 && size==0) return (give_log ? 0. : 1.);
 		//x = R_D_forceint(x);
 		x = rint(x);
+		if (MathFunctions.isInfinite(size)) size = Double.MAX_VALUE;
 
 		ans = Binomial.density_raw(size, x+size, prob, 1-prob, give_log);
 		p = ((double)size)/(size+x);
@@ -50,7 +53,6 @@ public class NegBinomial extends GenericDistribution {
 	public static final double density_mu(double x, double size, double mu, boolean give_log) {
 		/* originally, just set  prob :=  size / (size + mu)  and called dbinom_raw(),
 		 * but that suffers from cancellation when   mu << size  */
-		double ans, p;
 
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(size)) return x + size + mu;
 
@@ -63,6 +65,8 @@ public class NegBinomial extends GenericDistribution {
 
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (x == 0 && size==0) return (give_log ? 0. : 1.);
+		if (MathFunctions.isInfinite(size))
+			return Poisson.density_raw(x, mu, give_log);
 		//x = R_D_forceint(x);
 		x = rint(x);
 		if(x == 0) { /* be accurate, both for n << mu, and n >> mu :*/
@@ -71,14 +75,14 @@ public class NegBinomial extends GenericDistribution {
 		}
 		if(x < 1e-10 * size) { /* don't use dbinom_raw() but MM's formula: */
 			/* FIXME --- 1e-8 shows problem; rather use algdiv() from ./toms708.c */
-			p = (size < mu ? log(size/(1 + size/mu)) : log(mu / (1 + mu/size)));
+			double p = (size < mu ? log(size/(1 + size/mu)) : log(mu / (1 + mu/size)));
 			x = x * p - mu - lgammafn(x+1) + log1p(x*(x-1)/(2*size));
 			return (give_log ? (x) : exp(x));
 		}
 		/* else: no unnecessary cancellation inside dbinom_raw, when
 		 * x_ = size and n_ = x+size are so close that n_ - x_ loses accuracy
 		 */
-		ans = Binomial.density_raw(size, x+size, size/(size+mu), mu/(size+mu), give_log);
+		double ans = Binomial.density_raw(size, x+size, size/(size+mu), mu/(size+mu), give_log),
 		p = ((double)size)/(size+x);
 		return((give_log) ? log(p) + ans : p * ans);
 	}
@@ -100,7 +104,7 @@ public class NegBinomial extends GenericDistribution {
 
 	public static final double cumulative_mu(double x, double size, double mu, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(size)) return x + size + mu;
-		if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(mu)) return Double.NaN;
+		if (MathFunctions.isInfinite(mu)) return Double.NaN;
 		if (size < 0 || mu < 0) return Double.NaN;
 
 		/* limiting case: point mass at zero */
@@ -110,6 +114,9 @@ public class NegBinomial extends GenericDistribution {
 
 			if (x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		if (MathFunctions.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if (MathFunctions.isInfinite(size))
+			return Poisson.cumulative(x, mu, lower_tail, log_p);
+
 		x = floor(x + 1e-7);
 		/* return
 		 * pbeta(pr, size, x + 1, lower_tail, log_p);  pr = size/(size + mu), 1-pr = mu/(size+mu)
@@ -224,9 +231,10 @@ public class NegBinomial extends GenericDistribution {
 	}
 
 	public static final double random(double size, double prob, RandomEngine random) {
-	    if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(prob) || size <= 0 || prob <= 0 || prob > 1)
+	    if(MathFunctions.isInfinite(prob) || size <= 0 || prob <= 0 || prob > 1)
 	    	/* prob = 1 is ok, PR#1218 */
 	    	return Double.NaN;
+	    if (MathFunctions.isInfinite(size)) size = Double.MAX_VALUE / 2; // '/2' to prevent rgamma() returning Inf
 	    return (prob == 1) ? 0 : Poisson.random(Gamma.random(size, (1 - prob) / prob, random), random);
 	}
 

@@ -22,6 +22,7 @@ package jdistlib.math;
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 
+import jdistlib.exception.PrecisionException;
 import jdistlib.util.Debug;
 
 public class MathFunctions {
@@ -968,7 +969,7 @@ public class MathFunctions {
 				//bgrat(b0, a0, y0, x0, w1, 15*eps, &ierr1, FALSE);
 				//goto L_end_from_w1;
 				w1 = bgrat(b0, a0, y0, x0, w1, 15*eps, ierr1, false);
-				if (w1 == 0 || (0 < w1 && w1 < 1e-310)) { // w1=0 or very close:
+				if (w1 == 0 || (0 < w1 && w1 < Double.MIN_VALUE)) { // w1=0 or very close:
 					// "almost surely" from underflow, try more: [2013-03-04]
 					// FIXME: it is even better to do this in bgrat *directly* at least for the case
 					//  !did_bup, i.e., where *w1 = (0 or -Inf) on entry
@@ -1003,10 +1004,9 @@ public class MathFunctions {
 			}
 		} else {
 			/*             PROCEDURE FOR a0 > 1 AND b0 > 1 */
-			if (a > b)
-				lambda = (a + b) * y - b;
-			else
-				lambda = a - (a + b) * x;
+			lambda = MathFunctions.isFinite(a+b)
+				? ((a > b) ? (a + b) * y - b : a - (a + b) * x)
+				: a*y - b*x;
 
 			do_swap = (lambda < 0.);
 			if (do_swap) {
@@ -1201,6 +1201,7 @@ public class MathFunctions {
 		return -a * (c + s);
 	} /* apser */
 
+	@SuppressWarnings("unused")
 	public static final double bpser(double a, double b, double x, double eps, boolean log_p)
 	{
 		/* -----------------------------------------------------------------------
@@ -1209,7 +1210,7 @@ public class MathFunctions {
 		 * ----------------------------------------------------------------------- */
 
 		int i, m;
-		double ans, c, n, t, u, w, z, a0, b0, apb, tol, sum;
+		double ans, c, t, u, z, a0, b0, apb;
 
 		if (x == 0.) {
 			return log_p ? Double.NEGATIVE_INFINITY : 0.;
@@ -1291,10 +1292,9 @@ public class MathFunctions {
 		/* ----------------------------------------------------------------------- */
 		/*		       COMPUTE THE SERIES */
 		/* ----------------------------------------------------------------------- */
-		sum = 0.;
-		n = 0.;
+		double tol = eps / a,
+			n = 0., w, sum = 0.;
 		c = 1.;
-		tol = eps / a;
 
 		do {
 			n += 1.;
@@ -1305,7 +1305,7 @@ public class MathFunctions {
 		if(abs(w) > tol) { // the series did not converge (in time)
 			// warn only when the result seems to matter:
 			if(( log_p && !(a*sum > -1. && abs(log1p(a * sum)) < eps*abs(ans))) ||
-					(!log_p && abs(a*sum + 1) != 1.)) {
+					(!log_p && abs(a*sum + 1.) != 1.)) {
 				String errstr = String.format(
 						" bpser(a=%g, b=%g, x=%g,...) did not converge (n=1e7, |w|/tol=%g > 1; A=%g)",
 						a,b,x, abs(w)/tol, ans);
@@ -1316,9 +1316,15 @@ public class MathFunctions {
 
 		if(log_p) {
 			if (a*sum > -1.0) ans += log1p(a * sum);
-			else ans = Double.NEGATIVE_INFINITY;
-		} else
-			ans *= a * sum + 1.0;
+			else {
+				if (ans > Double.NEGATIVE_INFINITY && Debug.warningAsError)
+					throw new PrecisionException(String.format("pbeta(*, log.p=TRUE) -> bpser(a=%g, b=%g, x=%g,...) underflow to -Inf", a, b, x), ans);
+				ans = Double.NEGATIVE_INFINITY;
+			}
+		} else if (a*sum > -1.)
+			ans *= (a * sum + 1.0);
+		else
+			ans = 0.;
 		return ans;
 	} /* bpser */
 
@@ -1333,22 +1339,18 @@ public class MathFunctions {
 		double ret_val;
 
 		/* Local variables */
-		int i, k, mu, nm1;
-		double d, l, r, t, w;
-		double ap1, apb;
+		int i, k, mu;
+		double d, l;
 
-		/*          OBTAIN THE SCALING FACTOR EXP(-MU) AND */
-		/*             EXP(MU)*(X**A*Y**B/BETA(A,B))/A */
+		// Obtain the scaling factor exp(-mu) and exp(mu)*(x^a * y^b / beta(a,b))/a
 
-		apb = a + b;
+		double apb = a + b,
 		ap1 = a + 1.0;
-		if (n > 1 && a >= 1. && apb >= ap1 * 1.1)
-		{
+		if (n > 1 && a >= 1. && apb >= ap1 * 1.1) {
 			mu = (int) abs(exparg(1));
 			k = (int) exparg(0);
 			if (mu > k) mu = k;
-			t = mu;
-			d = exp(-t);
+			d = exp(-mu);
 		} else {
 			mu = 0;
 			d = 1.0;
@@ -1359,54 +1361,48 @@ public class MathFunctions {
 			: brcmp1(mu, a, b, x, y, false)  / a;
 		if (n == 1 || (give_log && ret_val == Double.NEGATIVE_INFINITY) || (!give_log && ret_val == 0.))
 			return ret_val;
-		nm1 = n - 1;
-		w = d;
+		int nm1 = n - 1;
+		double w = d;
 
 		/*          LET K BE THE INDEX OF THE MAXIMUM TERM */
-		boolean skipToL40 = false;
 		k = 0;
-		if (b <= 1.0) {
-			skipToL40 = true; //goto L40;
-		} else if (y > 1e-4) {
-			r = (b - 1.0) * x / y - a;
-			if (r >= 1.0)
-			{
-				t = k = nm1;
-				if (r < t)
-					k = (int) r;
-			}
-			else
-				skipToL40 = true; //goto L40;
-		} else k = nm1;
+		if (b > 1.) {
+			if (y > 1e-4) {
+				double r = (b - 1.) * x / y - a;
+				if (r >= 1.)
+					k = (r < nm1) ? (int) r : nm1;
+			} else
+				k = nm1;
 
-		if (!skipToL40)
-		{
-			// L30:
-			/*          ADD THE INCREASING TERMS OF THE SERIES */
-			for (i = 1; i <= k; ++i) {
-				l = i - 1;
-				d = (apb + l) / (ap1 + l) * x * d;
+			// ADD THE INCREASING TERMS OF THE SERIES - if k > 0
+			/* L30: */
+			for (i = 0; i < k; ++i) {
+				l = (double) i;
+				d *= (apb + l) / (ap1 + l) * x;
 				w += d;
 			}
-			if (k == nm1) // goto L50
-				return give_log ? ret_val + log(w) : ret_val * w;
 		}
 
-		// L40:
-		// ADD THE REMAINING TERMS OF THE SERIES */
-		for (i = k+1; i <= nm1; ++i) {
-			l = i - 1;
-			d = (apb + l) / (ap1 + l) * x * d;
-			w += d;
-			if (d <= eps * w) /* relative convergence (eps) */
-				break;
-		}
+		// L40:     ADD THE REMAINING TERMS OF THE SERIES
 
-		// L50
-		/*               TERMINATE THE PROCEDURE */
-		return give_log ? ret_val + log(w) : ret_val * w;
+	    for (i = k; i < nm1; ++i) {
+		l = (double) i;
+		d *= (apb + l) / (ap1 + l) * x;
+		w += d;
+		if (d <= eps * w) /* relativ convergence (eps) */
+		    break;
+	    }
+
+	    // L50: TERMINATE THE PROCEDURE
+	    if(give_log) {
+		ret_val += log(w);
+	    } else
+		ret_val *= w;
+
+	    return ret_val;
 	} /* bup */
 
+	@SuppressWarnings("unused")
 	public static final double bfrac(double a, double b, double x, double y, double lambda, double eps, boolean log_p)
 	{
 		/* -----------------------------------------------------------------------
@@ -1415,12 +1411,18 @@ public class MathFunctions {
 	   -----------------------------------------------------------------------*/
 
 		double c, e, n, p, r, s, t, w, c0, c1, r0, an, bn, yp1, anp1, bnp1,
-		beta, alpha;
+		beta, alpha, brc;
 
-		double brc = brcomp(a, b, x, y, log_p);
+		if (MathFunctions.isInfinite(lambda)) return Double.NaN;
+		brc = brcomp(a, b, x, y, log_p);
+		if (Double.isNaN(brc)) {
+			return Double.NaN; // TODO: could we know better?
+		}
 
-		if (!log_p && brc == 0.) /* already underflowed to 0 */
+		if (!log_p && brc == 0.) { /* already underflowed to 0 */
+			if (Debug.warningAsError) throw new PrecisionException(" --> brcomp(a,b,x,y) underflowed to 0.\n", 0);
 			return 0.;
+		}
 
 		c = lambda + 1.0;
 		c0 = b / a;
@@ -1451,12 +1453,8 @@ public class MathFunctions {
 
 			/* update an, bn, anp1, and bnp1 */
 
-			t = alpha * an + beta * anp1;
-			an = anp1;
-			anp1 = t;
-			t = alpha * bn + beta * bnp1;
-			bn = bnp1;
-			bnp1 = t;
+			t = alpha * an + beta * anp1;	an = anp1;	anp1 = t;
+			t = alpha * bn + beta * bnp1;	bn = bnp1;	bnp1 = t;
 
 			r0 = r;
 			r = anp1 / bnp1;
@@ -1469,8 +1467,12 @@ public class MathFunctions {
 			bn /= bnp1;
 			anp1 = r;
 			bnp1 = 1.0;
-		} while (true);
+		} while (n < 10000);
 
+		if(n >= 10000 && Debug.warningAsError) {
+			throw new PrecisionException(String.format(" bfrac(a=%g, b=%g, x=%g, y=%g, lambda=%g) did *not* converge (in 10000 steps)\n",
+				a,b,x,y, lambda), 0);
+		}
 		return (log_p ? brc + log(r) : brc * r);
 	} /* bfrac */
 

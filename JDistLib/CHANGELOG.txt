@@ -3,6 +3,9 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
+Version 0.4.4 (April 20, 2016):
+* Fix for bug #28 about Shapiro-Wilks
+
 Version 0.4.3 (April 19, 2016):
 * Fix for bug #27: Regression on bug PR#16489
 

@@ -2683,6 +2683,7 @@ public class TestDPQR {
 	}
 
 	public static final void norm_test() {
+		//*
 		double[] x = {4281.099776,4376.951826,4378.025799,4613.572586,4666.54245,4675.439476,
 			4709.961628,4709.999973,4709.999973,4709.999973,4743.40979,4751.232853,4756.295879,
 			4756.869617,4779.386288,4801.67123,4802.705246,4803.434021,4810.069633,4821.232853,
@@ -2791,6 +2792,13 @@ public class TestDPQR {
 		w = NormalityTest.cramer_vonmises_statistic(x);
 		p = NormalityTest.cramer_vonmises_pvalue(w, x.length);
 		System.out.println(w + " -- " + p);
+		//*/
+		double[] n2 = c(0.139, 0.157, 0.175, 0.256, 0.344, 0.413, 0.503, 0.577, 0.614, 0.655, 0.954,
+				1.392, 1.557, 1.648, 1.690, 1.994, 2.174, 2.206, 3.245, 3.510, 3.571, 4.354,
+				4.980, 6.084, 8.351);
+		w = NormalityTest.shapiro_wilk_statistic(n2);
+		p = NormalityTest.shapiro_wilk_pvalue(w, n2.length);
+		System.out.println(w + " -- " + p);
 	}
 
 	public static final void main(String[] args) {
@@ -2809,9 +2817,9 @@ public class TestDPQR {
 		test_normal();
 		test_random();
 		test_extreme();
-//		test_dkwtest();
-//		test_disttest();
-//		norm_test();
+		test_dkwtest();
+		test_disttest();
+		norm_test();
 		System.exit(0);
 	}
 }

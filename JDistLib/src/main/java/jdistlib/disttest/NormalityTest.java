@@ -122,7 +122,7 @@ public class NormalityTest {
 	 * @return p value
 	 */
 	public static final double shapiro_wilk_pvalue(double w, int n) {
-		final double kVerySmallValue = 1e-19;
+		final double kVerySmallValue = 1e-99;
 
 		// constant for Shapiro-wilk
 		final double[]
@@ -157,7 +157,7 @@ public class NormalityTest {
 			m = poly(c5, xx);
 			s = exp(poly(c6, xx));
 		}
-		return Normal.cumulative(y, m, s*s, false, false);
+		return Normal.cumulative(y, m, s, false, false);
 	}
 
 	public static final double anderson_darling_statistic(double[] X) {

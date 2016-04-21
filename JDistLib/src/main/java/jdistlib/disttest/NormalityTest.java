@@ -19,6 +19,9 @@ import java.util.Set;
 
 import jdistlib.ChiSquare;
 import jdistlib.Normal;
+import jdistlib.exception.PrecisionException;
+import jdistlib.util.Debug;
+
 import static java.lang.Math.abs;
 import static java.lang.Math.asin;
 import static java.lang.Math.exp;
@@ -37,14 +40,18 @@ import static jdistlib.disttest.Utils.calculate_ecdf;
  * @author Roby Joehanes
  */
 public class NormalityTest {
+	@SuppressWarnings("unused")
 	public static final double shapiro_wilk_statistic(double[] X) {
 		// constant for Shapiro-wilk
 		final double[]
 			c1 = {0, 0.221157, -0.147981, -2.07119, 4.434685, -2.706056},
 			c2 = {0, 0.042981, -0.293762, -1.752461, 5.682633, -3.582633};
 		int	n = X.length, n2 = n/2; // yes, integer division
-		if (n < 3)
+		if (n < 3) {
+			if (Debug.warningAsError)
+				throw new PrecisionException("Shapiro Wilks error: n < 3", n);
 			return 0;
+		}
 		double[] a = new double[n2];
 		if (n == 3)
 			a[0] = M_1_SQRT_2;
@@ -70,7 +77,10 @@ public class NormalityTest {
 				a[i] /= fac;
 		}
 
-		double range = X[n - 1] - X[0], xx = X[0] / range, sx = xx, sa = -a[0], xi;
+		double range = X[n - 1] - X[0];
+		if (range < 1e-19)
+			throw new PrecisionException("Shapiro-Wilks error: Range too small!", range);
+		double xx = X[0] / range, sx = xx, sa = -a[0], xi;
 		int j = n - 1;
 		for (int i = 1; i < n; j--) {
 			xi = X[i] / range;
@@ -100,6 +110,8 @@ public class NormalityTest {
 			ssassx = sqrt(ssa * ssx),
 			w1 = (ssassx - sax) * (ssassx + sax) / (ssa * ssx);
 
+		if (n > 5000 && Debug.warningAsError)
+			throw new PrecisionException("Shapiro-Wilks error: n > 5000", n);
 		return 1 - w1;
 	}
 
@@ -117,11 +129,14 @@ public class NormalityTest {
 			c3 = {0.544, -0.39978, 0.025054, -6.714e-4},
 			c4 = {1.3822, -0.77857, 0.062767, -0.0020322},
 			c5 = {-1.5861, -0.31082, -0.083751, 0.0038915},
-			c6 = {-0.4803, -0.082676f, 0.0030302},
+			c6 = {-0.4803, -0.082676, 0.0030302},
 			g = {-2.273, 0.459};
 
-		if (n < 3)
+		if (n < 3) {
+			if (Debug.warningAsError)
+				throw new PrecisionException("Shapiro Wilks error: n < 3", n);
 			return 1;
+		}
 		if (n == 3) // exact P value :
 			return max(0, 1.90985931710274 * (asin(sqrt(w)) - 1.04719755119660));
 

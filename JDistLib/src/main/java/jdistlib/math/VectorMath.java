@@ -417,6 +417,22 @@ public class VectorMath {
 	}
 
 	/**
+	 * Compute the Median Absolute Deviation (MAD)
+	 * @param e does not need to be sorted
+	 * @return MAD value
+	 */
+	public static final double mad(double[] e) {
+		int n = e.length;
+		double[] v = new double[e.length];
+		System.arraycopy(e, 0, v, 0, n);
+		sort(v);
+		double med = quantile(v, 0.5);
+		for (int i = 0; i < n; i++)
+			v[i] = abs(v[i] - med);
+		return quantile(v, 0.5);
+	}
+
+	/**
 	 * Standardize the value in x (i.e., (x - mean(x)) / sd(x))
 	 * @param x
 	 * @return standardized values

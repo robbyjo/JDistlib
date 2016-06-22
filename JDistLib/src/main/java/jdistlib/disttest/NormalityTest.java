@@ -40,17 +40,38 @@ import static jdistlib.disttest.Utils.calculate_ecdf;
  * @author Roby Joehanes
  */
 public class NormalityTest {
-	@SuppressWarnings("unused")
+	/**
+	 * Invoke shapiro_wilk_statistic with sort = false
+	 * @param X pre-sorted array of numbers
+	 * @return
+	 */
 	public static final double shapiro_wilk_statistic(double[] X) {
+		return shapiro_wilk_statistic(X, false);
+	}
+
+	/**
+	 * Compute Shapiro-Wilk statistic
+	 * @param X array of number
+	 * @param sort if true, then this function will attempt to sort the X first.
+	 * @return
+	 */
+	@SuppressWarnings("unused")
+	public static final double shapiro_wilk_statistic(double[] x, boolean sort) {
 		// constant for Shapiro-wilk
 		final double[]
 			c1 = {0, 0.221157, -0.147981, -2.07119, 4.434685, -2.706056},
 			c2 = {0, 0.042981, -0.293762, -1.752461, 5.682633, -3.582633};
-		int	n = X.length, n2 = n/2; // yes, integer division
+		int	n = x.length, n2 = n/2; // yes, integer division
 		if (n < 3) {
 			if (Debug.warningAsError)
 				throw new PrecisionException("Shapiro Wilks error: n < 3", n);
 			return 0;
+		}
+		double[] X = x;
+		if (sort) {
+			X = new double[n];
+			System.arraycopy(x, 0, X, 0, n);
+			sort(X);
 		}
 		double[] a = new double[n2];
 		if (n == 3)

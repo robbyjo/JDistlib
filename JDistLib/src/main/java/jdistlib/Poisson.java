@@ -111,7 +111,6 @@ public class Poisson extends GenericDistribution {
 		if(MathFunctions.isInfinite(lambda))
 			return Double.NaN;
 		if(lambda < 0) return Double.NaN;
-		if(lambda == 0) return 0;
 
 		//R_Q_P01_boundaries(p, 0, ML_POSINF);
 		if (log_p) {
@@ -130,6 +129,7 @@ public class Poisson extends GenericDistribution {
 			if(p == 1)
 				return lower_tail ? Double.POSITIVE_INFINITY : 0;
 		}
+		if(lambda == 0) return 0;
 
 		mu = lambda;
 		sigma = sqrt(lambda);

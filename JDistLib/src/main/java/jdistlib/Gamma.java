@@ -566,14 +566,13 @@ public class Gamma extends GenericDistribution {
 		double s, s2, d;    /* no. 1 (step 1) */
 		double q0, b, si, c;/* no. 2 (step 4) */
 
-		if (MathFunctions.isInfinite(a) || MathFunctions.isInfinite(scale) || a < 0.0 || scale <= 0.0) {
-			if(scale == 0.) return 0.;
+		if (a <= 0.0 || scale <= 0.0) {
+			if(scale == 0. || a == 0) return 0.;
 			return Double.NaN;
 		}
+		if (MathFunctions.isInfinite(a) || MathFunctions.isInfinite(scale)) return Double.POSITIVE_INFINITY;
 
 		if (a < 1.) { /* GS algorithm for parameters a < 1 */
-			if(a == 0)
-				return 0.;
 			e = 1.0 + exp_m1 * a;
 			for(;;) {
 				p = e * random.nextDouble();

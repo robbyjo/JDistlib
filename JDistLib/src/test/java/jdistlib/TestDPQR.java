@@ -2799,26 +2799,38 @@ public class TestDPQR {
 		w = NormalityTest.shapiro_wilk_statistic(n2);
 		p = NormalityTest.shapiro_wilk_pvalue(w, n2.length);
 		System.out.println(w + " -- " + p);
+		x = c(14.587726599333871, 14.845914188997108, 14.491111891829638, 13.576509016063552, 14.564079222003288,
+			14.177274119338016, 14.44720160004999, 13.589365383738828, 13.375261101861817, 13.890673980094979,
+			14.291088854951136, 13.645218475691312, 14.501583506358715, 15.170848998952321, 15.95745228080566,
+			16.360081935716625, 17.4103349063546, 17.1850436261102, 16.848565023259475, 17.888398765992683,
+			16.586566607302917, 16.718486483399357, 15.390015866469467, 16.300712312358275, 17.017659229149473,
+			16.416757020607307, 12.329070437414767, 12.29630393917019, 10.685393314266232, 9.660898885542535,
+			8.285611195973566, 7.965889830278456, 8.320972602691585, 8.229170627290415, 11.75215260141066,
+			13.786596891598476, 12.617404541667204);
+		sort(x);
+		w = NormalityTest.shapiro_wilk_statistic(x);
+		p = NormalityTest.shapiro_wilk_pvalue(w, x.length);
+		System.out.println(w + " -- " + p);
 	}
 
 	public static final void main(String[] args) {
 		//System.out.println(String.format("%3.18g", MathFunctions.gammafn(13.51)));
 		//System.out.println(NonCentralChiSquare.cumulative(1e-5, 100, 1, true, false));
-		test_binom();
-		test_geom();
-		test_hyper();
-		test_negbin();
-		test_poisson();
-		test_signrank();
-		test_wilcox();
-		test_gamma();
-		test_noncentralchisq();
-		test_beta();
-		test_normal();
-		test_random();
-		test_extreme();
-		test_dkwtest();
-		test_disttest();
+//		test_binom();
+//		test_geom();
+//		test_hyper();
+//		test_negbin();
+//		test_poisson();
+//		test_signrank();
+//		test_wilcox();
+//		test_gamma();
+//		test_noncentralchisq();
+//		test_beta();
+//		test_normal();
+//		test_random();
+//		test_extreme();
+//		test_dkwtest();
+//		test_disttest();
 		norm_test();
 		System.exit(0);
 	}

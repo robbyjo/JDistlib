@@ -49,6 +49,8 @@ public class Poisson extends GenericDistribution {
 		if (x < 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (x <= lambda * DBL_MIN) return(give_log ? -lambda : exp(-lambda) );
 		if (lambda < x * DBL_MIN) {
+			if (MathFunctions.isInfinite(x))
+				 return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 			x = -lambda + x*log(lambda) -lgammafn(x+1);
 			return(give_log ? x : exp(x));
 		}
@@ -112,24 +114,14 @@ public class Poisson extends GenericDistribution {
 			return Double.NaN;
 		if(lambda < 0) return Double.NaN;
 
-		//R_Q_P01_boundaries(p, 0, ML_POSINF);
-		if (log_p) {
-			if(p > 0)
-				return Double.NaN;
-			if(p == 0) /* upper bound*/
-				return lower_tail ? Double.POSITIVE_INFINITY : 0;
-			if(p == Double.NEGATIVE_INFINITY)
-				return lower_tail ? 0 : Double.POSITIVE_INFINITY;
-		}
-		else { /* !log_p */
-			if(p < 0 || p > 1)
-				return Double.NaN;
-			if(p == 0)
-				return lower_tail ? 0 : Double.POSITIVE_INFINITY;
-			if(p == 1)
-				return lower_tail ? Double.POSITIVE_INFINITY : 0;
-		}
+		// R_Q_P01_check(p);
+		if ((log_p	&& p > 0) || (!log_p && (p < 0 || p > 1)) )
+			return Double.NaN;
 		if(lambda == 0) return 0;
+		//if(p == R_DT_0) return 0;
+		if(p == (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.))) return 0;
+		//if(p == R_DT_1) return ML_POSINF;
+		if(p == (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.))) return Double.POSITIVE_INFINITY;
 
 		mu = lambda;
 		sigma = sqrt(lambda);

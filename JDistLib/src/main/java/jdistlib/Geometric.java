@@ -67,7 +67,12 @@ public class Geometric extends GenericDistribution {
 
 	public static final double quantile(double p, double prob, boolean lower_tail, boolean log_p)
 	{
+		if (Double.isNaN(p) || Double.isNaN(prob)) return p + prob;
 		if (prob <= 0 || prob > 1) return Double.NaN;
+		// R_Q_P01_check(p);
+		if ((log_p	&& p > 0) || (!log_p && (p < 0 || p > 1)) )
+			return Double.NaN;
+		if (prob == 1) return(0);
 		//R_Q_P01_boundaries(p, 0, ML_POSINF);
 		if (log_p) {
 			if(p > 0)
@@ -85,8 +90,6 @@ public class Geometric extends GenericDistribution {
 			if(p == 1)
 				return lower_tail ? Double.POSITIVE_INFINITY : 0;
 		}
-		if (Double.isNaN(p) || Double.isNaN(prob)) return p + prob;
-		if (prob == 1) return(0);
 		/* add a fuzz to ensure left continuity */
 		//return ceil(R_DT_Clog(p) / log1p(- prob) - 1 - 1e-7);
 		p = (lower_tail? (log_p ? ((p) > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))) : log1p(-p)) : (log_p ? (p) : log(p)));

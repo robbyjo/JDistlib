@@ -1469,7 +1469,7 @@ public class MathFunctions {
 			bnp1 = 1.0;
 		} while (n < 10000);
 
-		if(n >= 10000 && Debug.warningAsError) {
+		if(n >= 10000 && abs(r - r0) > eps * r && Debug.warningAsError) {
 			throw new PrecisionException(String.format(" bfrac(a=%g, b=%g, x=%g, y=%g, lambda=%g) did *not* converge (in 10000 steps)\n",
 				a,b,x,y, lambda), 0);
 		}

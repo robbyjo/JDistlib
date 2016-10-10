@@ -576,12 +576,17 @@ public class VectorMath {
 		return (Double.isNaN(a) && Double.isNaN(b)) || (a == b || abs(a - b)/(Double.isNaN(a) ? 0 : a) <= tol);
 	}
 
-	public static final boolean allEqual(double[] a, double[] b, double tol) {
+	public static final double relativeDiff(double[] a, double[] b) {
 		int n = a.length;
 		if (n != b.length) throw new RuntimeException();
-		for (int i = 0; i < n; i++)
-			if (!isEqual(a[i], b[i], tol)) return false;
-		return true;
+		double
+			xy = mean(vabs(vmin(a, b))),
+			xn = mean(vabs(a));
+		return xy / xn;
+	}
+
+	public static final boolean allEqual(double[] a, double[] b, double tol) {
+		return relativeDiff(a, b) < tol;
 	}
 
 	public static final boolean allEqualScaled(double[] a, double[] b, double tol) {

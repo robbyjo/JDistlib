@@ -2374,8 +2374,123 @@ public class TestDPQR {
 			printAllEqual(NI, N2);
 			System.out.println("## size = Inf -- mostly gave NaN  in R <= 3.2.3");
 		}
-		// TODO Add more test cases here
-		//*/
+		{
+			System.out.println("## qpois(p, *) for invalid 'p' should give NaN -- PR#16972");
+			val = Poisson.quantile(-2, 3, true, false);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Poisson.quantile(-2, 3, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+			val = Poisson.quantile(3, 3, true, false);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Poisson.quantile(3, 3, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+			val = Poisson.quantile(Double.NaN, 3, true, false);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Poisson.quantile(NaN, 3, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+			val = Poisson.quantile(1, 3, true, true);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Poisson.quantile(1, 3, true, true) = %3.18g != NaN", val));
+				success = false;
+			}
+			System.out.println("## The following gave 0 in R <= 3.3.1");
+			val = Poisson.quantile(0.5, 0, true, true);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Poisson.quantile(0.5, 0, true, true) = %3.18g != NaN", val));
+				success = false;
+			}
+			val = Poisson.quantile(-1, 0, true, false);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Poisson.quantile(-1, 0, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+			val = Poisson.quantile(Math.PI, 0, true, false);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Poisson.quantile(PI, 0, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+			System.out.println("## Similar but different for qgeom():");
+			for (int i = 0; i <= 8; i++) {
+				val = Geometric.quantile(i / 8.0, 1, true, false);
+				if (val != 0) {
+					System.err.println(String.format("Geometric.quantile(%d, 0, true, false) = %3.18g != 0", i, val));
+					success = false;
+				}
+			}
+			val = Geometric.quantile(-1.0/4, 1, true, false);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Geometric.quantile(PI, 0, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+			val = Geometric.quantile(1.1, 1, true, false);
+			if (!Double.isNaN(val)) {
+				System.err.println(String.format("Geometric.quantile(PI, 0, true, false) = %3.18g != NaN", val));
+				success = false;
+			}
+		}
+		return success;
+	}
+
+	public static final boolean test_for_NA() {
+		boolean success = true;
+		// TODO add more test cases here
+		/*
+		 * The following code is testing all random functions in standard R.
+		 * It fills all arguments with 1, and then turn it into NA in succession (except for the first argument, n).
+		 * For example:
+		 * rbeta(1, NA, 1, 1)
+		 * rbeta(1, 1, NA, 1)
+		 * rbeta(1, 1, 1, NA)
+		 * This is a way for R developers to check whether giving an NA to RNG routines responds correctly with NA.
+		 * This is somewhat tricky to implement in Java.
+		 * Should I write a code of kind in Java using Reflection (which is an overkill, IMO)?
+		 * Or should I resort to a copy-and-paste solution (which is drudgery)?
+		 * I will leave it as it is for now. Will port later. FIXME
+		 */
+		/*
+		 * PDQRinteg <- c("binom", "geom", "hyper", "nbinom", "pois","signrank","wilcox")
+		 * PDQR <- c(PDQRinteg, "beta", "cauchy", "chisq", "exp", "f", "gamma",
+		 * "lnorm", "logis", "norm", "t","unif","weibull")
+		 * ## all our RNG  r<dist>() functions:
+##' catch all: value and warnings or error <-- demo(error.catching) :
+tryCatch.W.E <- function(expr) {
+    W <- NULL
+    w.handler <- function(w){ # warning handler
+	W <<- w
+	invokeRestart("muffleWarning")
+    }
+    list(value = withCallingHandlers(tryCatch(expr, error = function(e) e),
+				     warning = w.handler),
+	 warning = W)
+}
+.stat.ns <- asNamespace("stats")
+Ns <- 4
+for(dist in PDQR) {
+    fn <- paste0("r",dist)
+    cat(sprintf("%-9s(%d, ..): ", fn, Ns))
+    F <- get(fn, envir = .stat.ns)
+    nArg <- length(fms <- formals(F))
+    if(dist %in% c("nbinom", "gamma")) ## cannot specify *both* 'prob' & 'mu' / 'rate' & 'scale'
+        nArg <- nArg - 1
+    nA1 <- nArg - 1 # those beside the first (= 'n' mostly)
+    expected <- rep(if(dist %in% PDQRinteg) NA_integer_ else NaN, Ns)
+    for(ia in seq_len(nA1)) {
+        aa <- rep(list(1), nA1)
+        aa[[ia]] <- NA
+        cat(ia,"")
+        R <- tryCatch.W.E( do.call(F, c(Ns, aa)) )
+        if(!inherits(R$warning, "simpleWarning")) cat(" .. did *NOT* give a warning! ")
+	if(!(identical(R$value, expected))) { ## allow NA/NaN mismatch in these cases for now:
+	    if(!(dist %in% c("beta","f","t") && all(is.na(R$value))))
+		cat(" .. not giving expected NA/NaN's ")
+        }
+    }
+    cat(" [Ok]\n")
+}
+		 */
 		return success;
 	}
 
@@ -2829,9 +2944,10 @@ public class TestDPQR {
 //		test_normal();
 //		test_random();
 //		test_extreme();
+		test_for_NA();
 //		test_dkwtest();
 //		test_disttest();
-		norm_test();
+//		norm_test();
 		System.exit(0);
 	}
 }

@@ -114,22 +114,22 @@ public class TestDPQR {
 				double p = j == 0 ? 0 : j == 1 ? 1 : Beta.random(2, 4, random);
 				System.out.print(".");
 				for (int j2 = 0; j2 < n3; j2++) {
-					int k = (int) Binomial.random(n, random.nextDouble(), random);
-					double prev_dbinom = 0;
-					for (int l = 0; l <= k; l++) {
-						double pbinom = Binomial.cumulative(l, n, p, true, false);
-						double dbinom = prev_dbinom + Binomial.density(l, n, p, false);
-						prev_dbinom = dbinom;
-						if (!isEqual(pbinom, dbinom)) {
-							System.err.println(String.format("Error: pbinom = %g, cumsum(dbinom) = %g", pbinom, dbinom));
-							success = false;
-						}
-					}
-					double f_eq = k == n || p == 0 ? 1 : F.cumulative((k+1.0)/(n-k)*(1.0-p)/p, 2*(n-k), 2*(k+1), true, false);
-					if (!isEqual(f_eq, prev_dbinom)) {
-						System.err.println(String.format("Error: pf = %g, sum(dbinom) = %g", f_eq, prev_dbinom));
-						success = false;
-					}
+			int k = (int) Binomial.random(n, random.nextDouble(), random);
+			double prev_dbinom = 0;
+			for (int l = 0; l <= k; l++) {
+				double pbinom = Binomial.cumulative(l, n, p, true, false);
+				double dbinom = prev_dbinom + Binomial.density(l, n, p, false);
+				prev_dbinom = dbinom;
+				if (!isEqual(pbinom, dbinom)) {
+					System.err.println(String.format("Error: pbinom = %g, cumsum(dbinom) = %g", pbinom, dbinom));
+					success = false;
+				}
+			}
+			double f_eq = k == n || p == 0 ? 1 : F.cumulative((k+1.0)/(n-k)*(1.0-p)/p, 2*(n-k), 2*(k+1), true, false);
+			if (!isEqual(f_eq, prev_dbinom)) {
+				System.err.println(String.format("Error: pf = %g, sum(dbinom) = %g", f_eq, prev_dbinom));
+				success = false;
+			}
 				}
 			}
 			System.out.println();
@@ -150,14 +150,14 @@ public class TestDPQR {
 				double dg = Geometric.density(j, pr, false);
 				double direct = pr * pow(q, j);
 				if (!isEqual(dg, direct)) {
-					System.err.println(String.format("Error: dgeom = %g, direct = %g", dg, direct));
-					success = success1 = false;
+			System.err.println(String.format("Error: dgeom = %g, direct = %g", dg, direct));
+			success = success1 = false;
 				}
 				dg += prev_dg;
 				double pgeom = Geometric.cumulative(j, pr, true, false);
 				if (!isEqual(dg, pgeom)) {
-					System.err.println(String.format("Error: cumsum(dgeom) = %g, pgeom = %g", dg, pgeom));
-					success = success2 = false;
+			System.err.println(String.format("Error: cumsum(dgeom) = %g, pgeom = %g", dg, pgeom));
+			success = success2 = false;
 				}
 				prev_dg = dg;
 			}
@@ -180,8 +180,8 @@ public class TestDPQR {
 				double dhyper = prev_dhyper + HyperGeometric.density(j, m, n, k, false);
 				prev_dhyper = dhyper;
 				if (!isEqual(phyper, dhyper)) {
-					System.err.println(String.format("Error: phyper = %g, cumsum(dhyper) = %g", phyper, dhyper));
-					success = cur_success = false;
+			System.err.println(String.format("Error: phyper = %g, cumsum(dhyper) = %g", phyper, dhyper));
+			success = cur_success = false;
 				}
 			}
 			printBool(cur_success);
@@ -202,8 +202,8 @@ public class TestDPQR {
 				double pnbinom = NegBinomial.cumulative(j, size, 0.5, true, false);
 				prev_dnbinom = dnbinom;
 				if (!isEqual(dnbinom, pnbinom)) {
-					System.err.println(String.format("Error: cumsum(dnbinom) = %g, pnbinom = %g", dnbinom, dnbinom));
-					success = cur_success = false;
+			System.err.println(String.format("Error: cumsum(dnbinom) = %g, pnbinom = %g", dnbinom, dnbinom));
+			success = cur_success = false;
 				}
 			}
 			printBool(cur_success);
@@ -249,23 +249,23 @@ public class TestDPQR {
 				double prev_dpois = 0;
 				cur_success = true;
 				for (int j2 = 0; j2 <= k; j2++) {
-					double comp_pchisq = 1 - ChiSquare.cumulative(2 * lambda, 2 * j2+ 2, true, false);
-					double dpois = prev_dpois + Poisson.density(j2, lambda, false);
-					prev_dpois = dpois;
-					if (!isEqual(comp_pchisq, dpois)) {
-						System.err.println(String.format("Error: comp. pchisq = %g, dpois = %g", comp_pchisq, dpois));
-						success = cur_success = false;
-					}
-					double ppois = Poisson.cumulative(j2, lambda, true, false);
-					if (!isEqual(ppois, dpois)) {
-						System.err.println(String.format("Error: ppois = %g, dpois = %g", ppois, dpois));
-						success = cur_success = false;
-					}
-					ppois = Poisson.cumulative(j2, lambda, false, false);
-					if (!isEqual(ppois, 1 - dpois)) {
-						System.err.println(String.format("Error: upper ppois = %g, dpois = %g", ppois, dpois));
-						success = cur_success = false;
-					}
+			double comp_pchisq = 1 - ChiSquare.cumulative(2 * lambda, 2 * j2+ 2, true, false);
+			double dpois = prev_dpois + Poisson.density(j2, lambda, false);
+			prev_dpois = dpois;
+			if (!isEqual(comp_pchisq, dpois)) {
+				System.err.println(String.format("Error: comp. pchisq = %g, dpois = %g", comp_pchisq, dpois));
+				success = cur_success = false;
+			}
+			double ppois = Poisson.cumulative(j2, lambda, true, false);
+			if (!isEqual(ppois, dpois)) {
+				System.err.println(String.format("Error: ppois = %g, dpois = %g", ppois, dpois));
+				success = cur_success = false;
+			}
+			ppois = Poisson.cumulative(j2, lambda, false, false);
+			if (!isEqual(ppois, 1 - dpois)) {
+				System.err.println(String.format("Error: upper ppois = %g, dpois = %g", ppois, dpois));
+				success = cur_success = false;
+			}
 				}
 			}
 		}
@@ -285,8 +285,8 @@ public class TestDPQR {
 				double dsignrank = prev_dsignrank + d.density(x, false);
 				prev_dsignrank = dsignrank;
 				if (!isEqual(psignrank, dsignrank)) {
-					System.err.println(String.format("Error: psignrank = %g, dsignrank = %g", psignrank, dsignrank));
-					success = false;
+			System.err.println(String.format("Error: psignrank = %g, dsignrank = %g", psignrank, dsignrank));
+			success = false;
 				}
 			}
 		}
@@ -306,15 +306,15 @@ public class TestDPQR {
 				int limit = n*m + 1;
 				double cum_dwilcox = 0;
 				for (int x = -1; x <= limit; x++) {
-					double pwilcox = d.cumulative(x, true, false);
-					double dwilcox = d.density(x, false);
-					double dwilcox_sym = d_sym.density(x, false);
-					cum_dwilcox += dwilcox;
-					if (!isEqual(pwilcox, cum_dwilcox)) {
-						System.err.println(String.format("Error: pwilcox = %g, dwilcox = %g", pwilcox, cum_dwilcox));
-						success = false;
-					}
-					is_sym = is_sym & isEqual(dwilcox, dwilcox_sym);
+			double pwilcox = d.cumulative(x, true, false);
+			double dwilcox = d.density(x, false);
+			double dwilcox_sym = d_sym.density(x, false);
+			cum_dwilcox += dwilcox;
+			if (!isEqual(pwilcox, cum_dwilcox)) {
+				System.err.println(String.format("Error: pwilcox = %g, dwilcox = %g", pwilcox, cum_dwilcox));
+				success = false;
+			}
+			is_sym = is_sym & isEqual(dwilcox, dwilcox_sym);
 				}
 			}
 		}
@@ -332,20 +332,20 @@ public class TestDPQR {
 				double sh = round(LogNormal.random(0, 1, random), 2);
 				double Ga = gammafn(sh);
 				for (int k = 0; k < 30; k++) {
-					double sig = round(LogNormal.random(0, 1, random), 2);
-					double d1 = Gamma.density(x, sh, sig, false);
-					double d2 = Gamma.density(x/sig, sh, 1, false) / sig;
-					if (!isEqual(d1, d2)) {
-						System.err.println(String.format("Error: scaled dgamma = %g, manually scaled dgamma = %g", d1, d2));
-						System.err.println(String.format("x = %g, sh = %g, sig = %g, Ga(sh) = %g", x, sh, sig, Ga));
-						success = false;
-					}
-					double d3 = 1.0 / (Ga * pow(sig, sh)) * pow(x, sh - 1.0) * exp(-x / sig);
-					if (!VectorMath.isEqual(d1, d3, 2 * defaultNumericalError)) { // Still within error limit
-						System.err.println(String.format("Error: scaled dgamma = %3.18g, manually comp dgamma = %3.18g", d1, d3));
-						System.err.println(String.format("x = %g, sh = %g, sig = %g, Ga(sh) = %3.30g", x, sh, sig, Ga));
-						success = false;
-					}
+			double sig = round(LogNormal.random(0, 1, random), 2);
+			double d1 = Gamma.density(x, sh, sig, false);
+			double d2 = Gamma.density(x/sig, sh, 1, false) / sig;
+			if (!isEqual(d1, d2)) {
+				System.err.println(String.format("Error: scaled dgamma = %g, manually scaled dgamma = %g", d1, d2));
+				System.err.println(String.format("x = %g, sh = %g, sig = %g, Ga(sh) = %g", x, sh, sig, Ga));
+				success = false;
+			}
+			double d3 = 1.0 / (Ga * pow(sig, sh)) * pow(x, sh - 1.0) * exp(-x / sig);
+			if (!VectorMath.isEqual(d1, d3, 2 * defaultNumericalError)) { // Still within error limit
+				System.err.println(String.format("Error: scaled dgamma = %3.18g, manually comp dgamma = %3.18g", d1, d3));
+				System.err.println(String.format("x = %g, sh = %g, sig = %g, Ga(sh) = %3.30g", x, sh, sig, Ga));
+				success = false;
+			}
 				}
 			}
 		}
@@ -399,11 +399,11 @@ public class TestDPQR {
 		for (double df : new double[] { 0.1, 1, 10 }) {
 			for (double ncp : new double[] { 0, 1, 10, 100 }) {
 				for (double xB : new double [] { 2000, 1e6, 1e50, Double.POSITIVE_INFINITY}) {
-					double val = NonCentralChiSquare.cumulative(xB, df, ncp, true, false);
-					if (!isEqual(val, 1)) {
-						System.err.println(String.format("Error: pchisq(x=%g, df=%g, ncp=%g) = %3.18g. Correct answer = 1", xB, df, ncp, val));
-						success = false;
-					}
+			double val = NonCentralChiSquare.cumulative(xB, df, ncp, true, false);
+			if (!isEqual(val, 1)) {
+				System.err.println(String.format("Error: pchisq(x=%g, df=%g, ncp=%g) = %3.18g. Correct answer = 1", xB, df, ncp, val));
+				success = false;
+			}
 				}
 			}
 		}
@@ -423,8 +423,8 @@ public class TestDPQR {
 				double pval = NonCentralChiSquare.cumulative(xx, df, 1, true, false);
 				double qval = NonCentralChiSquare.quantile(pval, df, 1, true, false);
 				if (!VectorMath.isEqual(qval, xx, dtol)) {
-					System.err.println(String.format("Error: xx=%g, df=%g, ncp=1, pchisq = %3.18g, qchisq = %3.18g != xx", xx, df, pval, qval));
-					success = cur_success = false;
+			System.err.println(String.format("Error: xx=%g, df=%g, ncp=1, pchisq = %3.18g, qchisq = %3.18g != xx", xx, df, pval, qval));
+			success = cur_success = false;
 				}
 			}
 			printBool(cur_success);
@@ -464,15 +464,15 @@ public class TestDPQR {
 			for (int j = 0; j < 20; j++) {
 				double b = LogNormal.random(6.6, 1, random);
 				for (int k = 0; k <= 10; k++) {
-					double p = k/10.0;
-					double v1 = Beta.density(p, a, b, false);
-					double v2log = Beta.density(p, a, b, true);
-					double v2 = exp(v2log);
-					//System.out.println(String.format("Debug: p=%g, a=%3.18g, b=%3.18g, dbeta(p,a,b) = %3.18g, dbeta(p,a,b,TRUE) = %3.18g", p, a, b, v1, v2log));
-					if (!VectorMath.isEqual(v1, v2, 1e-11)) {
-						System.err.println(String.format("Error: p=%g, a=%3.18g, b=%3.18g, dbeta(p,a,b) = %3.18g, exp(dbeta(p,a,b,TRUE)) = %3.18g", p, a, b, v1, v2));
-						success = false;
-					}
+			double p = k/10.0;
+			double v1 = Beta.density(p, a, b, false);
+			double v2log = Beta.density(p, a, b, true);
+			double v2 = exp(v2log);
+			//System.out.println(String.format("Debug: p=%g, a=%3.18g, b=%3.18g, dbeta(p,a,b) = %3.18g, dbeta(p,a,b,TRUE) = %3.18g", p, a, b, v1, v2log));
+			if (!VectorMath.isEqual(v1, v2, 1e-11)) {
+				System.err.println(String.format("Error: p=%g, a=%3.18g, b=%3.18g, dbeta(p,a,b) = %3.18g, exp(dbeta(p,a,b,TRUE)) = %3.18g", p, a, b, v1, v2));
+				success = false;
+			}
 				}
 			}
 		}
@@ -575,8 +575,8 @@ public class TestDPQR {
 				double pt = T.cumulative(z, df, true, false);
 				double pt_comp = 1 - T.cumulative(-z, df, true, false);
 				if (!VectorMath.isEqual(pt, pt_comp, 1e-15)) {
-					System.err.println(String.format("Error: z=%3.18g, df=%d, pt(z,df) = %3.18g, 1-pt(-z,df) = %3.18g", z, df, pt, pt_comp));
-					success = cur_success = false;
+			System.err.println(String.format("Error: z=%3.18g, df=%d, pt(z,df) = %3.18g, 1-pt(-z,df) = %3.18g", z, df, pt, pt_comp));
+			success = cur_success = false;
 				}
 			}
 			double pz = Normal.cumulative(z, 0, 1, true, false);
@@ -594,9 +594,9 @@ public class TestDPQR {
 				double log_pz = log(pz);
 				pz_comp = Normal.cumulative(z, 0, 1, true, true);
 				if (!VectorMath.isEqual(log_pz, pz_comp, 2 * defaultNumericalError)) {
-					// Special allowance. See bug #10
-					System.err.println(String.format("Error: z=%3.18g, log(pnorm(z)) = %3.18g, pnorm(z, log=TRUE) = %3.18g", z, log_pz, pz_comp));
-					success = cur_success4 = false;
+			// Special allowance. See bug #10
+			System.err.println(String.format("Error: z=%3.18g, log(pnorm(z)) = %3.18g, pnorm(z, log=TRUE) = %3.18g", z, log_pz, pz_comp));
+			success = cur_success4 = false;
 				}
 			}
 			double plnorm_exp_z = LogNormal.cumulative(exp(z), 0, 1, true, false);
@@ -607,8 +607,8 @@ public class TestDPQR {
 			if (1e-5 < pz && pz < 1 - 1e-5) {
 				double qnorm_pz = Normal.quantile(pz, 0, 1, true, false);
 				if (!VectorMath.isEqual(z, qnorm_pz, 1e-12)) {
-					buf2.append(String.format("Error: z=%3.18g, qnorm(pnorm(z)) = %3.18g", z, qnorm_pz) + "\n");
-					success = cur_success6 = false;
+			buf2.append(String.format("Error: z=%3.18g, qnorm(pnorm(z)) = %3.18g", z, qnorm_pz) + "\n");
+			success = cur_success6 = false;
 				}
 			}
 		}
@@ -1444,12 +1444,12 @@ public class TestDPQR {
 			double[] a = new LogNormal(0, 1).random(100);
 			for (double a_ : a) {
 				if ((val = NonCentralBeta.density(0, 1, a_, 0, false)) != a_) {
-					System.err.println(String.format("Error: Beta.density(0, 1, %3.18g, false) %3.18g != %3.18g", a_, val, a_));
-					success = false;
+			System.err.println(String.format("Error: Beta.density(0, 1, %3.18g, false) %3.18g != %3.18g", a_, val, a_));
+			success = false;
 				}
 				if (NonCentralBeta.density(0, 0.9, 2.2, a_, false) != inf) {
-					System.err.println(String.format("Error: NonCentralBeta.density(0, 1, 2.2, %3.18g, false) != Inf", a_));
-					success = false;
+			System.err.println(String.format("Error: NonCentralBeta.density(0, 1, 2.2, %3.18g, false) != Inf", a_));
+			success = false;
 				}
 			}
 			if (NonCentralBeta.density(0, 0.9, 2.2, 0, false) != inf) {
@@ -1484,8 +1484,8 @@ public class TestDPQR {
 				val = NonCentralF.density(0, 2, 4, _x, false);
 				double val2 = NonCentralF.density(1e-300, 2, 4, _x, false);
 				if (!isEqual(val, val2)) {
-					System.err.println(String.format("Error: x = %f, NonCentralF.density(0, 2, 4, x, false) = %3.18g != NonCentralF.density(1e-300, 2, 4, x, false)  = %3.18g", x, val, val2));
-					success = false;
+			System.err.println(String.format("Error: x = %f, NonCentralF.density(0, 2, 4, x, false) = %3.18g != NonCentralF.density(1e-300, 2, 4, x, false)  = %3.18g", x, val, val2));
+			success = false;
 				}
 			}
 		}
@@ -1564,8 +1564,8 @@ public class TestDPQR {
 			x = vmin(vpow(2, colon(0, 1022)));
 			for (double nu : c(0.1, 0.2, 0.5, 1, 1.2, 2.2, 5, 10, 20, 50, 100, 200)) {
 				if (!allFinite(new T(nu).cumulative(x, true, true))) {
-					System.err.println(String.format("Bad numeric behavior: T.cumulative(x, %f, true, true))", nu));
-					success = false;
+			System.err.println(String.format("Bad numeric behavior: T.cumulative(x, %f, true, true))", nu));
+			success = false;
 				}
 			}
 			val = T.cumulative(pow(2, -30), 10, true, false);
@@ -1677,8 +1677,8 @@ public class TestDPQR {
 				double val2 = Poisson.density(17, 20, false);
 				d[i] = val - val2;
 				if (d[i] >= 0) {
-					System.err.println(String.format("NegBinomial.density_mu(17, %3.18g, 20, false) = %3.18g > Poisson.density(17, 20, false) = %3.18g", size, val, val2));
-					success = false;
+			System.err.println(String.format("NegBinomial.density_mu(17, %3.18g, 20, false) = %3.18g > Poisson.density(17, 20, false) = %3.18g", size, val, val2));
+			success = false;
 				}
 			}
 			if (!allGt(diff(d), 0)) {
@@ -1690,8 +1690,8 @@ public class TestDPQR {
 			for (double _x : vtimes(1e12, vpow(2, colon(0., 20)))) {
 				val = NegBinomial.density_mu(0, 1, _x, false);
 				if (!VectorMath.isEqual(1.0/(1.0+_x), val, 1e-13)) {
-					System.err.println(String.format("NegBinomial.density_mu(0, 1, %3.18, false) = %3.18g != %3.18", _x, val, 1.0/(1.0+_x)));
-					success = false;
+			System.err.println(String.format("NegBinomial.density_mu(0, 1, %3.18, false) = %3.18g != %3.18", _x, val, 1.0/(1.0+_x)));
+			success = false;
 				}
 			}
 			// was wrong in 2.7.2 (only)
@@ -1701,15 +1701,15 @@ public class TestDPQR {
 			final double maxerr = 9*DBL_EPSILON;
 			for (int expo: new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 50, 100, 150, 200, 250, 300}) {
 				for (int i = 1; i <= 7; i++) {
-					double
-						mu = i * pow(10, expo),
-						NB = NegBinomial.density_mu(5, 1e305, mu, true),
-						P = Poisson.density(5, mu, true),
-						abserr = abs(rErr(NB, P));
-					if (abserr >= maxerr) {
-						System.err.println(String.format("abs(NegBinomial.density_mu(5, 1e305, mu=%g, log=true) - Poisson.density(5, %g, log=true)) = %3.18g > %3.18g (%3.18g vs. %3.18g)", mu, mu, abserr, maxerr, NB, P));
-						success = false;
-					}
+			double
+				mu = i * pow(10, expo),
+				NB = NegBinomial.density_mu(5, 1e305, mu, true),
+				P = Poisson.density(5, mu, true),
+				abserr = abs(rErr(NB, P));
+			if (abserr >= maxerr) {
+				System.err.println(String.format("abs(NegBinomial.density_mu(5, 1e305, mu=%g, log=true) - Poisson.density(5, %g, log=true)) = %3.18g > %3.18g (%3.18g vs. %3.18g)", mu, mu, abserr, maxerr, NB, P));
+				success = false;
+			}
 				}
 			}
 			//## wrong in 3.1.0 and earlier
@@ -1743,24 +1743,24 @@ public class TestDPQR {
 			double[] pr = vtimes(1e-7, colon(2., 20));
 			for (double sz: c(5000279., 5006279., 5016279)) {
 				for (double p : x) {
-					for (double _pr : pr) {
-						val = Binomial.quantile(p, sz, _pr, true, false);
-						double val2 = Poisson.quantile(p, sz * _pr, true, false);
-						if (val != val2) {
-							System.err.println(String.format("p=%3.18g, sz=%3.18g, pr=%3.18g, Binomial.quantile(p, sz, pr, true, false) = %3.18g != Poisson.quantile(p, sz*pr, true, false) = %3.18", p, sz, _pr, val, val2));
-							success = false;
-						}
-					}
+			for (double _pr : pr) {
+				val = Binomial.quantile(p, sz, _pr, true, false);
+				double val2 = Poisson.quantile(p, sz * _pr, true, false);
+				if (val != val2) {
+					System.err.println(String.format("p=%3.18g, sz=%3.18g, pr=%3.18g, Binomial.quantile(p, sz, pr, true, false) = %3.18g != Poisson.quantile(p, sz*pr, true, false) = %3.18", p, sz, _pr, val, val2));
+					success = false;
+				}
+			}
 				}
 				for (double _pr : pr) {
-					for (int ks = 0; ks <= 15; ks++) {
-						val = Binomial.cumulative(ks, sz, _pr, true, false);
-						double val2 = Binomial.quantile(val, sz, _pr, true, false);
-						if (val2 != ks) {
-							System.err.println(String.format("Binomial.quantile(Binomial.cumulative(%d, %f, %3.18g, true, false) = %3.18g != %f", ks, sz, _pr, val, val2));
-							success = false;
-						}
-					}
+			for (int ks = 0; ks <= 15; ks++) {
+				val = Binomial.cumulative(ks, sz, _pr, true, false);
+				double val2 = Binomial.quantile(val, sz, _pr, true, false);
+				if (val2 != ks) {
+					System.err.println(String.format("Binomial.quantile(Binomial.cumulative(%d, %f, %3.18g, true, false) = %3.18g != %f", ks, sz, _pr, val, val2));
+					success = false;
+				}
+			}
 				}
 			}
 			//  do_search() in qbinom() contained a thinko up to 2.9.0 (PR#13711)
@@ -1771,12 +1771,12 @@ public class TestDPQR {
 			x = vpow(2, colon(-200., -10));
 			for (double a : c(1e-8, 1e-12, 16e-16, 4e-16)) {
 				for (double b : c(0.6, 1, 2, 10)) {
-					double[] dp = diff(new Beta(a, b).cumulative(x, true, true));
-					val = sd(dp) / mean(dp);
-					if (val >= 0.0007) {
-						System.err.println(String.format("a=%f, b=%f, dp=diff(Beta(x, a, b, true, true)), sd(dp)/mean(db) = %3.18> 0.0007", a, b, val));
-						success = false;
-					}
+			double[] dp = diff(new Beta(a, b).cumulative(x, true, true));
+			val = sd(dp) / mean(dp);
+			if (val >= 0.0007) {
+				System.err.println(String.format("a=%f, b=%f, dp=diff(Beta(x, a, b, true, true)), sd(dp)/mean(db) = %3.18> 0.0007", a, b, val));
+				success = false;
+			}
 				}
 			}
 			// had  accidental cancellation '1 - w'
@@ -1806,21 +1806,21 @@ public class TestDPQR {
 
 			for (double a: vpow(2, vmin(seq(10., 1000, .25)))) {
 				double
-					q1c = Gamma.quantile(1e-100, a, 1, false, false),
-					q3c = Gamma.quantile(1e-300, a, 1, false, false);
+			q1c = Gamma.quantile(1e-100, a, 1, false, false),
+			q3c = Gamma.quantile(1e-300, a, 1, false, false);
 				if (q1c > 0) {
-					double p1c = Gamma.cumulative(q1c, a, 1, false, false);
-					if (abs(1 - p1c/1e-100) >= 10e-13) {
-						System.err.println(String.format("Precision loss: a=%f. Gamma.cumulative(Gamma.quantile(1e-300, a, 1, false, false)) != 1e-100", a));
-						success = false;
-					}
+			double p1c = Gamma.cumulative(q1c, a, 1, false, false);
+			if (abs(1 - p1c/1e-100) >= 10e-13) {
+				System.err.println(String.format("Precision loss: a=%f. Gamma.cumulative(Gamma.quantile(1e-300, a, 1, false, false)) != 1e-100", a));
+				success = false;
+			}
 				}
 				if (q3c > 0) {
-					double p3c = Gamma.cumulative(q3c, a, 1, false, false);
-					if (abs(1 - p3c/1e-300) >= 28e-13) {
-						System.err.println(String.format("Precision loss: a=%f. Gamma.cumulative(Gamma.quantile(1e-300, a, 1, false, false)) != 1e-100", a));
-						success = false;
-					}
+			double p3c = Gamma.cumulative(q3c, a, 1, false, false);
+			if (abs(1 - p3c/1e-300) >= 28e-13) {
+				System.err.println(String.format("Precision loss: a=%f. Gamma.cumulative(Gamma.quantile(1e-300, a, 1, false, false)) != 1e-100", a));
+				success = false;
+			}
 				}
 			}
 		}
@@ -1849,12 +1849,12 @@ public class TestDPQR {
 				val = pow(2, -i);
 				lp[i] = NonCentralChiSquare.cumulative(val, 100, 1, true, true);
 				if (isInfinite(lp[i])) {
-					System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(%3.18g, 100, 1, true, true) is not finite", val));
-					success = false;
+			System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(%3.18g, 100, 1, true, true) is not finite", val));
+			success = false;
 				}
 				if (lp[i] >= -184) {
-					System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(%3.18g, 100, 1, true, true) = %3.18g >= -184", val, lp[i]));
-					success = false;
+			System.err.println(String.format("Precision loss: NonCentralChiSquare.cumulative(%3.18g, 100, 1, true, true) = %3.18g >= -184", val, lp[i]));
+			success = false;
 				}
 			}
 			if (!isEqualScaled(lp[200], -7115.10693158)) {
@@ -1868,24 +1868,24 @@ public class TestDPQR {
 			print(range(dd));
 			for (int i = 0; i < dlp.length; i++)
 				if (-34.66 >= dlp[i] || dlp[i] >= -34.41) {
-					System.err.println(String.format("Precision loss: %3.18g not within -34.41 and -34.66", dlp[i]));
-					success = false;
+			System.err.println(String.format("Precision loss: %3.18g not within -34.41 and -34.66", dlp[i]));
+			success = false;
 				}
 			for (int i = 0; i < dd.length; i++)
 				if (dd[i] >= 1e-8) {
-					System.err.println(String.format("Precision loss: Differential error of %3.18g >= 1e-8 detected!", dd[i]));
-					success = false;
+			System.err.println(String.format("Precision loss: Differential error of %3.18g >= 1e-8 detected!", dd[i]));
+			success = false;
 				}
 			for (double e: c(0., 2e-16)) {
 				val = NonCentralChiSquare.cumulative(1, 1.01, 80*(1-e), true, true);
 				if (!isEqualScaled(val, -34.57369629)) {
-					System.err.println(String.format("Continuity error detected: NonCentralChiSquare.cumulative(1, 1.01, 80*(1-%g), true, true) = %3.18g != -34.57369629", e, val));
-					success = false;
+			System.err.println(String.format("Continuity error detected: NonCentralChiSquare.cumulative(1, 1.01, 80*(1-%g), true, true) = %3.18g != -34.57369629", e, val));
+			success = false;
 				}
 				val = NonCentralChiSquare.cumulative(2, 1.01, 80*(1-e), true, true);
 				if (!isEqualScaled(val, -31.31514671)) {
-					System.err.println(String.format("Continuity error detected: NonCentralChiSquare.cumulative(2, 1.01, 80*(1-%g), true, true) = %3.18g != -31.31514671", e, val));
-					success = false;
+			System.err.println(String.format("Continuity error detected: NonCentralChiSquare.cumulative(2, 1.01, 80*(1-%g), true, true) = %3.18g != -31.31514671", e, val));
+			success = false;
 				}
 			}
 			// Test for PR#15635 ends
@@ -1958,8 +1958,8 @@ public class TestDPQR {
 			ldp = diff(vlog(diff(ldp)));
 			for (int i = 0; i < ldp.length; i++)
 				if (abs(ldp[i] - loghalf) >= 1e-9) {
-					System.err.println(String.format("Precision loss %3.18g vs %3.18g", ldp[i], loghalf));
-					success = false;
+			System.err.println(String.format("Precision loss %3.18g vs %3.18g", ldp[i], loghalf));
+			success = false;
 				}
 			// ## pbeta(*, log) lost all precision here, for R <= 3.0.x (PR#15641)
 		}
@@ -1969,24 +1969,24 @@ public class TestDPQR {
 			for (int i = 0; i < 101; i++) {
 				dpx[i] = Beta.cumulative(.9833 + i*1e-6, 43779, 0.06728, true, true);
 				if (i == 0) {
-					if (!isEqualScaled(dpx[0], -746.0986886924, 1e-12)) {
-						System.err.println(String.format("Precision loss pbeta(.9833, 43779, 0.06728, true, true) = %3.18g vs -746.0986886924", dpx[0]));
-						success = false;
-					}
+			if (!isEqualScaled(dpx[0], -746.0986886924, 1e-12)) {
+				System.err.println(String.format("Precision loss pbeta(.9833, 43779, 0.06728, true, true) = %3.18g vs -746.0986886924", dpx[0]));
+				success = false;
+			}
 				}
 			}
 			dpx = diff(dpx);
 			for (int i = 0; i < dpx.length; i++) {
 				if (dpx[i] <= 0.0445741 || dpx[i] >= 0.0445783) {
-					System.err.println(String.format("Stair case detected %3.18g outside (0.0445741, 0.0445783) range", dpx[i]));
-					success = false;
+			System.err.println(String.format("Stair case detected %3.18g outside (0.0445741, 0.0445783) range", dpx[i]));
+			success = false;
 				}
 			}
 			dpx = diff(dpx);
 			for (int i = 0; i < dpx.length; i++) {
 				if (dpx[i] <= -4.2e-8 || dpx[i] >= -4.18e-8) {
-					System.err.println(String.format("Stair case detected %3.18g outside (-4.2e-8, -4.18e-8) range", dpx[i]));
-					success = false;
+			System.err.println(String.format("Stair case detected %3.18g outside (-4.2e-8, -4.18e-8) range", dpx[i]));
+			success = false;
 				}
 			}
 			// ## were way off in R <= 3.1.0
@@ -2028,26 +2028,26 @@ public class TestDPQR {
 			for (int i = 0; i < arr.length; i++) {
 				double[] n = vtimes((arr[i] / 100), vpow(10., colon(2, 20)));
 				for (int j = 0; j < n.length; j++) {
-					val = Binomial.density(1, n[j], 0.5, false);
-					if (Double.isNaN(val)) {
-						System.err.println(String.format("NaN detected in Binomial.density(1, %g, 0.5, false)", n[j]));
-						success = false;
-					}
-					val = Binomial.cumulative(1, n[j], 0.5, true, false);
-					if (Double.isNaN(val)) {
-						System.err.println(String.format("NaN detected in Binomial.cumulative(1, %g, 0.5, true, false)", n[j]));
-						success = false;
-					}
-					val = Poisson.density(n[j], n[j], false);
-					if (Double.isNaN(val)) {
-						System.err.println(String.format("NaN detected in Poisson.density(%g, %g, false)", n[j], n[j]));
-						success = false;
-					}
-					val = HyperGeometric.density(n[j]+1, n[j]+5, n[j]+5, n[j], false);
-					if (Double.isNaN(val)) {
-						System.err.println(String.format("NaN detected in HyperGeometric.density(%g, %g, %g, %g, false)", n[j]+1, n[j]+5, n[j]+5, n[j]));
-						success = false;
-					}
+			val = Binomial.density(1, n[j], 0.5, false);
+			if (Double.isNaN(val)) {
+				System.err.println(String.format("NaN detected in Binomial.density(1, %g, 0.5, false)", n[j]));
+				success = false;
+			}
+			val = Binomial.cumulative(1, n[j], 0.5, true, false);
+			if (Double.isNaN(val)) {
+				System.err.println(String.format("NaN detected in Binomial.cumulative(1, %g, 0.5, true, false)", n[j]));
+				success = false;
+			}
+			val = Poisson.density(n[j], n[j], false);
+			if (Double.isNaN(val)) {
+				System.err.println(String.format("NaN detected in Poisson.density(%g, %g, false)", n[j], n[j]));
+				success = false;
+			}
+			val = HyperGeometric.density(n[j]+1, n[j]+5, n[j]+5, n[j], false);
+			if (Double.isNaN(val)) {
+				System.err.println(String.format("NaN detected in HyperGeometric.density(%g, %g, %g, %g, false)", n[j]+1, n[j]+5, n[j]+5, n[j]));
+				success = false;
+			}
 				}
 			}
 			System.out.println("## check was too tight for large n in R <= 3.1.0 (PR#15734)");
@@ -2082,14 +2082,14 @@ public class TestDPQR {
 			System.out.println("## range check (in \"close\" cases):");
 			for (double v: vpow(-2, c(-10, -100, -1000))) {
 				if (!Double.isNaN(Beta.quantile(v, 2, 3, true, true))) {
-					System.err.println(String.format("Beta.quantile(%3.18g, 2, 3, true, true) != NaN", v));
-					success = false;
+			System.err.println(String.format("Beta.quantile(%3.18g, 2, 3, true, true) != NaN", v));
+			success = false;
 				}
 			}
 			for (double v: c(-.1, -1e-300, 1.25)) {
 				if (!Double.isNaN(Beta.quantile(v, 2, 3, true, false))) {
-					System.err.println(String.format("Beta.quantile(%3.18g, 2, 3, true, false) != NaN", v));
-					success = false;
+			System.err.println(String.format("Beta.quantile(%3.18g, 2, 3, true, false) != NaN", v));
+			success = false;
 				}
 			}
 		}
@@ -2099,24 +2099,24 @@ public class TestDPQR {
 				double p = i / 8.0;
 				int mean = i % 2 == 0 ? 1 : 2;
 				double v1 = LogNormal.quantile(p, mean, 0, true, false),
-					v2 = LogNormal.quantile(p, mean, 1e-200, true, false);
+			v2 = LogNormal.quantile(p, mean, 1e-200, true, false);
 				if (!isEqual(v1, v2)) {
-					System.err.println(String.format("LogNormal.quantile(%3.4g, %d, 0, true, false) %3.18g != %3.18g LogNormal.quantile(%3.4g, %d, 0, true, false)", p, mean, v1, v2, p, mean));
-					success = false;
+			System.err.println(String.format("LogNormal.quantile(%3.4g, %d, 0, true, false) %3.18g != %3.18g LogNormal.quantile(%3.4g, %d, 0, true, false)", p, mean, v1, v2, p, mean));
+			success = false;
 				}
 			}
 			for (int i = -10; i <= 10; i++) {
 				val = LogNormal.density(pow(2, i), 0, 0, false);
 				if (i == 0) {
-					if (val != inf) {
-						System.err.println(String.format("LogNormal.density(1, 0, 0, false) %3.18g != Inf", val));
-						success = false;
-					}
+			if (val != inf) {
+				System.err.println(String.format("LogNormal.density(1, 0, 0, false) %3.18g != Inf", val));
+				success = false;
+			}
 				} else {
-					if (val != 0) {
-						System.err.println(String.format("LogNormal.density(%3.18g, 0, 0, false) %3.18g != 0", pow(2, i), val));
-						success = false;
-					}
+			if (val != 0) {
+				System.err.println(String.format("LogNormal.density(%3.18g, 0, 0, false) %3.18g != 0", pow(2, i), val));
+				success = false;
+			}
 				}
 			}
 		}
@@ -2126,15 +2126,15 @@ public class TestDPQR {
 			double a = 1.0/8, oldp = 0;
 			for (int i = 4; i <= 200; i++) {
 				double
-					b = pow(2, -i),
-					alpha = b / 4,
-					qq = Beta.quantile(alpha, a, b, true, false),
-					pp = Beta.cumulative(qq, a, b, true, false);
+			b = pow(2, -i),
+			alpha = b / 4,
+			qq = Beta.quantile(alpha, a, b, true, false),
+			pp = Beta.cumulative(qq, a, b, true, false);
 				if (pp <= 0 || (i > 4 && pp - oldp >= 0) || abs(1 - pp/alpha) >= 4e-15) {
-					System.err.println(String.format("b = %3.18g, alpha = %3.18g, Beta.quantile(alpha, 0.125, b, true, false) %3.18g != Beta.cumulative(%3.18g, 0.125, b, true, false) %3.18g",
-						b, alpha, qq, qq, pp));
-					System.err.println(String.format("diff(pp) = %3.18g", pp - oldp));
-					success = false;
+			System.err.println(String.format("b = %3.18g, alpha = %3.18g, Beta.quantile(alpha, 0.125, b, true, false) %3.18g != Beta.cumulative(%3.18g, 0.125, b, true, false) %3.18g",
+				b, alpha, qq, qq, pp));
+			System.err.println(String.format("diff(pp) = %3.18g", pp - oldp));
+			success = false;
 				}
 				oldp = pp;
 			}
@@ -2155,8 +2155,8 @@ public class TestDPQR {
 			for (int i = 0; i < x.length; i++) {
 				double qp = Beta.quantile(pb[i], 25, 6, true, true);
 				if (qp <= 0 || !isEqual(qp, x[i], 1e-15)) {
-					System.err.println(String.format("Beta.quantile(%3.18g, 25, 6, true, true) = %3.18g <= 0 != %3.18g", pb[i], qp, x[i]));
-					success = false;
+			System.err.println(String.format("Beta.quantile(%3.18g, 25, 6, true, true) = %3.18g <= 0 != %3.18g", pb[i], qp, x[i]));
+			success = false;
 				}
 			}
 		}
@@ -2206,10 +2206,10 @@ public class TestDPQR {
 		{
 			for (int i = 1; i <= 323; i++) {
 				double lp = -pow(10, -i),
-					qq = Beta.quantile(lp, .2, .03, true, true);
+			qq = Beta.quantile(lp, .2, .03, true, true);
 				if (1 - qq >= 1e-15) {
-					System.err.println(String.format("1 - Beta.quantile(%3.18g, 0.2, 0.03, true, true) = %3.18g > 1e-15", lp, 1 - qq));
-					success = false;
+			System.err.println(String.format("1 - Beta.quantile(%3.18g, 0.2, 0.03, true, true) = %3.18g > 1e-15", lp, 1 - qq));
+			success = false;
 				}
 			}
 			System.out.println("# warnings in R <= 3.1.0");
@@ -2230,10 +2230,10 @@ public class TestDPQR {
 			double a = pow(2, -8);
 			for (int i = 200; i <= 500; i++) {
 				double b = pow(2, i),
-					pq = Beta.cumulative(Beta.quantile(1.0/8, a, b, true, false), a, b, true, false);
+			pq = Beta.cumulative(Beta.quantile(1.0/8, a, b, true, false), a, b, true, false);
 				if ((val = abs(pq - 1.0/8)) > 1.0/8) {
-					System.err.println(String.format("|Beta.cumulative(Beta.quantile(1.0/8, 2^-8, %3.18g, true, false), 2^-8, %3.18g, true, false) -1/8| = %3.18g > 1/8", b, b, val));
-					success = false;
+			System.err.println(String.format("|Beta.cumulative(Beta.quantile(1.0/8, 2^-8, %3.18g, true, false), 2^-8, %3.18g, true, false) -1/8| = %3.18g > 1/8", b, b, val));
+			success = false;
 				}
 			}
 			System.out.println("## whereas  qbeta() would underflow to 0 \"too early\", for R <= 3.1.0");
@@ -2242,16 +2242,16 @@ public class TestDPQR {
 			for (double xx : c(1e-300, 1e-12, 1e-5, 0.1, 0.21, 0.3)) {
 				val = Beta.quantile(xx, pow(2, -12), pow(2, -10), true, false);
 				if (val != 0) {
-					System.err.println(String.format("Beta.quantile(%3.18g, 2^-12, 2^-19, true, false) = %3.18g != 0", xx, val));
-					success = false;
+			System.err.println(String.format("Beta.quantile(%3.18g, 2^-12, 2^-19, true, false) = %3.18g != 0", xx, val));
+			success = false;
 				}
 			}
 			double[] ax = vpow(10, colon(-8, -323));
 			for (int i = 0; i < ax.length; i++) {
 				val = Beta.quantile(0.95, ax[i], 20, true, false);
 				if (MathFunctions.isInfinite(val) || val >= 1e-300) {
-					System.err.println(String.format("Beta.quantile(0.95, %3.18g, 20, true, false) = %3.18g >= 1e-300", ax[i], val));
-					success = false;
+			System.err.println(String.format("Beta.quantile(0.95, %3.18g, 20, true, false) = %3.18g >= 1e-300", ax[i], val));
+			success = false;
 				}
 			}
 
@@ -2259,8 +2259,8 @@ public class TestDPQR {
 			for (int i = 0; i < ax.length; i++) {
 				val = Beta.quantile(0.95, ax[i], ax[i], true, false);
 				if (val != 1) {
-					System.err.println(String.format("Beta.quantile(0.95, %3.18g, %3.18g, true, false) = %3.18g != 1", ax[i], ax[i], val));
-					success = false;
+			System.err.println(String.format("Beta.quantile(0.95, %3.18g, %3.18g, true, false) = %3.18g != 1", ax[i], ax[i], val));
+			success = false;
 				}
 			}
 			long ct2 = System.currentTimeMillis() - time1;
@@ -2270,11 +2270,11 @@ public class TestDPQR {
 			System.out.println("## qt(*, df=Inf, .)  gave NaN in  R <= 3.2.1");
 			for (int i = 0; i <= 32; i++) {
 				double p = i / 32.0,
-					t = NonCentralT.quantile(p, inf, 5, true, false),
-					n = Normal.quantile(p, 5, 1, true, false);
+			t = NonCentralT.quantile(p, inf, 5, true, false),
+			n = Normal.quantile(p, 5, 1, true, false);
 				if (!isEqual(t, n)) {
-					System.err.println(String.format("qt(%d/32, Inf, 5) = %3.18g != qnorm(%d/32, 5, 1) = %3.18g", i, t, i, n));
-					success = false;
+			System.err.println(String.format("qt(%d/32, Inf, 5) = %3.18g != qnorm(%d/32, 5, 1) = %3.18g", i, t, i, n));
+			success = false;
 				}
 			}
 		}
@@ -2308,8 +2308,8 @@ public class TestDPQR {
 			for (int i = 0; i < 32; i++) {
 				val = ChiSquare.random(0, random);
 				if (val != 0) {
-					System.err.println(String.format("rchisq(df=0, ncp=0) = %3.18g != 0", val));
-					success = false;
+			System.err.println(String.format("rchisq(df=0, ncp=0) = %3.18g != 0", val));
+			success = false;
 				}
 			}
 			val = ChiSquare.density(0, 0, false);
@@ -2320,8 +2320,8 @@ public class TestDPQR {
 			for (int i = 1; i <= 16; i++) {
 				val = ChiSquare.density(i / 16.0, 0, false);
 				if (val != 0) {
-					System.err.println(String.format("dchisq(%d/16, df=0, ncp=0) = %3.18g != 0", i, val));
-					success = false;
+			System.err.println(String.format("dchisq(%d/16, df=0, ncp=0) = %3.18g != 0", i, val));
+			success = false;
 				}
 			}
 			System.out.println("## gave all NaN's  for R <= 3.2.2");
@@ -2332,8 +2332,8 @@ public class TestDPQR {
 			for (int i = 0; i < th.length; i++) {
 				val = NonCentralChiSquare.cumulative(0, 0, th[i], true, true);
 				if (!isEqual(val, -th[i]/2, 1e-15)) {
-					System.err.println(String.format("pchisq(0, df=0, ncp=%3.18g) = %3.18g != %3.18g", th[i], val, -th[i]/2));
-					success = false;
+			System.err.println(String.format("pchisq(0, df=0, ncp=%3.18g) = %3.18g != %3.18g", th[i], val, -th[i]/2));
+			success = false;
 				}
 			}
 		}
@@ -2351,22 +2351,22 @@ public class TestDPQR {
 				val = NegBinomial.density_mu(x[i], inf, 5, false);
 				val2 = Poisson.density(x[i], 5, false);
 				if (val != val2) {
-					System.err.println(String.format("NegBinomial.density_mu(%g, Inf, mu=5) = %3.18g != %3.18g", x[i], val, val2));
-					success = false;
+			System.err.println(String.format("NegBinomial.density_mu(%g, Inf, mu=5) = %3.18g != %3.18g", x[i], val, val2));
+			success = false;
 				}
 				val = NegBinomial.cumulative_mu(x[i], inf, 5, false, false);
 				val2 = Poisson.cumulative(x[i], 5, false, false);
 				if (val != val2) {
-					System.err.println(String.format("NegBinomial.cumulative_mu(%g, Inf, mu=5) = %3.18g != %3.18g", x[i], val, val2));
-					success = false;
+			System.err.println(String.format("NegBinomial.cumulative_mu(%g, Inf, mu=5) = %3.18g != %3.18g", x[i], val, val2));
+			success = false;
 				}
 			}
 			for (int i = 0; i <= 16; i++) {
 				val = NegBinomial.quantile_mu(i / 16.0, inf, 5, false, false);
 				val2 = Poisson.quantile(i / 16.0, 5, false, false);
 				if (val != val2) {
-					System.err.println(String.format("NegBinomial.quantile_mu(%g, Inf, mu=5) = %3.18g != %3.18g", (i / 16.0), val, val2));
-					success = false;
+			System.err.println(String.format("NegBinomial.quantile_mu(%g, Inf, mu=5) = %3.18g != %3.18g", (i / 16.0), val, val2));
+			success = false;
 				}
 			}
 			double[] NI = NegBinomial.random_mu(32, inf, 5, new MersenneTwister(1));
@@ -2416,8 +2416,8 @@ public class TestDPQR {
 			for (int i = 0; i <= 8; i++) {
 				val = Geometric.quantile(i / 8.0, 1, true, false);
 				if (val != 0) {
-					System.err.println(String.format("Geometric.quantile(%d, 0, true, false) = %3.18g != 0", i, val));
-					success = false;
+			System.err.println(String.format("Geometric.quantile(%d, 0, true, false) = %3.18g != 0", i, val));
+			success = false;
 				}
 			}
 			val = Geometric.quantile(-1.0/4, 1, true, false);
@@ -2545,12 +2545,12 @@ for(dist in PDQR) {
 			for (int i = 0; i < lpb.length; i++) {
 				results[i] = Beta.quantile(lpb[i], a, b, true, true);
 				if (results[i] == 0) {
-					success = false;
-					System.err.println(String.format("Precision error at Beta.quantile(%3.18g, 25, 6, true, true) == 0 != %3.18g", lpb[i], x[i]));
+			success = false;
+			System.err.println(String.format("Precision error at Beta.quantile(%3.18g, 25, 6, true, true) == 0 != %3.18g", lpb[i], x[i]));
 				}
 			}
 			System.out.println(String.format("Relative difference of Beta.quantile(x, 25, 6, true, true): %3.18g", relativeDiff(x, results)));
-			System.out.println("For reference, the value for R v.3.2.5 is 4.5666376601735139e-15");
+			System.out.println("For reference, the value for R v.3.3.1 is 4.5666376601735139e-15");
 			results = vabs(vmin(1.0, vdiv(results, x)));
 			double meanRelErr = mean(results),
 				maxAbsErr = max(results);
@@ -2612,7 +2612,7 @@ for(dist in PDQR) {
 				}
 			}
 			System.out.println(String.format("Relative difference of Beta.quantile(x, 25, 6, true, true): %3.18g", relativeDiff(x, results)));
-			System.out.println("For reference, the value for R v.3.2.5 is 2.9656735895051053e-16");
+			System.out.println("For reference, the value for R v.3.3.1 is 2.9656735895051053e-16");
 			double[] relErr = vabs(vmin(1.0, vdiv(results, x)));
 			double meanRelErr = mean(relErr),
 				maxAbsErr = max(relErr);
@@ -2628,7 +2628,7 @@ for(dist in PDQR) {
 			}
 			double[] relErr2 = vabs(vmin(1.0, vdiv(results2, x)));
 			System.out.println(String.format("Relative difference of Beta.quantile(x, 25, 6, true, true vs false): %3.18g", relativeDiff(results, results2)));
-			System.out.println("For reference, the value for R v.3.2.5 is 3.0832710178681659e-16");
+			System.out.println("For reference, the value for R v.3.3.1 is 3.0832710178681659e-16");
 			meanRelErr = mean(relErr2);
 			maxAbsErr = max(relErr2);
 			System.out.println("Mean relative error (should be <2e-15): " + meanRelErr);
@@ -2657,7 +2657,211 @@ for(dist in PDQR) {
 			if (absErr >= 3e-14) {
 				success = false;
 				// FIXME JDistlib 0.4.5 fails here!
+				// R v3.3.1 also fails miserably.
 			}
+		}
+		{
+			double a = 800, b = 2;
+			double[] x = vpow(0.5, c(vtimes(10.0, colon(100.0, 4)), new double[] {37.0}, vtimes(2.0, colon(17.0, 14)), colon(27.0, 2), vdiv(colon(8.0, 1), 8.0)));
+			double[] lp2 = c(-554511.058587009179178, -548965.881142529616682, -543420.703698050054243,
+			-537875.526253570491747, -532330.348809090929251, -526785.171364611366812,
+			-521239.993920131804316, -515694.816475652241849, -510149.639031172679381,
+			-504604.461586693116885, -499059.284142213554418, -493514.106697733991950,
+			-487968.929253254429483, -482423.751808774866987, -476878.574364295304520,
+			-471333.396919815742052, -465788.219475336179556, -460243.042030856617089,
+			-454697.864586377054621, -449152.687141897492154, -443607.509697417929658,
+			-438062.332252938367191, -432517.154808458804723, -426971.977363979242256,
+			-421426.799919499679760, -415881.622475020117292, -410336.445030540554825,
+			-404791.267586060992329, -399246.090141581429862, -393700.912697101867394,
+			-388155.735252622304927, -382610.557808142742431, -377065.380363663179963,
+			-371520.202919183617496, -365975.025474704055000, -360429.848030224492533,
+			-354884.670585744930065, -349339.493141265367598, -343794.315696785805102,
+			-338249.138252306242634, -332703.960807826680167, -327158.783363347117700,
+			-321613.605918867555204, -316068.428474387992736, -310523.251029908430269,
+			-304978.073585428867773, -299432.896140949305305, -293887.718696469742838,
+			-288342.541251990180371, -282797.363807510617875, -277252.186363031055407,
+			-271707.008918551492940, -266161.831474071930444, -260616.654029592367976,
+			-255071.476585112805509, -249526.299140633243027, -243981.121696153680560,
+			-238435.944251674118078, -232890.766807194555611, -227345.589362714993129,
+			-221800.411918235430647, -216255.234473755868180, -210710.057029276305698,
+			-205164.879584796743231, -199619.702140317180749, -194074.524695837618282,
+			-188529.347251358055800, -182984.169806878493333, -177438.992362398930851,
+			-171893.814917919368369, -166348.637473439805902, -160803.460028960243420,
+			-155258.282584480680953, -149713.105140001118471, -144167.927695521556004,
+			-138622.750251041993522, -133077.572806562431055, -127532.395362082868573,
+			-121987.217917603306098, -116442.040473123743624, -110896.863028644181149,
+			-105351.685584164618675, -99806.5081396850562001, -94261.3306952054937184,
+			-88716.1532507259312439, -83170.9758062463687693, -77625.7983617668062948,
+			-72080.6209172872438202, -66535.4434728076813457, -60990.2660283281188711,
+			-55445.0885838485563930, -49899.9111393689939185, -44354.7336948894314439,
+			-38809.5562504098689693, -33264.3788059303064912, -27719.2013614507440185,
+			-22174.0239169711824498, -20510.4706836273200672, -18846.9174502835021912,
+			-17737.8819613877641022, -16628.8464724925492266, -15519.8109835994272112,
+			-14965.2932391551916034, -14410.7754947146766344, -13856.2577502816029460,
+			-13301.7400058634118150, -12747.2222614749858050, -12192.7045171460900432,
+			-11638.1867729362548083, -11083.6690289645407566, -10529.1512854690695820,
+			-9974.63354292608620089, -9420.11580228808657456, -8865.59806546008711603,
+			-8311.08033625221863883, -7756.56262228513473200, -7202.04493880171055809,
+			-6647.52731629396961299, -6093.00981577106128650, -5538.49255935177176768,
+			-4983.97579167624661567, -4429.46000364007375882, -3874.94618353590282056,
+			-3320.43633428133439223, -2765.93456971959801893, -2211.44957214006085544,
+			-1657.00072545683415248, -1102.63689396137728749, -548.523783020649678355,
+			-479.303685612597087790, -410.103507771019607286, -340.930746845646155091,
+			-271.797948987745926763, -202.728589967468744076, -133.775198381652975971,
+			-65.1041210297877634069);
+			double[]
+				results = new double[x.length],
+				pq2 = new double[x.length];
+			for (int i = 0; i < x.length; i++) {
+				results[i] = Beta.cumulative(x[i], a, b, true, true);
+			}
+			if (!allEqual(lp2, results, 2e-16)) {
+				success = false;
+				System.err.println("Precision error at Beta.cumulative(x, 800, 2, true, true)");
+			}
+			for (int i = 0; i < lp2.length; i++) {
+				results[i] = Beta.quantile(lp2[i], a, b, true, true);
+				pq2[i] = Beta.cumulative(results[i], a, b, true, true);
+				if (results[i] == 0) {
+					success = false;
+					System.err.println(String.format("Precision error at Beta.quantile(%3.18g, 800, 2, true, true) == 0 != %3.18g", lp2[i], x[i]));
+				}
+				if (isInfinite(pq2[i])) {
+					success = false;
+					System.err.println(String.format("Precision error at Beta.quantile(%3.18g, 800, 2, true, true) == infinite != %3.18g", results[i], lp2[i]));
+				}
+			}
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 800, 2, true, true): %3.18g", relativeDiff(x, results)));
+			System.out.println("For reference, the value for R v.3.3.1 is 2.0752353762314643e-16");
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 800, 2, true, true): %3.18g", relativeDiff(vlog(x), vlog(results))));
+			System.out.println("For reference, the value for R v.3.3.1 is 1.6751457543265628e-16");
+			double[]
+				relErr = vabs(vmin(1.0, vdiv(results, x))),
+				relErr2 = vabs(vmin(1.0, vdiv(pq2, lp2)));
+			double meanRelErr = mean(relErr),
+				maxAbsErr = max(relErr),
+				meanRelErr2 = mean(relErr2),
+				maxAbsErr2 = max(relErr2);
+				System.out.println("Mean relative error #1 (should be <7e-14): " + meanRelErr);
+				System.out.println("Max relative error #1 (should be <6e-13): " + maxAbsErr);
+				System.out.println("Mean relative error #2 (should be <4e-16): " + meanRelErr2);
+				System.out.println("Max relative error #2 (should be <8e-16): " + maxAbsErr2);
+				if (meanRelErr >= 7e-14 || maxAbsErr >= 6e-13 || meanRelErr2 >= 4e-16 || maxAbsErr2 >= 8e-16) {
+					success = false;
+				}
+		}
+		{
+			System.out.println("### even more extreme (a,b) [still computable with Rmpfr pbetaI():]");
+			double a = pow(2, 12), b = 2;
+			double[] x = vpow(0.5, c(vtimes(10.0, colon(100.0, 2)), new double[] {17.0}, vtimes(2.0, colon(7.0, 4)), colon(7.0, 1), c(0.5, 0.25)));
+			double[] lp3 = c(-2839122.53356325844061, -2810731.22504752308055, -2782339.91653178772071,
+			-2753948.60801605236088, -2725557.29950031700105, -2697165.99098458164121,
+			-2668774.68246884628115, -2640383.37395311092132, -2611992.06543737556149,
+			-2583600.75692164020165, -2555209.44840590484182, -2526818.13989016948199,
+			-2498426.83137443412193, -2470035.52285869876209, -2441644.21434296340226,
+			-2413252.90582722804243, -2384861.59731149268259, -2356470.28879575732276,
+			-2328078.98028002196270, -2299687.67176428660287, -2271296.36324855124303,
+			-2242905.05473281588320, -2214513.74621708052337, -2186122.43770134516330,
+			-2157731.12918560980347, -2129339.82066987444364, -2100948.51215413908380,
+			-2072557.20363840372386, -2044165.89512266836402, -2015774.58660693300419,
+			-1987383.27809119764424, -1958991.96957546228441, -1930600.66105972692458,
+			-1902209.35254399156463, -1873818.04402825620480, -1845426.73551252084496,
+			-1817035.42699678548502, -1788644.11848105012518, -1760252.80996531476535,
+			-1731861.50144957940540, -1703470.19293384404557, -1675078.88441810868562,
+			-1646687.57590237332579, -1618296.26738663796596, -1589904.95887090260601,
+			-1561513.65035516724618, -1533122.34183943188634, -1504731.03332369652639,
+			-1476339.72480796116656, -1447948.41629222580673, -1419557.10777649044678,
+			-1391165.79926075508695, -1362774.49074501972711, -1334383.18222928436717,
+			-1305991.87371354900733, -1277600.56519781364750, -1249209.25668207828755,
+			-1220817.94816634292772, -1192426.63965060756777, -1164035.33113487220794,
+			-1135644.02261913684811, -1107252.71410340148816, -1078861.40558766612833,
+			-1050470.09707193076849, -1022078.78855619540860, -993687.480040460048713,
+			-965296.171524724688823, -936904.863008989328989, -908513.554493253969099,
+			-880122.245977518609209, -851730.937461783249319, -823339.628946047889485,
+			-794948.320430312529595, -766557.011914577169705, -738165.703398841809872,
+			-709774.394883106449981, -681383.086367371090091, -652991.777851635730201,
+			-624600.469335900370368, -596209.160820165010477, -567817.852304429650587,
+			-539426.543788694290754, -511035.235272958930864, -482643.926757223570974,
+			-454252.618241488211112, -425861.309725752851222, -397470.001210017491360,
+			-369078.692694282131498, -340687.384178546771608, -312296.075662811411746,
+			-283904.767147076051856, -255513.458631340691994, -227122.150115605332118,
+			-198730.841599869972242, -170339.533084134612366, -141948.224568399252504,
+			-113556.916052663893531, -85165.6075369294638477, -56774.2990221466148739,
+			-48256.9064741001263457, -39739.5139727740774909, -34061.2524527157125043,
+			-28382.9914822588674710, -22704.7327152528820928, -19865.6057919927700013,
+			-17026.4828436463425554, -14187.3679884148968711, -11348.2699182657980446,
+			-8509.20804096757424162, -5670.23129358494148988, -2831.50574442529708752,
+			-1412.47477359632328309, -703.301613239304818981);
+			double[] results = new double[x.length],
+				pq3 = new double[x.length];
+			for (int i = 0; i < x.length; i++) {
+				results[i] = Beta.cumulative(x[i], a, b, true, true);
+			}
+			if (!allEqual(lp3, results, 2e-16)) {
+				success = false;
+				System.err.println("Precision error at Beta.cumulative(x, 2^12, 2, true, true)");
+			}
+			for (int i = 0; i < lp3.length; i++) {
+				results[i] = Beta.quantile(lp3[i], a, b, true, true);
+				pq3[i] = Beta.cumulative(results[i], a, b, true, true);
+				if (results[i] == 0) {
+					success = false;
+					System.err.println(String.format("Precision error at Beta.quantile(%3.18g, 2^12, 2, true, true) == 0 != %3.18g", lp3[i], x[i]));
+				}
+				if (isInfinite(pq3[i])) {
+					success = false;
+					System.err.println(String.format("Precision error at Beta.quantile(%3.18g, 2^12, 2, true, true) == infinite != %3.18g", results[i], lp3[i]));
+				}
+			}
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 2^12, 2, true, true): %3.18g", relativeDiff(x, results)));
+			System.out.println("For reference, the value for R v.3.3.1 is 1.5985064887687137e-16");
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 2^12, 2, true, true): %3.18g", relativeDiff(vlog(x), vlog(results))));
+			System.out.println("For reference, the value for R v.3.3.1 is 1.4051182956447757e-16");
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 2^12, 2, true, true): %3.18g", relativeDiff(lp3, pq3)));
+			System.out.println("For reference, the value for R v.3.3.1 is 0");
+			double[]
+				relErr = vabs(vmin(1.0, vdiv(results, x))),
+				relErr2 = vabs(vmin(1.0, vdiv(pq3, lp3)));
+			double meanRelErr = mean(relErr),
+				maxAbsErr = max(relErr),
+				meanRelErr2 = mean(relErr2),
+				maxAbsErr2 = max(relErr2);
+				System.out.println("Mean relative error #1 (should be <8e-14): " + meanRelErr);
+				System.out.println("Max relative error #1 (should be <4e-13): " + maxAbsErr);
+				System.out.println("Mean relative error #2 (should be <3e-15): " + meanRelErr2);
+				System.out.println("Max relative error #2 (should be <8e-16): " + maxAbsErr2);
+			if (meanRelErr >= 8e-14 || maxAbsErr >= 4e-13 || meanRelErr2 >= 3e-15 || maxAbsErr2 >= 8e-16) {
+				success = false;
+			}
+		}
+		{
+			System.out.println("## b = 1 ==> pbeta(x,a,1)  =  x^a  (mathematically, not quite numerically)");
+			double[] x = vtimes(1e-311, vpow(2, colon(-2.0, 5)));
+			double a = 9.9999e-16, b = 1;
+			double[] results = new double[x.length];
+			for (int i = 0; i < x.length; i++)
+				results[i] = Beta.cumulative(x[i], a, b, true, false);
+			double rdiff = relativeDiff(vpow(x, a), results);
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 9.9999e-16, 2, true, true): %3.18g", rdiff));
+			System.out.println("For reference, the value for R v.3.3.1 is 1.1102230246259513e-16");
+			for (int i = 0; i < x.length; i++)
+				results[i] = Beta.cumulative(x[i], a, b, true, true);
+			rdiff = relativeDiff(vtimes(a, vlog(x)), results);
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 9.9999e-16, 2, true, true): %3.18g", rdiff));
+			System.out.println("For reference, the value for R v.3.3.1 is 3.5752955231502618e-13");
+			System.out.println("## only very slightly larger a:");
+			for (int i = 0; i < x.length; i++)
+				results[i] = Beta.cumulative(x[i], a, b, true, false);
+			rdiff = relativeDiff(vpow(x, a), results);
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 9.9999e-16, 2, true, true): %3.18g", rdiff));
+			System.out.println("For reference, the value for R v.3.3.1 is 7.1220807029754774e-13");
+			for (int i = 0; i < x.length; i++)
+				results[i] = Beta.cumulative(x[i], a, b, true, true);
+			rdiff = relativeDiff(vtimes(a, vlog(x)), results);
+			System.out.println(String.format("Relative difference of Beta.quantile(x, 9.9999e-16, 2, true, true): %3.18g", rdiff));
+			System.out.println("For reference, the value for R v.3.3.1 is 0.85324759346164603");
+			System.err.println("# 0.853 ... catastrophic!");
+			// FIXME R 3.3.1 also gives catastrophic errors
 		}
 		return success;
 	}

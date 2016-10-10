@@ -91,7 +91,7 @@ public class Geometric extends GenericDistribution {
 				return lower_tail ? Double.POSITIVE_INFINITY : 0;
 		}
 		/* add a fuzz to ensure left continuity */
-		//return ceil(R_DT_Clog(p) / log1p(- prob) - 1 - 1e-7);
+		//return ceil(R_DT_Clog(p) / log1p(- prob) - 1 - 1e-12);
 		p = (lower_tail? (log_p ? ((p) > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))) : log1p(-p)) : (log_p ? (p) : log(p)));
 		return max(0, ceil(p / log1p(- prob) - 1 - 1e-12));
 	}

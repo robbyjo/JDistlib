@@ -566,6 +566,8 @@ public class Gamma extends GenericDistribution {
 		double s, s2, d;    /* no. 1 (step 1) */
 		double q0, b, si, c;/* no. 2 (step 4) */
 
+		if (Double.isNaN(a) || Double.isNaN(scale))
+			return Double.NaN;
 		if (a <= 0.0 || scale <= 0.0) {
 			if(scale == 0. || a == 0) return 0.;
 			return Double.NaN;

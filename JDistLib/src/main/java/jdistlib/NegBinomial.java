@@ -233,7 +233,7 @@ public class NegBinomial extends GenericDistribution {
 	}
 
 	public static final double random(double size, double prob, RandomEngine random) {
-	    if(MathFunctions.isInfinite(prob) || size <= 0 || prob <= 0 || prob > 1)
+	    if(MathFunctions.isInfinite(prob) || Double.isNaN(size) || size <= 0 || prob <= 0 || prob > 1)
 	    	/* prob = 1 is ok, PR#1218 */
 	    	return Double.NaN;
 	    if (MathFunctions.isInfinite(size)) size = Double.MAX_VALUE / 2; // '/2' to prevent rgamma() returning Inf
@@ -241,7 +241,7 @@ public class NegBinomial extends GenericDistribution {
 	}
 
 	public static final double random_mu(double size, double mu, RandomEngine random) {
-	    if(MathFunctions.isInfinite(mu) || size <= 0 || mu < 0)
+	    if(MathFunctions.isInfinite(mu) || Double.isNaN(size) || size <= 0 || mu < 0)
 	    	/* prob = 1 is ok, PR#1218 */
 	    	return Double.NaN;
 	    if (MathFunctions.isInfinite(size)) size = Double.MAX_VALUE / 2; // '/2' to prevent rgamma() returning Inf

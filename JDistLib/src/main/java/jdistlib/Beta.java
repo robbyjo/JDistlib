@@ -639,13 +639,18 @@ public class Beta extends GenericDistribution {
 		//double olda = -1.0;
 		//double oldb = -1.0;
 
-		if (aa <= 0. || bb <= 0. || (isInfinite(aa) && isInfinite(bb)))
+		if (Double.isNaN(aa) || Double.isNaN(bb) || aa <= 0. || bb <= 0.)
 			return Double.NaN;
 
-		if (isInfinite(aa))
+		if (isInfinite(aa) && isInfinite(bb))
+			return 0.5;
+		if (aa == 0. && bb == 0.)
+			return (random.nextDouble() < 0.5) ? 0. : 1.;
+
+		if (isInfinite(aa) || bb == 0.)
 			return 1.0;
 
-		if (isInfinite(bb))
+		if (isInfinite(bb) || aa == 0.)
 			return 0.0;
 
 		/* Test if we need new "initializing" */

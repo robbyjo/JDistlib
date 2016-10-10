@@ -3,12 +3,14 @@ What's new:
 Future version (?):
 * Skewed T distribution (will research various parameterization first)
 
-Version 0.4.5 (?):
+Version 0.4.5 (October 10, 2016):
 * Bug fix for #31 (PR#16972) on Poisson quantile (and related limit bugs)
 * Added Median Absolute Deviation (MAD) to jdistlib.math.VectorMath
 * Responded to bug #29 by adding an option to sort for Shapiro-Wilk test
 * Sync with R-3.3.1, fixes rgamma(1,Inf) or rgamma(1, 0,0) no longer give NaN but the correct limit.
 * Added Levy distribution
+* Sync with Development build of October 9, 2016
+* Fixes: rbeta(4, NA) and similarly rgamma() and rnbinom() now return NaN's with a warning, as other r<dist>(), and as documented. (PR#17155) 
 
 Version 0.4.4 (April 20, 2016):
 * Fix for bug #28 about Shapiro-Wilks

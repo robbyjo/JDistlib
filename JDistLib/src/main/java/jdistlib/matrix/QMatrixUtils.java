@@ -15,6 +15,7 @@
 package jdistlib.matrix;
 
 /**
+ * @Deprecated
  * Matrix utilities
  * @author Roby Joehanes
  *

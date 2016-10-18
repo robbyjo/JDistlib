@@ -55,6 +55,15 @@ public class VectorMath {
 		return v;
 	}
 
+	public static final double[] vpow(int[] x, int[] e) {
+		if (x.length != e.length)
+			throw new RuntimeException();
+		double[] v = new double[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = pow(x[i], e[i]);
+		return v;
+	}
+
 	public static final double[] vpow(double x, int[] e) {
 		double[] v = new double[e.length];
 		for (int i = 0; i < e.length; i++)
@@ -210,6 +219,25 @@ public class VectorMath {
 		return v;
 	}
 
+	/**
+	 * Vector signum.
+	 * @param e
+	 * @return -1 if e[i] < 0; 0 if e[i] == 0; 1 if e[i] > 0
+	 */
+	public static final int[] vsgn(double[] e) {
+		int[] v = new int[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = e[i] < 0 ? -1 : e[i] == 0 ? 0 : 1;
+		return v;
+	}
+
+	public static final int[] vsgn(int[] e) {
+		int[] v = new int[e.length];
+		for (int i = 0; i < e.length; i++)
+			v[i] = e[i] < 0 ? -1 : e[i] == 0 ? 0 : 1;
+		return v;
+	}
+
 	public static final double[] diff(double[] e, int lag, int order) {
 		double[] v = new double[e.length];
 		System.arraycopy(e, 0, v, 0, e.length);
@@ -341,6 +369,19 @@ public class VectorMath {
 	}
 
 	/**
+	 * Euclidian distance / Root mean square
+	 * @param e
+	 * @return sqrt(mean(e * e))
+	 */
+	public static final double distance(double[] e) {
+		double sum = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			sum += (e[i] * e[i] / n); // guard against overflow
+		return sqrt(sum);
+	}
+
+	/**
 	 * Return summary statistics
 	 * @param e
 	 * @return an array of 6 elements: Min, Q1, Median, Mean, Q3, Max
@@ -397,6 +438,173 @@ public class VectorMath {
 		return sum;
 	}
 
+	public static final double sum(int[] e) {
+		double sum = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			sum += e[i];
+		return sum;
+	}
+
+	/**
+	 * Product of numbers. Implemented as exp(sum(log(e))).
+	 * @param e
+	 * @return e[0] * e[1] * ... * e[n-1]
+	 */
+	public static final double prod(double[] e) {
+		double prod = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			prod += log(e[i]);
+		return exp(prod);
+	}
+
+	/**
+	 * Log of product of numbers. Implemented as sum(log(e)).
+	 * @param e
+	 * @return log(e[0]) + log(e[1]) + ... + log(e[n-1])
+	 */
+	public static final double log_prod(double[] e) {
+		double prod = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			prod += log(e[i]);
+		return prod;
+	}
+
+	/**
+	 * Geometric mean
+	 * @param e
+	 * @return
+	 */
+	public static final double geom_mean(double[] e) {
+		double prod = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			prod += log(e[i]);
+		return exp(prod/n);
+	}
+
+	/**
+	 * Harmonic mean
+	 * @param e
+	 * @return
+	 */
+	public static final double harm_mean(double[] e) {
+		double prod = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++)
+			prod += 1.0/e[i];
+		return n/prod;
+	}
+
+	/**
+	 * Weighted sum / Dot product
+	 * @param e
+	 * @param w
+	 * @return sum(e * w)
+	 */
+	public static final double dot(double[] e, double[] w) {
+		int n = e.length;
+		if (w.length != n) throw new RuntimeException();
+		double sum = 0;
+		for (int i = 0; i < n; i++)
+			sum += e[i] * w[i];
+		return sum;
+	}
+
+	/**
+	 * Weighted sum / Dot product
+	 * @param e
+	 * @param w
+	 * @return sum(e * w)
+	 */
+	public static final double dot(int[] e, double[] w) {
+		int n = e.length;
+		if (w.length != n) throw new RuntimeException();
+		double sum = 0;
+		for (int i = 0; i < n; i++)
+			sum += e[i] * w[i];
+		return sum;
+	}
+
+	/**
+	 * Weighted sum / Dot product
+	 * @param e
+	 * @param w
+	 * @return sum(e * w)
+	 */
+	public static final double dot(double[] e, int[] w) {
+		int n = e.length;
+		if (w.length != n) throw new RuntimeException();
+		double sum = 0;
+		for (int i = 0; i < n; i++)
+			sum += e[i] * w[i];
+		return sum;
+	}
+
+	/**
+	 * Weighted sum / Dot product
+	 * @param e
+	 * @param w
+	 * @return sum(e * w)
+	 */
+	public static final double dot(int[] e, int[] w) {
+		int n = e.length;
+		if (w.length != n) throw new RuntimeException();
+		double sum = 0;
+		for (int i = 0; i < n; i++)
+			sum += e[i] * w[i];
+		return sum;
+	}
+
+	/**
+	 * Trimmed mean of values. Lower and upper are the percentile. For example: trimmed_mean(e, 0.25, 0.75) means
+	 * average all values between 0.25 and 0.75 percentile inclusive.
+	 * @param e
+	 * @param lower must be between 0 and 1
+	 * @param upper must be between 0 and 1
+	 * @return trimmed mean.
+	 */
+	public static final double trimmed_mean(double[] e, double lower, double upper) {
+		if (lower < 0 || lower > 1 || upper < 0 || upper > 1 || lower > upper) throw new RuntimeException();
+		double[] q = quantile0(e, new double[] {lower, upper});
+		lower = q[0]; upper = q[1];
+		int n = e.length, nn = 0;
+		double sum = 0;
+		for (int i = 0; i < n; i++) {
+			double v = e[i];
+			if (v >= lower || v <= upper) {
+				sum += v;
+				nn++;
+			}
+		}
+		return sum / nn;
+	}
+
+	/**
+	 * Winsorized mean of values. Lower and upper are the percentile. For example: winsor_mean(e, 0.25, 0.75) means
+	 * average all values between 0.25 and 0.75 percentile inclusive, the rest will be replaced by the boundary value (i.e.,
+	 * values lower than 0.25 percentile will be capped at 0.25 percentile and values higher than 0.75 percentile will be capped
+	 * at 0.75 percentile).
+	 * @param e
+	 * @param lower must be between 0 and 1
+	 * @param upper must be between 0 and 1
+	 * @return winsorized mean.
+	 */
+	public static final double winsor_mean(double[] e, double lower, double upper) {
+		if (lower < 0 || lower > 1 || upper < 0 || upper > 1 || lower > upper) throw new RuntimeException();
+		double[] q = quantile0(e, new double[] {lower, upper});
+		lower = q[0]; upper = q[1];
+		int n = e.length;
+		double sum = 0;
+		for (int i = 0; i < n; i++) {
+			double v = e[i];
+			sum += v < lower ? lower : (v > upper ? upper : v);
+		}
+		return sum / n;
+	}
+
 	public static final double sum_kahan(double[] e) {
 		double sum = e[0], c = 0;
 		int n = e.length;
@@ -417,7 +625,7 @@ public class VectorMath {
 	}
 
 	/**
-	 * Compute the Median Absolute Deviation (MAD)
+	 * Compute the Median Absolute Deviation (MAD) (i.e., median(abs(e - median(e))))
 	 * @param e does not need to be sorted
 	 * @return MAD value
 	 */
@@ -430,6 +638,44 @@ public class VectorMath {
 		for (int i = 0; i < n; i++)
 			v[i] = abs(v[i] - med);
 		return quantile(v, 0.5);
+	}
+
+	/**
+	 * Average Absolute Deviation (AAD) (i.e., mean(abs(e - median(e))))
+	 * @param e does not need to be sorted
+	 * @return AAD value
+	 */
+	public static final double aad(double[] e) {
+		int n = e.length;
+		double[] v = new double[e.length];
+		System.arraycopy(e, 0, v, 0, n);
+		sort(v);
+		double
+			med = quantile(v, 0.5),
+			sum = 0;
+		for (int i = 0; i < n; i++)
+			sum += abs(v[i] - med) / n;
+		return sum;
+	}
+
+	/**
+	 * Maximum deviation (i.e., max(abs(e - median(e))))
+	 * @param e
+	 * @return
+	 */
+	public static final double maxdev(double[] e) {
+		int n = e.length;
+		double[] v = new double[e.length];
+		System.arraycopy(e, 0, v, 0, n);
+		sort(v);
+		double
+			med = quantile(v, 0.5),
+			max = 0;
+		for (int i = 0; i < n; i++) {
+			double m = abs(v[i] - med);
+			if (m > max) max = m;
+		}
+		return max;
 	}
 
 	/**
@@ -517,6 +763,21 @@ public class VectorMath {
 		return mn;
 	}
 
+	/**
+	 * Mid-range of e (i.e., (max(e) + min(e)) / 2)
+	 * @param e
+	 * @return
+	 */
+	public static final double midrange(double[] e) {
+		int n = e.length;
+		double mx = e[0], mn = e[0];
+		for (int i = 1; i < n; i++) {
+			if (e[i] > mx) mx = e[i];
+			else if (e[i] < mn) mn = e[i];
+		}
+		return (mn + mx) / 2.0;
+	}
+
 	public static final int which_max(double[] e) {
 		int n = e.length, which = 0;
 		double mx = e[0];
@@ -528,6 +789,22 @@ public class VectorMath {
 	public static final int which_min(double[] e) {
 		int n = e.length, which = 0;
 		double mn = e[0];
+		for (int i = 1; i < n; i++)
+			if (e[i] < mn) { mn = e[i]; which = i; };
+		return which;
+	}
+
+	public static final int which_max(int[] e) {
+		int n = e.length, which = 0;
+		int mx = e[0];
+		for (int i = 1; i < n; i++)
+			if (e[i] > mx) { mx = e[i]; which = i; };
+		return which;
+	}
+
+	public static final int which_min(int[] e) {
+		int n = e.length, which = 0;
+		int mn = e[0];
 		for (int i = 1; i < n; i++)
 			if (e[i] < mn) { mn = e[i]; which = i; };
 		return which;
@@ -563,9 +840,34 @@ public class VectorMath {
 		return new double[] { mn, mx };
 	}
 
+	/**
+	 * Inter-quartile range (i.e., Q3 - Q1)
+	 * @param e
+	 * @return
+	 */
 	public static final double iqr(double[] e) {
 		double[] v = quantile0(e, new double[] {0.75, 0.25});
 		return v[0] - v[1];
+	}
+
+	/**
+	 * Mid hinge. (Q1 + Q3) / 2.0
+	 * @param e
+	 * @return
+	 */
+	public static final double midhinge(double[] e) {
+		double[] v = quantile0(e, new double[] {0.25, 0.75});
+		return (v[0] + v[1]) / 2.0;
+	}
+
+	/**
+	 * Trimean (Q1 + 2Q2 + Q3) / 4
+	 * @param e
+	 * @return
+	 */
+	public static final double trimean(double[] e) {
+		double[] v = quantile0(e, new double[] {0.25, 0.5, 0.75});
+		return (v[0] + 2*v[1] + v[2]) / 4.0;
 	}
 
 	public static final boolean isEqual(double a, double b, double tol) {

@@ -140,7 +140,7 @@ public abstract class GenericDistribution {
 		int n = p.length;
 		double[] v = new double[n];
 		for (int i = 0; i < n; i++)
-			v[i] = cumulative(p[i], false, true);
+			v[i] = -cumulative(p[i], false, true);
 		return v;
 	}
 

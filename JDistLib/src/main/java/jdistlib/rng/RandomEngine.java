@@ -21,7 +21,7 @@ package jdistlib.rng;
  * @author Roby Joehanes
  *
  */
-public abstract class RandomEngine
+public abstract class RandomEngine extends java.util.Random
 {
 	protected long mSeed;
 

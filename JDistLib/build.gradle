@@ -6,6 +6,7 @@ buildscript {
     dependencies {
         classpath 'org.ysb33r.gradle:bintray:1.0'
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.2.3'
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
     }
 }
 
@@ -14,10 +15,13 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'artifactory'
 apply plugin: 'maven'
+apply plugin: 'signing'
 apply plugin: 'bintray-publish'
+apply plugin: 'maven-publish'
+apply plugin: 'io.codearte.nexus-staging'
 
-version = '0.3.5-SNAPSHOT'
-group = 'joehanes.roby.math'
+version = '0.4.5'
+group = 'net.sourceforge.jdistlib'
 archivesBaseName = 'jdistlib'
 
 // Javadoc in this codeset fails doclint on JDK8, so let's turn it off
@@ -59,6 +63,62 @@ artifacts {
     archives sourcesJar, javadocJar
 }
 
+signing {
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            if(!version.endsWith("SNAPSHOT")) {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    name 'JDistlib'
+                    packaging 'jar'
+                    artifactId 'jdistlib'
+                    description 'A Java package that provides routines for various statistical distributions.'
+                    url 'http://jdistlib.sourceforge.net'
+
+                    scm {
+                        connection 'scm:git:git://git.code.sf.net/p/jdistlib/code/'
+                        developerConnection 'scm:git:git://git.code.sf.net/p/jdistlib/code/'
+                        url 'https://sourceforge.net/p/jdistlib/code/ci/master/tree/'
+                    }
+
+                    licenses {
+                        license {
+                            name 'GNU General Public License version 2.0 (GPLv2)'
+                            url 'https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id 'robbyjo'
+                            name 'Robby Joehanes'
+                            email 'robyjoehanes@hsl.harvard.edu'
+                        }
+                        developer {
+                            id 'danking'
+                            name 'Daniel King'
+                            email 'dking@broadinstitute.org'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 artifactory {
     publish {
         contextUrl = 'http://oss.jfrog.org'
@@ -77,21 +137,5 @@ artifactoryPublish {
 install {
     repositories.mavenInstaller {
         pom.artifactId = archivesBaseName
-    }
-}
-
-uploadArchives  {
-    repositories {
-        if(!version.endsWith("SNAPSHOT")) {
-            bintrayMavenDeployer {
-                username    project.properties.bintrayUserName
-                apiKey      project.properties.bintrayApiKey
-                repoOwner   'jdistlib'
-                repoName    'jdistlib'
-                packageName project.properties.archivesBaseName
-                description 'Java library of statistical distribution '
-                tags        'java','statistics','distributions','maths'
-            }
-        }
     }
 }

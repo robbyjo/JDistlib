@@ -24,6 +24,12 @@ version = '0.4.5'
 group = 'net.sourceforge.jdistlib'
 archivesBaseName = 'jdistlib'
 
+compileJava { options.encoding = 'UTF-8' }
+javadoc {
+    options.charSet = 'UTF-8'
+    options.encoding = 'UTF-8'
+}
+
 // Javadoc in this codeset fails doclint on JDK8, so let's turn it off
 // As per http://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
 if (JavaVersion.current().isJava8Compatible()) {

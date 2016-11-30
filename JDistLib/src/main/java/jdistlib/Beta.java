@@ -293,7 +293,7 @@ public class Beta extends GenericDistribution {
 					u = // log(xinbta)
 							- log1p(qq/pp * exp(w+w));
 				}
-			} else { // use the original AS 64 proposal, Scheffé-Tukey (1944) and Wilson-Hilferty
+			} else { // use the original AS 64 proposal, ScheffÃ©-Tukey (1944) and Wilson-Hilferty
 				r = qq + qq;
 				/* A slightly more stable version of  t := \chi^2_{alpha} of AS 64
 				 * t = 1. / (9. * qq); t = r * R_pow_di(1. - t + y * sqrt(t), 3);  */

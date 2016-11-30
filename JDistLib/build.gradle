@@ -45,6 +45,8 @@ repositories {
 }
 
 dependencies {
+    compile 'com.github.wendykierp:JTransforms:3.1'
+
     testCompile 'junit:junit:4.10'
 }
 

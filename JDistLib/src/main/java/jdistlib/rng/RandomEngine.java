@@ -23,6 +23,7 @@ package jdistlib.rng;
  */
 public abstract class RandomEngine extends java.util.Random
 {
+	private static final long serialVersionUID = 1L;
 	protected long mSeed;
 
 	public void setSeed(long seed)

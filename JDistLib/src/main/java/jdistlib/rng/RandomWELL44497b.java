@@ -25,6 +25,7 @@ package jdistlib.rng;
  */
 public class RandomWELL44497b extends RandomEngine
 {
+	private static final long serialVersionUID = 1L;
 	private static final int W = 32, R = 1391, P = 15,
 		MASKU = (0xffffffff>>>(W-P)), MASKL = ~MASKU, // M1 = 23, M2 = 481, M3 = 229,
 		TEMPERB = 0x93dd1400, TEMPERC = 0xfa118000;

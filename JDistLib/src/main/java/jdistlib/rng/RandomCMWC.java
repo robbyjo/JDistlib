@@ -34,6 +34,7 @@ package jdistlib.rng;
  */
 public class RandomCMWC extends RandomEngine
 {
+	private static final long serialVersionUID = 1L;
 	private long mBuffer[] = new long[4096];
 	private int mIndex = 4095;
 	private boolean mHaveNextGaussian = false;

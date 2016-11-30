@@ -18,6 +18,8 @@
 package jdistlib.exception;
 
 public class PrecisionException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
 	protected double value;
 
 	public double getValue() {

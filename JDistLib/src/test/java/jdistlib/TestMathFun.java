@@ -26,7 +26,7 @@ import static jdistlib.DebugFun.*;
 
 public class TestMathFun {
 	@Test
-	public static final boolean test_besselIJ() {
+	public final void test_besselIJ() {
 		double[]
 			x = seq(0, 4, 0.008),
 			nus = c(0.,1,2,3,4,5, 10, 20);
@@ -1058,11 +1058,11 @@ public class TestMathFun {
 				}
 			}
 		}
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_besselKY() {
+	public final void test_besselKY() {
 		double Inf = Double.POSITIVE_INFINITY, NegInf = Double.NEGATIVE_INFINITY;
 		double[]
 			x = seq(0, 4, 0.008),
@@ -2093,11 +2093,11 @@ public class TestMathFun {
 				}
 			}
 		}
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_polygamma() {
+	public final void test_polygamma() {
 		boolean success = true;
 		double[]
 			x = seq(0.1, 4, 0.0195),
@@ -2118,12 +2118,13 @@ public class TestMathFun {
 		success &= printAllEqual(hexagamma, PolyGamma.psigamma(x, 4));
 		double val = MathFunctions.lmvgammafn(1.6, 2);
 		success &= printBool(isEqual(0.4099007359681045015165, val));
-		return success;
+		assert(success);
 	}
 
 	public static final void main(String[] args) {
-		test_besselIJ();
-		test_besselKY();
-		test_polygamma();
+		TestMathFun x = new TestMathFun();
+		x.test_besselIJ();
+		x.test_besselKY();
+		x.test_polygamma();
 	}
 }

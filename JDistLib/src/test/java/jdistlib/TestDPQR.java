@@ -66,8 +66,8 @@ public class TestDPQR {
 		random = rng;
 	}
 
-	public static final boolean dkwtest(GenericDistribution d) {
-		return dkwtest(d, 10000, 0.001);
+	public static final void dkwtest(GenericDistribution d) {
+		dkwtest(d, 10000, 0.001);
 	}
 
 	/**
@@ -85,7 +85,7 @@ public class TestDPQR {
 	 * @param p0
 	 * @return
 	 */
-	public static final boolean dkwtest(GenericDistribution d, int n, double p0) {
+	public static final void dkwtest(GenericDistribution d, int n, double p0) {
 		d.setRandomEngine(random);
 		double[] x = d.random(n);
 		Map<String, Integer> tbl_x = table(vsignif(x, 12));
@@ -99,11 +99,11 @@ public class TestDPQR {
 		double s =  max(vabs(vmin(fhat, f)));
 		//double pdkwbound = Math.min(1, 2*exp(-2*n*s*s)); // P-value of s
 		double qdkwbound = sqrt(log(p0/2)/(-2*n));
-		return s < qdkwbound;
+		assert(s < qdkwbound);
 	}
 
 	@Test
-	public static final boolean test_binom() {
+	public final void test_binom() {
 		System.out.println("##__ 1. Binomial __");
 		int n0 = 50, n1 = 16, n2 = 20 + 2, n3 = 8;
 		boolean success = true;
@@ -134,11 +134,11 @@ public class TestDPQR {
 			}
 			System.out.println();
 		}
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_geom() {
+	public final void test_geom() {
 		System.out.println("##__ 2. Geometric __");
 		boolean success = true;
 		int n = 15;
@@ -164,11 +164,11 @@ public class TestDPQR {
 			printBool(success1);
 			printBool(success2);
 		}
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_hyper() {
+	public final void test_hyper() {
 		System.out.println("##__ 3. Hypergeometric __");
 		boolean success = true;
 		int m = 10, n = 7;
@@ -186,11 +186,11 @@ public class TestDPQR {
 			}
 			printBool(cur_success);
 		}
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_negbin() {
+	public final void test_negbin() {
 		System.out.println("##__ 4. Negative Binomial __");
 		boolean success = true;
 		for (int i = 8; i <= 20; i++) {
@@ -213,11 +213,11 @@ public class TestDPQR {
 				|| !isEqual(NegBinomial.cumulative(3, 0.9, 0.5, true, false), 0.946945347071519);
 		if (b) success = false;
 		printBool(!b);
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_poisson() {
+	public final void test_poisson() {
 		System.out.println("##__ 5. Poisson __");
 		boolean success = true;
 
@@ -269,11 +269,11 @@ public class TestDPQR {
 				}
 			}
 		}
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_signrank() {
+	public final void test_signrank() {
 		System.out.println("##__ 6. SignRank __");
 		boolean success = true;
 		for (int i = 0; i < 32; i++) {
@@ -290,11 +290,11 @@ public class TestDPQR {
 				}
 			}
 		}
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_wilcox() {
+	public final void test_wilcox() {
 		System.out.println("##__ 7. Wilcoxon (symmetry & cumulative) __");
 		boolean success = true, is_sym = true;
 		for (int i = 0; i < 5; i++) {
@@ -319,11 +319,11 @@ public class TestDPQR {
 			}
 		}
 		printBool(is_sym);
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_gamma() {
+	public final void test_gamma() {
 		System.out.println("##__ Gamma Density (incl. central chi^2) __");
 		boolean success = true;
 		for (int i = 0; i < 100; i++) {
@@ -389,11 +389,11 @@ public class TestDPQR {
 		abs(1 - ChiSquare.cumulative(ChiSquare.quantile(log1p(-p), df, false, true), df, false, true) / log1p(-p))
 		};
 		printBool(d[0] < lim, d[1] < lim, d[2] < lim, d[3] < lim);
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_noncentralchisq() {
+	public final void test_noncentralchisq() {
 		System.out.println("##-- non central Chi^2 :");
 		boolean success = true, cur_success;
 		for (double df : new double[] { 0.1, 1, 10 }) {
@@ -452,11 +452,11 @@ public class TestDPQR {
 		}
 		printBool(cur_success);
 		printBool(cur_success2);
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_beta() {
+	public final void test_beta() {
 		System.out.println("##--- Beta (need more):");
 		boolean success = true;
 		for (int i = 0; i < 20; i++) {
@@ -481,11 +481,11 @@ public class TestDPQR {
 		 *	if(!interactive()) stopifnot(which(isI <- sp == -Inf) == c(3, 11, 15, 20, 22, 23, 30, 39, 42, 43, 46, 47, 49),
 		 *   all.equal(range(sp[!isI]), c(-2906.123981, 2.197270387)))
 		 */
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final boolean test_normal() {
+	public final void test_normal() {
 		// Includes T distribution apparently
 		System.out.println("##--- Normal (& Lognormal) :");
 		boolean success = Normal.quantile(0, 1, 0, true, false) == Double.NEGATIVE_INFINITY
@@ -653,11 +653,11 @@ public class TestDPQR {
 		printBool(cur_success6);
 		if (!cur_success6)
 			System.err.println(buf2.toString());
-		return success;
+		assert(success);
 	}
 
 	@Test
-	public static final void test_random() {
+	public final void test_random() {
 		// Set up the instances to ensure proper parameterization
 		Beta beta = new Beta(0.8, 2);
 		beta.setRandomEngine(random);
@@ -1217,7 +1217,7 @@ public class TestDPQR {
 	}
 
 	@Test
-	public static final boolean test_extreme() {
+	public final void test_extreme() {
 		System.out.println("### (Extreme) tail tests added more recently:");
 		boolean success = true;
 		double neginf = Double.NEGATIVE_INFINITY, inf = Double.POSITIVE_INFINITY;
@@ -2431,10 +2431,11 @@ public class TestDPQR {
 				success = false;
 			}
 		}
-		return success;
+		assert(success);
 	}
 
-	public static final boolean test_for_NA() {
+  @Test
+	public final void test_for_NA() {
 		boolean success = true;
 		// TODO add more test cases here
 		/*
@@ -2455,7 +2456,7 @@ public class TestDPQR {
 		 * PDQR <- c(PDQRinteg, "beta", "cauchy", "chisq", "exp", "f", "gamma",
 		 * "lnorm", "logis", "norm", "t","unif","weibull")
 		 * ## all our RNG  r<dist>() functions:
-##' catch all: value and warnings or error <-- demo(error.catching) :
+n##' catch all: value and warnings or error <-- demo(error.catching) :
 tryCatch.W.E <- function(expr) {
     W <- NULL
     w.handler <- function(w){ # warning handler
@@ -2491,10 +2492,11 @@ for(dist in PDQR) {
     cat(" [Ok]\n")
 }
 		 */
-		return success;
+		assert(success);
 	}
 
-	public static final boolean test_strict_beta() {
+  @Test
+	public final void test_strict_beta() {
 		boolean success = true;
 		// Tests here are taken from p-qbeta-strict-tst.R
 		{
@@ -2863,7 +2865,7 @@ for(dist in PDQR) {
 			System.err.println("# 0.853 ... catastrophic!");
 			// FIXME R 3.3.1 also gives catastrophic errors
 		}
-		return success;
+		assert(success);
 	}
 
 	/**
@@ -2871,112 +2873,111 @@ for(dist in PDQR) {
 	 * @return
 	 */
 	@Test
-	public static final boolean test_dkwtest() {
+	public final void test_dkwtest() {
 		boolean success = true;
 		System.out.println("DKW test");
 		System.out.println("Binomial");
-		success &= printBool(dkwtest(new Binomial(1, 0.2)));
-		success &= printBool(dkwtest(new Binomial(2, 0.2)));
-		success &= printBool(dkwtest(new Binomial(100, 0.2)));
-		success &= printBool(dkwtest(new Binomial(1e4, 0.2)));
-		success &= printBool(dkwtest(new Binomial(1, 0.8)));
-		success &= printBool(dkwtest(new Binomial(100, 0.8)));
-		success &= printBool(dkwtest(new Binomial(100, 0.999)));
+		dkwtest(new Binomial(1, 0.2));
+		dkwtest(new Binomial(2, 0.2));
+		dkwtest(new Binomial(100, 0.2));
+		dkwtest(new Binomial(1e4, 0.2));
+		dkwtest(new Binomial(1, 0.8));
+		dkwtest(new Binomial(100, 0.8));
+		dkwtest(new Binomial(100, 0.999));
 
 		System.out.println("Poisson");
-		success &= printBool(dkwtest(new Poisson(0.095)));
-		success &= printBool(dkwtest(new Poisson(0.95)));
-		success &= printBool(dkwtest(new Poisson(9.5)));
-		success &= printBool(dkwtest(new Poisson(95)));
+		dkwtest(new Poisson(0.095));
+		dkwtest(new Poisson(0.95));
+		dkwtest(new Poisson(9.5));
+		dkwtest(new Poisson(95));
 
 		System.out.println("Negative Binomial");
-		success &= printBool(dkwtest(new NegBinomial(1, 0.2)));
-		success &= printBool(dkwtest(new NegBinomial(2, 0.2)));
-		success &= printBool(dkwtest(new NegBinomial(100, 0.2)));
-		success &= printBool(dkwtest(new NegBinomial(1e4, 0.2)));
-		success &= printBool(dkwtest(new NegBinomial(1, 0.8)));
-		success &= printBool(dkwtest(new NegBinomial(100, 0.8)));
-		success &= printBool(dkwtest(new NegBinomial(100, 0.999)));
+		dkwtest(new NegBinomial(1, 0.2));
+		dkwtest(new NegBinomial(2, 0.2));
+		dkwtest(new NegBinomial(100, 0.2));
+		dkwtest(new NegBinomial(1e4, 0.2));
+		dkwtest(new NegBinomial(1, 0.8));
+		dkwtest(new NegBinomial(100, 0.8));
+		dkwtest(new NegBinomial(100, 0.999));
 
 		System.out.println("Normal");
-		success &= printBool(dkwtest(new Normal()));
-		success &= printBool(dkwtest(new Normal(5, 3)));
+		dkwtest(new Normal());
+		dkwtest(new Normal(5, 3));
 
 		System.out.println("Gamma");
-		success &= printBool(dkwtest(new Gamma(0.1, 1)));
-		success &= printBool(dkwtest(new Gamma(0.2, 1)));
-		success &= printBool(dkwtest(new Gamma(10, 1)));
-		success &= printBool(dkwtest(new Gamma(20, 1)));
+		dkwtest(new Gamma(0.1, 1));
+		dkwtest(new Gamma(0.2, 1));
+		dkwtest(new Gamma(10, 1));
+		dkwtest(new Gamma(20, 1));
 
 		System.out.println("Hypergeometric");
-		success &= printBool(dkwtest(new HyperGeometric(40, 30, 20)));
-		success &= printBool(dkwtest(new HyperGeometric(40,  3, 20)));
-		success &= printBool(dkwtest(new HyperGeometric( 6,  3,  2)));
-		success &= printBool(dkwtest(new HyperGeometric( 5,  3,  2)));
-		success &= printBool(dkwtest(new HyperGeometric( 4,  3,  2)));
+		dkwtest(new HyperGeometric(40, 30, 20));
+		dkwtest(new HyperGeometric(40,  3, 20));
+		dkwtest(new HyperGeometric( 6,  3,  2));
+		dkwtest(new HyperGeometric( 5,  3,  2));
+		dkwtest(new HyperGeometric( 4,  3,  2));
 
 		System.out.println("SignRank");
-		success &= printBool(dkwtest(new SignRank(1)));
-		success &= printBool(dkwtest(new SignRank(2)));
-		success &= printBool(dkwtest(new SignRank(10)));
-		success &= printBool(dkwtest(new SignRank(30)));
+		dkwtest(new SignRank(1));
+		dkwtest(new SignRank(2));
+		dkwtest(new SignRank(10));
+		dkwtest(new SignRank(30));
 
 		System.out.println("Wilcoxon");
-		success &= printBool(dkwtest(new Wilcoxon(40, 30)));
-		success &= printBool(dkwtest(new Wilcoxon(40, 10)));
-		success &= printBool(dkwtest(new Wilcoxon( 6,  3)));
-		success &= printBool(dkwtest(new Wilcoxon( 5,  3)));
-		success &= printBool(dkwtest(new Wilcoxon( 4,  3)));
+		dkwtest(new Wilcoxon(40, 30));
+		dkwtest(new Wilcoxon(40, 10));
+		dkwtest(new Wilcoxon( 6,  3));
+		dkwtest(new Wilcoxon( 5,  3));
+		dkwtest(new Wilcoxon( 4,  3));
 
 		System.out.println("ChiSquare");
-		success &= printBool(dkwtest(new ChiSquare(1)));
-		success &= printBool(dkwtest(new ChiSquare(10)));
+		dkwtest(new ChiSquare(1));
+		dkwtest(new ChiSquare(10));
 
 		System.out.println("Logistic");
-		success &= printBool(dkwtest(new Logistic()));
-		success &= printBool(dkwtest(new Logistic(4, 2)));
+		dkwtest(new Logistic());
+		dkwtest(new Logistic(4, 2));
 
 		System.out.println("T");
-		success &= printBool(dkwtest(new T(1)));
-		success &= printBool(dkwtest(new T(10)));
-		success &= printBool(dkwtest(new T(40)));
+		dkwtest(new T(1));
+		dkwtest(new T(10));
+		dkwtest(new T(40));
 
 		System.out.println("Beta");
-		success &= printBool(dkwtest(new Beta(1, 1)));
-		success &= printBool(dkwtest(new Beta(2, 1)));
-		success &= printBool(dkwtest(new Beta(1, 2)));
-		success &= printBool(dkwtest(new Beta(2, 2)));
-		success &= printBool(dkwtest(new Beta(0.2, 0.2)));
+		dkwtest(new Beta(1, 1));
+		dkwtest(new Beta(2, 1));
+		dkwtest(new Beta(1, 2));
+		dkwtest(new Beta(2, 2));
+		dkwtest(new Beta(0.2, 0.2));
 
 		System.out.println("Cauchy");
-		success &= printBool(dkwtest(new Cauchy()));
-		success &= printBool(dkwtest(new Cauchy(4, 2)));
+		dkwtest(new Cauchy());
+		dkwtest(new Cauchy(4, 2));
 
 		System.out.println("F");
-		success &= printBool(dkwtest(new F(1, 1)));
-		success &= printBool(dkwtest(new F(1, 10)));
-		success &= printBool(dkwtest(new F(10, 10)));
-		success &= printBool(dkwtest(new F(30, 3)));
+		dkwtest(new F(1, 1));
+		dkwtest(new F(1, 10));
+		dkwtest(new F(10, 10));
+		dkwtest(new F(30, 3));
 
 		System.out.println("Weibull");
-		success &= printBool(dkwtest(new Weibull(1, 1)));
-		success &= printBool(dkwtest(new Weibull(4, 4)));
+		dkwtest(new Weibull(1, 1));
+		dkwtest(new Weibull(4, 4));
 
 		System.out.println("## regression test for PR#7314");
-		success &= printBool(dkwtest(new HyperGeometric(60, 100, 50)));
-		success &= printBool(dkwtest(new HyperGeometric(6, 10, 5)));
-		success &= printBool(dkwtest(new HyperGeometric(600, 1000, 500)));
+		dkwtest(new HyperGeometric(60, 100, 50));
+		dkwtest(new HyperGeometric(6, 10, 5));
+		dkwtest(new HyperGeometric(600, 1000, 500));
 
 		System.out.println("## regression test for non-central t bug");
-		success &= printBool(dkwtest(new NonCentralT(20, 3)));
+		dkwtest(new NonCentralT(20, 3));
 
 		System.out.println("## regression test for non-central F bug");
-		success &= printBool(dkwtest(new NonCentralF(10, 2, 3)));
-		return success;
+		dkwtest(new NonCentralF(10, 2, 3));
 	}
 
 	@Test
-	public static final boolean test_disttest() {
+	public final void test_disttest() {
 		boolean success = true;
 		// Taken from ansari.test.R
 		//Hollander & Wolfe (1973, p. 86f):
@@ -3081,7 +3082,7 @@ for(dist in PDQR) {
 		System.out.println(result[0]);
 		System.out.println(result[1]);
 		success &= printBool(isEqual(682, result[0]) && isEqual(0.3824915595748519248076, result[1]));
-		return success;
+		assert(success);
 	}
 
 	static final void test_diptest() {

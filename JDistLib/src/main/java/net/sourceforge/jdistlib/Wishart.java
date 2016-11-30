@@ -17,7 +17,6 @@ package net.sourceforge.jdistlib;
 import net.sourceforge.jdistlib.rng.RandomEngine;
 
 import static java.lang.Math.sqrt;
-import static net.sourceforge.jdistlib.matrix.QMatrixUtils.*;
 
 /**
  * Wishart distribution
@@ -49,6 +48,7 @@ public class Wishart {
 	 * @param rand Randomizer
 	 * @return square matrix of d x d
 	 */
+	@SuppressWarnings("deprecation")
 	public static final double[][] random(double n, double[][] L, RandomEngine rand)
 	{
 		int d = L.length;
@@ -85,6 +85,6 @@ public class Wishart {
 				B[i][j] = B[j][i] = sum / n;
 			}
 
-		return calculateXYt(calculateXY(L,B),L);
+		return net.sourceforge.jdistlib.matrix.QMatrixUtils.calculateXYt(net.sourceforge.jdistlib.matrix.QMatrixUtils.calculateXY(L,B),L);
 	}
 }

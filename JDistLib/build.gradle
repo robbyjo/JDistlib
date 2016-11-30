@@ -27,6 +27,10 @@ archivesBaseName = 'jdistlib'
 compileJava {
     options.encoding = 'UTF-8'
     options.compilerArgs << "-Xlint" << "-Werror"
+    // Unfortunately there are a number of unnecessary casts. Rather than remove
+    // them, we must investigate why they are present and whether they indicate
+    // inadvertent bugs in the implementation.
+    options.compilerArgs << "-Xlint:-cast"
 }
 javadoc {
     options.charSet = 'UTF-8'

@@ -15,11 +15,12 @@
 package net.sourceforge.jdistlib.matrix;
 
 /**
- * @Deprecated
+ * @deprecated
  * Matrix utilities
  * @author Roby Joehanes
  *
  */
+@Deprecated
 public class QMatrixUtils {
 	/**
 	 * Calculate XY. Eliminate the need to instantiate a matrix.

@@ -475,7 +475,6 @@ public class VectorMath {
 	/**
 	 * Geometric mean
 	 * @param e
-	 * @return
 	 */
 	public static final double geom_mean(double[] e) {
 		double prod = 0;
@@ -488,7 +487,6 @@ public class VectorMath {
 	/**
 	 * Harmonic mean
 	 * @param e
-	 * @return
 	 */
 	public static final double harm_mean(double[] e) {
 		double prod = 0;
@@ -661,7 +659,6 @@ public class VectorMath {
 	/**
 	 * Maximum deviation (i.e., max(abs(e - median(e))))
 	 * @param e
-	 * @return
 	 */
 	public static final double maxdev(double[] e) {
 		int n = e.length;
@@ -766,7 +763,6 @@ public class VectorMath {
 	/**
 	 * Mid-range of e (i.e., (max(e) + min(e)) / 2)
 	 * @param e
-	 * @return
 	 */
 	public static final double midrange(double[] e) {
 		int n = e.length;
@@ -843,7 +839,6 @@ public class VectorMath {
 	/**
 	 * Inter-quartile range (i.e., Q3 - Q1)
 	 * @param e
-	 * @return
 	 */
 	public static final double iqr(double[] e) {
 		double[] v = quantile0(e, new double[] {0.75, 0.25});
@@ -853,7 +848,6 @@ public class VectorMath {
 	/**
 	 * Mid hinge. (Q1 + Q3) / 2.0
 	 * @param e
-	 * @return
 	 */
 	public static final double midhinge(double[] e) {
 		double[] v = quantile0(e, new double[] {0.25, 0.75});
@@ -863,7 +857,6 @@ public class VectorMath {
 	/**
 	 * Trimean (Q1 + 2Q2 + Q3) / 4
 	 * @param e
-	 * @return
 	 */
 	public static final double trimean(double[] e) {
 		double[] v = quantile0(e, new double[] {0.25, 0.5, 0.75});

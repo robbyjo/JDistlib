@@ -1358,7 +1358,6 @@ public class SmoothSpline
 	 * @param smoothingParamUBound Will be ignored if smoothingParam is not NaN. Default = +1.5
 	 * @param tolerance Tolerance threshold. Default is 0.0001.
 	 * @param maxNumIterations maximum number of iterations. Default is 500.
-	 * @return
 	 */
 	public static final SmoothSplineResult fit(double[] x, double[] y, double[] weights,
 		SmoothSplineCriterion criterion, double penalty, double df, double smoothingParam,

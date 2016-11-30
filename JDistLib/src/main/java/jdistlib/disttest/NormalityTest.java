@@ -43,7 +43,6 @@ public class NormalityTest {
 	/**
 	 * Invoke shapiro_wilk_statistic with sort = false
 	 * @param X pre-sorted array of numbers
-	 * @return
 	 */
 	public static final double shapiro_wilk_statistic(double[] X) {
 		return shapiro_wilk_statistic(X, false);
@@ -51,9 +50,8 @@ public class NormalityTest {
 
 	/**
 	 * Compute Shapiro-Wilk statistic
-	 * @param X array of number
+	 * @param x array of number
 	 * @param sort if true, then this function will attempt to sort the X first.
-	 * @return
 	 */
 	@SuppressWarnings("unused")
 	public static final double shapiro_wilk_statistic(double[] x, boolean sort) {
@@ -408,6 +406,7 @@ public class NormalityTest {
 	 * @param X
 	 * @return statistic
 	 */
+  @Deprecated
 	public static final double kolmogorov_smirnov_statistic(double[] X) {
 		return DistributionTest.kolmogorov_smirnov_statistic(X, new Normal(), TestKind.TWO_SIDED);
 	}
@@ -419,6 +418,7 @@ public class NormalityTest {
 	 * @param X
 	 * @return p-value
 	 */
+  @Deprecated
 	public static final double kolmogorov_smirnov_pvalue(double d, double[] X) {
 		int nX = X.length;
 		Set<Double> set = new HashSet<Double>(nX);

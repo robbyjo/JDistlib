@@ -43,16 +43,7 @@ public class LinPack
 	 * 
 	 * <P>(Taken from LINPACK_D)
 	 * 
-	 * <P>on entry
-	 * 
-	 * @param abd double precision(lda, n), the output from dpbco or dpbfa.
-	 * @param lda integer, the leading dimension of the array  abd
-	 * @param n integer, the order of the matrix  a
-	 * @param m integer, the number of diagonals above the main diagonal.
-	 * @param b double precision(n), the right hand side vector.
-	 * 
 	 * <p>On return
-	 * @return b       the solution vector  x
 	 * 
 	 * <Pre>error condition
 	 * a division by zero will occur if the input factor contains
@@ -71,9 +62,9 @@ public class LinPack
 	 * linpack.  this version dated 08/14/78
 	 * cleve moler, university of new mexico, argonne national lab.
 	 * </pre>
-	 * @param abd Banded matrix.
-	 * @param m Band width
-	 * @param b the Y vector. Holds the output after the routine ends.
+	 * @param abd Banded matrix. (the output from dpbco or dpbfa)
+	 * @param m Band width (the number of diagonals above the main diagonal)
+	 * @param b the Y vector. Holds the output after the routine ends. (the right hand side vector)
 	 */
 	public static final void dpbsl(double[][] abd, int m, double[] b)
 	{

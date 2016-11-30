@@ -24,7 +24,10 @@ version = '0.4.5'
 group = 'net.sourceforge.jdistlib'
 archivesBaseName = 'jdistlib'
 
-compileJava { options.encoding = 'UTF-8' }
+compileJava {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << "-Xlint" << "-Werror"
+}
 javadoc {
     options.charSet = 'UTF-8'
     options.encoding = 'UTF-8'

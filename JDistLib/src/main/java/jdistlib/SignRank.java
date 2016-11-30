@@ -169,6 +169,7 @@ public class SignRank extends GenericDistribution {
 	public double random()
 	{	return random(random); }
 
+  @Deprecated
 	public double random(RandomEngine rr) {
 		if (n == 0) return 0;
 		double r = 0.0;

@@ -3318,7 +3318,7 @@ for(dist in PDQR) {
 //		test_random();
 //		test_extreme();
 //		test_for_NA();
-		test_strict_beta();
+//		test_strict_beta();
 //		test_dkwtest();
 //		test_disttest();
 //		norm_test();

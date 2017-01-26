@@ -485,6 +485,21 @@ public class VectorMath {
 	}
 
 	/**
+	 * Geometric standard deviation (per Bug #34 request)
+	 * @param e
+	 */
+	public static final double geom_sd(double[] e) {
+		double sum = 0, sumsq = 0;
+		int n = e.length;
+		for (int i = 0; i < n; i++) {
+			double v = log(e[i]);
+			sum += v / n;
+			sumsq += v * v / n;
+		}
+		return exp(sqrt(sumsq - sum * sum));
+	}
+
+	/**
 	 * Harmonic mean
 	 * @param e
 	 */

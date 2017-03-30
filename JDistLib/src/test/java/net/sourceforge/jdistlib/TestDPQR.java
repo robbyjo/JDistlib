@@ -25,6 +25,7 @@ import net.sourceforge.jdistlib.math.MathFunctions;
 import net.sourceforge.jdistlib.math.VectorMath;
 import net.sourceforge.jdistlib.rng.MersenneTwister;
 import net.sourceforge.jdistlib.rng.RandomEngine;
+import net.sourceforge.jdistlib.evd.GEV;
 
 import org.junit.Test;
 
@@ -3322,6 +3323,7 @@ for(dist in PDQR) {
 //		test_dkwtest();
 //		test_disttest();
 //		norm_test();
+		System.out.println(GEV.cumulative(20000, 20000, 20, -0.07, true));
 		System.exit(0);
 	}
 }

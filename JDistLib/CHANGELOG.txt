@@ -7,6 +7,8 @@ Version 0.5.0 (?):
 * Added various central tendencies routine per request of Bug #32
 * jdistlib.matrix.QMatrixUtils is now being deprecated
 * Added Geometric Standard Deviation, per Bug #34
+* Bug fix #37 on GEV.cumulative. Thanks Luís!
+* Bug fix #36 Underflow of beta (PR #17178)
 
 Version 0.4.5 (October 10, 2016):
 * Bug fix for #31 (PR#16972) on Poisson quantile (and related limit bugs)

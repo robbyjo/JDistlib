@@ -35,7 +35,7 @@ public class NonCentralBeta extends GenericDistribution {
 
 		int kMax;
 		double k, ncp2, dx2, d, D;
-		double sum, term, p_k, q;
+		double sum, term, p_k, q; // #TODO Should be long double
 
 		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b) || Double.isNaN(ncp)) return x + a + b + ncp;
 		if (ncp < 0 || a <= 0 || b <= 0) return Double.NaN;

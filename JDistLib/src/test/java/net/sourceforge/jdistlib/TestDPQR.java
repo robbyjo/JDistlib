@@ -25,7 +25,6 @@ import net.sourceforge.jdistlib.math.MathFunctions;
 import net.sourceforge.jdistlib.math.VectorMath;
 import net.sourceforge.jdistlib.rng.MersenneTwister;
 import net.sourceforge.jdistlib.rng.RandomEngine;
-import net.sourceforge.jdistlib.evd.GEV;
 
 import org.junit.Test;
 
@@ -2875,7 +2874,6 @@ for(dist in PDQR) {
 	 */
 	@Test
 	public final void test_dkwtest() {
-		boolean success = true;
 		System.out.println("DKW test");
 		System.out.println("Binomial");
 		dkwtest(new Binomial(1, 0.2));
@@ -3323,7 +3321,11 @@ for(dist in PDQR) {
 //		test_dkwtest();
 //		test_disttest();
 //		norm_test();
-		System.out.println(GEV.cumulative(20000, 20000, 20, -0.07, true));
+		//System.out.println(GEV.cumulative(20000, 20000, 20, -0.07, true));
+		// Bug #17178
+		System.out.println(Beta.quantile(1-1e-9, 1.5, 8485.5, true, false));
+		System.out.println(Beta.quantile(1-1e-10, 1.5, 8485.5, true, false));
+		System.out.println(Beta.quantile(1-9.999999e-10, 1.5, 8485.5, true, false));
 		System.exit(0);
 	}
 }

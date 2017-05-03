@@ -212,12 +212,16 @@ public class Beta extends GenericDistribution {
 			a = (log_p ? (lower_tail ? -expm1(alpha) : exp(alpha)) : (lower_tail ? (0.5 - (alpha) + 0.5) : (alpha)));
 			/* la := log(a), but without numerical cancellation: */
 			//la = lower_tail ? R_D_LExp(alpha) : R_D_log(alpha);
+			//la = R_DT_Clog(alpha); == (lower_tail? R_D_LExp(alpha): R_D_log(alpha))
 			la = lower_tail ? (log_p ? ((alpha) > -M_LN2 ? log(-expm1(alpha)) : log1p(-exp(alpha))) : log1p(-alpha)) : (log_p ? (alpha) : log(alpha));
 			pp = q; qq = p;
 		}
 		else {
 			a = p_;
-			//la = lower_tail ? R_D_log(alpha) : R_D_LExp(alpha);
+			// Old: la = lower_tail ? R_D_log(alpha) : R_D_LExp(alpha);
+			// New: la = R_DT_log(alpha); == (lower_tail? (alpha) : R_Log1_Exp(alpha))
+			// == (lower_tail? (alpha) : ((alpha > -M_LN2) ? log(-expm1(alpha)) : log1p(-exp(alpha))))
+			// TODO: The old one seems to be correct than the new one because the new one apparently neglects log_p parameter
 			la = lower_tail ? (log_p ? (alpha) : log(alpha)) : (log_p ? ((alpha) > -M_LN2 ? log(-expm1(alpha)) : log1p(-exp(alpha))) : log1p(-alpha));
 			pp = p; qq = q;
 		}
@@ -235,7 +239,7 @@ public class Beta extends GenericDistribution {
 	    */
 		double acu = max(acu_min, pow(10., -13. - 2.5/(pp * pp) - 0.5/(a * a)));
 	    // try to catch  "extreme left tail" early
-		double tx = xinbta, u0 = (la + log(pp) + logbeta) / pp; // = log(x_0)
+		double tx, u0 = (la + log(pp) + logbeta) / pp; // = log(x_0)
 		final double
 		log_eps_c = M_LN2 * (1. - DBL_MANT_DIG);// = log(DBL_EPSILON) = -36.04..
 		r = pp*(1.-qq)/(pp+1.);
@@ -308,9 +312,11 @@ public class Beta extends GenericDistribution {
 					 * FIXME: not worth it? log1p(-a) always the same ?? */
 					if(swap_tail)
 						//l1ma = lower_tail ? R_D_log(alpha) : R_D_LExp(alpha);
+						// TODO, again, it seems l1ma is replaced with R_DT_log(alpha), which is incorrect
 						l1ma = lower_tail ? (log_p ? (alpha) : log(alpha)) : (log_p ? ((alpha) > -M_LN2 ? log(-expm1(alpha)) : log1p(-exp(alpha))) : log1p(-alpha));
 					else
 						//l1ma = lower_tail ? R_D_LExp(alpha) : R_D_log(alpha);
+						// TODO, also this point. Replaced with R_DT_Clog(alpha)
 						l1ma = lower_tail ? (log_p ? ((alpha) > -M_LN2 ? log(-expm1(alpha)) : log1p(-exp(alpha))) : log1p(-alpha)) : (log_p ? (alpha) : log(alpha));
 					//R_ifDEBUG_printf(" t <= 0 : log1p(-a)=%.15g, better l1ma=%.15g\n", log1p(-a), l1ma);
 					double xx = (l1ma + log(qq) + logbeta) / qq;
@@ -462,12 +468,12 @@ public class Beta extends GenericDistribution {
 					if (i_pb >= n_N && w * wprev <= 0.)
 						prev = max(abs(adj),fpu);
 					//R_ifDEBUG_printf("N(i=%2d): u=%#20.16g, pb(e^u)=%#12.6g, w=%#15.9g, %s prev=%11g,",
-					//		i_pb, u, y, w, (w * wprev <= 0.) ? "new" : "old", prev);
+					//		i_pb, u, y, w, (i_pb >= n_N && w * wprev <= 0.) ? "new" : "old", prev);
 					g = 1;
 					for (i_inn=0; i_inn < 1000; i_inn++) {
 						adj = g * w;
-						// take full Newton steps at the beginning; only then safe guard:
-						if (i_pb < n_N || abs(adj) < prev) {
+						// safe guard (here, from the very beginning)
+						if (abs(adj) < prev) {
 							u_n = u - adj; // u_{n+1} = u_n - g*w
 							if (u_n <= 0.) { // <==> 0 <  xinbta := e^u  <= 1
 								if (prev <= acu || abs(w) <= acu) {

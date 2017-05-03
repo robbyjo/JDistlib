@@ -20,6 +20,7 @@ import net.sourceforge.jdistlib.util.Debug;
 
 import static java.lang.Math.*;
 import static net.sourceforge.jdistlib.math.VectorMath.*;
+import static net.sourceforge.jdistlib.math.Constants.*;
 
 public class Bandwidth {
 	public static final Bandwidth NRD0 = new Bandwidth() {
@@ -110,10 +111,11 @@ public class Bandwidth {
 						double delta = i * d / h;
 						delta *= delta;
 						if (delta >= DELMAX) break;
-						term = exp(-delta / 4) - sqrt(8.0) * exp(-delta / 2);
-						sum += term * cnt[i];
+						term = exp(-delta / 4.) - sqrt(8.0) * exp(-delta / 2.);
+						sum += term * ((double) cnt[i]);
 					}
-					u = 1 / (2 * n * h * sqrt(PI)) + sum / (n * n * h * sqrt(PI));
+					u = (0.5 + sum/n) / (n * h * M_SQRT_PI);
+					//u = 1 / (2 * n * h * sqrt(PI)) + sum / (n * n * h * sqrt(PI));
 					return u;
 				}
 			};
@@ -139,9 +141,10 @@ public class Bandwidth {
 						delta *= delta;
 						if (delta >= DELMAX) break;
 						term = exp(-delta / 4) * (delta * delta - 12 * delta + 12);
-						sum += term * cnt[i];
+						sum += term * ((double) cnt[i]);
 					}
-					u = 1 / (2 * n * h * sqrt(PI)) + sum / (64 * n * n * h * sqrt(PI));
+					u = (1 + sum/(32.0*n)) / (2.0 * n * h * M_SQRT_PI);
+					//u = 1 / (2 * n * h * sqrt(PI)) + sum / (64 * n * n * h * sqrt(PI));
 					return u;
 				}
 			};
@@ -231,11 +234,12 @@ public class Bandwidth {
 		for (int i = 0; i < nbin; i++) {
 			double delta = i * d / h; delta *= delta;
 			if (delta >= DELMAX) break;
-			term = exp(-delta / 2) * (delta * delta - 6 * delta + 3);
-			sum += term * cnt[i];
+			term = exp(-delta / 2.) * (delta * delta - 6. * delta + 3.);
+			sum += term * ((double) cnt[i]);
 		}
 		sum = 2 * sum + n * 3;	/* add in diagonal */
-		u = sum / (n * (n - 1) * pow(h, 5.0) * sqrt(2 * PI));
+		u = sum / ((double)n * (n - 1) * pow(h, 5.0)) * M_1_SQRT_2PI;
+		//u = sum / (n * (n - 1) * pow(h, 5.0) * sqrt(2 * PI));
 		return u;
 	}
 
@@ -248,12 +252,27 @@ public class Bandwidth {
 			if (delta >= DELMAX) break;
 			term = exp(-delta / 2) *
 					(delta * delta * delta - 15 * delta * delta + 45 * delta - 15);
-			sum += term * cnt[i];
+			sum += term * ((double) cnt[i]);
 		}
 		sum = 2 * sum - 15 * n;	/* add in diagonal */
-		u = sum / (n * (n - 1) * pow(h, 7.0) * sqrt(2 * PI));
+		u = sum / ((double)n * (n - 1) * pow(h, 7.0)) * M_1_SQRT_2PI;
+		//u = sum / (n * (n - 1) * pow(h, 7.0) * sqrt(2 * PI));
 		return u;
 	}
+
+	// FIXME: 
+	// This is an attempt to port the following fix at R-3.4.0 (synced to R-3.4.1-alpha-r72648 (May 2, 2017):
+	// Bandwidth selectors bw.ucv() and bw.SJ() gave incorrect answers or incorrectly reported an error (because of integer overflow) for inputs longer than 46341. Similarly for bw.bcv() at length 5793.
+	// Another possible integer overflow is checked and may result in an error report (rather than an incorrect result) for much longer inputs (millions for a smooth distribution).
+	//
+	// Comment: I have incorporated the rearranged terms for u, which should solve the overflow part. However,
+	// I cannot see the point on why binning under R vs. under C would have any relevance for JDistlib,
+	// i.e. refactoring bw_pair_cnts to binned vs. unbinned is irrelevant for JDistlib.
+	// Test cases are appreciated. (None found in R)
+
+	//private static final double[][] bw_pair_cnts(double[] x, int nb, boolean binned) {
+	//	return null;
+	//}
 
 	public int getNumBins() {
 		return nb;

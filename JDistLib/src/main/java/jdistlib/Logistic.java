@@ -38,18 +38,6 @@ public class Logistic extends GenericDistribution {
 	    return give_log ? -(x + log(scale * f * f)) : e / (scale * f * f);
 	}
 
-	/* Compute  log(1 + exp(x))  without overflow (and fast for x > 18)
-	   For the two cutoffs, consider
-	   curve(log1p(exp(x)) - x,       33.1, 33.5, n=2^10)
-	   curve(x+exp(-x) - log1p(exp(x)), 15, 25,   n=2^11)
-	*/
-	private static final double log1pexp(double x) {
-	    if(x <= 18.) return log1p(exp(x));
-	    if(x > 33.3) return x;
-	    // else: 18.0 < x <= 33.3 :
-	    return x + exp(-x);
-	}
-
 	public static final double cumulative(double x, double location, double scale, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(location) || Double.isNaN(scale)) return x + location + scale;
 		if (scale <= 0.0) return Double.NaN;
@@ -63,7 +51,7 @@ public class Logistic extends GenericDistribution {
 		}
 
 		return log_p ?
-			-log1pexp(lower_tail ? -x : x) :
+			-MathFunctions.log1pexp(lower_tail ? -x : x) :
 			1 / (1 + exp(lower_tail ? -x : x));
 	}
 

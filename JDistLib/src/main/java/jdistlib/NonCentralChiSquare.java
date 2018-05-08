@@ -488,7 +488,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(lambda) || df < 0. || lambda < 0.)
 			return Double.NaN;
 
-		if(lambda == 0.)
+		if(lambda == 0. || Double.isNaN(lambda))
 			return (df == 0.) ? 0 : Gamma.random(df / 2., 2., random);
 		double r = Poisson.random( lambda / 2., random);
 		if (r > 0.)  r = ChiSquare.random(2. * r, random);

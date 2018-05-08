@@ -238,7 +238,7 @@ public class NonCentralBeta extends GenericDistribution {
 	}
 
 	public static final double random(double a, double b, double ncp, RandomEngine random) {
-		if (ncp == 0)
+		if (ncp == 0 || Double.isNaN(ncp))
 			return Beta.random(a, b, random);
 		double x = NonCentralChiSquare.random(2 * a, ncp, random);
 		x = x / (x + NonCentralChiSquare.random(2 * b, ncp, random));

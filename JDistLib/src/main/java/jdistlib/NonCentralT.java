@@ -299,7 +299,7 @@ public class NonCentralT extends GenericDistribution {
 	}
 
 	public static final double random(double df, double ncp, RandomEngine random) {
-		if (ncp == 0)
+		if (ncp == 0 || Double.isNaN(ncp))
 			return T.random(df, random);
 		return Normal.random(ncp,1,random) / sqrt(ChiSquare.random(df, random)/df);
 	}

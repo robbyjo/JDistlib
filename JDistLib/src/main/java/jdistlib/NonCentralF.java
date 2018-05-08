@@ -122,7 +122,7 @@ public class NonCentralF extends GenericDistribution {
 	}
 
 	public static final double random(double df1, double df2, double ncp, RandomEngine random) {
-		if (ncp == 0)
+		if (ncp == 0 || Double.isNaN(ncp))
 			return F.random(df1, df2, random);
 		return (NonCentralChiSquare.random(df1, ncp, random) / df1) / (ChiSquare.random(df2, random) / df2);
 	}

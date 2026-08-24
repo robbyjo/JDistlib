@@ -8,13 +8,13 @@ group = 'net.sourceforge.jdistlib'
 version = '0.5.0-SNAPSHOT'
 
 def projectHomepage = providers.gradleProperty('projectUrl')
-    .getOrElse('https://jdistlib.sourceforge.net/')
+    .getOrElse('https://github.com/robbyjo/JDistlib')
 def projectScmUrl = providers.gradleProperty('scmUrl')
-    .getOrElse('https://sourceforge.net/p/jdistlib/code/ci/master/tree/')
+    .getOrElse('https://github.com/robbyjo/JDistlib')
 def projectScmConnection = providers.gradleProperty('scmConnection')
-    .getOrElse('scm:git:https://git.code.sf.net/p/jdistlib/code')
+    .getOrElse('scm:git:https://github.com/robbyjo/JDistlib.git')
 def projectScmDeveloperConnection = providers.gradleProperty('scmDeveloperConnection')
-    .getOrElse(projectScmConnection)
+    .getOrElse('scm:git:ssh://git@github.com/robbyjo/JDistlib.git')
 
 base {
     archivesName = 'jdistlib'

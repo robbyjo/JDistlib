@@ -37,7 +37,14 @@ dependencies {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 8
-    options.compilerArgs += ['-Xlint:all,-cast,-options,-strictfp,-this-escape', '-Werror']
+    def disabledLintCategories = ['cast', 'options', 'strictfp']
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_20)) {
+        disabledLintCategories += 'this-escape'
+    }
+    options.compilerArgs += [
+        "-Xlint:all,-${disabledLintCategories.join(',-')}",
+        '-Werror'
+    ]
 }
 
 tasks.withType(Javadoc).configureEach {

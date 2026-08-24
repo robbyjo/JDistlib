@@ -1082,7 +1082,7 @@ public class Bobyqa extends MultivariateOptimization {
 		return new OptimizationResult(x, f, nf, isMinimize);
 	}
 
-	/**
+	/*
 	 * <pre>
 	 * The arguments N, NPT, X, XL, XU, RHOBEG, RHOEND, IPRINT and MAXFUN
 	 *   are identical to the corresponding arguments in SUBROUTINE BOBYQA.

@@ -1,5 +1,9 @@
 # JDistlib
 
+[![CI](https://github.com/robbyjo/JDistlib/actions/workflows/ci.yml/badge.svg)](https://github.com/robbyjo/JDistlib/actions/workflows/ci.yml)
+[![Documentation](https://img.shields.io/badge/docs-JavaDoc-315b7d)](https://robbyjo.github.io/JDistlib/api/)
+[![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0%2B-315b7d)](LICENSE)
+
 JDistlib is a Java library for probability distributions and related numerical
 methods. Its core is a manual Java translation of R's `src/nmath`, designed to
 retain R-compatible results without inheriting the process-global caches that
@@ -31,6 +35,12 @@ compatible.
 ```
 
 On Windows, use `gradlew.bat` instead.
+
+## Documentation
+
+The project website is <https://robbyjo.github.io/JDistlib/> and the generated
+JavaDoc is published at <https://robbyjo.github.io/JDistlib/api/>. Both are
+rebuilt from `master` by the GitHub Pages workflow.
 
 ## Using the distribution APIs
 

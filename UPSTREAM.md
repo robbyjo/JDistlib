@@ -13,10 +13,13 @@ been compared with the tagged R source and covered by regression vectors.
 ## Completed in the 0.5.0 development tree
 
 - [x] `qnorm.c`: extreme log-tail refinements
+- [x] Normal family (`dnorm.c`, `pnorm.c`, `qnorm.c`, `rnorm.c`, `snorm.c`),
+  including subnormal probability tails and infinite-scale boundaries
 - [x] `qDiscrete_search.h`: shared binomial, Poisson, and negative-binomial search
 - [x] `qnbinom_mu.c`: direct mean parameterization
 - [x] `stirlerr.c`: current coefficients and selection rules
 - [x] `bd0.c`: signed deviance series and stable ratio calculation
+- [x] IEEE-754 `ldexp`/`frexp` boundary behavior used by nmath translations
 - [x] Selected `dbinom.c`, `dpois.c`, and `dlnorm.c` boundary updates
 - [x] R `stats::integrate` behavior: finite and infinite intervals, tolerances,
   error estimates, subdivision limits, and status reporting
@@ -27,7 +30,7 @@ been compared with the tagged R source and covered by regression vectors.
 - [ ] Gamma, chi-square, and noncentral chi-square family
 - [ ] Hypergeometric and Wilcoxon family changes
 - [ ] Bessel and polygamma changes
-- [ ] Remaining normal, Poisson, binomial, and negative-binomial source details
+- [ ] Remaining Poisson, binomial, and negative-binomial source details
 - [ ] Remaining continuous distributions and RNG implementations
 - [ ] Header/macro behavior (`nmath.h`, `dpq.h`, arithmetic helpers)
 - [ ] Full generated regression corpus against an R 4.6.1 reference build

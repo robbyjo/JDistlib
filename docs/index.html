@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="JDistlib: thread-safe Java probability distributions based on R src/nmath.">
+  <title>JDistlib — Statistical distributions for Java</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">JDistlib</a>
+    <nav aria-label="Primary navigation">
+      <a href="api/">JavaDoc</a>
+      <a href="https://github.com/robbyjo/JDistlib">Source</a>
+      <a href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">R sync status</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Probability distributions for Java</p>
+      <h1>R-grade numerical methods,<br>designed for concurrent Java.</h1>
+      <p class="lede">JDistlib is a Java translation of R's <code>src/nmath</code>,
+        adapted to avoid process-global mutable caches and extended with distributions
+        beyond the R library.</p>
+      <div class="actions">
+        <a class="button primary" href="api/">Browse JavaDoc</a>
+        <a class="button secondary" href="https://github.com/robbyjo/JDistlib">View on GitHub</a>
+      </div>
+      <ul class="facts" aria-label="Project facts">
+        <li><strong>0.5.0</strong><span>development line</span></li>
+        <li><strong>R 4.6.1</strong><span>sync target</span></li>
+        <li><strong>Java 8+</strong><span>compatible bytecode</span></li>
+        <li><strong>GPL-2.0+</strong><span>open source</span></li>
+      </ul>
+    </section>
+
+    <section class="section" aria-labelledby="why-heading">
+      <p class="eyebrow">Why JDistlib</p>
+      <h2 id="why-heading">A practical statistical foundation</h2>
+      <div class="grid">
+        <article>
+          <h3>R-compatible mathematics</h3>
+          <p>Density, cumulative, quantile, and random-generation routines retain
+            R's tail and logarithmic probability conventions.</p>
+        </article>
+        <article>
+          <h3>Concurrency-aware</h3>
+          <p>Numerical calls use local state. Cached random algorithms accept explicit
+            per-stream state instead of sharing mutable global caches.</p>
+        </article>
+        <article>
+          <h3>More distributions</h3>
+          <p>Includes beta-binomial, beta-prime, Kumaraswamy, Laplace, Levy,
+            Nakagami, skewed t, Tweedie, Wishart, Zipf, and extreme-value families.</p>
+        </article>
+        <article>
+          <h3>Numerical utilities</h3>
+          <p>Includes adaptive finite and infinite-interval integration, optimization,
+            splines, polynomial operations, and special functions.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section split" aria-labelledby="example-heading">
+      <div>
+        <p class="eyebrow">Small API, familiar semantics</p>
+        <h2 id="example-heading">Use distribution functions directly</h2>
+        <p>Boolean arguments follow R's <code>lower.tail</code> and <code>log.p</code>
+          conventions. The same shape is used consistently across distribution classes.</p>
+      </div>
+      <pre><code>double p = Normal.cumulative(
+    1.96, 0.0, 1.0, true, false
+);
+
+double x = Normal.quantile(
+    0.975, 0.0, 1.0, true, false
+);</code></pre>
+    </section>
+
+    <section class="section status" aria-labelledby="status-heading">
+      <div>
+        <p class="eyebrow">Modernization status</p>
+        <h2 id="status-heading">The R 4.6.1 audit is active</h2>
+      </div>
+      <p>The original R 3.3.2 baseline is being reviewed file by file against the
+        tagged R 4.6.1 sources. Completed groups and remaining work are recorded in a
+        public ledger, with regression vectors added for each numerical change.</p>
+      <a class="text-link" href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">Read the synchronization ledger →</a>
+    </section>
+  </main>
+
+  <footer>
+    <span>JDistlib by Roby Joehanes and contributors.</span>
+    <span>GNU General Public License, version 2 or later.</span>
+  </footer>
+</body>
+</html>

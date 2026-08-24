@@ -102,7 +102,9 @@ public class MathFunctions {
 	{	return Double.isNaN(x) || (x == Double.POSITIVE_INFINITY) || (x == Double.NEGATIVE_INFINITY); }
 
 	public static final double ldexp(double x, double ex) {
-		return exp(log(x) + ex * Constants.M_LN2);
+		if (ex == rint(ex) && ex >= Integer.MIN_VALUE && ex <= Integer.MAX_VALUE)
+			return Math.scalb(x, (int) ex);
+		return x * pow(2., ex);
 	}
 
 	/**
@@ -3656,6 +3658,10 @@ public class MathFunctions {
 	 */
 	public static final double frexp(double x, int[] i) {
 		int j = 0; // From: http://www.beedub.com/Sprite093/src/lib/c/etc/frexp.c
+		if (x == 0. || Double.isNaN(x) || Double.isInfinite(x)) {
+			i[0] = 0;
+			return x;
+		}
 		boolean neg = false;
 		if (x < 0) {
 			x = -x;
@@ -3683,22 +3689,7 @@ public class MathFunctions {
 	 * @return ldexp
 	 */
 	public static final double ldexp(double x, int p) {
-		int[] xx = new int[1]; // From: http://www.beedub.com/Sprite093/src/lib/c/etc/ldexp.c
-		frexp(x, xx);
-		final int MAXSHIFT = 30;
-		int old_exp = xx[0];
-		if (p > 0) {
-			if (p + old_exp > 1023) // Overflow
-				return (x < 0 ? -Double.MAX_VALUE : Double.MAX_VALUE);
-			for ( ; p > MAXSHIFT; p -= MAXSHIFT) // Assuming that we can shift 30 bits at a time
-				x *= (1L << MAXSHIFT);
-			return x * (1L << p);
-		}
-		if (p + old_exp < -1023) // Underflow
-			return 0;
-		for ( ; p < -MAXSHIFT; p += MAXSHIFT)
-			x *= 1.0/(1L << MAXSHIFT); // Multiplication is faster than division
-		return x / (1L << -p);
+		return Math.scalb(x, p);
 	}
 
 	public static final boolean isNonInt(double x)

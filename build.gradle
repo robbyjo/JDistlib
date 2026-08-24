@@ -8,7 +8,7 @@ group = 'net.sourceforge.jdistlib'
 version = '0.5.0-SNAPSHOT'
 
 def projectHomepage = providers.gradleProperty('projectUrl')
-    .getOrElse('https://github.com/robbyjo/JDistlib')
+    .getOrElse('https://robbyjo.github.io/JDistlib/')
 def projectScmUrl = providers.gradleProperty('scmUrl')
     .getOrElse('https://github.com/robbyjo/JDistlib')
 def projectScmConnection = providers.gradleProperty('scmConnection')
@@ -50,7 +50,19 @@ tasks.withType(JavaCompile).configureEach {
 tasks.withType(Javadoc).configureEach {
     options.encoding = 'UTF-8'
     options.charSet = 'UTF-8'
+    options.windowTitle = "JDistlib ${project.version} API"
+    options.docTitle = "JDistlib ${project.version} API"
+    options.header = 'JDistlib API'
     options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.register('site', Sync) {
+    dependsOn tasks.named('javadoc')
+    from('docs')
+    from(tasks.named('javadoc')) {
+        into 'api'
+    }
+    into layout.buildDirectory.dir('site')
 }
 
 test {

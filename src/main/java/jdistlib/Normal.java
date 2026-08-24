@@ -42,15 +42,14 @@ public class Normal extends GenericDistribution {
 	public static final double density(double x, double mu, double sigma, boolean give_log) {
 		if (isNaN(x) || isNaN(mu) || isNaN(sigma))
 			return x + mu + sigma;
+		if (sigma < 0)
+			return NaN;
 		if (isInfinite(sigma))
 			return (give_log ? NEGATIVE_INFINITY : 0.);
 		if (isInfinite(x) && x == mu)
 			return NaN;
-		if (sigma <= 0) {
-			if (sigma == 0)
-				return x == mu ? POSITIVE_INFINITY : (give_log ? NEGATIVE_INFINITY : 0.);
-			return NaN;
-		}
+		if (sigma == 0)
+			return x == mu ? POSITIVE_INFINITY : (give_log ? NEGATIVE_INFINITY : 0.);
 
 		x = (x - mu) / sigma;
 		if (MathFunctions.isInfinite(x)) return (give_log ? NEGATIVE_INFINITY : 0.);
@@ -99,7 +98,6 @@ public class Normal extends GenericDistribution {
 	}
 
 	public static final double cumulative(double x, double mu, double sigma, boolean lower_tail, boolean log_p) {
-		final double SIXTEN = 16; /* Cutoff allowing exact "*" and "/" */
 		final double a[] = new double[] {
 			2.2352520354606839287,
 			161.02823106855587881,
@@ -151,7 +149,7 @@ public class Normal extends GenericDistribution {
 		};
 
 		double xden, temp, xnum, result, ccum;
-		double del, min, eps, xsq;
+		double del, eps, xsq;
 		double y;
 		int i;
 
@@ -171,12 +169,11 @@ public class Normal extends GenericDistribution {
 		// lower == lower_tail, upper == !lower_tail
 		// Entering pnorm_both
 
-		if(isInfinite(result)) // return (x < mu) ? R_DT_0 : R_DT_1;
+		if(isInfinite(result) || isNaN(result)) // return (x < mu) ? R_DT_0 : R_DT_1;
 			return x < mu ? (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.)) : (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 		x = result;
 
 		eps = DBL_EPSILON * 0.5;
-		min = DBL_MIN;
 		/*!*     y = fabs(x); *!*/
 		y = abs(x);
 		if (y <= 0.67448975) { /* qnorm(3/4) = .6744.... -- earlier had 0.66291 */
@@ -204,14 +201,14 @@ public class Normal extends GenericDistribution {
 				xden = (xden + d[i]) * y;
 			}
 			temp = (xnum + c[7]) / (xden + d[7]);
-			xsq = trunc(y * SIXTEN) / SIXTEN;
+			xsq = ldexp(trunc(ldexp(y, 4)), -4);
 			del = (y - xsq) * (y + xsq);
 			if (log_p) {
-				result = (-xsq * xsq * 0.5) + (-del * 0.5) + log(temp);
+				result = -xsq * ldexp(xsq, -1) - ldexp(del, -1) + log(temp);
 				if((lower_tail && x > 0.) || (!lower_tail && x <= 0.))
-					ccum = log1p(-exp(-xsq * xsq * 0.5) * exp(-del * 0.5) * temp);
+					ccum = log1p(-exp(-xsq * ldexp(xsq, -1)) * exp(-ldexp(del, -1)) * temp);
 			} else {
-				result = exp(-xsq * xsq * 0.5) * exp(-del * 0.5) * temp;
+				result = exp(-xsq * ldexp(xsq, -1)) * exp(-ldexp(del, -1)) * temp;
 				ccum = 1.0 - result;
 			}
 			if (x > 0.0) {
@@ -221,7 +218,7 @@ public class Normal extends GenericDistribution {
 				ccum = temp;
 			}
 		}
-		else if((log_p && y < 1e170) || (lower_tail && -37.5193 < x  &&  x < 8.2924) || (!lower_tail && -8.2924  < x  &&  x < 37.5193)) {
+		else if((log_p && y < 1e170) || (lower_tail && -38.4674 < x  &&  x < 8.2924) || (!lower_tail && -8.2924  < x  &&  x < 38.4674)) {
 
 			xsq = (1.0 / x); /* (1./x)*(1./x) might be better */
 			xsq = xsq * xsq;
@@ -233,15 +230,14 @@ public class Normal extends GenericDistribution {
 			}
 			temp = xsq * (xnum + p[4]) / (xden + q[4]);
 			temp = (M_1_SQRT_2PI - temp) / y;
-			/*!* 	xsq = trunc(x * SIXTEN) / SIXTEN; *!*/
-			xsq = trunc(x * SIXTEN) / SIXTEN;
+			xsq = ldexp(trunc(ldexp(x, 4)), -4);
 			del = (x - xsq) * (x + xsq);
 			if (log_p) {
-				result = (-xsq * xsq * 0.5) + (-del * 0.5) + log(temp);
+				result = -xsq * ldexp(xsq, -1) - ldexp(del, -1) + log(temp);
 				if((lower_tail && x > 0.) || (!lower_tail && x <= 0.))
-					ccum = log1p(-exp(-xsq * xsq * 0.5) * exp(-del * 0.5) * temp);
+					ccum = log1p(-exp(-xsq * ldexp(xsq, -1)) * exp(-ldexp(del, -1)) * temp);
 			} else {
-				result = exp(-xsq * xsq * 0.5) * exp(-del * 0.5) * temp;
+				result = exp(-xsq * ldexp(xsq, -1)) * exp(-ldexp(del, -1)) * temp;
 				ccum = 1.0 - result;
 			}
 			if (x > 0.0) {
@@ -261,13 +257,6 @@ public class Normal extends GenericDistribution {
 			}
 		}
 
-		if (log_p) {
-			if (result > -min) result = -0.;
-			if (ccum > -min) ccum = -0.;
-		} else {
-			if (result < min) result = 0.0;
-			if (ccum < min) ccum = 0.0;
-		}
 		return lower_tail ? result : ccum;
 	}
 
@@ -388,6 +377,10 @@ public class Normal extends GenericDistribution {
 	 * @return random variate
 	 */
 	public static final double random(double mu, double sigma, RandomEngine random) {
+		if (isNaN(mu) || isNaN(sigma) || isInfinite(sigma) || sigma < 0.)
+			return NaN;
+		if (sigma == 0. || isInfinite(mu))
+			return mu;
 		return mu + sigma * random_standard(random);
 	}
 

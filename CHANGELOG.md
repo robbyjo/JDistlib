@@ -10,6 +10,11 @@ Version 0.5.0 (in development):
 * Began the audited sync from R 3.3.2 to R 4.6.1: modernized normal quantiles,
   discrete quantile search, negative-binomial mean parameterization, Stirling
   error, deviance terms, and selected density edge cases.
+* Completed the R 4.6.1 normal-family audit, including subnormal probability
+  tails, infinite-scale boundaries, random-parameter validation, and robust
+  IEEE-754 binary scaling helpers.
+* Added a GitHub Pages project site with JavaDoc generated automatically from
+  the current `master` branch.
 * Preserved JDistlib-only distributions and the explicit per-stream random-state
   design used by cached random generators.
 
@@ -213,4 +218,3 @@ Version 0.0.3:
 * Added exact method for computing Spearman distribution
 * Finalize the method signature of PolyGamma.dpsifn
 * Added MathFunctions.log1px
-

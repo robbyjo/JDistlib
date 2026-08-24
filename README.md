@@ -10,10 +10,11 @@ retain R-compatible results without inheriting the process-global caches that
 made older native implementations awkward to call concurrently.
 
 The library also contains distributions and utilities that are not part of R,
-including arcsine, beta-binomial, beta-prime, inverse gamma, inverse normal,
-Kumaraswamy, Laplace, Levy, log-logistic, logarithmic, Nakagami, skewed t,
-Tweedie, Wishart, Zipf, and the `jdistlib.evd` package. These are first-class
-JDistlib features and are not removed during upstream synchronization.
+including arcsine, beta-binomial, beta-prime, Birnbaum-Saunders, Gompertz,
+half-normal, inverse gamma, inverse normal, Kumaraswamy, Laplace, Levy,
+log-logistic, logarithmic, Nakagami, skewed t, triangular, Tweedie, Wishart,
+Zipf, and the `jdistlib.evd` package. These are first-class JDistlib features
+and are not removed during upstream synchronization.
 
 ## Project status
 
@@ -83,6 +84,15 @@ scaled-Poisson, gamma, and inverse-normal identities at powers 0, 1, 2, and 3;
 the compound Poisson-gamma representation between 1 and 2; and a stabilized
 series plus adaptive integration above 2.
 
+## Contributed R-package distributions
+
+JDistlib also audits GPL-compatible CRAN packages for useful distributions that
+are absent from R's `src/nmath`. The first modern batch adds complete
+density/CDF/quantile/random APIs for `Triangular`, `HalfNormal`,
+`BirnbaumSaunders`, and unrestricted-shape `Gompertz`. Sources, versions,
+parameterizations, verification, duplicate exclusions, and the screened backlog
+are recorded in [DISTRIBUTIONS.md](DISTRIBUTIONS.md).
+
 ## Thread safety
 
 Pure density, cumulative, and quantile calls use call-local state. Cached random
@@ -95,5 +105,6 @@ one mutable instance across concurrent callers.
 
 The nmath-derived code is synchronized against the official R sources and is
 distributed under the GNU General Public License, version 2 or later. See
-[LICENSE](LICENSE), [UPSTREAM.md](UPSTREAM.md), and the historical
+[LICENSE](LICENSE), [UPSTREAM.md](UPSTREAM.md),
+[DISTRIBUTIONS.md](DISTRIBUTIONS.md), and the historical
 [JDistlib website](https://jdistlib.sourceforge.net/).

@@ -20,6 +20,9 @@ Version 0.5.0 (in development):
   compound Poisson-gamma model, and the power-above-two series/integration path.
 * Completed `PolyGamma.dpsifn` sequences and negative-argument reflection beyond
   the former order-three restriction.
+* Added complete triangular, half-normal, shifted Birnbaum-Saunders, and
+  unrestricted-shape Gompertz APIs from GPL-compatible CRAN references, with
+  R-style logged tails, explicit random engines, provenance, and regression tests.
 * Preserved JDistlib-only distributions and the explicit per-stream random-state
   design used by cached random generators.
 

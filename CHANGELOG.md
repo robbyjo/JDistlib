@@ -15,6 +15,11 @@ Version 0.5.0 (in development):
   IEEE-754 binary scaling helpers.
 * Added a GitHub Pages project site with JavaDoc generated automatically from
   the current `master` branch.
+* Completed the previously stubbed Tweedie API: density, CDF, quantile, random
+  generation, log-likelihood, dispersion derivative, exact special cases, the
+  compound Poisson-gamma model, and the power-above-two series/integration path.
+* Completed `PolyGamma.dpsifn` sequences and negative-argument reflection beyond
+  the former order-three restriction.
 * Preserved JDistlib-only distributions and the explicit per-stream random-state
   design used by cached random generators.
 

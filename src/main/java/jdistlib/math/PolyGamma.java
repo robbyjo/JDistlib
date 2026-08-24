@@ -199,8 +199,28 @@ public class PolyGamma
 		-1.92965793419400681e+16
 	};
 
+	/* If P_n(z) = (d/dx)^n cot(x), z = cot(x), then
+	 * P_(n+1)(z) = -(1 + z^2) P'_n(z). */
+	private static double cotDerivative(double x, int n) {
+		double[] coefficients = new double[] {0, 1};
+		for (int order = 0; order < n; order++) {
+			double[] next = new double[coefficients.length + 1];
+			for (int degree = 1; degree < coefficients.length; degree++) {
+				double derivative = degree * coefficients[degree];
+				next[degree - 1] -= derivative;
+				next[degree + 1] -= derivative;
+			}
+			coefficients = next;
+		}
+		double z = cos(x) / sin(x);
+		double result = 0;
+		for (int degree = coefficients.length - 1; degree >= 0; degree--)
+			result = result * z + coefficients[degree];
+		return result;
+	}
+
 	public static final double[] dpsifn(double x, int n, int kode, int m) {
-		double ans[] = new double[n + 1];
+		double ans[] = new double[m];
 		int i, j, k, mm, mx, nn, np, nx, fn;
 		double arg, den, elim, eps, fln, fx, rln, rxsq;
 		double s, slope, t, ta, tk, tol, tols, tss, tst;
@@ -222,41 +242,19 @@ public class PolyGamma
 					ans[j] = ((j+n) % 2 == 1) ? Double.POSITIVE_INFINITY : Double.NaN;
 				return ans;
 			}
-			dpsifn(1. - x, n, 1, m);
+			double[] reflected = dpsifn(1. - x, n, 1, m);
 			/* ans[j] == (-1)^(k+1) / gamma(k+1) * psi(k, 1 - x)
 			 *	     for j = 0:(m-1) ,	k = n + j
 			 */
 
-			/* Cheat for now: only work for	 m = 1, n in {0,1,2,3} : */
-			if(m > 1 || n > 3) /* doesn't happen for digamma() .. pentagamma() */
-				return null;
-			x *= PI; /* pi * x */
-			if (n == 0)
-				tt = cos(x)/sin(x);
-			else if (n == 1)
-				tt = -1/pow(sin(x),2);
-			else if (n == 2)
-				tt = 2*cos(x)/pow(sin(x),3);
-			else if (n == 3)
-				tt = -2*(2* pow(cos(x),2) + 1)/pow(sin(x),4);
-			else /* can not happen! */
-			tt = Double.NaN;
-			/* end cheat */
-
-			s = (n % 2 == 1) ? -1. : 1.;/* s = (-1)^n */
-			/* t := pi^(n+1) * d_n(x) / gamma(n+1)	, where
-			 *		   d_n(x) := (d/dx)^n cot(x)*/
-			t1 = t2 = s = 1.;
-			for(k=0, j=k-n; j < m; k++, j++, s = -s) {
-				/* k == n+j , s = (-1)^k */
-				t1 *= PI;/* t1 == pi^(k+1) */
-				if(k >= 2)
-					t2 *= k;/* t2 == k! == gamma(k+1) */
-				if(j >= 0) /* by cheat above,  tt === d_k(x) */
-					ans[j] = s*(ans[j] + t1/t2 * tt);
+			if (reflected == null) return null;
+			double piX = PI * x;
+			for (j = 0; j < m; j++) {
+				k = n + j;
+				double scale = exp((k + 1) * log(PI) - MathFunctions.lgammafn(k + 1));
+				double sign = (k & 1) == 0 ? 1 : -1;
+				ans[j] = sign * (reflected[j] + scale * cotDerivative(piX, k));
 			}
-			if (n == 0 && kode == 2)
-				ans[0] += xln;
 			return ans;
 		} /* x <= 0 */
 

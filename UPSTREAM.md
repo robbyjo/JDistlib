@@ -21,6 +21,8 @@ been compared with the tagged R source and covered by regression vectors.
 - [x] `bd0.c`: signed deviance series and stable ratio calculation
 - [x] IEEE-754 `ldexp`/`frexp` boundary behavior used by nmath translations
 - [x] Selected `dbinom.c`, `dpois.c`, and `dlnorm.c` boundary updates
+- [x] `dpsifn` requested-length sequences and general negative-argument
+  reflection (extending the current R fallback beyond derivative order 5)
 - [x] R `stats::integrate` behavior: finite and infinite intervals, tolerances,
   error estimates, subdivision limits, and status reporting
 

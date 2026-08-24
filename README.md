@@ -75,6 +75,14 @@ if (!result.isSuccess()) {
 The result includes the estimated integral, absolute error, number of
 subdivisions, and a QUADPACK-compatible status code.
 
+## Tweedie distributions
+
+`Tweedie` now provides the same density, cumulative, quantile, random, and
+log-likelihood surface as the other distribution classes. It uses exact normal,
+scaled-Poisson, gamma, and inverse-normal identities at powers 0, 1, 2, and 3;
+the compound Poisson-gamma representation between 1 and 2; and a stabilized
+series plus adaptive integration above 2.
+
 ## Thread safety
 
 Pure density, cumulative, and quantile calls use call-local state. Cached random

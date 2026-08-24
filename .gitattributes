@@ -1,0 +1,11 @@
+# Historical Java sources use a mixture of LF and CRLF. Treat CR as part of
+# the line ending so whitespace checks do not flag otherwise unchanged files.
+*.java whitespace=cr-at-eol
+
+# Keep repository infrastructure deterministic across platforms.
+*.md text eol=lf
+*.gradle text eol=lf
+*.yml text eol=lf
+*.properties text eol=lf
+gradlew text eol=lf
+*.bat -text

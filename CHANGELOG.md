@@ -1,0 +1,216 @@
+What's new:
+
+Version 0.5.0 (in development):
+* Restructured the historical SourceForge repository as a conventional,
+  GitHub-ready Gradle project while retaining the complete commit history.
+* Replaced retired build plugins and vendored jars with Gradle 9, Maven Central,
+  Maven publication metadata, source/javadoc jars, and Java 8-compatible output.
+* Implemented finite, semi-infinite, and doubly-infinite adaptive integration,
+  including reversed bounds, QUADPACK-style status reporting, and concurrency tests.
+* Began the audited sync from R 3.3.2 to R 4.6.1: modernized normal quantiles,
+  discrete quantile search, negative-binomial mean parameterization, Stirling
+  error, deviance terms, and selected density edge cases.
+* Preserved JDistlib-only distributions and the explicit per-stream random-state
+  design used by cached random generators.
+
+Future version (?):
+* Skewed T distribution (will research various parameterization first)
+
+Version 0.5.0 (?):
+* Added various central tendencies routine per request of Bug #32
+* jdistlib.matrix.QMatrixUtils is now being deprecated
+* Added Geometric Standard Deviation, per Bug #34
+* Bug fix #37 on GEV.cumulative. Thanks Luís!
+* Bug fix #36 Underflow of beta (PR #17178)
+
+Version 0.4.5 (October 10, 2016):
+* Bug fix for #31 (PR#16972) on Poisson quantile (and related limit bugs)
+* Added Median Absolute Deviation (MAD) to jdistlib.math.VectorMath
+* Responded to bug #29 by adding an option to sort for Shapiro-Wilk test
+* Sync with R-3.3.1, fixes rgamma(1,Inf) or rgamma(1, 0,0) no longer give NaN but the correct limit.
+* Added Levy distribution
+* Sync with Development build of October 9, 2016
+* Fixes: rbeta(4, NA) and similarly rgamma() and rnbinom() now return NaN's with a warning, as other r<dist>(), and as documented. (PR#17155) 
+
+Version 0.4.4 (April 20, 2016):
+* Fix for bug #28 about Shapiro-Wilks
+
+Version 0.4.3 (April 19, 2016):
+* Fix for bug #27: Regression on bug PR#16489
+
+Version 0.4.2 (April 19, 2016):
+* Fix for bug #26: Allow warnings to be cast as an exception.
+* Sync with R-devel (Apr 18, 2016-r70508)
+* Fix for bug PR#16521: rchisq(*, df=0, ncp=0) now returns 0 instead of NaN, and dchisq(*, df=0, ncp=*) also no longer returns NaN in limit cases (where the limit is unique)
+* Fix for pchisq(*, df=0, ncp > 0, log.p=TRUE) no longer underflows (for ncp > ~60).
+* Fix for rhyper(nn, m, n, k) no longer returns NA when one of the three parameters exceeds the maximal integer.
+* Fix for bug PR#16727: [dpqr]nbinom(..., size = Inf) should behave like [dpqr]pois(...)
+* Added WELL 44497b random number generator
+
+Version 0.4.1 (September 15, 2015):
+* Sync with R version 3.2.2 (dated August 14, 2015)
+* Fix for bug PR#16475: qt(*, df=Inf, ncp=.) now uses the natural qnorm() limit instead of returning NaN.
+* Fix for bug PR#16489: rhyper(nn, <large>) now works correctly.
+
+Version 0.4.0 (May 6, 2015):
+* Fixed typos on Beta.density that caused failures on regression tests.
+
+Version 0.3.9 (May 5, 2015):
+* Sync with the development branch of R 3.2.x (dated April 24, 2015)
+* Fix for the second half of PR#15554 regarding Bessel.J and Bessel.Y with huge alpha (>= 2^61)
+* Fix for bug #17 regarding the accuracy of Beta.quantile (PR#15755)
+* Added MathFunctions.logspace_sum (per 3.2.x API feature)
+* Fix for bug #22 for inadvertent use of Java 1.8 API (Double.isFinite). It has been replaced with !Double.isInfinite (Java 1.5-compatible API)
+
+Version 0.3.8 (Dec 15, 2014):
+* Fix for bug #20 regarding Kolmogorov-Smirnov (KS) test. Thanks, Gilad Wallach and Eran Avidan!
+
+Version 0.3.7 (Dec 10, 2014):
+* Fix for bug #19 regarding Kolmogorov-Smirnov (KS) test
+* Added option to allow inexact KS p-value computation method, if needed. Default option is still exact method. See bug #19 entry for details.
+* Fixed integer overflow bug when computing KS exact method---only happen with big data sets.
+
+Version 0.3.6 (Aug 18, 2014):
+* Fix for bug #18
+* Added generalized one-distribution Kolmogorov-Smirnov test
+* kolmogorov_smirnov_statistic and kolmogorov_smirnov_pvalue are deprecated in favor of kolmogorov_smirnov_test
+* Synced with R version 3.1.1.
+* Synced MersenneTwister with Sean Luke's version 20
+* Incorporated Bintray / Gradle build system, courtesy Schalk W. Cronjé.
+
+Version 0.3.5 (Apr 14, 2014):
+* Synced with R-devel_2014-04-10 (effectively R 3.2.0 alpha or 3.1.1), fixing the following bugs:
+   * pchisq(1e-5, 100, 1) == 0 due to underflow in dpois_raw (PR#15635)
+   * Calculation error in using function pbinom (PR#15734)
+
+Version 0.3.4 (Apr 7, 2014):
+* Synced with R-rc_2014-04-04_r65373, fixing the following bugs:
+   * pbeta(x, a,b, log.p=TRUE) sometimes lost all precision for very small and very differently sized a,b. (PR#15641)
+   * More precise Normal density when x > 5 (PR#15620)
+   * Adding sinpi, cospi, and tanpi for more precise Bessel function and Cauchy distribution computations (PR#15529)
+* Fixed bug #16, infinite loop in sort functions when the numbers are all negatives (Thanks Gilad Wallach and Idan Peretz!).
+* Imported a lot of comments to sync with the latest R function
+* Fixes comment on Bessel functions---Bessel functions can handle negatives already!
+
+Version 0.3.3 (Jan 28, 2014):
+* Bessel functions (J, Y, I, K) with fractional orders
+* Added Beta Prime and Kumaraswamy distributions.
+* Added PolyGamma.lmvpsigammafn (log of multivariate psi-gamma function).
+
+Version 0.3.2 (Jan 24, 2014):
+* Fixed bug in MathFunctions.lmvgammafn (see ticket #14)
+* Fixed bug in Spearman.quantile (off by 1 issue)
+* Fixed bug in binomial test in DistributionTests
+* Fixed bug in Logarithmic distributions plus some speed up in Logarithmic.quantile
+* Added Bounded Arcsine, Laplace, and Zipf distributions
+* Added density functions for Spearman and Tukey distributions (using differentials; not precise!)
+* Added MathFunctions.sinc, gharmonic, lgharmonic, and sort for various data types
+* Added some incomplete solutions to bug PR#15635
+* Added batch calls for PolyGamma functions
+* Added Poisson test
+* Make MathFunctions.logspace_add and logspace_sub public
+* Removed redundant constants from Constants (M_PI_half, M_LN_2, kLog1OverSqrt2Pi)
+
+Version 0.3.1 (Jan 13, 2014):
+* Added Spearman quantile (using bisection) and random variates (by inversion)
+* Added Order quantile variates (only very minimally tested; caveat emptor!)
+* Added Chi, Inverse Gamma, and Nakagami distributions (based on simple transform from the Gamma distribution)
+* Added many two-distribution tests: Ansari-Bradley, Mood, Bartlett, Fligner, T-test (one-sample, paired, two-sample), Variance test, Wilcoxon test, Mann-Whitney-U test, Kruskal-Wallis test, Binomial test
+* Added lower_tail flag to Ansari distribution
+* Utilities.rank is now index 1 based (not index 0) since many routines seem to depend on that fact
+* Various bug fixes
+
+Version 0.3.0 (Jan 10, 2014):
+* Remove the Q prefix of QRandomEngine, QMersenneTwister, QRandomCMWC, and QRandomSampler
+* Added Beta binomial distribution (with parameterization of mu, sigma, and size)
+* Added hazard, cumulative hazard, survival, and inverse survival functions for all distributions (instance only)
+* Fixed bugs on Kolmogorov-Smirnov two-sample test when the second array (Y) is longer than the first array (X)
+* Fixed bugs for Binomial.cumulative when x < 0 or x >= n (improperly returns 0 or 1).
+* Updated to R-patched_2014-01-08_r64705 that contains the following bug fixes:
+  * dbeta(x, a, b) with a or b within a factor of 2 of the largest representable number could infinite-loop. (Reported by Ioannis Kosmidis.)
+  * qcauchy(p, *) is now fully accurate even when p is very close to 1. (PR#15521)
+  * In some extreme cases (more than 10^15) integer inputs to dpqrxxx functions might have been rounded up by one (with a warning about being non-integer).  (PR#15624)
+
+Version 0.2.1 (Jan 9, 2014):
+* Fixed crash on Poisson.random (and consequently NegBinomial.random) when mu >= 10
+* Fixed bugs on NonCentralF.random
+* Added codes from p-r-tests.R
+
+Version 0.2.0 (Jan 8, 2014):
+* Deprecated GenericDistribution.random(QRandomEngine)
+* Added an API to create multiple random variables
+* Added an API to query multiple values of density, cumulative, and quantile (instance only)
+* Added more codes from d-p-q-r-tests.R for unit testing.
+* Fixed bugs on SignRank.quantile. Variable n was set incorrectly.
+* Fixed bugs on T.quantile(x, df, true, false) that causes NaN when df is close to 1 and x is very small
+* Fixed bugs on many distributions when x is close to the limit of double precision floating point
+* Remove false non-convergence warning messages in NonCentralT.cumulative
+* Fixed bugs on bd0 when np < 1e-306. This will fix the behavior of many distributions when x is very small
+* Fixed bugs on Poisson.random that caused the routine to hang up on certain random states (Ticket #10)
+* Fixed bugs on LogNormal when x <= 0
+* The precision of Gamma.cumulative is on par with R
+
+Version 0.1.3 (Jan 2, 2014):
+* Fixed bugs on SignRank.cumulative. The variable n was set incorrectly.
+* Fixed bugs on Gamma.cumulative when the scale is +Inf.
+* Added some code from d-p-q-r-tests.R for unit testing.
+* Noted some precision loss on Gamma.cumulative
+* Noted some precision loss on NonCentralChiSquare
+* Fixed bugs on most distributions for boundary cases dealing with infinity
+* Converted project to Maven
+
+Version 0.1.2 (Dec 26, 2013):
+* Added Rayleigh and Inverse Normal distributions
+* Bugfixes on Kendall distribution
+* Added Brent's optimization and root finding methods (for brute force quantile search)
+
+Version 0.1.1 (Dec 20, 2013):
+* Order (no quantile) and Extreme (both maxima and minima) distributions for order statistics (from EVD package)
+* Added Box-Muller method to generate random normals
+* Added RandomSampler ripped from Colt. Handy for creating a permutation of list of objects.
+* The sources should be 100% compatible with JDK 1.5.
+
+Version 0.1.0 (Dec 19, 2013):
+* Distributions are now instantiable
+
+Version 0.0.9 (Dec 17, 2013):
+* Proper fix for negative binomial distribution with size=0 (PR#15268)
+* Synced with R version 3.0.2
+
+Version 0.0.8 (Dec 17, 2013):
+* Fix for bug #6. Thanks, Roland Ewald!
+
+Version 0.0.7 (Mar 29, 2013):
+* Proper fix for pt / pf distribution (PR#15162)
+
+Version 0.0.6 (Jan 11, 2013):
+Further R synchronization fixes the following bugs / adds the following features:
+* qgeom() could return -1 for extremely small q. (PR#14967.)
+* lgamma(x) for very small x (in the denormalized range) is no longer Inf with a warning.
+* plogis(x, lower = FALSE, log.p = TRUE) no longer underflows early for large x (e.g. 800).
+* Imported the simplified logic for T.quantile from R
+* Added multivariate gamma function (MathFunctions.lmvgammafn)
+* Added Wishart distribution sampling (random only)
+
+Version 0.0.5 (Jan 09, 2013):
+* Synchronized with R's patched of the same date. Fixes the following bugs:
+-- qt(1e-12, 1.2) no longer gives NaN.
+-- dt(1e160, 1.2, log=TRUE) no longer gives -Inf.
+-- beta(a, b) could overflow to infinity in its calculations when one of a and b was less than one.  (PR#15075)
+-- lbeta(a, b) no longer gives NaN if a or b is very small (in the denormalized range).
+
+Version 0.0.4 (Jan 09, 2013):
+* Fix for pt / pf distribution. (PR#15162)
+* Added Fretchet, GEV, Generalized Pareto, Gumbel, and Reverse Weibull distributions
+
+Version 0.0.3:
+* Added Logarithmic distribution
+* Fixed visibility of Binomial.quantile to public (as opposed to package)
+* Increased constant precision on Shapiro-Wilk p-value computation
+* Modified density, cumulative, and quantile method signature of Ansari
+  distribution to allow single values (as opposed to arrays of values)
+* Added random number generation for Kendall and Tukey distributions
+* Added exact method for computing Spearman distribution
+* Finalize the method signature of PolyGamma.dpsifn
+* Added MathFunctions.log1px
+

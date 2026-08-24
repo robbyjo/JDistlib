@@ -1,0 +1,104 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+}
+
+group = 'net.sourceforge.jdistlib'
+version = '0.5.0-SNAPSHOT'
+
+def projectHomepage = providers.gradleProperty('projectUrl')
+    .getOrElse('https://jdistlib.sourceforge.net/')
+def projectScmUrl = providers.gradleProperty('scmUrl')
+    .getOrElse('https://sourceforge.net/p/jdistlib/code/ci/master/tree/')
+def projectScmConnection = providers.gradleProperty('scmConnection')
+    .getOrElse('scm:git:https://git.code.sf.net/p/jdistlib/code')
+def projectScmDeveloperConnection = providers.gradleProperty('scmDeveloperConnection')
+    .getOrElse(projectScmConnection)
+
+base {
+    archivesName = 'jdistlib'
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api 'com.github.wendykierp:JTransforms:3.1'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 8
+    options.compilerArgs += ['-Xlint:all,-cast,-options,-strictfp,-this-escape', '-Werror']
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+test {
+    useJUnit()
+}
+
+jar {
+    manifest {
+        attributes(
+            'Implementation-Title': 'JDistlib',
+            'Implementation-Version': project.version
+        )
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = 'JDistlib'
+                description = 'Thread-safe Java implementations of statistical distributions based on R src/nmath.'
+                url = projectHomepage
+                licenses {
+                    license {
+                        name = 'GNU General Public License, version 2 or later'
+                        url = 'https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'robbyjo'
+                        name = 'Roby Joehanes'
+                    }
+                    developer {
+                        id = 'danking'
+                        name = 'Daniel King'
+                    }
+                }
+                scm {
+                    connection = projectScmConnection
+                    developerConnection = projectScmDeveloperConnection
+                    url = projectScmUrl
+                }
+            }
+        }
+    }
+}
+
+signing {
+    def signingKey = providers.gradleProperty('signingKey')
+    def signingPassword = providers.gradleProperty('signingPassword')
+    if (signingKey.isPresent()) {
+        useInMemoryPgpKeys(signingKey.get(), signingPassword.orNull)
+        sign publishing.publications.mavenJava
+    }
+}

@@ -188,11 +188,12 @@ public class SignRank extends GenericDistribution {
 
 	@Override
 	public double density(double x, boolean log) {
+		if (MathFunctions.isNonInt(x)) return log ? Double.NEGATIVE_INFINITY : 0.;
 		return density((int) x, log);
 	}
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		return cumulative((int) p, lower_tail, log_p);
+		return cumulative((int) floor(p + 1e-7), lower_tail, log_p);
 	}
 }

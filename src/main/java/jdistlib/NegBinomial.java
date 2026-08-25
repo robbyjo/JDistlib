@@ -29,7 +29,6 @@ import jdistlib.rng.RandomEngine;
 
 public class NegBinomial extends GenericDistribution {
 	public static final double density(double x, double size, double prob, boolean give_log) {
-		double ans, p;
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(prob)) return x + size + prob;
 
 		if (prob <= 0 || prob > 1 || size < 0) return Double.NaN;
@@ -40,22 +39,34 @@ public class NegBinomial extends GenericDistribution {
 		}
 
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-	    /* limiting case as size approaches zero is point mass at zero */
-	    if (x == 0 && size==0) return (give_log ? 0. : 1.);
 		//x = R_D_forceint(x);
 		x = rint(x);
+		if (x == 0) {
+			if (size == 0) return give_log ? 0. : 1.;
+			return give_log ? size * log(prob) : pow(prob, size);
+		}
 		if (MathFunctions.isInfinite(size)) size = Double.MAX_VALUE;
 
-		ans = Binomial.density_raw(size, x+size, prob, 1-prob, give_log);
-		p = ((double)size)/(size+x);
-		return((give_log) ? log(p) + ans : p * ans);
+		if (x < 1e-10 * size) {
+			double xx2s = x < sqrt(Double.MAX_VALUE)
+				? scalb(x * (x - 1), -1) / size
+				: x * (scalb(x, -1) / size);
+			double ans = size * log(prob) + x * (log(size) + log1p(-prob))
+				- lgamma1p(x) + log1p(xx2s);
+			return give_log ? ans : exp(ans);
+		}
+		double p = give_log
+			? (x < size ? log1p(-x/(size+x)) : log(size/(size+x)))
+			: size/(size+x);
+		double ans = Binomial.density_raw(size, x+size, prob, 1-prob, give_log);
+		return give_log ? p + ans : p * ans;
 	}
 
 	public static final double density_mu(double x, double size, double mu, boolean give_log) {
 		/* originally, just set  prob :=  size / (size + mu)  and called dbinom_raw(),
 		 * but that suffers from cancellation when   mu << size  */
 
-		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(size)) return x + size + mu;
+		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(mu)) return x + size + mu;
 
 		if (mu < 0 || size < 0) return Double.NaN;
 		// R_D_nonint_check(x);
@@ -77,15 +88,20 @@ public class NegBinomial extends GenericDistribution {
 		if(x < 1e-10 * size) { /* don't use dbinom_raw() but MM's formula: */
 			/* FIXME --- 1e-8 shows problem; rather use algdiv() from ./toms708.c */
 			double p = (size < mu ? log(size/(1 + size/mu)) : log(mu / (1 + mu/size)));
-			x = x * p - mu - lgammafn(x+1) + log1p(x*(x-1)/(2*size));
+			double xx2s = x < sqrt(Double.MAX_VALUE)
+				? scalb(x * (x - 1), -1) / size
+				: x * (scalb(x, -1) / size);
+			x = x * p - mu - lgamma1p(x) + log1p(xx2s);
 			return (give_log ? (x) : exp(x));
 		}
 		/* else: no unnecessary cancellation inside dbinom_raw, when
 		 * x_ = size and n_ = x+size are so close that n_ - x_ loses accuracy
 		 */
-		double ans = Binomial.density_raw(size, x+size, size/(size+mu), mu/(size+mu), give_log),
-		p = ((double)size)/(size+x);
-		return((give_log) ? log(p) + ans : p * ans);
+		double ans = Binomial.density_raw(size, x+size, size/(size+mu), mu/(size+mu), give_log);
+		double p = give_log
+			? (x < size ? log1p(-x/(size+x)) : log(size/(size+x)))
+			: size/(size+x);
+		return give_log ? p + ans : p * ans;
 	}
 
 	public static final double cumulative(double x, double size, double prob, boolean lower_tail, boolean log_p) {
@@ -104,7 +120,7 @@ public class NegBinomial extends GenericDistribution {
 	}
 
 	public static final double cumulative_mu(double x, double size, double mu, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(size)) return x + size + mu;
+		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(mu)) return x + size + mu;
 		if (MathFunctions.isInfinite(mu)) return Double.NaN;
 		if (size < 0 || mu < 0) return Double.NaN;
 

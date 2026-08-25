@@ -276,14 +276,25 @@ public class T extends GenericDistribution {
 			 *	Probably also improvable when  lower_tail = FALSE */
 
 			if(P_ok1) {
+				double maxSafeQ = abs(sqrt(Double.MAX_VALUE / 2.) - ndf);
 				int it=0;
 				while(it++ < 10 && (y = density(q, ndf, false)) > 0 &&
 						MathFunctions.isFinite(x = (cumulative(q, ndf, false, false) - P/2) / y) &&
-						abs(x) > 1e-14*abs(q))
+						abs(x) > 1e-14*abs(q)) {
 					/* Newton (=Taylor 1 term):
 					 *  q += x;
 					 * Taylor 2-term : */
-					q += x * (1. + x * q * (ndf + 1) / (2 * (q * q + ndf)));
+					double curvature = abs(q) < maxSafeQ
+						? q * (ndf + 1) / (2 * (q * q + ndf))
+						: (ndf + 1) / (2 * (q + ndf/q));
+					double delta = x * (1. + x * curvature);
+					if (Double.isFinite(delta) && Double.isFinite(q + delta))
+						q += delta;
+					else if (Double.isFinite(q + x))
+						q += x;
+					else
+						break;
+				}
 			}
 		}
 		if(neg) q = -q;

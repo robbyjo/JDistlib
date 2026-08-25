@@ -45,7 +45,8 @@ public class Gamma extends GenericDistribution {
 		}
 		if (shape < 1) {
 			pr = Poisson.density_raw(shape, x/scale, give_log);
-			return give_log ?  pr + log(shape/x) : pr*shape/x;
+			return give_log ? pr + (Double.isFinite(shape/x) ? log(shape/x) : log(shape) - log(x))
+				: pr*shape/x;
 		}
 		/* else  shape >= 1 */
 		pr = Poisson.density_raw(shape-1, x/scale, give_log);

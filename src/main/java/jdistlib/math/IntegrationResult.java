@@ -30,9 +30,9 @@ public class IntegrationResult {
 		case 1: return "maximum number of subdivisions reached";
 		case 2: return "roundoff error was detected";
 		case 3: return "extremely bad integrand behaviour";
-		case 4: return "roundoff error was detected in the extrapolation table";
-		case 5: return "the integral is probably divergent or slowly convergent";
-		case 6: return "invalid input";
+		case 4: return "roundoff error is detected in the extrapolation table";
+		case 5: return "the integral is probably divergent";
+		case 6: return "the input is invalid";
 		default: return "unknown integration status";
 		}
 	}

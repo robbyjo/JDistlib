@@ -5,14 +5,23 @@ Version 0.5.0 (in development):
   GitHub-ready Gradle project while retaining the complete commit history.
 * Replaced retired build plugins and vendored jars with Gradle 9, Maven Central,
   Maven publication metadata, source/javadoc jars, and Java 8-compatible output.
-* Implemented finite, semi-infinite, and doubly-infinite adaptive integration,
-  including reversed bounds, QUADPACK-style status reporting, and concurrency tests.
+* Completed the R 4.6.1 `stats::integrate` port with DQAGS finite integration,
+  DQAGI semi-infinite and doubly-infinite integration, epsilon extrapolation,
+  R-compatible error estimates/statuses, and call-local workspaces; added an
+  R-generated reference corpus and concurrency tests.
 * Began the audited sync from R 3.3.2 to R 4.6.1: modernized normal quantiles,
   discrete quantile search, negative-binomial mean parameterization, Stirling
   error, deviance terms, and selected density edge cases.
 * Completed the R 4.6.1 normal-family audit, including subnormal probability
   tails, infinite-scale boundaries, random-parameter validation, and robust
   IEEE-754 binary scaling helpers.
+* Completed the remaining R 4.6.1 `src/nmath` audit: beta/TOMS 708, gamma and
+  noncentral chi-square, hypergeometric and rank statistics, Bessel functions,
+  count and continuous distributions, RNG boundaries, and arithmetic helpers;
+  added a reproducible R-generated cross-language regression corpus.
+* Replaced the low-accuracy AS 226 noncentral-beta CDF with an AS 310-guided,
+  Benton--Krishnamoorthy mode-centred mixture that evaluates both tails on the
+  log scale; quantiles now invert underflowing log probabilities directly.
 * Added a GitHub Pages project site with JavaDoc generated automatically from
   the current `master` branch.
 * Completed the previously stubbed Tweedie API: density, CDF, quantile, random

@@ -6,6 +6,11 @@ Historical baseline: **R 3.3.2**, with several later individual fixes
 
 Canonical source: <https://svn.r-project.org/R/tags/R-4-6-1/src/nmath/>
 
+**Ledger status: complete.** Audited on 2026-08-25 against all 120 paths that
+changed between the tagged R 3.3.2 and R 4.6.1 `src/nmath` trees (117 modified,
+2 added, and 1 removed). The exact changed-file manifest is recorded in
+[`NMATH_AUDIT.md`](NMATH_AUDIT.md).
+
 This ledger prevents a partially updated library from being presented as a
 complete R 4.6.1 port. Each item should be checked only after the Java port has
 been compared with the tagged R source and covered by regression vectors.
@@ -23,22 +28,26 @@ been compared with the tagged R source and covered by regression vectors.
 - [x] Selected `dbinom.c`, `dpois.c`, and `dlnorm.c` boundary updates
 - [x] `dpsifn` requested-length sequences and general negative-argument
   reflection (extending the current R fallback beyond derivative order 5)
-- [x] R `stats::integrate` behavior: finite and infinite intervals, tolerances,
-  error estimates, subdivision limits, and status reporting
+- [x] R 4.6.1 `stats::integrate` behavior: finite DQAGS and infinite DQAGI
+  paths, tolerances, error estimates, subdivision limits, extrapolation, and
+  all QUADPACK status codes
 - [x] TOMS 708 overflow hardening for finite shapes near `Double.MAX_VALUE`,
   plus bracketed `qbeta` polishing and extreme-tail regression vectors
 
-## Remaining audit groups
+## Completed audit groups
 
-- [ ] Full Beta-family source synchronization (`dbeta`, `pbeta`, `qbeta`,
+- [x] Full Beta-family source synchronization (`dbeta`, `pbeta`, `qbeta`,
   `rbeta`, noncentral beta, and the remaining TOMS 708 source-level audit)
-- [ ] Gamma, chi-square, and noncentral chi-square family
-- [ ] Hypergeometric and Wilcoxon family changes
-- [ ] Bessel and polygamma changes
-- [ ] Remaining Poisson, binomial, and negative-binomial source details
-- [ ] Remaining continuous distributions and RNG implementations
-- [ ] Header/macro behavior (`nmath.h`, `dpq.h`, arithmetic helpers)
-- [ ] Full generated regression corpus against an R 4.6.1 reference build
+- [x] Gamma, chi-square, and noncentral chi-square family
+- [x] Hypergeometric and Wilcoxon family changes
+- [x] Bessel and polygamma changes
+- [x] Remaining Poisson, binomial, and negative-binomial source details
+- [x] Remaining continuous distributions and RNG implementations
+- [x] Header/macro behavior (`nmath.h`, `dpq.h`, arithmetic helpers)
+- [x] Full generated regression corpus against an R 4.6.1 reference build
+
+The file-by-file disposition and reproducible reference-vector details are in
+[`NMATH_AUDIT.md`](NMATH_AUDIT.md).
 
 ## Porting rules
 

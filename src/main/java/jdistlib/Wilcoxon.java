@@ -48,64 +48,79 @@ import jdistlib.math.MathFunctions;
  *  
  */
 public class Wilcoxon extends GenericDistribution {
-	protected double[][][] w;
+	protected final int m;
+	protected final int n;
+	protected final double[] w;
+	protected final int[] sigma;
+	private int maxK = -1;
 
 	public Wilcoxon(int m, int n) {
+	    if (m < 0 || n < 0)
+		throw new IllegalArgumentException("m and n must be nonnegative");
 	    int i;
 	    if (m > n) {
-	    	i = n; n = m; m = i;
+		i = n; n = m; m = i;
 	    }
-	    w = new double[m+1][n+1][];
+	    long product = (long) m * n;
+	    if (product / 2 + 1 > Integer.MAX_VALUE)
+		throw new IllegalArgumentException("m*n is too large for the Wilcoxon cache");
+	    this.m = m;
+	    this.n = n;
+	    w = new double[(int) (product / 2 + 1)];
+	    sigma = new int[w.length];
 	}
 
 	public int getM()
-	{	return w.length - 1; }
+	{	return m; }
 
 	public int getN()
-	{	return w[0].length - 1; }
+	{	return n; }
+
+	private int sigma(int k) {
+		int s = 0;
+		int iter1 = min(m, k);
+		int iter2 = min(m + n, k);
+		for (int d = 1; d <= iter1; d++)
+			if (k % d == 0) s += d;
+		for (int d = n + 1; d <= iter2; d++)
+			if (k % d == 0) s -= d;
+		return s;
+	}
+
+	private void fillTo(int newK) {
+		if (newK <= maxK) return;
+		for (int i = maxK + 1; i <= newK; i++)
+			sigma[i] = sigma(i);
+		for (int k = maxK + 1; k <= newK; k++) {
+			if (k == 0) {
+				w[0] = 1.;
+			} else {
+				double s = 0.;
+				for (int i = 0; i < k; i++)
+					s += w[i] * sigma[k - i];
+				w[k] = s / k;
+			}
+		}
+		maxK = newK;
+	}
 
 	protected double count(int k, int m, int n) {
-		int c, u, i, j, l;
-
-		u = m * n;
+		if (!((m == this.m && n == this.n) || (m == this.n && n == this.m)))
+			throw new IllegalArgumentException("count parameters must match this distribution");
+		int u = m * n;
 		if (k < 0 || k > u)
 			return(0);
-		c = (int)(u / 2);
+		int c = u / 2;
 		if (k > c)
 			k = u - k; /* hence  k <= floor(u / 2) */
-		if (m < n) {
-			i = m; j = n;
-		} else {
-			i = n; j = m;
-		} /* hence  i <= j */
-
-		if (j == 0) /* and hence i == 0 */
-			return (k == 0) ? 1: 0;
-
-		/* We can simplify things if k is small.  Consider the Mann-Whitney 
-	           definition, and sort y.  Then if the statistic is k, no more 
-	           than k of the y's can be <= any x[i], and since they are sorted 
-	           these can only be in the first k.  So the count is the same as
-	           if there were just k y's. 
-		 */
-		if (j > 0 && k < j) return count(k, i, k);    
-
-		if (w[i][j] == null) {
-			w[i][j] = new double[c+1];
-			for (l = 0; l <= c; l++)
-				w[i][j][l] = -1;
-		}
-		if (w[i][j][k] < 0) {
-			if (j == 0) /* and hence i == 0 */
-				w[i][j][k] = (k == 0) ? 1 : 0;
-			else
-				w[i][j][k] = count(k - j, i - 1, j) + count(k, i, j - 1);
-		}
-		return(w[i][j][k]);
+		if (m == 0 || n == 0 || k == 0)
+			return k == 0 ? 1. : 0.;
+		fillTo(k);
+		return w[k];
 	}
 
 	public double density(int x, boolean give_log) {
-		int m = w.length - 1, n = w[0].length - 1;
+		int m = this.m, n = this.n;
 	    double d;
 
 	    /* NaNs propagated correctly */
@@ -119,13 +134,13 @@ public class Wilcoxon extends GenericDistribution {
 
 	    // w_init_maybe(m, n);
 	    d = give_log ?
-		log(count((int) x, (int) m, (int) n)) - lchoose(m + n, n) :
-			count((int) x, (int) m, (int) n)  /	 choose(m + n, n);
+		log(count(x, m, n)) - lchoose((double) m + n, n) :
+			count(x, m, n)  /	 choose((double) m + n, n);
 	    return(d);
 	}
 
 	public double cumulative(int q, boolean lower_tail, boolean log_p) {
-		int m = w.length - 1, n = w[0].length - 1;
+		int m = this.m, n = this.n;
 		int i;
 		double c, p;
 
@@ -141,7 +156,7 @@ public class Wilcoxon extends GenericDistribution {
 		if (q >= m * n) return(lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 
 		//w_init_maybe(m, n);
-		c = choose(m + n, n);
+		c = choose((double) m + n, n);
 		p = 0;
 		/* Use summation of probs over the shorter range */
 		if (q <= (m * n / 2)) {
@@ -159,7 +174,7 @@ public class Wilcoxon extends GenericDistribution {
 	}
 
 	public double quantile(double x, boolean lower_tail, boolean log_p) {
-		int m = w.length - 1, n = w[0].length - 1, q;
+		int m = this.m, n = this.n, q;
 		double c, p;
 
 		if (Double.isNaN(x) || Double.isNaN(m) || Double.isNaN(n)) return(x + m + n);
@@ -180,7 +195,7 @@ public class Wilcoxon extends GenericDistribution {
 			x = (log_p ? (lower_tail ? exp(x) : - expm1(x)) : (lower_tail ? (x) : (0.5 - (x) + 0.5)));
 
 		//w_init_maybe(m, n);
-		c = choose(m + n, n);
+		c = choose((double) m + n, n);
 		p = 0;
 		q = 0;
 		if (x <= 0.5) {
@@ -207,7 +222,7 @@ public class Wilcoxon extends GenericDistribution {
 	}
 
 	public double random() {
-		int m = w.length - 1, n = w[0].length - 1;
+		int m = this.m, n = this.n;
 		int i, j, k, x[];
 		double r;
 

@@ -139,6 +139,8 @@ public class HyperGeometric extends GenericDistribution {
 
 		if (NR < 0 || NB < 0 || MathFunctions.isInfinite(NR + NB) || n < 0 || n > NR + NB)
 			return Double.NaN;
+		if (x < n - NB)
+			return lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.);
 
 		if (x * (NR + NB) > n * NR) {
 			/* Swap tails.	*/
@@ -155,6 +157,8 @@ public class HyperGeometric extends GenericDistribution {
 			return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
 
 		d  = density (x, NR, NB, n, log_p);
+		if (log_p ? d == Double.NEGATIVE_INFINITY : d == 0.)
+			return lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.);
 		pd = pdhyper(x, NR, NB, n, log_p);
 
 		//return log_p ? R_DT_Log(d + pd) : R_D_Lval(d * pd);
@@ -284,9 +288,9 @@ public class HyperGeometric extends GenericDistribution {
 		if(MathFunctions.isInfinite(nn1in) || MathFunctions.isInfinite(nn2in) || MathFunctions.isInfinite(kkin))
 			return Double.NaN;
 
-		nn1in = (int) rint(nn1in);
-		nn2in = (int) rint(nn2in);
-		kkin  = (int) rint(kkin);
+		nn1in = rint(nn1in);
+		nn2in = rint(nn2in);
+		kkin  = rint(kkin);
 
 		if (nn1in < 0 || nn2in < 0 || kkin < 0 || kkin > nn1in + nn2in)
 			return Double.NaN;
@@ -316,7 +320,7 @@ public class HyperGeometric extends GenericDistribution {
 		if (setup1) {
 			state.n1s = nn1;
 			state.n2s = nn2;
-			state.tn = nn1 + nn2;
+			state.tn = nn1 + (double) nn2;
 			if (nn1 <= nn2) {
 				state.n1 = nn1;
 				state.n2 = nn2;
@@ -327,7 +331,7 @@ public class HyperGeometric extends GenericDistribution {
 		}
 		if (setup2) {
 			state.ks = kk;
-			if (kk + kk >= state.tn) {
+			if (2. * kk >= state.tn) {
 				state.k = (int)(state.tn - kk);
 			} else {
 				state.k = kk;
@@ -342,7 +346,7 @@ public class HyperGeometric extends GenericDistribution {
 
 		if (state.minjx == state.maxjx) { /* I: degenerate distribution ---------------- */
 			ix = state.maxjx;
-			if (kk + kk >= state.tn) {
+			if (2. * kk >= state.tn) {
 				if (nn1 > nn2) {
 					ix = kk - nn2 + ix;
 				} else {
@@ -534,7 +538,7 @@ public class HyperGeometric extends GenericDistribution {
 
 		/* return appropriate variate */
 
-		if (kk + kk >= state.tn) {
+		if (2. * kk >= state.tn) {
 			if (nn1 > nn2) {
 				ix = kk - nn2 + ix;
 			} else {

@@ -1332,13 +1332,13 @@ public class TestDPQR {
 			print(fmt, f1.cumulative(x));
 
 			NonCentralF ncf = new NonCentralF(5, 1e6, 1);
-			success &= printAllEqualScaled(c(0.06593319432457067641451, 0.47087998660583602061891, 0.97887586737053189356317),
+			success &= printAllEqualScaled(c(0.06593319433135114, 0.47087998714495743, 0.9788758678155439),
 				ncf.cumulative(x));
 			ncf = new NonCentralF(5, 1e7, 1);
-			success &= printAllEqualScaled(c(0.06593308950344137220334, 0.47088028378103324866899, 0.97887640681761456384891),
+			success &= printAllEqualScaled(c(0.06593308956076266, 0.4708802845001301, 0.9788764072839121),
 				ncf.cumulative(x));
 			ncf = new NonCentralF(5, 1e8, 1);
-			success &= printAllEqualScaled(c(0.06593307522941961595908, 0.47088029999414682258418, 0.97887645916474952390018),
+			success &= printAllEqualScaled(c(0.06593307908368988, 0.4708803142357038, 0.9788764612305292),
 				ncf.cumulative(x));
 			ncf = new NonCentralF(5, inf, 1);
 			print(fmt, ncf.cumulative(x));

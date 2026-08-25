@@ -1,4 +1,8 @@
 /*
+ *  Java translation of R's QUADPACK integration routines.
+ *  Copyright (C) 2001-2025 The R Core Team
+ *  Java port and thread-safety adaptation Copyright (C) 2026 Roby Joehanes
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -19,15 +23,15 @@ import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.Math.pow;
-import static java.lang.Math.sqrt;
 import static jdistlib.math.Constants.DBL_EPSILON;
 import static jdistlib.math.Constants.DBL_MAX;
 import static jdistlib.math.Constants.DBL_MIN;
 
-import java.util.PriorityQueue;
-
-import jdistlib.Normal;
-
+/**
+ * Adaptive numerical integration corresponding to R 4.6.1
+ * {@code stats::integrate}. Finite intervals use QUADPACK {@code dqags};
+ * infinite intervals use {@code dqagi}. Invocation state is call-local.
+ */
 public class Integrate {
 	private static final double DEFAULT_TOLERANCE = pow(DBL_EPSILON, 0.25);
 	private static final int DEFAULT_SUBDIVISIONS = 100;
@@ -52,119 +56,261 @@ public class Integrate {
 			double epsabs, double epsrel, int limit) {
 		IntegrationResult invalid = new IntegrationResult();
 		invalid.f = f;
-		if (f == null || Double.isNaN(lower) || Double.isNaN(upper) || limit < 1 ||
+		if (f == null || Double.isNaN(lower) || Double.isNaN(upper)
+				|| Double.isNaN(epsabs) || Double.isNaN(epsrel) || limit < 1 ||
 				(epsabs <= 0 && epsrel < max(50 * DBL_EPSILON, 5e-29))) {
 			invalid.ier = 6;
 			return invalid;
 		}
 
-		if (lower == upper) {
-			return invalid;
-		}
-
 		if (Double.isFinite(lower) && Double.isFinite(upper)) {
-			if (lower < upper)
-				return integrateFinite(f, lower, upper, epsabs, epsrel, limit);
-			IntegrationResult result = integrateFinite(f, upper, lower, epsabs, epsrel, limit);
-			result.result = -result.result;
-			return result;
+			return integrateFinite(f, lower, upper, epsabs, epsrel, limit);
 		}
 
-		if (lower == Double.NEGATIVE_INFINITY && upper == Double.POSITIVE_INFINITY)
-			return dqagie(f, 0, 2, epsabs, epsrel, limit);
-		if (Double.isFinite(lower) && upper == Double.POSITIVE_INFINITY)
+		/* Match stats::integrate: once either bound is infinite, the finite bound
+		 * selects the semi-infinite direction; two infinite bounds select the
+		 * whole real line. */
+		if (Double.isFinite(lower))
 			return dqagie(f, lower, 1, epsabs, epsrel, limit);
-		if (lower == Double.NEGATIVE_INFINITY && Double.isFinite(upper))
+		if (Double.isFinite(upper))
 			return dqagie(f, upper, -1, epsabs, epsrel, limit);
-		if (lower == Double.POSITIVE_INFINITY && Double.isFinite(upper)) {
-			IntegrationResult result = dqagie(f, upper, 1, epsabs, epsrel, limit);
-			result.result = -result.result;
-			return result;
-		}
-		if (Double.isFinite(lower) && upper == Double.NEGATIVE_INFINITY) {
-			IntegrationResult result = dqagie(f, lower, -1, epsabs, epsrel, limit);
-			result.result = -result.result;
-			return result;
-		}
-
-		invalid.ier = 6;
-		return invalid;
-	}
-
-	private static final class Interval implements Comparable<Interval> {
-		final double lower, upper, value, error;
-
-		Interval(double lower, double upper, double value, double error) {
-			this.lower = lower;
-			this.upper = upper;
-			this.value = value;
-			this.error = error;
-		}
-
-		@Override
-		public int compareTo(Interval other) {
-			return Double.compare(other.error, error);
-		}
+		return dqagie(f, 0.0, 2, epsabs, epsrel, limit);
 	}
 
 	private static IntegrationResult integrateFinite(UnivariateFunction f, double lower, double upper,
 			double epsabs, double epsrel, int limit) {
+		double[] alist = new double[limit + 1];
+		double[] blist = new double[limit + 1];
+		double[] rlist = new double[limit + 1];
+		double[] elist = new double[limit + 1];
+		int[] iord = new int[limit + 1];
 		IntegrationResult result = new IntegrationResult();
 		result.f = f;
-		double[] error = new double[1];
-		double[] resabs = new double[1];
-		double[] resasc = new double[1];
-		double value = dqk15(f, lower, upper, error, resabs, resasc);
-		result.neval = 15;
-		result.last = 1;
-		result.result = value;
+		alist[1] = lower;
+		blist[1] = upper;
+
+		double[] error = {0.0};
+		double[] resabsHolder = {0.0};
+		double[] resascHolder = {0.0};
+		result.result = dqk21(f, lower, upper, error, resabsHolder, resascHolder);
 		result.abserr = error[0];
-		if (!Double.isFinite(value) || !Double.isFinite(error[0])) {
+		double defabs = resabsHolder[0];
+		double resabs = resascHolder[0];
+		result.neval = 21;
+		result.last = 1;
+		rlist[1] = result.result;
+		elist[1] = result.abserr;
+		iord[1] = 1;
+		if (!Double.isFinite(result.result) || !Double.isFinite(result.abserr)) {
 			result.ier = 3;
 			return result;
 		}
 
-		PriorityQueue<Interval> intervals = new PriorityQueue<Interval>();
-		intervals.add(new Interval(lower, upper, value, error[0]));
-		double tolerance = max(epsabs, epsrel * abs(value));
-		int roundoff = 0;
+		double dres = abs(result.result);
+		double errbnd = max(epsabs, epsrel * dres);
+		if (result.abserr <= 100.0 * DBL_EPSILON * defabs
+				&& result.abserr > errbnd) result.ier = 2;
+		if (limit == 1) result.ier = 1;
+		if (result.ier != 0 || (result.abserr <= errbnd && result.abserr != resabs)
+				|| result.abserr == 0.0) return result;
 
-		while (result.abserr > tolerance && result.last < limit) {
-			Interval largest = intervals.remove();
-			double middle = largest.lower + (largest.upper - largest.lower) * 0.5;
-			double leftValue = dqk15(f, largest.lower, middle, error, resabs, resasc);
-			double leftError = error[0];
-			double rightValue = dqk15(f, middle, largest.upper, error, resabs, resasc);
-			double rightError = error[0];
-			result.neval += 30;
+		double[] rlist2 = new double[53];
+		double[] res3la = new double[4];
+		rlist2[0] = result.result;
+		double errmax = result.abserr;
+		int maxerr = 1;
+		double area = result.result;
+		double errsum = result.abserr;
+		result.abserr = DBL_MAX;
+		int nrmax = 1;
+		int nres = 0;
+		int numrl2 = 2;
+		int ktmin = 0;
+		boolean extrap = false;
+		boolean noext = false;
+		int ierro = 0;
+		int iroff1 = 0;
+		int iroff2 = 0;
+		int iroff3 = 0;
+		int ksgn = dres >= (1.0 - 50.0 * DBL_EPSILON) * defabs ? 1 : -1;
+		double small = 0.0;
+		double erlarg = 0.0;
+		double ertest = 0.0;
+		double correc = 0.0;
 
-			if (!Double.isFinite(leftValue) || !Double.isFinite(rightValue) ||
-					!Double.isFinite(leftError) || !Double.isFinite(rightError)) {
+		for (result.last = 2; result.last <= limit; result.last++) {
+			double a1 = alist[maxerr];
+			double b1 = (alist[maxerr] + blist[maxerr]) * 0.5;
+			double a2 = b1;
+			double b2 = blist[maxerr];
+			double erlast = errmax;
+
+			error[0] = 0.0;
+			resabsHolder[0] = 0.0;
+			resascHolder[0] = 0.0;
+			double area1 = dqk21(f, a1, b1, error, resabsHolder, resascHolder);
+			double error1 = error[0];
+			double defab1 = resascHolder[0];
+			error[0] = 0.0;
+			resabsHolder[0] = 0.0;
+			resascHolder[0] = 0.0;
+			double area2 = dqk21(f, a2, b2, error, resabsHolder, resascHolder);
+			double error2 = error[0];
+			double defab2 = resascHolder[0];
+
+			if (!Double.isFinite(area1) || !Double.isFinite(area2)
+					|| !Double.isFinite(error1) || !Double.isFinite(error2)) {
 				result.ier = 3;
+				result.neval = result.last * 42 - 21;
 				return result;
 			}
 
-			double replacementValue = leftValue + rightValue;
-			double replacementError = leftError + rightError;
-			if (abs(largest.value - replacementValue) <= 1e-5 * abs(replacementValue) &&
-					replacementError >= 0.99 * largest.error)
-				roundoff++;
-
-			result.result += replacementValue - largest.value;
-			result.abserr += replacementError - largest.error;
-			result.last++;
-			intervals.add(new Interval(largest.lower, middle, leftValue, leftError));
-			intervals.add(new Interval(middle, largest.upper, rightValue, rightError));
-			tolerance = max(epsabs, epsrel * abs(result.result));
-
-			if (roundoff >= 10) {
-				result.ier = 2;
-				break;
+			double area12 = area1 + area2;
+			double erro12 = error1 + error2;
+			errsum += erro12 - errmax;
+			area += area12 - rlist[maxerr];
+			if (!(defab1 == error1 || defab2 == error2)) {
+				if (abs(rlist[maxerr] - area12) <= 1e-5 * abs(area12)
+						&& erro12 >= 0.99 * errmax) {
+					if (extrap) iroff2++; else iroff1++;
+				}
+				if (result.last > 10 && erro12 > errmax) iroff3++;
 			}
+			rlist[maxerr] = area1;
+			rlist[result.last] = area2;
+			errbnd = max(epsabs, epsrel * abs(area));
+			if (iroff1 + iroff2 >= 10 || iroff3 >= 20) result.ier = 2;
+			if (iroff2 >= 5) ierro = 3;
+			if (result.last == limit) result.ier = 1;
+			if (max(abs(a1), abs(b2)) <= (100.0 * DBL_EPSILON + 1.0)
+					* (abs(a2) + 1000.0 * DBL_MIN)) result.ier = 4;
+
+			if (error2 > error1) {
+				alist[maxerr] = a2;
+				alist[result.last] = a1;
+				blist[result.last] = b1;
+				rlist[maxerr] = area2;
+				rlist[result.last] = area1;
+				elist[maxerr] = error2;
+				elist[result.last] = error1;
+			} else {
+				alist[result.last] = a2;
+				blist[maxerr] = b1;
+				blist[result.last] = b2;
+				elist[maxerr] = error1;
+				elist[result.last] = error2;
+			}
+
+			double[] errmaxHolder = {errmax};
+			int[] maxerrHolder = {maxerr};
+			int[] nrmaxHolder = {nrmax};
+			dqpsrt(limit, result.last, maxerrHolder, errmaxHolder, elist, iord,
+					nrmaxHolder);
+			errmax = errmaxHolder[0];
+			maxerr = maxerrHolder[0];
+			nrmax = nrmaxHolder[0];
+
+			if (errsum <= errbnd) {
+				result.result = sum(rlist, result.last);
+				result.abserr = errsum;
+				result.neval = result.last * 42 - 21;
+				return result;
+			}
+			if (result.ier != 0) break;
+			if (result.last == 2) {
+				small = abs(upper - lower) * 0.375;
+				erlarg = errsum;
+				ertest = errbnd;
+				rlist2[1] = area;
+				continue;
+			}
+			if (noext) continue;
+
+			erlarg -= erlast;
+			if (abs(b1 - a1) > small) erlarg += erro12;
+			if (!extrap) {
+				if (abs(blist[maxerr] - alist[maxerr]) > small) continue;
+				extrap = true;
+				nrmax = 2;
+			}
+
+			boolean largerIntervalFound = false;
+			if (ierro != 3 && erlarg > ertest) {
+				int jupbnd = result.last;
+				if (result.last > limit / 2 + 2) jupbnd = limit + 3 - result.last;
+				for (int k = nrmax; k <= jupbnd; k++) {
+					maxerr = iord[nrmax];
+					errmax = elist[maxerr];
+					if (abs(blist[maxerr] - alist[maxerr]) > small) {
+						largerIntervalFound = true;
+						break;
+					}
+					nrmax++;
+				}
+			}
+			if (largerIntervalFound) continue;
+
+			numrl2++;
+			rlist2[numrl2 - 1] = area;
+			int[] numrl2Holder = {numrl2};
+			double[] absepsHolder = {0.0};
+			int[] nresHolder = {nres};
+			double reseps = dqelg(numrl2Holder, rlist2, absepsHolder, res3la,
+					nresHolder);
+			numrl2 = numrl2Holder[0];
+			double abseps = absepsHolder[0];
+			nres = nresHolder[0];
+			ktmin++;
+			if (ktmin > 5 && result.abserr < 0.001 * errsum) result.ier = 5;
+			if (abseps < result.abserr) {
+				ktmin = 0;
+				result.abserr = abseps;
+				result.result = reseps;
+				correc = erlarg;
+				ertest = max(epsabs, epsrel * abs(reseps));
+				if (result.abserr <= ertest) break;
+			}
+			if (numrl2 == 1) noext = true;
+			if (result.ier == 5) break;
+			maxerr = iord[1];
+			errmax = elist[maxerr];
+			nrmax = 1;
+			extrap = false;
+			small *= 0.5;
+			erlarg = errsum;
 		}
 
-		if (result.abserr > tolerance && result.ier == 0)
-			result.ier = 1;
+		if (result.abserr == DBL_MAX) {
+			result.result = sum(rlist, result.last);
+			result.abserr = errsum;
+		} else {
+			if (result.ier + ierro != 0) {
+				if (ierro == 3) result.abserr += correc;
+				if (result.ier == 0) result.ier = 3;
+				if (result.result == 0.0 || area == 0.0) {
+					if (result.abserr > errsum) {
+						result.result = sum(rlist, result.last);
+						result.abserr = errsum;
+					} else if (area == 0.0) {
+						result.neval = result.last * 42 - 21;
+						return result;
+					}
+				} else if (result.abserr / abs(result.result) > errsum / abs(area)) {
+					result.result = sum(rlist, result.last);
+					result.abserr = errsum;
+				}
+			}
+			if (!(ksgn == -1 && max(abs(result.result), abs(area)) <= 0.01 * defabs)
+					&& (result.result / area < 0.01 || result.result / area > 100.0
+							|| errsum > abs(area))) result.ier = 5;
+		}
+		result.neval = result.last * 42 - 21;
+		return result;
+	}
+
+	private static double sum(double[] values, int last) {
+		double result = 0.0;
+		for (int i = 1; i <= last; i++) result += values[i];
 		return result;
 	}
 	//static double c_b6 = 0.;
@@ -327,22 +473,6 @@ public class Integrate {
 	***routines called  dqagie
 	***end prologue  dqagi
 	*/
-	static final void dqagi(UnivariateFunction f, double bound, int inf,
-		    double epsabs, double epsrel,
-		    double result, double abserr, int neval, int ier,
-		    int limit)
-	{
-	    ier = 6;
-	    neval = 0;
-	    result = 0.;
-	    abserr = 0.;
-	    if (limit < 1) return;
-
-	    dqagie(f, bound, inf, epsabs, epsrel, limit);
-
-	    return;
-	} /* dqagi */
-
 	/**begin prologue  dqagie
 	***date written   800101   (yymmdd)
 	***revision date  830518   (yymmdd)
@@ -748,7 +878,6 @@ public class Integrate {
 		     in the list of error estimates and select the subinterval
 		     with nrmax-th largest error estimate (to be bisected next). */
 
-			//dqpsrt(limit, last, &maxerr, &errmax, elist, iord, &nrmax); // FIXME
 			temp1[0] = errmax; temp4[0] = maxerr; temp5[0] = nrmax;
 			dqpsrt(limit, result.last, temp4, temp1, elist, iord, temp5);
 			errmax = temp1[0]; maxerr = temp4[0]; nrmax = temp5[0];
@@ -1048,69 +1177,93 @@ public class Integrate {
       epmach is the largest relative spacing.
       uflow is the smallest positive magnitude.
 	 */
-	private static double dqk15(UnivariateFunction f, double a, double b,
+	/** 21-point Gauss-Kronrod rule used by R's finite-interval dqags path. */
+	private static double dqk21(UnivariateFunction f, double a, double b,
 			double[] abserr, double[] resabs, double[] resasc) {
 		final double[] wg = {
-				0., .129484966168869693270611432679082,
-				0., .27970539148927666790146777142378,
-				0., .381830050505118944950369775488975,
-				0., .417959183673469387755102040816327
+			.066671344308688137593568809893332,
+			.149451349150580593145776339657697,
+			.219086362515982043995534934228163,
+			.269266719309996355091226921569469,
+			.295524224714752870173892994651338
 		};
 		final double[] xgk = {
-				.991455371120812639206854697526329,
-				.949107912342758524526189684047851,
-				.864864423359769072789712788640926,
-				.741531185599394439863864773280788,
-				.58608723546769113029414483825873,
-				.405845151377397166906606412076961,
-				.207784955007898467600689403773245, 0.
+			.995657163025808080735527280689003,
+			.973906528517171720077964012084452,
+			.930157491355708226001207180059508,
+			.865063366688984510732096688423493,
+			.780817726586416897063717578345042,
+			.679409568299024406234327365114874,
+			.562757134668604683339000099272694,
+			.433395394129247190799265943165784,
+			.294392862701460198131126603103866,
+			.14887433898163121088482600112972,
+			0.0
 		};
 		final double[] wgk = {
-				.02293532201052922496373200805897,
-				.063092092629978553290700663189204,
-				.104790010322250183839876322541518,
-				.140653259715525918745189590510238,
-				.16900472663926790282658342659855,
-				.190350578064785409913256402421014,
-				.204432940075298892414161999234649,
-				.209482141084727828012999174891714
+			.011694638867371874278064396062192,
+			.03255816230796472747881897245939,
+			.05475589657435199603138130024458,
+			.07503967481091995276704314091619,
+			.093125454583697605535065465083366,
+			.109387158802297641899210590325805,
+			.123491976262065851077958109831074,
+			.134709217311473325928054001771707,
+			.142775938577060080797094273138717,
+			.147739104901338491374841515972068,
+			.149445554002916905664936468389821
 		};
 
+		double[] fv1 = new double[10];
+		double[] fv2 = new double[10];
 		double center = (a + b) * 0.5;
 		double halfLength = (b - a) * 0.5;
+		double absHalfLength = abs(halfLength);
 		double centerValue = f.eval(center);
-		double resg = wg[7] * centerValue;
-		double resk = wgk[7] * centerValue;
+		double resg = 0.0;
+		double resk = wgk[10] * centerValue;
 		resabs[0] = abs(resk);
-		double[] fv1 = new double[7];
-		double[] fv2 = new double[7];
 
-		for (int j = 0; j < 7; j++) {
-			double abscissa = halfLength * xgk[j];
-			double f1 = f.eval(center - abscissa);
-			double f2 = f.eval(center + abscissa);
-			fv1[j] = f1;
-			fv2[j] = f2;
-			double sum = f1 + f2;
-			resg += wg[j] * sum;
-			resk += wgk[j] * sum;
-			resabs[0] += wgk[j] * (abs(f1) + abs(f2));
+		for (int j = 1; j <= 5; j++) {
+			int even = j << 1;
+			double abscissa = halfLength * xgk[even - 1];
+			double fval1 = f.eval(center - abscissa);
+			double fval2 = f.eval(center + abscissa);
+			fv1[even - 1] = fval1;
+			fv2[even - 1] = fval2;
+			double fsum = fval1 + fval2;
+			resg += wg[j - 1] * fsum;
+			resk += wgk[even - 1] * fsum;
+			resabs[0] += wgk[even - 1] * (abs(fval1) + abs(fval2));
+		}
+		for (int j = 1; j <= 5; j++) {
+			int odd = (j << 1) - 1;
+			double abscissa = halfLength * xgk[odd - 1];
+			double fval1 = f.eval(center - abscissa);
+			double fval2 = f.eval(center + abscissa);
+			fv1[odd - 1] = fval1;
+			fv2[odd - 1] = fval2;
+			double fsum = fval1 + fval2;
+			resk += wgk[odd - 1] * fsum;
+			resabs[0] += wgk[odd - 1] * (abs(fval1) + abs(fval2));
 		}
 
-		double mean = resk * 0.5;
-		resasc[0] = wgk[7] * abs(centerValue - mean);
-		for (int j = 0; j < 7; j++)
-			resasc[0] += wgk[j] * (abs(fv1[j] - mean) + abs(fv2[j] - mean));
-
-		double absHalfLength = abs(halfLength);
+		double reskh = resk * 0.5;
+		resasc[0] = wgk[10] * abs(centerValue - reskh);
+		for (int j = 0; j < 10; j++) {
+			resasc[0] += wgk[j] * (abs(fv1[j] - reskh) + abs(fv2[j] - reskh));
+		}
 		double result = resk * halfLength;
 		resabs[0] *= absHalfLength;
 		resasc[0] *= absHalfLength;
 		abserr[0] = abs((resk - resg) * halfLength);
-		if (resasc[0] != 0 && abserr[0] != 0)
-			abserr[0] = resasc[0] * min(1., pow(200. * abserr[0] / resasc[0], 1.5));
-		if (resabs[0] > DBL_MIN / (50. * DBL_EPSILON))
-			abserr[0] = max(50. * DBL_EPSILON * resabs[0], abserr[0]);
+		if (resasc[0] != 0.0 && abserr[0] != 0.0) {
+			abserr[0] = resasc[0] * min(1.0,
+					pow(200.0 * abserr[0] / resasc[0], 1.5));
+		}
+		if (resabs[0] > DBL_MIN / (50.0 * DBL_EPSILON)) {
+			abserr[0] = max(50.0 * DBL_EPSILON * resabs[0], abserr[0]);
+		}
 		return result;
 	}
 
@@ -1446,152 +1599,92 @@ public class Integrate {
 	          diagonal of the epsilon table is deleted. */
 	static final double dqelg(int[] n, double[] epstab, double[] abserr, double[] res3la, int[] nres)
 	{
-	    /* Local variables */
-	    int i__, indx, ib, ib2, ie, k1, k2, k3, num, newelm, limexp;
-	    double delta1, delta2, delta3, e0, e1, e1abs, e2, e3, epmach, epsinf;
-	    double oflow, ss, res;
-	    double errA, err1, err2, err3, tol1, tol2, tol3, result;
+		final double epmach = DBL_EPSILON;
+		final double oflow = DBL_MAX;
+		nres[0]++;
+		abserr[0] = oflow;
+		double result = epstab[n[0] - 1];
+		if (n[0] < 3) {
+			abserr[0] = max(abserr[0], 5.0 * epmach * abs(result));
+			return result;
+		}
 
-	    /* Function Body */
-		/* ***first executable statement  dqelg */
-	    epmach = DBL_EPSILON;
-	    oflow = Double.MAX_VALUE;
-	    ++(nres[0]);
-	    abserr[0] = oflow;
-	    result = epstab[n[0]];
-	    if (n[0] < 3) {
-	    	//goto L100;
-		    abserr[0] = max(abserr[0], epmach * 5. * abs(result));
-		    return result;
-	    }
-	    limexp = 50;
-	    epstab[n[0] + 2] = epstab[n[0]];
-	    newelm = (n[0] - 1) / 2;
-	    epstab[n[0]] = oflow;
-	    num = n[0];
-	    k1 = n[0];
-	    for (i__ = 1; i__ <= newelm; ++i__) {
-	    	k2 = k1 - 1;
-	    	k3 = k1 - 2;
-	    	res = epstab[k1 + 2];
-	    	e0 = epstab[k3];
-	    	e1 = epstab[k2];
-	    	e2 = res;
-	    	e1abs = abs(e1);
-	    	delta2 = e2 - e1;
-	    	err2 = abs(delta2);
-	    	tol2 = max(abs(e2), e1abs) * epmach;
-	    	delta3 = e1 - e0;
-	    	err3 = abs(delta3);
-	    	tol3 = max(e1abs, abs(e0)) * epmach;
-	    	if (err2 <= tol2 && err3 <= tol3) {
-	    		/*           if e0, e1 and e2 are equal to within machine
-				 accuracy, convergence is assumed. */
-	    		result = res;/*		result = e2 */
-	    		abserr[0] = err2 + err3;/*	abserr = abs(e1-e0)+abs(e2-e1) */
+		final int limexp = 50;
+		epstab[n[0] + 1] = epstab[n[0] - 1];
+		int newelm = (n[0] - 1) / 2;
+		epstab[n[0] - 1] = oflow;
+		int num = n[0];
+		int k1 = n[0];
+		for (int i = 1; i <= newelm; i++) {
+			int k2 = k1 - 1;
+			int k3 = k1 - 2;
+			double res = epstab[k1 + 1];
+			double e0 = epstab[k3 - 1];
+			double e1 = epstab[k2 - 1];
+			double e2 = res;
+			double e1abs = abs(e1);
+			double delta2 = e2 - e1;
+			double err2 = abs(delta2);
+			double tol2 = max(abs(e2), e1abs) * epmach;
+			double delta3 = e1 - e0;
+			double err3 = abs(delta3);
+			double tol3 = max(e1abs, abs(e0)) * epmach;
+			if (err2 <= tol2 && err3 <= tol3) {
+				result = res;
+				abserr[0] = max(err2 + err3, 5.0 * epmach * abs(result));
+				return result;
+			}
 
-	    		// goto L100;	/* ***jump out of do-loop */
-	    		abserr[0] = max(abserr[0], epmach * 5. * abs(result));
-	    		return result;
-	    	}
+			double e3 = epstab[k1 - 1];
+			epstab[k1 - 1] = e1;
+			double delta1 = e1 - e3;
+			double err1 = abs(delta1);
+			double tol1 = max(e1abs, abs(e3)) * epmach;
+			if (err1 > tol1 && err2 > tol2 && err3 > tol3) {
+				double ss = 1.0 / delta1 + 1.0 / delta2 - 1.0 / delta3;
+				if (abs(ss * e1) > 1e-4) {
+					res = e1 + 1.0 / ss;
+					epstab[k1 - 1] = res;
+					k1 -= 2;
+					double error = err2 + abs(res - e2) + err3;
+					if (error <= abserr[0]) {
+						abserr[0] = error;
+						result = res;
+					}
+					continue;
+				}
+			}
+			n[0] = i + i - 1;
+			break;
+		}
 
-	    	e3 = epstab[k1];
-	    	epstab[k1] = e1;
-	    	delta1 = e1 - e3;
-	    	err1 = abs(delta1);
-	    	tol1 = max(e1abs, abs(e3)) * epmach;
+		if (n[0] == limexp) n[0] = (limexp / 2 << 1) - 1;
+		int ib = (num / 2 << 1) == num ? 2 : 1;
+		int ie = newelm + 1;
+		for (int i = 1; i <= ie; i++) {
+			int ib2 = ib + 2;
+			epstab[ib - 1] = epstab[ib2 - 1];
+			ib = ib2;
+		}
+		if (num != n[0]) {
+			int index = num - n[0] + 1;
+			for (int i = 1; i <= n[0]; i++, index++) {
+				epstab[i - 1] = epstab[index - 1];
+			}
+		}
 
-	    	/*           if two elements are very close to each other, omit
-		     a part of the table by adjusting the value of n */
-
-	    	if (err1 > tol1 && err2 > tol2 && err3 > tol3) {
-	    		ss = 1. / delta1 + 1. / delta2 - 1. / delta3;
-	    		epsinf = abs(ss * e1);
-
-	    		/*           test to detect irregular behaviour in the table, and
-		     eventually omit a part of the table adjusting the value of n. */
-
-	    		if (epsinf > 1e-4) {
-	    			//goto L30;
-	    			/* compute a new element and eventually adjust the value of result. */
-		    		res = e1 + 1. / ss;
-			    	epstab[k1] = res;
-			    	k1 += -2;
-			    	errA = err2 + abs(res - e2) + err3;
-			    	if (errA <= abserr[0]) {
-			    		abserr[0] = errA;
-			    		result = res;
-			    	}
-			    	continue;
-	    		}
-	    	}
-
-	    	n[0] = i__ + i__ - 1;
-	    	//goto L50;/* ***jump out of do-loop */
-	    	break;
-	    }
-
-	    /*           shift the table. */
-
-	    //L50:
-	    if (n[0] == limexp) {
-	    	n[0] = (limexp / 2 << 1) - 1;
-	    }
-
-	    if (num / 2 << 1 == num) ib = 2; else ib = 1;
-	    ie = newelm + 1;
-	    for (i__ = 1; i__ <= ie; ++i__) {
-	    	ib2 = ib + 2;
-	    	epstab[ib] = epstab[ib2];
-	    	ib = ib2;
-	    }
-	    if (num != n[0]) {
-	    	indx = num - n[0] + 1;
-	    	for (i__ = 1; i__ <= n[0]; ++i__) {
-	    		epstab[i__] = epstab[indx];
-	    		++indx;
-	    	}
-	    }
-	    /*L80:*/
-	    if (nres[0] >= 4) {
-	    	/* L90: */
-	    	abserr[0] = abs(result - res3la[3]) +
-	    			abs(result - res3la[2]) +
-	    			abs(result - res3la[1]);
-	    	res3la[1] = res3la[2];
-	    	res3la[2] = res3la[3];
-	    	res3la[3] = result;
-	    } else {
-	    	res3la[nres[0]] = result;
-	    	abserr[0] = oflow;
-	    }
-
-	    // L100:/* compute error estimate */
-	    abserr[0] = max(abserr[0], epmach * 5. * abs(result));
-	    return result;
+		if (nres[0] >= 4) {
+			abserr[0] = abs(result - res3la[2]) + abs(result - res3la[1])
+					+ abs(result - res3la[0]);
+			res3la[0] = res3la[1];
+			res3la[1] = res3la[2];
+			res3la[2] = result;
+		} else {
+			res3la[nres[0] - 1] = result;
+			abserr[0] = oflow;
+		}
+		abserr[0] = max(abserr[0], 5.0 * epmach * abs(result));
+		return result;
 	} /* dqelg */
 
-	public static void main(String[] args) {
-		UnivariateFunction f = new UnivariateFunction() {
-			public void setParameters(double... params) {}
-			public void setObjects(Object... obj) {}
-			public double eval(double x) {
-				return Normal.density(x, 0, 1, false);
-			}
-		};
-		IntegrationResult result = dqagie(f, 0, 1, DBL_EPSILON*64, DBL_EPSILON*64, 100);
-		System.out.println(result.result);
-		System.out.println("Error = " + result.abserr); // Should be precisely 0.5
-
-		f = new UnivariateFunction() {
-			public void setParameters(double... params) {}
-			public void setObjects(Object... obj) {}
-			public double eval(double x) {
-				return 1/((x+1) * sqrt(x));
-			}
-		};
-		result = dqagie(f, 0, 1, DBL_EPSILON*64, DBL_EPSILON*64, 100);
-		System.out.println(result.result);
-		System.out.println("Error = " + result.abserr); // Should be precisely pi
-	}
 }

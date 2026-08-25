@@ -1,7 +1,7 @@
 # JDistlib
 
 [![CI](https://github.com/robbyjo/JDistlib/actions/workflows/ci.yml/badge.svg)](https://github.com/robbyjo/JDistlib/actions/workflows/ci.yml)
-[![Documentation](https://img.shields.io/badge/docs-JavaDoc-315b7d)](https://robbyjo.github.io/JDistlib/api/)
+[![Documentation](https://img.shields.io/badge/docs-distributions-315b7d)](https://robbyjo.github.io/JDistlib/distributions.html)
 [![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0%2B-315b7d)](LICENSE)
 
 JDistlib is a Java library for probability distributions and related numerical
@@ -23,12 +23,12 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-The `0.5.0-SNAPSHOT` branch is the modernization line. The repository layout,
-build, publication metadata, integration implementation, and the first audited
-R 4.6.1 numerical updates are present. The complete file-by-file R 4.6.1 sync is
-still in progress; [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist.
-Until that checklist is complete, do not describe 0.5.0 as fully equivalent to
-R 4.6.1.
+The `0.5.0-SNAPSHOT` branch is the modernization line. The R `src/nmath`
+file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
+[UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
+[NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
+R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
+and tested.
 
 ## Building
 
@@ -47,6 +47,11 @@ On Windows, use `gradlew.bat` instead.
 The project website is <https://robbyjo.github.io/JDistlib/> and the generated
 JavaDoc is published at <https://robbyjo.github.io/JDistlib/api/>. Both are
 rebuilt from `master` by the GitHub Pages workflow.
+
+The [distribution reference](https://robbyjo.github.io/JDistlib/distributions.html)
+lists every available scalar, multivariate, matrix, and exact-statistic law with
+its parameterization, defining formula, and density/mass, CDF, quantile, random,
+and auxiliary method coverage.
 
 ## Using the distribution APIs
 

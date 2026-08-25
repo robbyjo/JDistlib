@@ -223,7 +223,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 			ans = term = v * t;
 		}
 
-		for (n = 1, f_2n = f + 2., f_x_2n += 2.;  ; n++, f_2n += 2, f_x_2n += 2) {
+		for (n = 1, f_2n = f + 2., f_x_2n += 2.; n <= itrmax; n++, f_2n += 2, f_x_2n += 2) {
 			/* f_2n    === f + 2*n
 			 * f_x_2n  === f - x + 2*n   > 0  <==> (f+2n)  >   x */
 			if (f_x_2n > 0) {
@@ -233,7 +233,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 				is_r = is_it = false;
 				/* convergence only if BOTH absolute and relative error < 'bnd' */
 				if (((is_b = (bound <= errmax)) &&
-						(is_r = (term <= reltol * ans))) || (is_it = (n > itrmax)))
+						(is_r = (term <= reltol * ans))))
 				{
 					break; /* out completely */
 				}
@@ -270,6 +270,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 			}
 
 		} /* for(n ...) */
+		is_it = n > itrmax;
 
 		if (is_it) {
 			// MATHLIB_WARNING2(_("pnchisq(x=%g, ..): not converged in %d iter."), x, itrmax);
@@ -396,7 +397,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 			c = (df + 3*ncp)/(df + 2*ncp);
 			ff = (df + 2 * ncp)/(c*c);
 			ux = b + c * ChiSquare.quantile(p, ff, lower_tail, log_p);
-			if(ux < 0) ux = 1;
+			if(ux <= 0) ux = 1;
 			ux0 = ux;
 		}
 
@@ -485,10 +486,10 @@ public class NonCentralChiSquare extends GenericDistribution {
 	    }</pre>
 	 */
 	public static final double random(double df, double lambda, RandomEngine random) {
-		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(lambda) || df < 0. || lambda < 0.)
+		if (Double.isNaN(df) || !Double.isFinite(lambda) || df < 0. || lambda < 0.)
 			return Double.NaN;
 
-		if(lambda == 0. || Double.isNaN(lambda))
+		if(lambda == 0.)
 			return (df == 0.) ? 0 : Gamma.random(df / 2., 2., random);
 		double r = Poisson.random( lambda / 2., random);
 		if (r > 0.)  r = ChiSquare.random(2. * r, random);

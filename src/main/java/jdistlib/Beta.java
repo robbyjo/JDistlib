@@ -76,6 +76,8 @@ public class Beta extends GenericDistribution {
 
 	public static final double cumulative_raw(double x, double a, double b, boolean lower_tail, boolean log_p)
 	{
+	    if (x >= 1)
+		return lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.);
 	    // treat limit cases correctly here:
 	    if(a == 0 || b == 0 || isInfinite(a) || isInfinite(b)) {
 		// NB:  0 < x < 1 :
@@ -91,6 +93,8 @@ public class Beta extends GenericDistribution {
 		// else,  x >= 0.5 :
 		    return (lower_tail ? (log_p ? 0. : 1.) : log_p ? Double.NEGATIVE_INFINITY : 0.);
 	    }
+	    if (x <= 0)
+		return lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.);
 	    // Now:  0 < a < Inf;  0 < b < Inf
 	    double x1 = 0.5 - x + 0.5, w, wc;
 	    int ierr;
@@ -106,10 +110,7 @@ public class Beta extends GenericDistribution {
 	public static final double cumulative(double x, double a, double b, boolean lower_tail, boolean log_p)
 	{
 	    if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
-	    if (a <= 0 || b <= 0) return Double.NaN;
-
-	    if (x <= 0)	return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
-	    if (x >= 1)	return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+	    if (a < 0 || b < 0) return Double.NaN;
 	    return cumulative_raw(x, a, b, lower_tail, log_p);
 	}
 
@@ -831,7 +832,7 @@ public class Beta extends GenericDistribution {
 		//double olda = -1.0;
 		//double oldb = -1.0;
 
-		if (Double.isNaN(aa) || Double.isNaN(bb) || aa <= 0. || bb <= 0.)
+		if (Double.isNaN(aa) || Double.isNaN(bb) || aa < 0. || bb < 0.)
 			return Double.NaN;
 
 		if (isInfinite(aa) && isInfinite(bb))

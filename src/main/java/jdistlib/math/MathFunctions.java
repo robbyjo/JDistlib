@@ -50,12 +50,36 @@ public class MathFunctions {
 	 * @return rounded number
 	 */
 	public static final double round(double val, int places) {
-		double factor = pow(10, places);
-		return Math.round(val*factor)/factor;
+		if (Double.isNaN(val) || Double.isInfinite(val) || val == 0.) return val;
+		if (places > 323) return val;
+		if (places < -308) return copySign(0., val);
+		if (places == 0) return rint(val);
+
+		double sign = copySign(1., val);
+		double x = abs(val);
+		if (log10(x) + places > 15.) return val;
+
+		double factor, scaled, down, up, integer;
+		if (places <= 308) {
+			factor = pow(10., places);
+			scaled = x * factor;
+			integer = floor(scaled);
+			down = integer / factor;
+			up = ceil(scaled) / factor;
+		} else {
+			double extra = pow(10., places - 308);
+			factor = 1e308;
+			scaled = (x * factor) * extra;
+			integer = floor(scaled);
+			down = integer / factor / extra;
+			up = ceil(scaled) / factor / extra;
+		}
+		double du = up - x, dd = x - down;
+		return sign * ((du < dd || (integer % 2. == 1. && du == dd)) ? up : down);
 	}
 
-	public static final float round(float val, int places) 
-	{	return round(val, places); }
+	public static final float round(float val, int places)
+	{	return (float) round((double) val, places); }
 
 	/**
 	 * Mimicking R's signif
@@ -64,10 +88,32 @@ public class MathFunctions {
 	 * @return rounded values
 	 */
 	public static final double signif(double val, int places) {
-		if (val != 0)
-			places = places - (int) (ceil(log10(val)));
-		double factor = pow(10, places);
-		return Math.round(val*factor)/factor;
+		if (Double.isNaN(val) || Double.isInfinite(val) || val == 0.) return val;
+		int digits = max(1, places);
+		if (digits > 22) return val;
+		double sign = copySign(1., val), x = abs(val);
+		double l10 = log10(x);
+		int e10 = digits - 1 - (int) floor(l10);
+		if (abs(l10) < 306.) {
+			double extra = 1.;
+			if (e10 > 308) {
+				extra = pow(10., e10 - 308);
+				e10 = 308;
+			}
+			if (e10 > 0) {
+				double factor = pow(10., e10);
+				return sign * (rint((x * factor) * extra) / factor) / extra;
+			}
+			double factor = pow(10., -e10);
+			return sign * rint(x / factor) * factor;
+		}
+		boolean doRound = log10(Double.MAX_VALUE) - l10 >= pow(10., -digits);
+		int e2 = digits + (e10 > 0 ? 1 : -1) * 22;
+		double p10 = pow(10., e2), p10b = pow(10., e10 - e2);
+		x *= p10;
+		x *= p10b;
+		if (doRound) x += .5;
+		return sign * floor(x) / p10 / p10b;
 	}
 
 	/**
@@ -3039,8 +3085,7 @@ public class MathFunctions {
 			if (val < lnsml) {
 				/* a and/or b so big that beta underflows */
 				//ML_ERROR(ME_UNDERFLOW, "beta");
-				return Double.NaN;
-				/* return ML_UNDERFLOW; pointless giving incorrect value */
+				return 0.;
 			}
 			return exp(val);
 		}
@@ -3064,7 +3109,7 @@ public class MathFunctions {
 		k = rint(k);
 		/* NaNs propagated correctly */
 		if(Double.isNaN(n) || Double.isNaN(k)) return n + k;
-		if (abs(k - k0) > 1e-7) {
+		if (abs(k - k0) > 1e-9 * max(1., abs(k0))) {
 			//MATHLIB_WARNING2(_("'k' (%.2f) must be integer, rounded to %.0f"), k0, k);
 			String errstr = String.format("'k' (%.2f) must be integer, rounded to %.0f", k0, k);
 			System.err.println(errstr);
@@ -3102,7 +3147,7 @@ public class MathFunctions {
 		k = rint(k);
 		/* NaNs propagated correctly */
 		if(Double.isNaN(n) || Double.isNaN(k)) return n + k;
-		if (abs(k - k0) > 1e-7) {
+		if (abs(k - k0) > 1e-9 * max(1., abs(k0))) {
 			//MATHLIB_WARNING2(_("'k' (%.2f) must be integer, rounded to %.0f"), k0, k);
 			String errstr = String.format("'k' (%.2f) must be integer, rounded to %.0f", k0, k);
 			System.err.println(errstr);
@@ -3110,7 +3155,7 @@ public class MathFunctions {
 		}
 		if (k < k_small_max) {
 			int j;
-			if(n-k < k && n >= 0 && !isNonInt(n)) k = n-k; /* <- Symmetry */
+			if(n-k < k && n >= 0 && !isNonInt(n)) k = rint(n-k); /* <- Symmetry */
 			if (k <	 0) return 0.;
 			if (k == 0) return 1.;
 			/* else: k >= 1 */
@@ -3666,17 +3711,21 @@ public class MathFunctions {
 		x = x % 2.;
 		if (x <= -1) x += 2; else if (x > 1.) x -= 2;
 		if (x == 0. || x == 1.) return 0.;
-		if (x == 0.5) return -1.;
-		if (x == -0.5) return 1.;
+		if (x == 0.5) return 1.;
+		if (x == -0.5) return -1.;
 		return sin(PI * x);
 	}
 
 	public static final double tanpi(double x) {
 		if (Double.isNaN(x)) return x;
 		if (isInfinite(x)) return Double.NaN;
-		x = abs(x) % 1.;
+		x = x % 1.;
 		if (x <= -0.5) x++; else if (x > 0.5) x--;
-		return (x == 0.) ? 0. : ((x == 0.5) ? Double.NaN : tan(PI * x));
+		if (x == 0.) return 0.;
+		if (x == 0.5) return Double.NaN;
+		if (x == 0.25) return 1.;
+		if (x == -0.25) return -1.;
+		return tan(PI * x);
 	}
 
 	/**
@@ -3722,7 +3771,7 @@ public class MathFunctions {
 	}
 
 	public static final boolean isNonInt(double x)
-	{	return (abs((x) - rint(x)) > 1e-7*max(1, abs(x))); }
+	{	return (abs((x) - rint(x)) > 1e-9*max(1, abs(x))); }
 
 	/* Compute  log(1 + exp(x))  without overflow (and fast for x > 18)
 	   For the two cutoffs, consider

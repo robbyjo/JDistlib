@@ -157,7 +157,7 @@ public class Bessel {
 		 * Linux (around 2001-02) gives 2.14946906753213e-08
 		 * Solaris 2.5.1		 gives 2.14911933289084e-08
 		 */
-		M_eps_sinc = 2.149e-8;
+		M_eps_sinc = 2.149119e-8;
 
 	/**
 	 * <p>Calculates Bessel functions J_{alpha} (x) for non-negative argument x, and order alpha.
@@ -402,7 +402,7 @@ public class Bessel {
 		//--b;
 
 		nu = alpha;
-		twonu = nu + nu;
+		twonu = scalb(nu, 1);
 
 		/*-------------------------------------------------------------------
 	      Check for out of range arguments.
@@ -530,6 +530,11 @@ public class Bessel {
 		       Use recurrence to generate results.
 		       First initialize the calculation of P*S.
 		       -------------------------------------------------------- */
+			final double verySmallNu = scalb(1., -800);
+			if (nu != 0. && abs(nu) < verySmallNu) {
+				nu = copySign(verySmallNu, nu);
+				twonu = scalb(nu, 1);
+			}
 			nbmx = nb - intx;
 			long n = intx + 1;
 			en = (double)(n + n) + twonu;
@@ -749,7 +754,7 @@ public class Bessel {
 		       Normalize.  Divide all b[N] by sum.
 		       ---------------------------------------------------*/
 			/*	    if (nu + 1. != 1.) poor test */
-			if(abs(nu) > 1e-15)
+			if(nu != 0.)
 				sum *= (gamma_cody(nu) * pow(.5* x, -nu));
 
 			aa = enmten_BESS;
@@ -1075,7 +1080,7 @@ public class Bessel {
 		/*Parameter adjustments */
 		//--bi;
 		nu = alpha;
-		twonu = nu + nu;
+		twonu = scalb(nu, 1);
 
 		/*-------------------------------------------------------------------
 	      Check for X, NB, OR IZE out of range.

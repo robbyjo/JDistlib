@@ -1,6 +1,21 @@
 What's new:
 
 Version 0.6.0 (in development):
+* Audited all 11 historical SourceForge tickets, replaced obsolete open-ticket
+  R Bugzilla monitoring with tagged-source checks and focused regressions,
+  repaired the PR#16332 extreme beta log-tail and PR#15554 huge-order Bessel
+  paths, generated a standalone R source/test patch for PR#16332, and recorded
+  the one out-of-scope `stats::fisher.test` ticket.
+* Finalized the multivariate probability result contract with a typed status,
+  convergence and usable-estimate queries, a public tolerance calculation, and
+  explicit documentation that the replication error is a heuristic rather than
+  a rigorous confidence bound.
+* Added API-selection and multivariate probability guides, clarified mutable
+  instance/random-engine thread safety, made CI run all `check` gates, and added
+  an actual packaged-JAR compile/run smoke test on Java 8.
+* Added a local, signed Maven-layout Central Portal bundle task with complete
+  checksums and a publication runbook; external upload remains an explicit
+  maintainer release action.
 * Added a custom continuous and discrete distribution guide with mathematical
   quick starts, advanced construction guidance, diagnostics, troubleshooting,
   and a fully typeset distribution formula catalog.

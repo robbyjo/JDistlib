@@ -151,7 +151,10 @@ public class MultivariateProbabilityTest {
 		MultivariateProbabilityResult invalid = MultivariateNormal.cumulative(
 				new double[] {0.0, 0.0}, new double[] {0.0}, new double[][] {{1.0}});
 		assertEquals(2, invalid.status);
+		assertEquals(MultivariateProbabilityStatus.INVALID_INPUT,
+				invalid.getStatus());
 		assertFalse(invalid.isSuccess());
+		assertFalse(invalid.hasEstimate());
 		assertTrue(Double.isNaN(invalid.probability));
 
 		MultivariateProbabilityOptions tiny = new MultivariateProbabilityOptions(
@@ -161,6 +164,10 @@ public class MultivariateProbabilityTest {
 				new double[][] {{1.0, 0.4, 0.2}, {0.4, 1.0, 0.3},
 					{0.2, 0.3, 1.0}}, tiny, new MersenneTwister(7L));
 		assertEquals(1, limited.status);
+		assertEquals(MultivariateProbabilityStatus.MAX_EVALUATIONS_REACHED,
+				limited.getStatus());
+		assertFalse(limited.isConverged());
+		assertTrue(limited.hasEstimate());
 		assertEquals(96, limited.evaluations);
 	}
 

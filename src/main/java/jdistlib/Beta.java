@@ -101,11 +101,66 @@ public class Beta extends GenericDistribution {
 	    double[] temp = bratio(a, b, x, x1, log_p); /* -> ./toms708.c */
 	    w = temp[0]; wc = temp[1]; ierr = (int) temp[2];
 	    // ierr in {10,14} <==> bgrat() error code ierr-10 in 1:4; for 1 and 4, warned *there*
-	    if(ierr > 0 && ierr != 11 && ierr != 14)
-	    	//MATHLIB_WARNING(_("pbeta_raw() -> bratio() gave error code %d"), ierr);
-	    	return Double.NaN;
-	    return lower_tail ? w : wc;
+	    if(ierr > 0 && ierr != 11 && ierr != 14) {
+			//MATHLIB_WARNING(_("pbeta_raw() -> bratio() gave error code %d"), ierr);
+			return Double.NaN;
+	    }
+	    double answer = lower_tail ? w : wc;
+	    // TOMS 708's BPSER may lose accuracy or cancel its alternating series
+	    // down to zero below the ordinary probability range (R PR#16332).  A
+	    // modified-Lentz continued fraction evaluates that tail directly on the
+	    // log scale without forming the underflowing probability.
+	    if (log_p && answer < log(DBL_MIN)) {
+			double fallback = lower_tail
+					? logIncompleteBetaLower(x, a, b)
+					: logIncompleteBetaLower(x1, b, a);
+			if (Double.isFinite(fallback)) return fallback;
+	    }
+	    return answer;
 	} /* pbeta_raw() */
+
+	private static double logIncompleteBetaLower(double x, double a, double b) {
+		final double fpmin = Double.MIN_NORMAL / DBL_EPSILON;
+		final double tolerance = 4.0 * DBL_EPSILON;
+		double qab = a + b;
+		double qap = a + 1.0;
+		double qam = a - 1.0;
+		double c = 1.0;
+		double d = 1.0 - qab * x / qap;
+		if (abs(d) < fpmin) d = copySign(fpmin, d);
+		d = 1.0 / d;
+		double fraction = d;
+		boolean converged = false;
+		for (int m = 1; m <= 10000; m++) {
+			double m2 = 2.0 * m;
+			double coefficient = m * (b - m) * x /
+					((qam + m2) * (a + m2));
+			d = 1.0 + coefficient * d;
+			if (abs(d) < fpmin) d = copySign(fpmin, d);
+			c = 1.0 + coefficient / c;
+			if (abs(c) < fpmin) c = copySign(fpmin, c);
+			d = 1.0 / d;
+			fraction *= d * c;
+
+			coefficient = -(a + m) * (qab + m) * x /
+					((a + m2) * (qap + m2));
+			d = 1.0 + coefficient * d;
+			if (abs(d) < fpmin) d = copySign(fpmin, d);
+			c = 1.0 + coefficient / c;
+			if (abs(c) < fpmin) c = copySign(fpmin, c);
+			d = 1.0 / d;
+			double delta = d * c;
+			fraction *= delta;
+			if (abs(delta - 1.0) <= tolerance) {
+				converged = true;
+				break;
+			}
+		}
+		if (!converged || !(fraction > 0.0) || !Double.isFinite(fraction))
+			return Double.NEGATIVE_INFINITY;
+		return a * log(x) + b * log1p(-x) - lbeta(a, b) -
+				log(a) + log(fraction);
+	}
 
 	public static final double cumulative(double x, double a, double b, boolean lower_tail, boolean log_p)
 	{

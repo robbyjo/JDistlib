@@ -22,4 +22,28 @@ jobs:
           distribution: temurin
           java-version: ${{ matrix.java }}
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew test --no-daemon
+      - run: ./gradlew check --no-daemon
+
+  java8-jar-smoke:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build the Java 8-compatible library JAR
+        run: ./gradlew jar --no-daemon
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 8
+      - name: Compile and run against the packaged JAR on Java 8
+        run: |
+          mkdir -p build/java8-smoke
+          javac -cp build/libs/jdistlib-0.6.0-SNAPSHOT.jar \
+            -d build/java8-smoke examples/Java8JarSmoke.java
+          java -cp build/libs/jdistlib-0.6.0-SNAPSHOT.jar:build/java8-smoke \
+            examples.Java8JarSmoke

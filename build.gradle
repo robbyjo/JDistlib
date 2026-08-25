@@ -127,6 +127,12 @@ publishing {
             }
         }
     }
+    repositories {
+        maven {
+            name = 'centralStaging'
+            url = layout.buildDirectory.dir('central-staging').get().asFile.toURI()
+        }
+    }
 }
 
 signing {
@@ -135,5 +141,51 @@ signing {
     if (signingKey.isPresent()) {
         useInMemoryPgpKeys(signingKey.get(), signingPassword.orNull)
         sign publishing.publications.mavenJava
+    }
+}
+
+def centralPublication = tasks.named(
+    'publishMavenJavaPublicationToCentralStagingRepository')
+
+def centralChecksums = tasks.register('centralChecksums') {
+    group = 'publishing'
+    description = 'Creates Central Portal checksums for the locally staged publication.'
+    dependsOn centralPublication
+    doLast {
+        def stagingRoot = layout.buildDirectory.dir('central-staging').get().asFile
+        fileTree(stagingRoot).matching {
+            exclude '**/*.md5', '**/*.sha1', '**/*.sha256', '**/*.sha512'
+        }.files.each { artifact ->
+            ['MD5': 'md5', 'SHA-1': 'sha1', 'SHA-256': 'sha256',
+             'SHA-512': 'sha512'].each { algorithm, suffix ->
+                def digest = java.security.MessageDigest.getInstance(algorithm)
+                artifact.withInputStream { stream ->
+                    byte[] buffer = new byte[8192]
+                    for (int count = stream.read(buffer); count >= 0;
+                            count = stream.read(buffer)) {
+                        if (count > 0) digest.update(buffer, 0, count)
+                    }
+                }
+                new File(artifact.parentFile, "${artifact.name}.${suffix}").text =
+                    digest.digest().collect { String.format('%02x', it & 0xff) }.join('')
+            }
+        }
+    }
+}
+
+tasks.register('centralBundle', Zip) {
+    group = 'publishing'
+    description = 'Builds a signed Maven-layout bundle for Central Portal upload.'
+    dependsOn centralChecksums
+    from layout.buildDirectory.dir('central-staging')
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    archiveFileName = "jdistlib-${project.version}-central.zip"
+    doFirst {
+        if (project.version.toString().endsWith('-SNAPSHOT')) {
+            throw new GradleException('centralBundle requires -PreleaseVersion=0.6.0')
+        }
+        if (!providers.gradleProperty('signingKey').isPresent()) {
+            throw new GradleException('centralBundle requires an in-memory signingKey')
+        }
     }
 }

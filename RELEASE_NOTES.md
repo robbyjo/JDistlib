@@ -29,7 +29,11 @@ Highlights:
   error estimates, evaluation budgets, and explicit equicoordinate or radial
   quantiles; and
 - corrects the Wishart Bartlett sampler parameterization and expands its
-  density and generation overloads.
+  density and generation overloads;
+- resolves or dispositions every historical SourceForge ticket, including
+  extreme beta log-tail precision and safe huge-order Bessel handling; and
+- strengthens the release gates with complete checks, a packaged-JAR Java 8
+  smoke run, API/thread-safety guidance, and a signed Central Portal bundle.
 
 The custom-distribution guide includes mathematical quick starts for continuous
 and discrete laws, advanced construction, diagnostics, troubleshooting, and a
@@ -39,4 +43,6 @@ certificates remain mathematical promises supplied by the caller.
 
 Release assets include the binary library, sources, JavaDoc, and SHA-256
 checksums. See `CHANGELOG.md` for the detailed change list and
-`docs/custom-distributions.html` for the complete workflow.
+`docs/custom-distributions.html` for the complete workflow. The ticket-by-ticket
+record is in `SOURCEFORGE_TICKET_AUDIT.md`, and `PUBLISHING.md` describes the
+separate Maven Central maintainer step.

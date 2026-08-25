@@ -186,6 +186,10 @@ public class Bessel {
 	public static final double j(double x, double alpha) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
+		// R's PR#15554 guard: converting an enormous order to an array length
+		// can overflow (or attempt an impossible allocation).  The underlying
+		// recurrence is not useful at these orders, so report loss of precision.
+		if (alpha > 1e7) return Double.NaN;
 		int na = (int) floor(alpha);
 
 		if (na < 0) {
@@ -238,6 +242,8 @@ public class Bessel {
 	public static final double y(double x, double alpha) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
+		// See j(): this also prevents the historical PR#15554 crash path.
+		if (alpha > 1e7) return Double.NaN;
 		int na = (int) floor(alpha);
 
 		if (na < 0) {

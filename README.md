@@ -60,7 +60,8 @@ rebuilt from `master` by the GitHub Pages workflow.
 The [distribution reference](https://robbyjo.github.io/JDistlib/distributions.html)
 lists every available scalar, multivariate, matrix, and exact-statistic law with
 its parameterization, defining formula, and density/mass, CDF, quantile, random,
-and auxiliary method coverage.
+and auxiliary method coverage. The [API selection guide](docs/API_GUIDE.md)
+provides a short path from a use case to the appropriate API.
 
 ## Using the distribution APIs
 
@@ -91,6 +92,10 @@ if (!region.isSuccess()) {
     System.err.println(region.message());
 }
 ```
+
+The error field is a replication-based stopping indicator, not a rigorous
+confidence bound. See the [multivariate probability contract](docs/MULTIVARIATE_PROBABILITIES.md)
+for statuses, reproducibility, scaling, and difficult cases.
 
 ## Numerical integration
 
@@ -339,11 +344,17 @@ There is intentionally no generic scalar quantile for a random vector.
 
 ## Thread safety
 
-Pure density, cumulative, and quantile calls use call-local state. Cached random
+Pure static density, cumulative, and quantile calls use call-local state. Cached random
 algorithms for binomial, hypergeometric, and Poisson sampling accept an explicit
 `RandomState`; use one state and one `RandomEngine` per random stream. `SignRank`
 and `Wilcoxon` intentionally keep their work tables in instances, so do not share
 one mutable instance across concurrent callers.
+
+`GenericDistribution` instances also contain a mutable random engine (changed by
+`setRandomEngine`), so instance `random()` calls are not safe to share across
+threads unless the caller supplies synchronization. Prefer one distribution
+instance and one engine per thread or stream. Read-only density/CDF/quantile
+calls on ordinary fixed-parameter instances do not mutate that engine.
 
 Corrected BTPE sampling is the binomial default. To reproduce the historical R
 4.6-and-earlier BTPE stream, create the per-stream state with

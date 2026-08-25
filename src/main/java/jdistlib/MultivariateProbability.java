@@ -112,8 +112,7 @@ final class MultivariateProbability {
 			}
 			variance /= replications - 1.0;
 			error = ERROR_MULTIPLIER * Math.sqrt(variance / replications);
-			double tolerance = Math.max(options.absoluteTolerance,
-					options.relativeTolerance * Math.abs(probability));
+			double tolerance = options.toleranceFor(probability);
 			if (error <= tolerance) {
 				return result(probability, error, evaluations, 0);
 			}

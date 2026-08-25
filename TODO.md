@@ -10,8 +10,32 @@
   dependence fitting, and automatic family selection until the core API is
   established.
 
+## Unscheduled
+
+* Add exact lower-orthant CDFs and rectangle probabilities for the multinomial,
+  Dirichlet-multinomial, and multivariate hypergeometric distributions, using a
+  shared sequential-conditional dynamic-programming framework.
+* Add lower-orthant CDFs and rectangle probabilities for the Dirichlet
+  distribution, with numerically stable simplex-aware integration and reported
+  error estimates.
+* Add lower-orthant CDFs and rectangle probabilities for the multivariate
+  Laplace distribution by exploiting its normal scale-mixture representation
+  and the existing multivariate-normal probability machinery.
+* Investigate and implement reliable lower-orthant CDFs and rectangle
+  probabilities for the multivariate power-exponential distribution, including
+  robust treatment of tail events and non-Gaussian shape parameters.
+* Define useful, unambiguous probability APIs for the Wishart distribution,
+  favoring named scalar or matrix-order events over an entrywise matrix CDF;
+  implement the events that can be evaluated reliably.
+
 ## Recently completed
 
+* Audited and dispositioned all historical SourceForge tickets, with focused
+  regression gates replacing obsolete R Bugzilla monitoring links.
+* Finalized multivariate probability statuses, error semantics, reproducibility
+  guidance, and difficult-case documentation.
+* Added `check`-level CI, a packaged-JAR Java 8 smoke run, API-selection and
+  thread-safety guidance, and a signed Central Portal bundle workflow.
 * Fluent continuous, discrete, and mixed-support builders plus fast, standard,
   and thorough diagnostic presets.
 * Distribution composition for mixtures, truncation, monotone/affine

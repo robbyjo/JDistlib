@@ -1,0 +1,124 @@
+--- a/src/nmath/toms708.c
++++ b/src/nmath/toms708.c
+@@ -516,6 +516,70 @@ static double apser(double a, double b, double x, double eps)
+     return -a * (c + s);
+ } /* apser */
+ 
++/*
++ * Compute log(I_x(a,b)) with a modified-Lentz continued fraction.  This is
++ * a fallback for rare extreme log-scale BPSER failures in PR#16332, not a
++ * replacement for the TOMS 708 method selection above.
++ */
++static double ibeta_lentz_log_cf(double a, double b, double x, double y)
++{
++    const double fpmin = DBL_MIN / DBL_EPSILON;
++    const double tolerance = 4. * DBL_EPSILON;
++    double qab = a + b, qap = a + 1., qam = a - 1.;
++    double c = 1.;
++    double d = 1. - qab * x / qap;
++    if (fabs(d) < fpmin) d = copysign(fpmin, d);
++    d = 1. / d;
++    double fraction = d;
++    Rboolean converged = FALSE;
++
++    for (int m = 1; m <= 10000; m++) {
++	double m2 = 2. * m;
++	double coefficient = m * (b - m) * x /
++	    ((qam + m2) * (a + m2));
++	d = 1. + coefficient * d;
++	if (fabs(d) < fpmin) d = copysign(fpmin, d);
++	c = 1. + coefficient / c;
++	if (fabs(c) < fpmin) c = copysign(fpmin, c);
++	d = 1. / d;
++	fraction *= d * c;
++
++	coefficient = -(a + m) * (qab + m) * x /
++	    ((a + m2) * (qap + m2));
++	d = 1. + coefficient * d;
++	if (fabs(d) < fpmin) d = copysign(fpmin, d);
++	c = 1. + coefficient / c;
++	if (fabs(c) < fpmin) c = copysign(fpmin, c);
++	d = 1. / d;
++	double delta = d * c;
++	fraction *= delta;
++	if (fabs(delta - 1.) <= tolerance) {
++	    converged = TRUE;
++	    break;
++	}
++    }
++
++    if (!converged)
++	ML_WARNING(ME_NOCONV, "pbeta");
++    if (!(fraction > 0.) || !R_FINITE(fraction))
++	return ML_NAN;
++    return brcomp(a, b, x, y, TRUE) - log(a) + log(fraction);
++}
++
++static double ibeta_lentz_log(double a, double b, double x)
++{
++    double y = 0.5 - x + 0.5;
++    /* Compute the crossover without overflowing a+b. */
++    double scale = fmax2(fmax2(a, b), 1.);
++    double crossover = (a / scale + 1. / scale) /
++	(a / scale + b / scale + 2. / scale);
++    if (x > crossover) {
++	double log_upper = ibeta_lentz_log_cf(b, a, y, x);
++	return R_FINITE(log_upper) ? R_Log1_Exp(log_upper) : log_upper;
++    }
++    return ibeta_lentz_log_cf(a, b, x, y);
++}
++
+ static double bpser(double a, double b, double x, double eps, int log_p)
+ {
+ /* -----------------------------------------------------------------------
+@@ -647,11 +711,21 @@ static double bpser(double a, double b, double x, double eps, int log_p)
+     if(log_p) {
+-	if (a*sum > -1.) ans += log1p(a * sum);
+-	else {
+-	    if(ans > ML_NEGINF)
++	if (a*sum > -1.) {
++	    ans += log1p(a * sum);
++	    if (ans < log(DBL_MIN)) {
++		double fallback = ibeta_lentz_log(a, b, x);
++		if (R_FINITE(fallback))
++		    ans = fallback;
++	    }
++	} else {
++	    double fallback = ibeta_lentz_log(a, b, x);
++	    if (R_FINITE(fallback))
++		ans = fallback;
++	    else {
+ 		MATHLIB_WARNING3(
+ 		    "pbeta(*, log.p=TRUE) -> bpser(a=%g, b=%g, x=%g,...) underflow to -Inf",
+ 		    a,b,x);
+-	    ans = ML_NEGINF;
++		ans = ML_NEGINF;
++	    }
+ 	}
+     } else if (a*sum > -1.)
+ 	ans *= (a * sum + 1.);
+--- a/tests/d-p-q-r-tests.R
++++ b/tests/d-p-q-r-tests.R
+@@ -303,6 +303,22 @@ dbinom	 (Rbinom, size = 55, prob = pi/16)
+ (Rt2	  <- rt	      (n, df = 1.01))
+ 
+ (Pbeta	  <- pbeta    (Rbeta, shape1 = .8, shape2 = 2) )
++
++## PR#16332: BPSER cancellation must not turn a finite log tail into -Inf.
++stopifnot(
++    isTRUE(all.equal(
++	pbeta(0.5555555, 1925.74, 33.7179, log.p = TRUE),
++	-994.767594138466967, tolerance = 5e-13)),
++    isTRUE(all.equal(
++	pbeta(0.555555, 1925.74, 33.7179, log.p = TRUE),
++	-994.769290541658, tolerance = 5e-13)),
++    isTRUE(all.equal(
++	pbeta(0.444445, 33.7179, 1925.74, lower.tail = FALSE, log.p = TRUE),
++	-994.769290541658, tolerance = 5e-13)),
++    isTRUE(all.equal(
++	pbeta(5/9, 1925, 34, log.p = TRUE),
++	-993.424624967607243, tolerance = 5e-13)))
++
+ (Pbinom	  <- pbinom   (Rbinom, size = 55, prob = pi/16) )
+ (Pcauchy  <- pcauchy  (Rcauchy, location = 12, scale = 2) )
+ (Pchisq	  <- pchisq   (Rchisq, df = 3) )

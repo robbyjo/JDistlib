@@ -3,9 +3,15 @@
 *.java whitespace=cr-at-eol
 
 # Keep repository infrastructure deterministic across platforms.
+.gitattributes text eol=lf
 *.md text eol=lf
 *.gradle text eol=lf
 *.yml text eol=lf
 *.properties text eol=lf
+# Patch artifacts may contain format-significant whitespace from upstream
+# context and saved console transcripts.
+*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+*.c text eol=lf
+*.R text eol=lf
 gradlew text eol=lf
 *.bat -text

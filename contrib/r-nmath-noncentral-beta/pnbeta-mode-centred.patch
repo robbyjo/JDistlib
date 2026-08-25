@@ -1,0 +1,447 @@
+--- a/src/nmath/pnbeta.c
++++ b/src/nmath/pnbeta.c
+@@ -1,112 +1,185 @@
+ /*
+  *  Copyright (C) 2000-2015 The R Core Team
+  *
+- *  Algorithm AS 226 Appl. Statist. (1987) Vol. 36, No. 2
+- *  by Russell V. Lenth
+- *  Incorporates modification AS R84 from AS Vol. 39, pp311-2, 1990
+- *                        and AS R95 from AS Vol. 44, pp551-2, 1995
+- *  by H. Frick and Min Long Lam.
+- *  original (C) Royal Statistical Society 1987, 1990, 1995
++ *  The original implementation was Algorithm AS 226, with corrections
++ *  AS R84 and AS R95.  This implementation uses the mode-centred,
++ *  bidirectional Poisson mixture described by Benton and Krishnamoorthy
++ *  (2003), together with the AS 310 approximation to the distribution mean
++ *  for choosing which tail to evaluate directly.
+  *
+  *  Returns the cumulative probability of x for the non-central
+  *  beta distribution with parameters a, b and non-centrality ncp.
+- *
+- *  Auxiliary routines required:
+- *	lgamma - log-gamma function
+- *      pbeta  - incomplete-beta function {nowadays: directly bratio()}
+  */
+ 
+ #include "nmath.h"
+ #include "dpq.h"
+ 
+-attribute_hidden LDOUBLE
+-pnbeta_raw(double x, double o_x, double a, double b, double ncp)
++#define PNBETA_MAX_ITERATIONS 1000000
++#define PNBETA_REANCHOR_STEPS 32
++
++static double pnbeta_logspace_add(double x, double y)
+ {
+-    /* o_x  == 1 - x  but maybe more accurate */
++    if (x == ML_NEGINF) return y;
++    if (y == ML_NEGINF) return x;
++    double hi = fmax2(x, y);
++    return hi + log1p(exp(fmin2(x, y) - hi));
++}
+ 
+-    /* change errmax and itrmax if desired;
+-     * original (AS 226, R84) had  (errmax; itrmax) = (1e-6; 100) */
+-    const static double errmax = 1.0e-9;
+-    const int    itrmax = 10000;  /* 100 is not enough for pf(ncp=200)
+-				     see PR#11277 */
++static double pnbeta_logspace_sub(double x, double y)
++{
++    if (y == ML_NEGINF) return x;
++    if (!(y < x)) return ML_NAN;
++    double d = y - x;
++    return x + (d > -M_LN2 ? log(-expm1(d)) : log1p(-exp(d)));
++}
+ 
+-    double a0, lBeta, c, errbd, x0, temp, tmp_c;
++static double pnbeta_log_beta_tail(double x, double o_x, double a, double b,
++				   double index, int lower_tail)
++{
++    double lower, upper;
+     int ierr;
++    bratio(a + index, b, x, o_x, &lower, &upper, &ierr, TRUE);
++    return lower_tail ? lower : upper;
++}
+ 
+-    LDOUBLE ans, ax, gx, q, sumq;
+-
+-    if (ncp < 0. || a <= 0. || b <= 0.) ML_WARN_return_NAN;
+-
+-    if(x < 0. || o_x > 1. || (x == 0. && o_x == 1.)) return 0.;
+-    if(x > 1. || o_x < 0. || (x == 1. && o_x == 0.)) return 1.;
+-
+-    c = ncp / 2.;
++static double pnbeta_log_beta_increment(double x, double o_x,
++					double a, double b, double index)
++{
++    double ai = a + index;
++    /* dbeta() uses Loader's deviance calculation.  Expanding the powers and
++       lbeta separately loses digits when either shape is large. */
++    return dbeta(x, ai, b, TRUE) + log(x) + log(o_x) - log(ai);
++}
+ 
+-	/* initialize the series */
++/*
++ * Benton--Krishnamoorthy Method 2.  The Poisson mixture is summed in both
++ * directions from its mode and entirely on the log scale.  The requested
++ * incomplete-beta tail is evaluated directly, so a small upper tail is never
++ * obtained by subtracting a lower-tail result from one.
++ */
++static double pnbeta_log_mixture_tail(double x, double o_x,
++				      double a, double b, double ncp,
++				      int lower_tail)
++{
++    const double log_eps = log(DBL_EPSILON / 2.);
++    double lambda = ncp / 2.;
++    if (lambda == 0.)
++	return pbeta_raw(x, a, b, lower_tail, TRUE);
++
++    double k = floor(lambda);
++    /* Forward lower-tail recursion at zero subtracts two nearly equal beta
++       probabilities.  For a small-mode upper tail, zero is stable and avoids
++       an unnecessary backward pass. */
++    if (lower_tail && k == 0.)
++	k = 1.;
++    else if (!lower_tail && k <= 30. && a + b > 1.)
++	k = 0.;
++    else if (k == 0.)
++	k = 1.;
++
++    double log_poisson = dpois_raw(k, lambda, TRUE);
++    double log_tail = pnbeta_log_beta_tail(x, o_x, a, b, k, lower_tail);
++    double log_increment = pnbeta_log_beta_increment(x, o_x, a, b, k);
++    double log_term = log_poisson + log_tail;
++    double log_sum = log_term;
++    int iterations = 0;
++
++    /* Recurse toward larger Poisson indices. */
++    double i = k, previous = log_term;
++    int decreasing = FALSE, direction_steps = 0;
++    while (iterations++ < PNBETA_MAX_ITERATIONS) {
++	double next = i + 1.;
++	if (next == i) break;
++	log_poisson += log(lambda) - log(next);
++	double next_tail = lower_tail
++	    ? pnbeta_logspace_sub(log_tail, log_increment)
++	    : pnbeta_logspace_add(log_tail, log_increment);
++	if (ISNAN(next_tail))
++	    next_tail = pnbeta_log_beta_tail(x, o_x, a, b, next, lower_tail);
++	log_increment += log(x) + log(a + b + i) - log(a + next);
++	log_tail = fmin2(next_tail, 0.);
++	i = next;
++	if (++direction_steps % PNBETA_REANCHOR_STEPS == 0) {
++	    log_poisson = dpois_raw(i, lambda, TRUE);
++	    log_tail = pnbeta_log_beta_tail(x, o_x, a, b, i, lower_tail);
++	    log_increment = pnbeta_log_beta_increment(x, o_x, a, b, i);
++	}
++	log_term = log_poisson + log_tail;
++	log_sum = pnbeta_logspace_add(log_sum, log_term);
++	if (log_term <= previous) decreasing = TRUE;
++	if (decreasing && log_term <= log_sum + log_eps) break;
++	previous = log_term;
++    }
+ 
+-    x0 = floor(fmax2(c - 7. * sqrt(c), 0.));
+-    a0 = a + x0;
+-    lBeta = lbeta(a0, b); // = lgammafn(a0) + lgammafn(b) - lgammafn(a0 + b);
+-    /* temp = pbeta_raw(x, a0, b, TRUE, FALSE), but using (x, o_x): */
+-    bratio(a0, b, x, o_x, &temp, &tmp_c, &ierr, FALSE);
+-    // TODO(?): report error code as in  ./pbeta.c
+-
+-    gx = exp(a0 * log(x) + b * (x < .5 ? log1p(-x) : log(o_x))
+-	     - lBeta - log(a0));
+-    if (a0 > a) // x0 >= 1 (and *not* x0 << a)
+-	q = exp(-c + x0 * log(c) - lgammafn(x0 + 1.));
+-    else // a0 = a  <==  x0 << a
+-	q = exp(-c);
+-
+-    sumq = 1. - q;
+-    ans = ax = q * temp;
+-
+-	/* recurse over subsequent terms until convergence is achieved */
+-    double j = floor(x0); // x0 could be billions, and is in package EnvStats
+-    do {
+-	j++;
+-	temp -= (double) gx;
+-	gx *= x * (a + b + j - 1.) / (a + j);
+-	q *= c / j;
+-	sumq -= q;
+-	ax = temp * q;
+-	ans += ax;
+-	errbd = (double)((temp - gx) * sumq);
++    /* Recurse from the starting index toward zero. */
++    log_poisson = dpois_raw(k, lambda, TRUE);
++    log_tail = pnbeta_log_beta_tail(x, o_x, a, b, k, lower_tail);
++    log_increment = pnbeta_log_beta_increment(x, o_x, a, b, k);
++    i = k;
++    previous = log_poisson + log_tail;
++    decreasing = FALSE;
++    direction_steps = 0;
++    while (i > 0. && iterations++ < PNBETA_MAX_ITERATIONS) {
++	double next = i - 1.;
++	if (next == i) break;
++	log_poisson += log(i) - log(lambda);
++	log_increment += log(a + i) - log(x) - log(a + b + i - 1.);
++	double next_tail = lower_tail
++	    ? pnbeta_logspace_add(log_tail, log_increment)
++	    : pnbeta_logspace_sub(log_tail, log_increment);
++	if (ISNAN(next_tail))
++	    next_tail = pnbeta_log_beta_tail(x, o_x, a, b, next, lower_tail);
++	log_tail = fmin2(next_tail, 0.);
++	i = next;
++	if (++direction_steps % PNBETA_REANCHOR_STEPS == 0) {
++	    log_poisson = dpois_raw(i, lambda, TRUE);
++	    log_tail = pnbeta_log_beta_tail(x, o_x, a, b, i, lower_tail);
++	    log_increment = pnbeta_log_beta_increment(x, o_x, a, b, i);
++	}
++	log_term = log_poisson + log_tail;
++	log_sum = pnbeta_logspace_add(log_sum, log_term);
++	if (log_term <= previous) decreasing = TRUE;
++	if (decreasing && log_term <= log_sum + log_eps) break;
++	previous = log_term;
+     }
+-    while (errbd > errmax && j < itrmax + x0);
+ 
+-    if (errbd > errmax)
+-	ML_WARNING(ME_PRECISION, "pnbeta");
+-    if (j >= itrmax + x0)
++    if (iterations >= PNBETA_MAX_ITERATIONS)
+ 	ML_WARNING(ME_NOCONV, "pnbeta");
++    return fmin2(log_sum, 0.);
++}
++
++/* AS 310 approximation to the non-central beta mean.  Scaling the formula
++   first avoids overflow in a + b + ncp/2 and its square. */
++static double pnbeta_crossover(double a, double b, double ncp)
++{
++    double half_ncp = ncp / 2.;
++    double scale = fmax2(fmax2(a, b), fmax2(half_ncp, 1.));
++    double as = a / scale, bs = b / scale, ls = half_ncp / scale;
++    double cs = as + bs + ls;
++    double correction = ls / (cs * cs * scale);
++    return fmax2(0., fmin2(1., 1. - (bs / cs) * (1. + correction)));
++}
+ 
+-    return ans;
++attribute_hidden LDOUBLE
++pnbeta_raw(double x, double o_x, double a, double b, double ncp)
++{
++    if (ncp < 0. || a <= 0. || b <= 0.) ML_WARN_return_NAN;
++    if (x < 0. || o_x > 1. || (x == 0. && o_x == 1.)) return 0.;
++    if (x > 1. || o_x < 0. || (x == 1. && o_x == 0.)) return 1.;
++    return (LDOUBLE) exp(pnbeta_log_mixture_tail(x, o_x, a, b, ncp, TRUE));
+ }
+ 
+ attribute_hidden double
+ pnbeta2(double x, double o_x, double a, double b, double ncp,
+-	/* o_x  == 1 - x  but maybe more accurate */
+ 	int lower_tail, int log_p)
+ {
+-    LDOUBLE ans = pnbeta_raw(x, o_x, a,b, ncp);
+-
+-    /* return R_DT_val(ans), but we want to warn about cancellation here */
+-    if (lower_tail)
+-#ifdef HAVE_LONG_DOUBLE
+-	return (double) (log_p ? logl(ans) : ans);
+-#else
+-	return log_p ? log(ans) : ans;
+-#endif
+-    else {
+-	if (ans > 1. - 1e-10) ML_WARNING(ME_PRECISION, "pnbeta");
+-	if (ans > 1.0) ans = 1.0;  /* Precaution */
+-#if defined(HAVE_LONG_DOUBLE) && defined(HAVE_LOG1PL)
+-	return (double) (log_p ? log1pl(-ans) : (1. - ans));
+-#else
+-	/* include standalone case */
+-	return (double) (log_p ? log1p((double)-ans) : (1. - ans));
+-#endif
+-    }
++    int direct_lower = x <= pnbeta_crossover(a, b, ncp);
++    double direct = pnbeta_log_mixture_tail(x, o_x, a, b, ncp,
++					    direct_lower);
++
++    if (lower_tail == direct_lower)
++	return log_p ? direct : exp(direct);
++    return log_p ? R_Log1_Exp(direct) : -expm1(direct);
+ }
+ 
+ double pnbeta(double x, double a, double b, double ncp,
+--- a/src/nmath/qnbeta.c
++++ b/src/nmath/qnbeta.c
+@@ -20,44 +20,77 @@
+ #include "nmath.h"
+ #include "dpq.h"
+ 
++/* Same AS 310 approximation used by pnbeta.c. */
++static double qnbeta_crossover(double a, double b, double ncp)
++{
++    double half_ncp = ncp / 2.;
++    double scale = fmax2(fmax2(a, b), fmax2(half_ncp, 1.));
++    double as = a / scale, bs = b / scale, ls = half_ncp / scale;
++    double cs = as + bs + ls;
++    double correction = ls / (cs * cs * scale);
++    return fmax2(0., fmin2(1., 1. - (bs / cs) * (1. + correction)));
++}
++
+ double qnbeta(double p, double a, double b, double ncp,
+ 	      int lower_tail, int log_p)
+ {
+-    const static double accu = 1e-15;
+-    const static double Eps = 1e-14; /* must be > accu */
+-
+-    double ux, lx, nx, pp;
++    double target_log, value, guess, low, high;
++    int tail_lower, need_right;
+ 
+ #ifdef IEEE_754
+     if (ISNAN(p) || ISNAN(a) || ISNAN(b) || ISNAN(ncp))
+ 	return p + a + b + ncp;
+ #endif
+     if (!R_FINITE(a)) ML_WARN_return_NAN;
+-
+     if (ncp < 0. || a <= 0. || b <= 0.) ML_WARN_return_NAN;
+ 
+     R_Q_P01_boundaries(p, 0, 1);
+ 
+-    p = R_DT_qIv(p);
++    target_log = log_p ? p : log(p);
++    tail_lower = lower_tail;
++    /* Always invert the smaller tail.  This keeps probabilities below DBL_MIN
++       representable and gives a well-conditioned comparison near one. */
++    if (target_log > -M_LN2) {
++	target_log = R_Log1_Exp(target_log);
++	tail_lower = !tail_lower;
++    }
++
++    guess = qnbeta_crossover(a, b, ncp);
++    if (!(guess > 0. && guess < 1.)) guess = .5;
++    value = pnbeta(guess, a, b, ncp, tail_lower, TRUE);
++    need_right = tail_lower ? value < target_log : value > target_log;
++
++    if (need_right) {
++	low = guess;
++	high = low + (1. - low) * .5;
++	for (int i = 0; i < 1075; i++) {
++	    value = pnbeta(high, a, b, ncp, tail_lower, TRUE);
++	    need_right = tail_lower ? value < target_log : value > target_log;
++	    if (!need_right || high == 1.) break;
++	    low = high;
++	    high = low + (1. - low) * .5;
++	}
++    } else {
++	high = guess;
++	low = high * .5;
++	for (int i = 0; i < 1075; i++) {
++	    value = pnbeta(low, a, b, ncp, tail_lower, TRUE);
++	    need_right = tail_lower ? value < target_log : value > target_log;
++	    if (need_right || low == 0.) break;
++	    high = low;
++	    low *= .5;
++	}
++    }
+ 
+-    /* Invert pnbeta(.) :
+-     * 1. finding an upper and lower bound */
+-    if(p > 1 - DBL_EPSILON) return 1.0;
+-    pp = fmin2(1 - DBL_EPSILON, p * (1 + Eps));
+-    for(ux = 0.5;
+-	ux < 1 - DBL_EPSILON && pnbeta(ux, a, b, ncp, TRUE, FALSE) < pp;
+-	ux = 0.5*(1+ux));
+-    pp = p * (1 - Eps);
+-    for(lx = 0.5;
+-	lx > DBL_MIN && pnbeta(lx, a, b, ncp, TRUE, FALSE) > pp;
+-	lx *= 0.5);
+-
+-    /* 2. interval (lx,ux)  halving : */
+-    do {
+-	nx = 0.5 * (lx + ux);
+-	if (pnbeta(nx, a, b, ncp, TRUE, FALSE) > p) ux = nx; else lx = nx;
++    for (int i = 0; i < 1075; i++) {
++	double mid = low == 0. ? high * .5
++	    : high == 1. ? low + (1. - low) * .5
++	    : low + (high - low) * .5;
++	if (mid == low || mid == high) break;
++	value = pnbeta(mid, a, b, ncp, tail_lower, TRUE);
++	need_right = tail_lower ? value < target_log : value > target_log;
++	if (need_right) low = mid; else high = mid;
+     }
+-    while ((ux - lx) / nx > accu);
+ 
+-    return 0.5 * (ux + lx);
++    return low == 0. ? high * .5 : low + (high - low) * .5;
+ }
+--- a/tests/d-p-q-r-tests.R
++++ b/tests/d-p-q-r-tests.R
+@@ -214,6 +214,34 @@
+           all.equal(range(sp[!isI]), c(-2888.393250, 3.181137))
+           )
+ 
++## High-precision references generated independently with a 400-decimal
++## Poisson mixture (mpmath 1.4.1).  The cases exercise direct upper-tail
++## evaluation, a probability below ordinary double underflow, and log-tail
++## quantile inversion.
++
++near <- function(actual, expected, tolerance)
++    abs(actual - expected) <= tolerance * max(1, abs(expected))
++
++stopifnot(
++    near(pbeta(.3, 2.5, 7, ncp = 11, lower.tail = FALSE, log.p = TRUE),
++         -0.0766532687446536588568411685997801, 5e-14),
++
++    near(pbeta(.847507562537541, 3.009369292533997,
++               187.95519621829496, ncp = 37.405600013184028,
++               lower.tail = FALSE, log.p = TRUE),
++         -255.338879070244881404777315694966, 5e-13),
++
++    near(pbeta(1e-40, 1.0149511645559415, 126.03373615036026,
++               ncp = 1370.9880095911913, log.p = TRUE),
++         -774.071932851500784583717105502188, 2e-12),
++
++    abs(qbeta(-774.071932851500784583717105502188,
++              1.0149511645559415, 126.03373615036026,
++              ncp = 1370.9880095911913, log.p = TRUE) - 1e-40) <= 1e-52,
++
++    near(qbeta(.91, 2.5, 7, ncp = 11),
++         .714379926903104725858801470722063, 5e-14)
++)
+ 
+ ##--- Normal (& Lognormal) :
+ 
+--- a/tests/d-p-q-r-tests.Rout.save
++++ b/tests/d-p-q-r-tests.Rout.save
+@@ -241,5 +241,33 @@
+ +           )
+ > 
++> ## High-precision references generated independently with a 400-decimal
++> ## Poisson mixture (mpmath 1.4.1).  The cases exercise direct upper-tail
++> ## evaluation, a probability below ordinary double underflow, and log-tail
++> ## quantile inversion.
++> 
++> near <- function(actual, expected, tolerance)
+++     abs(actual - expected) <= tolerance * max(1, abs(expected))
++> 
++> stopifnot(
+++     near(pbeta(.3, 2.5, 7, ncp = 11, lower.tail = FALSE, log.p = TRUE),
+++          -0.0766532687446536588568411685997801, 5e-14),
+++ 
+++     near(pbeta(.847507562537541, 3.009369292533997,
+++                187.95519621829496, ncp = 37.405600013184028,
+++                lower.tail = FALSE, log.p = TRUE),
+++          -255.338879070244881404777315694966, 5e-13),
+++ 
+++     near(pbeta(1e-40, 1.0149511645559415, 126.03373615036026,
+++                ncp = 1370.9880095911913, log.p = TRUE),
+++          -774.071932851500784583717105502188, 2e-12),
+++ 
+++     abs(qbeta(-774.071932851500784583717105502188,
+++               1.0149511645559415, 126.03373615036026,
+++               ncp = 1370.9880095911913, log.p = TRUE) - 1e-40) <= 1e-52,
+++ 
+++     near(qbeta(.91, 2.5, 7, ncp = 11),
+++          .714379926903104725858801470722063, 5e-14)
+++ )
+ > 
+ > ##--- Normal (& Lognormal) :
+ > 
+

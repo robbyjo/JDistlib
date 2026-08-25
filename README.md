@@ -24,10 +24,9 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.6.0 is the next release; `master` is its release-candidate development
-line. Version 0.5.0 remains the current stable release until the v0.6.0 tag is
-published. The R `src/nmath` file-by-file audit from the historical R 3.3.2
-baseline to R 4.6.1 is complete.
+Version 0.6.0 is the current stable release. The `master` branch is the
+development line for the planned 0.7.0 copula framework. The R `src/nmath`
+file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented

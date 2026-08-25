@@ -1,6 +1,6 @@
 What's new:
 
-Version 0.6.0 (in development):
+Version 0.6.0 (August 25, 2026):
 * Closed the historical SourceForge numerical backlog: consistent integer
   validation for hypergeometric parameters, guarded split-deviance Poisson
   densities, compensated noncentral-beta density arithmetic, smaller-tail

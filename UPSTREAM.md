@@ -25,10 +25,13 @@ been compared with the tagged R source and covered by regression vectors.
   reflection (extending the current R fallback beyond derivative order 5)
 - [x] R `stats::integrate` behavior: finite and infinite intervals, tolerances,
   error estimates, subdivision limits, and status reporting
+- [x] TOMS 708 overflow hardening for finite shapes near `Double.MAX_VALUE`,
+  plus bracketed `qbeta` polishing and extreme-tail regression vectors
 
 ## Remaining audit groups
 
-- [ ] Beta family and TOMS 708 (`pbeta`, `qbeta`, `toms708`)
+- [ ] Full Beta-family source synchronization (`dbeta`, `pbeta`, `qbeta`,
+  `rbeta`, noncentral beta, and the remaining TOMS 708 source-level audit)
 - [ ] Gamma, chi-square, and noncentral chi-square family
 - [ ] Hypergeometric and Wilcoxon family changes
 - [ ] Bessel and polygamma changes

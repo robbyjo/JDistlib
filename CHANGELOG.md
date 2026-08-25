@@ -23,6 +23,19 @@ Version 0.5.0 (in development):
 * Added complete triangular, half-normal, shifted Birnbaum-Saunders, and
   unrestricted-shape Gompertz APIs from GPL-compatible CRAN references, with
   R-style logged tails, explicit random engines, provenance, and regression tests.
+* Audited the distinct distributions in `distributions3` and added categorical,
+  multinomial, exact Poisson-binomial, empirical, sinh-arcsinh, and six hurdle,
+  zero-inflated, or zero-truncated Poisson/negative-binomial families.
+* Added application-focused VGAM and CRAN task-view families: Stacy generalized
+  gamma, GB2, Makeham, Lindley, folded/positive normal, Rice, Maxwell, and
+  actuarial Poisson-inverse-Gaussian, with complete scalar distribution APIs.
+* Added the ticket-42 `MaxwellBoltzmann` scale-parameter API while retaining
+  VGAM-compatible `Maxwell` rate parameters; the two are related by
+  `rate = 1 / sigma^2`.
+* Added the reusable multivariate task-view core: Dirichlet and
+  Dirichlet-multinomial, multivariate hypergeometric, bivariate Poisson and VGAM
+  logistic, and multivariate normal, Student t/Cauchy, lognormal, Laplace, and
+  power-exponential density/mass and random-vector APIs.
 * Preserved JDistlib-only distributions and the explicit per-stream random-state
   design used by cached random generators.
 

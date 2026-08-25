@@ -620,7 +620,7 @@ public class Beta extends GenericDistribution {
 					} else {
 						qb[0] =  exp  (u_n); qb[1] = -expm1(u_n);
 					}
-					return qb[0];
+					return polishQuantile(alpha, p, q, lower_tail, log_p, qb);
 				}
 			}
 			if(swap_tail) {
@@ -629,7 +629,192 @@ public class Beta extends GenericDistribution {
 				qb[0] = tx; 	qb[1] = 1 - tx;
 			}
 		}
-		return qb[0];
+		return polishQuantile(alpha, p, q, lower_tail, log_p, qb);
+	}
+
+	/*
+	 * Safeguarded inverse of bratio().  The AS 109 starting approximation and
+	 * Newton iteration above are fast, but difficult beta shapes can make an
+	 * unrestricted step stagnate or select the wrong tail.  This final pass
+	 * solves on the better-conditioned side of the unit interval, keeps a
+	 * bracket, and accepts a Newton step only when it remains inside it.
+	 */
+	private static double polishQuantile(double alpha, double p, double q,
+			boolean lowerTail, boolean logP, double[] qb)
+	{
+		double logLower, logUpper, lowerProbability, upperProbability;
+		if (logP) {
+			if (lowerTail) {
+				logLower = alpha;
+				logUpper = log1mexp(alpha);
+			} else {
+				logLower = log1mexp(alpha);
+				logUpper = alpha;
+			}
+			lowerProbability = exp(logLower);
+			upperProbability = exp(logUpper);
+		} else if (lowerTail) {
+			logLower = log(alpha);
+			logUpper = log1p(-alpha);
+			lowerProbability = alpha;
+			upperProbability = 0.5 - alpha + 0.5;
+		} else {
+			logLower = log1p(-alpha);
+			logUpper = log(alpha);
+			lowerProbability = 0.5 - alpha + 0.5;
+			upperProbability = alpha;
+		}
+
+		/* Prefer the coordinate nearest zero.  Choosing solely by probability
+		 * is harmful for a highly skewed beta: a small quantile can have CDF
+		 * greater than one half, while solving its complement near one discards
+		 * roughly eight decimal digits from x. */
+		boolean haveCoordinates = qb[0] >= 0. && qb[0] <= 1.
+			&& qb[1] >= 0. && qb[1] <= 1.;
+		boolean swap = haveCoordinates ? qb[1] < qb[0] : logUpper < logLower;
+		double a = swap ? q : p;
+		double b = swap ? p : q;
+		double logTarget = swap ? logUpper : logLower;
+		double targetProbability = swap ? upperProbability : lowerProbability;
+		double initial = swap ? qb[1] : qb[0];
+		double solved = solveLowerBetaQuantile(logTarget, targetProbability,
+			!logP, a, b, initial);
+		return swap ? -expm1(log(solved)) : solved;
+	}
+
+	private static double solveLowerBetaQuantile(double logTarget,
+			double targetProbability, boolean preferNormalScale,
+			double a, double b, double initial)
+	{
+		final double logMin = log(Double.MIN_VALUE);
+		boolean normalScale = preferNormalScale && targetProbability >= DBL_MIN;
+		double logApprox = (logTarget + log(a) + lbeta(a, b)) / a;
+		if (!(initial > 0.) && logApprox < logMin - M_LN2)
+			return 0.;
+
+		double x = initial;
+		if (!(x > 0. && x < 1.)) {
+			if (logApprox < -M_LN2)
+				x = exp(max(logApprox, logMin));
+			else
+				x = a < b ? a / (a + b) : 1. / (1. + b / a);
+			x = min(Math.nextDown(1.), max(Double.MIN_VALUE, x));
+		}
+
+		double cdf = cumulative_raw(x, a, b, true, !normalScale);
+		if (!isFinite(cdf))
+			return initial;
+		double bestX = x;
+		double residual = normalScale
+			? (cdf - targetProbability) / targetProbability
+			: cdf - logTarget;
+		double bestError = abs(residual);
+		double low, high;
+
+		if (residual < 0.) {
+			low = x;
+			high = x;
+			for (int i = 0; i < 1075 && high < 1.; i++) {
+				high = high < .5 ? high * 2. : high + (1. - high) * .5;
+				if (high == low)
+					high = Math.nextUp(low);
+				if (high >= 1.) {
+					high = 1.;
+					break;
+				}
+				double value = cumulative_raw(high, a, b, true, !normalScale);
+				if (!isFinite(value))
+					return initial;
+				double difference = normalScale
+					? (value - targetProbability) / targetProbability
+					: value - logTarget;
+				double error = abs(difference);
+				if (error < bestError) {
+					bestError = error;
+					bestX = high;
+				}
+				if (difference >= 0.)
+					break;
+				low = high;
+			}
+		} else {
+			high = x;
+			low = x;
+			for (int i = 0; i < 1075 && low > 0.; i++) {
+				low *= .5;
+				if (low == 0.)
+					break;
+				double value = cumulative_raw(low, a, b, true, !normalScale);
+				if (!isFinite(value))
+					return initial;
+				double difference = normalScale
+					? (value - targetProbability) / targetProbability
+					: value - logTarget;
+				double error = abs(difference);
+				if (error < bestError) {
+					bestError = error;
+					bestX = low;
+				}
+				if (difference <= 0.)
+					break;
+				high = low;
+			}
+		}
+
+		/* The endpoint 1 has log CDF zero and endpoint 0 has log CDF -Inf. */
+		x = min(high, max(low, bestX));
+		for (int iteration = 0; iteration < 128; iteration++) {
+			if (!(x > low && x < high))
+				x = midpoint(low, high);
+			if (!(x > 0. && x < 1.))
+				break;
+
+			cdf = cumulative_raw(x, a, b, true, !normalScale);
+			if (!isFinite(cdf))
+				break;
+			residual = normalScale
+				? (cdf - targetProbability) / targetProbability
+				: cdf - logTarget;
+			double error = abs(residual);
+			if (error < bestError) {
+				bestError = error;
+				bestX = x;
+			}
+			if (residual < 0.)
+				low = x;
+			else
+				high = x;
+
+			if (Math.nextUp(low) >= high || error == 0.)
+				break;
+
+			double logCdf = normalScale
+				? (cdf > 0. ? log(cdf) : cumulative_raw(x, a, b, true, true))
+				: cdf;
+			double logDerivative = density(x, a, b, true) - logCdf;
+			double newtonResidual = normalScale && cdf > 0.
+				? (cdf - targetProbability) / cdf : residual;
+			double step = newtonResidual * exp(-logDerivative);
+			double candidate = x - step;
+			if (!isFinite(candidate) || !(candidate > low && candidate < high))
+				candidate = midpoint(low, high);
+			x = candidate;
+		}
+		return bestX;
+	}
+
+	private static double midpoint(double low, double high)
+	{
+		if (low == 0.)
+			return high * .5;
+		if (high == 1.)
+			return low + (1. - low) * .5;
+		return low + (high - low) * .5;
+	}
+
+	private static double log1mexp(double x)
+	{
+		return x > -M_LN2 ? log(-expm1(x)) : log1p(-exp(x));
 	}
 
 	public static final double random(double aa, double bb, RandomEngine random)

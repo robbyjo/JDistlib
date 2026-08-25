@@ -10,10 +10,15 @@ retain R-compatible results without inheriting the process-global caches that
 made older native implementations awkward to call concurrently.
 
 The library also contains distributions and utilities that are not part of R,
-including arcsine, beta-binomial, beta-prime, Birnbaum-Saunders, Gompertz,
-half-normal, inverse gamma, inverse normal, Kumaraswamy, Laplace, Levy,
-log-logistic, logarithmic, Nakagami, skewed t, triangular, Tweedie, Wishart,
-Zipf, and the `jdistlib.evd` package. These are first-class JDistlib features
+including arcsine, beta-binomial, beta-prime, Birnbaum-Saunders, categorical,
+empirical, generalized beta/gamma, Gompertz, hurdle and zero-modified counts,
+half-normal, inverse gamma, inverse normal, Lindley, Makeham, Kumaraswamy,
+Laplace, Levy, log-logistic, logarithmic, Maxwell/Maxwell-Boltzmann, multinomial, Nakagami,
+Poisson-binomial, Poisson-inverse-Gaussian, Rice, sinh-arcsinh, skewed t,
+triangular, Tweedie, Wishart, Zipf, and the `jdistlib.evd` package. Vector APIs
+cover Dirichlet and Dirichlet-multinomial, multivariate hypergeometric,
+bivariate Poisson/logistic, and multivariate normal, Student t, Cauchy,
+lognormal, Laplace, and power-exponential laws. These are first-class JDistlib features
 and are not removed during upstream synchronization.
 
 ## Project status
@@ -87,11 +92,17 @@ series plus adaptive integration above 2.
 ## Contributed R-package distributions
 
 JDistlib also audits GPL-compatible CRAN packages for useful distributions that
-are absent from R's `src/nmath`. The first modern batch adds complete
-density/CDF/quantile/random APIs for `Triangular`, `HalfNormal`,
-`BirnbaumSaunders`, and unrestricted-shape `Gompertz`. Sources, versions,
+are absent from R's `src/nmath`. Modern contributed batches add complete APIs
+from `distributions3`, VGAM, `actuar`, `extraDistr`, and `flexsurv`, including
+modified count models, Poisson-binomial, sinh-arcsinh, generalized gamma/GB2,
+lifetime models, and Poisson-inverse-Gaussian. Sources, versions,
 parameterizations, verification, duplicate exclusions, and the screened backlog
 are recorded in [DISTRIBUTIONS.md](DISTRIBUTIONS.md).
+
+Multivariate distributions use arrays for observations and parameters. They
+provide joint density or mass and explicit-engine random generation; exact
+joint CDFs are also available for bivariate Poisson and bivariate logistic.
+There is intentionally no generic scalar quantile for a random vector.
 
 ## Thread safety
 

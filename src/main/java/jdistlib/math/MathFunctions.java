@@ -1477,8 +1477,8 @@ public class MathFunctions {
 	       It is assumed that  lambda = (a + b)*y - b.
 	   -----------------------------------------------------------------------*/
 
-		double c, e, n, p, r, s, t, w, c0, c1, r0, an, bn, yp1, anp1, bnp1,
-		beta, alpha, brc;
+		double c, e, n, p, r, s, t, w, c0, c1, r0 = Double.NaN,
+			an, bn, yp1, anp1, bnp1, beta, alpha, brc;
 
 		if (MathFunctions.isInfinite(lambda)) return Double.NaN;
 		brc = brcomp(a, b, x, y, log_p);
@@ -1504,17 +1504,42 @@ public class MathFunctions {
 		anp1 = 1.0;
 		bnp1 = c / c1;
 		r = c1 / c;
+		/* Start with a normalized convergent.  Without this, the very first
+		 * recurrence can multiply two finite values of order 1e307 and lose a
+		 * perfectly representable ratio to infinity. */
+		if (bnp1 != 1.) {
+			an /= bnp1;
+			bn /= bnp1;
+			anp1 /= bnp1;
+			bnp1 = 1.;
+		}
 
 		/*        CONTINUED FRACTION CALCULATION */
 
+		final int maxIterations = 1000;
 		do {
 			n += 1.0;
 			t = n / a;
-			w = n * (b - n) * x;
+			/* Multiplying in the old order overflows for finite b near
+			 * Double.MAX_VALUE.  Scaling alpha and beta by the same power of
+			 * two leaves the continued-fraction convergent unchanged. */
+			w = n * x * (b - n);
+			boolean rescale = !isFinite(w);
+			if (rescale)
+				w = n * x * scalb(b - n, -20);
 			e = a / s;
 			alpha = p * (p + c0) * e * e * (w * x);
 			e = (t + 1.0) / (c1 + t + t);
-			beta = n + w / s + e * (c + n * yp1);
+			beta = w / s + (rescale
+				? scalb(n + e * (c + n * yp1), -20)
+				: n + e * (c + n * yp1));
+			/* p^2 can make alpha overflow even when w itself is finite. */
+			if (!rescale && (!isFinite(alpha) || !isFinite(beta))) {
+				rescale = true;
+				w = scalb(w, -20);
+				alpha = p * (p + c0) * (a / s) * (a / s) * (w * x);
+				beta = w / s + scalb(n + e * (c + n * yp1), -20);
+			}
 			p = t + 1.0;
 			s += 2.0;
 
@@ -1534,11 +1559,11 @@ public class MathFunctions {
 			bn /= bnp1;
 			anp1 = r;
 			bnp1 = 1.0;
-		} while (n < 10000);
+		} while (n < maxIterations);
 
-		if(n >= 10000 && abs(r - r0) > eps * r && Debug.warningAsError) {
-			throw new PrecisionException(String.format(" bfrac(a=%g, b=%g, x=%g, y=%g, lambda=%g) did *not* converge (in 10000 steps)\n",
-				a,b,x,y, lambda), 0);
+		if(n >= maxIterations && abs(r - r0) > eps * r && Debug.warningAsError) {
+			throw new PrecisionException(String.format(" bfrac(a=%g, b=%g, x=%g, y=%g, lambda=%g) did *not* converge (in %d steps)\n",
+				a,b,x,y, lambda, maxIterations), 0);
 		}
 		return (log_p ? brc + log(r) : brc * r);
 	} /* bfrac */
@@ -1647,16 +1672,18 @@ public class MathFunctions {
 		/* ----------------------------------------------------------------------- */
 		/*		PROCEDURE FOR A >= 8 AND B >= 8 */
 		/* ----------------------------------------------------------------------- */
+		double apbLarge = a + b;
+		lambda = isFinite(apbLarge)
+			? ((a <= b) ? a - apbLarge * x : apbLarge * y - b)
+			: a * y - b * x;
 		if (a <= b) {
 			h = a / b;
 			x0 = h / (h + 1.0);
 			y0 = 1.0 / (h + 1.0);
-			lambda = a - (a + b) * x;
 		} else {
 			h = b / a;
 			x0 = 1.0 / (h + 1.0);
 			y0 = h / (h + 1.0);
-			lambda = (a + b) * y - b;
 		}
 
 		e = -lambda / a;
@@ -1776,18 +1803,20 @@ public class MathFunctions {
 			/*              PROCEDURE FOR A >= 8 AND B >= 8 */
 			/* ----------------------------------------------------------------------- */
 			// L100:
-			double h, x0, y0, lambda;
+			double h, x0, y0;
+			double apbLarge = a + b;
+			double lambda = isFinite(apbLarge)
+				? ((a <= b) ? a - apbLarge * x : apbLarge * y - b)
+				: a * y - b * x;
 			if (a > b) {
 				// L101:
 				h = b / a;
 				x0 = 1.0 / (h + 1.0);// => lx0 := log(x0) = 0 - log1p(h)
 				y0 = h / (h + 1.0);
-				lambda = (a + b) * y - b;
 			} else {
 				h = a / b;
 				x0 = h / (h + 1.0);  // => lx0 := log(x0) = - log1p(1/h)
 				y0 = 1.0 / (h + 1.0);
-				lambda = a - (a + b) * x;
 			}
 			double lx0 = -log1p(b/a); // in both cases
 

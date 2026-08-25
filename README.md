@@ -133,6 +133,12 @@ IntegrationStabilityResult stability =
 
 ## User-defined numerical distributions
 
+> Available from JDistlib 0.6.0. See the
+> [custom-distribution guide](https://robbyjo.github.io/JDistlib/custom-distributions.html)
+> for continuous and
+> discrete quick starts, mathematical definitions, diagnostics, and
+> troubleshooting.
+
 `NumericalContinuousDistribution` turns a nonnegative kernel into a complete
 continuous distribution. The normalization constant is integrated and cached;
 density, lower and upper CDF tails, numerical quantiles, and inverse-transform

@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How to build, validate, and troubleshoot custom continuous and discrete probability distributions with JDistlib.">
+  <title>Custom distributions — JDistlib</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">JDistlib</a>
+    <nav aria-label="Primary navigation">
+      <a aria-current="page" href="custom-distributions.html">Custom distributions</a>
+      <a href="distributions.html">Distributions</a>
+      <a href="api/">JavaDoc</a>
+      <a href="https://github.com/robbyjo/JDistlib">Source</a>
+    </nav>
+  </header>
+
+  <main class="guide">
+    <section class="guide-hero">
+      <p class="eyebrow">Guide · JDistlib 0.6.0 and later</p>
+      <h1>Build your own probability distribution</h1>
+      <p class="lede">Supply a nonnegative formula and its support. JDistlib computes
+        the normalizing constant, then provides density or mass, CDF, quantile, and
+        random-generation operations—with diagnostics for the numerical assumptions
+        that no finite test can prove.</p>
+      <span class="version-pill">Available from 0.6.0</span>
+    </section>
+
+    <nav class="guide-toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <a href="#quick-start">Quick start</a>
+      <a href="#model">How normalization works</a>
+      <a href="#continuous-details">Continuous options</a>
+      <a href="#discrete-details">Discrete options</a>
+      <a href="#diagnostics">Diagnostics</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+    </nav>
+
+    <section class="guide-section" id="quick-start">
+      <p class="eyebrow">Start here</p>
+      <h2>Quick start</h2>
+      <p>The constructor accepts an <em>unnormalized</em> formula. Do not divide by its
+        integral yourself; that is the constructor’s job.</p>
+
+      <article class="guide-example">
+        <div class="example-copy">
+          <h3>Continuous example: a quartic-exponential law</h3>
+          <p>Choose the kernel \(g(x)=e^{-x^4}\) on the whole real line. Its normalizer
+            and resulting density are</p>
+          <div class="formula-panel">
+            \[
+              Z=\int_{-\infty}^{\infty} e^{-t^4}\,dt
+                =\frac{\Gamma(1/4)}{2},
+              \qquad
+              f(x)=\frac{g(x)}{Z}
+                =\frac{2e^{-x^4}}{\Gamma(1/4)}.
+            \]
+          </div>
+          <p>JDistlib evaluates \(Z\) once during construction.</p>
+        </div>
+        <pre><code>NumericalContinuousDistribution quartic =
+    new NumericalContinuousDistribution(
+        x -&gt; Math.exp(-x * x * x * x),
+        Double.NEGATIVE_INFINITY,
+        Double.POSITIVE_INFINITY
+    );
+
+double pdf = quartic.density(0.5, false);
+double cdf = quartic.cumulative(0.5, true, false);
+double q95 = quartic.quantile(0.95, true, false);
+double draw = quartic.random();</code></pre>
+      </article>
+
+      <article class="guide-example">
+        <div class="example-copy">
+          <h3>Discrete example: increasing weights</h3>
+          <p>Choose \(w(k)=k+1\) on the finite integer support
+            \(\{0,1,2,3,4\}\). Then</p>
+          <div class="formula-panel">
+            \[
+              Z=\sum_{j=0}^{4}(j+1)=15,
+              \qquad
+              \Pr(X=k)=\frac{w(k)}{Z}=\frac{k+1}{15},
+              \quad k\in\{0,1,2,3,4\}.
+            \]
+          </div>
+          <p>The weights are evaluated once, normalized with scaled compensated
+            summation, and retained in a cumulative-mass table.</p>
+        </div>
+        <pre><code>NumericalDiscreteDistribution countLaw =
+    new NumericalDiscreteDistribution(
+        k -&gt; k + 1.0,
+        0, 4  // inclusive integer support
+    );
+
+double p2 = countLaw.density(2.0, false); // 3/15
+double pLe2 = countLaw.cumulative(2.0, true, false);
+double median = countLaw.quantile(0.5, true, false);
+double draw = countLaw.random();</code></pre>
+      </article>
+
+      <aside class="callout caution">
+        <strong>The formula is trusted only where it is evaluated.</strong>
+        Construction can reject observed negative, non-finite, or non-integrable
+        behavior, but it cannot prove an arbitrary callback is valid everywhere.
+      </aside>
+    </section>
+
+    <section class="guide-section" id="model">
+      <p class="eyebrow">The model</p>
+      <h2>How normalization works</h2>
+      <div class="guide-columns">
+        <article>
+          <h3>Continuous</h3>
+          <p>For a declared interval \(S=(a,b)\) and kernel
+            \(g:S\to[0,\infty)\),</p>
+          <div class="formula-panel">
+            \[
+              Z=\int_a^b g(t)\,dt,
+              \qquad f(x)=\frac{g(x)}{Z}\,\mathbf 1_{\{x\in S\}}.
+            \]
+          </div>
+          <p>A valid probability law requires \(0&lt;Z&lt;\infty\). Bounds may be finite
+            or infinite.</p>
+        </article>
+        <article>
+          <h3>Discrete</h3>
+          <p>For declared outcomes \(S\) and weights \(w:S\to[0,\infty)\),</p>
+          <div class="formula-panel">
+            \[
+              Z=\sum_{s\in S}w(s),
+              \qquad \Pr(X=x)=\frac{w(x)}{Z}\,\mathbf 1_{\{x\in S\}}.
+            \]
+          </div>
+          <p>The basic class requires a finite, unique support. Infinite integer
+            support uses the certified truncation API described below.</p>
+        </article>
+      </div>
+      <p>Multiplying every kernel value by the same positive constant does not
+        change the distribution. This is useful when algebraic rescaling makes a
+        formula safer to evaluate.</p>
+    </section>
+
+    <section class="guide-section" id="continuous-details">
+      <p class="eyebrow">Continuous distributions</p>
+      <h2>Choose support and numerical strategy deliberately</h2>
+
+      <h3>Integration controls</h3>
+      <p>Use <code>IntegrationOptions</code> when the defaults are not appropriate. Declare
+        known discontinuities or interior singularities as breakpoints, set a finite
+        callback budget, and select double-exponential quadrature for difficult
+        endpoints or infinite domains.</p>
+      <pre><code>IntegrationOptions integration = IntegrationOptions.builder()
+    .tolerances(1e-10, 1e-10)
+    .subdivisions(400)
+    .maxEvaluations(500_000)
+    .breakpoints(0.0)
+    .method(IntegrationOptions.Method.DOUBLE_EXPONENTIAL)
+    .build();
+
+NumericalContinuousDistribution custom =
+    new NumericalContinuousDistribution(kernel, lower, upper, integration);</code></pre>
+
+      <h3>Prefer a log-kernel for extreme scale</h3>
+      <p>If \(g(x)=e^{\ell(x)}\) would overflow or underflow, provide
+        \(\ell(x)=\log g(x)\) directly. Automatic construction searches for multiple
+        modes, scales regions independently, and combines their normalizers with
+        log-sum-exp.</p>
+      <pre><code>NumericalContinuousDistribution shiftedNormal =
+    NumericalContinuousDistribution.fromLogKernel(
+        x -&gt; 1000.0 - 0.5 * x * x,
+        Double.NEGATIVE_INFINITY,
+        Double.POSITIVE_INFINITY
+    );</code></pre>
+
+      <h3>Disconnected support, holes, singularities, and atoms</h3>
+      <p><code>NumericalSupport</code> and <code>NumericalPiecewiseDistribution</code>
+        represent unions of intervals and mixed laws. At a declared atom,
+        <code>density</code> returns its probability
+        mass; elsewhere it returns the continuous density.</p>
+      <pre><code>NumericalSupport support = NumericalSupport.builder()
+    .interval(-10.0, 10.0)
+    .hole(-1.0, 1.0)
+    .atom(0.0)
+    .singularity(4.0)
+    .build();
+
+NumericalPiecewiseDistribution mixed =
+    new NumericalPiecewiseDistribution(
+        kernel, support, atomWeights, integration
+    );</code></pre>
+
+      <h3>CDF speed versus direct accuracy</h3>
+      <p><code>cumulative</code> uses direct integration.
+        <code>cumulativeCached</code> opts into an
+        adaptive monotone interpolation table. Central quantiles use that table as
+        an initial estimate and then apply direct corrections; logged and extreme
+        tails remain directly integrated.</p>
+
+      <h3>Optional rejection sampling</h3>
+      <p>Inverse-CDF sampling is general but can be expensive. On finite support,
+        install a <code>UniformRejectionEnvelope</code> when you know a global upper bound
+        \(L\ge\sup_x\log f(x)\). The bound is a mathematical promise from the caller;
+        JDistlib detects encountered violations but cannot prove the bound globally.</p>
+      <pre><code>custom.configureUniformRejectionSampling(
+    logDensityUpperBound,
+    10_000  // maximum proposals per draw
+);</code></pre>
+    </section>
+
+    <section class="guide-section" id="discrete-details">
+      <p class="eyebrow">Discrete distributions</p>
+      <h2>Finite, irregular, log-scale, and certified infinite support</h2>
+
+      <h3>Irregular finite outcomes</h3>
+      <p>Supply a <code>double[]</code> when outcomes are not consecutive integers. Outcomes are
+        copied, sorted, and required to be finite and unique.</p>
+      <pre><code>double[] outcomes = {-3.0, -1.0, 2.5, 10.0};
+NumericalDiscreteDistribution irregular =
+    new NumericalDiscreteDistribution(weight, outcomes);</code></pre>
+
+      <h3>Log-weights</h3>
+      <p>Use <code>fromLogWeights</code> when ordinary weights cannot be represented safely:</p>
+      <pre><code>NumericalDiscreteDistribution logScaled =
+    NumericalDiscreteDistribution.fromLogWeights(
+        k -&gt; 1000.0 + k * Math.log(2.0),
+        0, 20
+    );</code></pre>
+
+      <h3>Infinite integer support requires a certificate</h3>
+      <p><code>CertifiedInfiniteDiscreteDistribution</code> truncates only when a
+        caller-supplied <code>DiscreteTailBound</code> proves the remaining
+        unnormalized mass is small enough.
+        For geometric weights \(w(k)=r^k\), \(0&lt;r&lt;1\), the exact remainder from
+        the first omitted integer \(m\) is</p>
+      <div class="formula-panel">
+        \[
+          \sum_{k=m}^{\infty}r^k=\frac{r^m}{1-r}.
+        \]
+      </div>
+      <pre><code>double r = 0.7;
+CertifiedInfiniteDiscreteDistribution geometric =
+    CertifiedInfiniteDiscreteDistribution.rightInfinite(
+        k -&gt; Math.pow(r, k),
+        0,
+        (firstOmitted, firstWeight) -&gt;
+            firstWeight / (1.0 - r),
+        CertifiedDiscreteOptions.defaults()
+    );</code></pre>
+      <aside class="callout">
+        The omitted-probability guarantee is conditional on the tail certificate
+        being correct. Several small observed terms are not evidence that an infinite
+        series converges.
+      </aside>
+    </section>
+
+    <section class="guide-section" id="diagnostics">
+      <p class="eyebrow">Before and after construction</p>
+      <h2>Use diagnostics as evidence, not proof</h2>
+
+      <h3>Analyze the kernel before constructing</h3>
+      <p><code>ProbabilityFunctionAnalyzer</code> combines a transformed deterministic grid with
+        reproducible randomized probes. It looks for negative or non-finite values,
+        callback exceptions, non-repeatability, sharp changes, oscillation, large
+        dynamic range, suspicious tails, and unstable normalization.</p>
+      <pre><code>FunctionAnalysisOptions checks = FunctionAnalysisOptions.builder()
+    .sampleCount(257)
+    .randomizedProbeBudget(512)
+    .adaptiveProbeRounds(6)
+    .randomSeed(42L)
+    .constructionPolicy(ConstructionPolicy.WARNING)
+    .integrationOptions(integration)
+    .build();
+
+NumericalDistributionBuildResult candidate =
+    NumericalContinuousDistribution.analyze(
+        kernel, lower, upper, checks
+    );
+
+for (DiagnosticFinding finding :
+        candidate.getAnalysis().getFindings()) {
+    System.out.println(finding);
+}
+
+if (!candidate.canBuild()) {
+    throw candidate.getFailure();
+}
+NumericalContinuousDistribution distribution = candidate.build();</code></pre>
+
+      <div class="policy-grid">
+        <article><h3>STRICT</h3><p>Warnings or errors block construction. Useful for
+          controlled production pipelines.</p></article>
+        <article><h3>WARNING</h3><p>Errors block construction; warnings remain visible.
+          This is the default.</p></article>
+        <article><h3>PERMISSIVE</h3><p>Advisory findings do not block an attempt. Hard
+          kernel and integration failures still do.</p></article>
+      </div>
+
+      <h3>Analyze the constructed distribution</h3>
+      <p><code>analyzeDistribution</code> checks normalization, CDF endpoints and tails, quantile
+        monotonicity and round trips, and absolute moments. Select moment orders and a
+        left/right split explicitly:</p>
+      <pre><code>MomentAnalysisOptions moments = MomentAnalysisOptions.builder()
+    .orders(0.5, 1.0, 2.0, 4.0)
+    .splitPoint(0.0)
+    .build();
+
+DistributionAnalysis report =
+    distribution.analyzeDistribution(moments);
+
+AbsoluteMomentAnalysis fourth =
+    report.getAbsoluteMoment(4.0);
+System.out.println(fourth.getLeftValue());
+System.out.println(fourth.getRightValue());
+System.out.println(fourth.isStable());</code></pre>
+      <p>The calculation estimates</p>
+      <div class="formula-panel">
+        \[
+          \mathbb E[|X|^p]
+          =\int_{-\infty}^{c}|x|^p f(x)\,dx
+           +\int_c^{\infty}|x|^p f(x)\,dx,
+        \]
+      </div>
+      <p>and assesses both sides independently. This prevents symmetric cancellation
+        from making a nonexistent signed moment appear convergent.</p>
+    </section>
+
+    <section class="guide-section" id="troubleshooting">
+      <p class="eyebrow">When the formula fights back</p>
+      <h2>Diagnostics and troubleshooting</h2>
+      <div class="table-wrap">
+        <table class="troubleshooting-table">
+          <thead><tr><th>Symptom</th><th>Likely cause</th><th>What to try</th></tr></thead>
+          <tbody>
+            <tr><td>Normalization fails or changes when tolerances tighten</td><td>Divergent tail, missed singularity, cancellation, or insufficient budget</td><td>Narrow the support; declare breakpoints; use <code>DOUBLE_EXPONENTIAL</code>; inspect both tails; increase the evaluation budget only after fixing structure.</td></tr>
+            <tr><td><code>NEGATIVE</code> or <code>NON_FINITE</code> finding</td><td>Formula error, invalid parameter region, overflow, or an undefined endpoint</td><td>Fix the mathematical domain; use a log-kernel; never clip a genuinely negative kernel to zero merely to pass construction.</td></tr>
+            <tr><td><code>DYNAMIC_RANGE</code> warning</td><td>Ordinary-scale values span too many orders of magnitude</td><td>Use <code>fromLogKernel</code> or <code>fromLogWeights</code> and express products as sums of logarithms.</td></tr>
+            <tr><td><code>SHARP_CHANGE</code> or unstable CDF</td><td>Discontinuity, narrow mode, interior singularity, or disconnected support</td><td>Add exact breakpoints; increase randomized probes; use <code>NumericalSupport</code> for holes and separate intervals.</td></tr>
+            <tr><td>Moment stable on one side but not the other</td><td>A one-sided heavy tail lacks the requested moment</td><td>Treat the moment as nonexistent unless mathematical analysis supplies stronger evidence; do not rely on cancellation.</td></tr>
+            <tr><td>Quantile or random generation is slow</td><td>Each inversion requires repeated CDF integrations</td><td>Reuse the CDF table; for finite support, provide a certified rejection envelope with a reasonably tight bound.</td></tr>
+            <tr><td>Rejection envelope violation</td><td>The supplied \(M\) or log-density upper bound is too small</td><td>Derive a true global bound, usually at a proven mode; add a conservative numerical margin.</td></tr>
+            <tr><td>Callback never returns</td><td>User code blocks or loops inside one evaluation</td><td>Fix or isolate the callback. Evaluation budgets and cooperative cancellation are checked only between callback invocations.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="callout caution">
+        <strong>A successful report is not a theorem.</strong> Narrow unsampled spikes,
+        adversarial state changes, and incorrect tail certificates remain possible.
+        Pair numerical diagnostics with mathematical reasoning about nonnegativity,
+        measurability, support, integrability, and tail behavior.
+      </aside>
+    </section>
+
+    <section class="guide-section guide-next">
+      <p class="eyebrow">Reference</p>
+      <h2>Go deeper</h2>
+      <p>Browse the <a href="api/">JavaDoc</a> for every overload, the
+        <a href="distributions.html">distribution catalog</a> for built-in laws, and
+        the <a href="https://github.com/robbyjo/JDistlib/blob/master/docs/NUMERICAL_DISTRIBUTIONS.md">numerical design notes</a>
+        for implementation limitations and accuracy guidance.</p>
+    </section>
+  </main>
+
+  <footer>
+    <span>JDistlib by Roby Joehanes and contributors.</span>
+    <span>Custom-distribution guide for JDistlib 0.6.0 onward.</span>
+  </footer>
+</body>
+</html>

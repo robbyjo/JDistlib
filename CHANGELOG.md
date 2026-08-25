@@ -1,5 +1,10 @@
 What's new:
 
+Version 0.6.0 (in development):
+* Added a custom continuous and discrete distribution guide with mathematical
+  quick starts, advanced construction guidance, diagnostics, troubleshooting,
+  and a fully typeset distribution formula catalog.
+
 Version 0.5.1 (in development):
 * Added call-local, randomized quasi-Monte Carlo rectangle probabilities for
   multivariate normal, Student t, Cauchy, and log-normal laws. Results report

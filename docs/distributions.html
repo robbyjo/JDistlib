@@ -6,11 +6,19 @@
   <meta name="description" content="A formula and API reference for every probability distribution in JDistlib.">
   <title>Distribution reference — JDistlib</title>
   <link rel="stylesheet" href="assets/style.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="./">JDistlib</a>
     <nav aria-label="Primary navigation">
+      <a href="custom-distributions.html">Custom distributions</a>
       <a aria-current="page" href="distributions.html">Distributions</a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
@@ -49,10 +57,12 @@
           ordinary, non-log density or mass on the stated support. Labels after D/P/Q/R
           call out useful public helpers or special overloads; the JavaDoc lists every
           low-level and vectorized overload.</p>
-        <p class="notation"><strong>Notation:</strong> φ and Φ are the standard-normal density
-          and CDF; Γ, B, I and K are the gamma, beta, regularized-beta and modified Bessel
-          functions; <i>q</i>(x)=(x−μ)<sup>T</sup>Σ<sup>−1</sup>(x−μ). Parameter constraints
-          and boundary behavior are detailed in the linked JavaDoc.</p>
+        <p class="notation"><strong>Notation:</strong> \(\phi\) and \(\Phi\) are the
+          standard-normal density and CDF; \(\Gamma\), \(B\), \(I\), and \(K\) are
+          the gamma, beta, regularized-beta, and modified Bessel functions; and
+          \(q(\mathbf x)=(\mathbf x-\boldsymbol\mu)^{\mathsf T}
+          \Sigma^{-1}(\mathbf x-\boldsymbol\mu)\). Parameter constraints and
+          boundary behavior are detailed in the linked JavaDoc.</p>
       </div>
     </section>
 
@@ -72,54 +82,54 @@
         <table class="distribution-table">
           <thead><tr><th>Distribution</th><th>Support &amp; parameters</th><th>Defining formula</th><th>API</th></tr></thead>
           <tbody>
-            <tr><td><a href="api/jdistlib/Arcsine.html"><code>Arcsine</code></a></td><td>a&lt;x&lt;b; endpoints a,b</td><td>f(x)=1/[π√((x−a)(b−x))]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Beta.html"><code>Beta</code></a></td><td>0&lt;x&lt;1; shapes α,β</td><td>f(x)=x<sup>α−1</sup>(1−x)<sup>β−1</sup>/B(α,β)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/BetaPrime.html"><code>BetaPrime</code></a></td><td>x&gt;0; shapes α,β</td><td>f(x)=x<sup>α−1</sup>(1+x)<sup>−α−β</sup>/B(α,β)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/BirnbaumSaunders.html"><code>BirnbaumSaunders</code></a></td><td>x&gt;μ; shape α, scale β, location μ</td><td>X=μ+β[αZ/2+√(1+(αZ/2)<sup>2</sup>)]<sup>2</sup>, Z∼N(0,1)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Cauchy.html"><code>Cauchy</code></a></td><td>x∈ℝ; location μ, scale σ</td><td>f(x)=1/{πσ[1+((x−μ)/σ)<sup>2</sup>]}</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Chi.html"><code>Chi</code></a></td><td>x&gt;0; degrees of freedom ν</td><td>f(x)=2<sup>1−ν/2</sup>x<sup>ν−1</sup>e<sup>−x²/2</sup>/Γ(ν/2)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/ChiSquare.html"><code>ChiSquare</code></a></td><td>x&gt;0; degrees of freedom ν</td><td>f(x)=x<sup>ν/2−1</sup>e<sup>−x/2</sup>/[2<sup>ν/2</sup>Γ(ν/2)]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Exponential.html"><code>Exponential</code></a></td><td>x≥0; scale θ</td><td>f(x)=e<sup>−x/θ</sup>/θ</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/F.html"><code>F</code></a></td><td>x&gt;0; degrees of freedom ν₁,ν₂</td><td>f(x)=(ν₁/ν₂)<sup>ν₁/2</sup>x<sup>ν₁/2−1</sup>/[B(ν₁/2,ν₂/2)(1+ν₁x/ν₂)<sup>(ν₁+ν₂)/2</sup>]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/FoldedNormal.html"><code>FoldedNormal</code></a></td><td>x≥0; normal μ,σ and side scales a₁,a₂</td><td>f(x)=φ((x/a₁−μ)/σ)/(a₁σ)+φ((−x/a₂−μ)/σ)/(a₂σ)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/evd/Fretchet.html"><code>evd.Fretchet</code></a></td><td>x&gt;μ; location μ, scale σ, shape α</td><td>z=(x−μ)/σ; f(x)=αz<sup>−α−1</sup>exp(−z<sup>−α</sup>)/σ</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Gamma.html"><code>Gamma</code></a></td><td>x&gt;0; shape α, scale θ</td><td>f(x)=x<sup>α−1</sup>e<sup>−x/θ</sup>/[Γ(α)θ<sup>α</sup>]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/GeneralizedBetaSecondKind.html"><code>GeneralizedBetaSecondKind</code></a></td><td>x&gt;0; scale b, shape a,p,q</td><td>f(x)=a(x/b)<sup>ap−1</sup>/{bB(p,q)[1+(x/b)<sup>a</sup>]<sup>p+q</sup>}</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/GeneralizedGamma.html"><code>GeneralizedGamma</code></a></td><td>x&gt;0; scale b, powers d,k</td><td>f(x)=d x<sup>dk−1</sup>exp[−(x/b)<sup>d</sup>]/[b<sup>dk</sup>Γ(k)]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/evd/GeneralizedPareto.html"><code>evd.GeneralizedPareto</code></a></td><td>x≥μ, 1+ξ(x−μ)/σ&gt;0</td><td>f(x)=σ<sup>−1</sup>[1+ξ(x−μ)/σ]<sup>−1/ξ−1</sup></td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/evd/GEV.html"><code>evd.GEV</code></a></td><td>z=1+ξ(x−μ)/σ&gt;0</td><td>f(x)=σ<sup>−1</sup>z<sup>−1/ξ−1</sup>exp(−z<sup>−1/ξ</sup>)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Gompertz.html"><code>Gompertz</code></a></td><td>x≥0; shape a, rate b</td><td>h(x)=be<sup>ax</sup>; f(x)=h(x)exp{−b(e<sup>ax</sup>−1)/a}</td><td class="methods">DPQR <span title="hazard and cumulativeHazard">H</span></td></tr>
-            <tr><td><a href="api/jdistlib/evd/Gumbel.html"><code>evd.Gumbel</code></a></td><td>x∈ℝ; location μ, scale σ</td><td>z=(x−μ)/σ; f(x)=exp(−z−e<sup>−z</sup>)/σ</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/HalfNormal.html"><code>HalfNormal</code></a></td><td>x≥0; scale σ</td><td>f(x)=2φ(x/σ)/σ</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/InvGamma.html"><code>InvGamma</code></a></td><td>x&gt;0; shape α, scale β</td><td>f(x)=β<sup>α</sup>x<sup>−α−1</sup>e<sup>−β/x</sup>/Γ(α)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/InvNormal.html"><code>InvNormal</code></a></td><td>x&gt;0; mean μ, dispersion σ (λ=1/σ²)</td><td>f(x)=[2πσ²x³]<sup>−1/2</sup> exp{−(x/μ−1)²/(2σ²x)}</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Kumaraswamy.html"><code>Kumaraswamy</code></a></td><td>0&lt;x&lt;1; shapes a,b</td><td>f(x)=abx<sup>a−1</sup>(1−x<sup>a</sup>)<sup>b−1</sup></td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Laplace.html"><code>Laplace</code></a></td><td>x∈ℝ; location μ, scale b</td><td>f(x)=exp(−|x−μ|/b)/(2b)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Levy.html"><code>Levy</code></a></td><td>x&gt;μ; location μ, scale c</td><td>f(x)=√[c/(2π)] exp{−c/[2(x−μ)]}/(x−μ)<sup>3/2</sup></td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Lindley.html"><code>Lindley</code></a></td><td>x≥0; rate θ</td><td>f(x)=θ²(1+x)e<sup>−θx</sup>/(1+θ)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Logistic.html"><code>Logistic</code></a></td><td>x∈ℝ; location μ, scale s</td><td>z=(x−μ)/s; f(x)=e<sup>−z</sup>/{s(1+e<sup>−z</sup>)²}</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/LogLogistic.html"><code>LogLogistic</code></a></td><td>x&gt;0; shape a, scale b</td><td>f(x)=(a/b)(x/b)<sup>a−1</sup>/[1+(x/b)<sup>a</sup>]²</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/LogNormal.html"><code>LogNormal</code></a></td><td>x&gt;0; log-mean μ, log-SD σ</td><td>f(x)=φ((ln x−μ)/σ)/(xσ)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Makeham.html"><code>Makeham</code></a></td><td>x≥0; scale a, shape b, constant ε</td><td>S(x)=exp{−εx−(b/a)(e<sup>ax</sup>−1)}; f(x)=(ε+be<sup>ax</sup>)S(x)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Maxwell.html"><code>Maxwell</code></a></td><td>x≥0; rate λ</td><td>f(x)=√(2/π) λ<sup>3/2</sup>x²e<sup>−λx²/2</sup></td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/MaxwellBoltzmann.html"><code>MaxwellBoltzmann</code></a></td><td>x≥0; component scale σ</td><td>f(x)=√(2/π)x²e<sup>−x²/(2σ²)</sup>/σ³</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Nakagami.html"><code>Nakagami</code></a></td><td>x≥0; shape m, spread Ω</td><td>f(x)=2m<sup>m</sup>x<sup>2m−1</sup>e<sup>−mx²/Ω</sup>/[Γ(m)Ω<sup>m</sup>]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/NonCentralBeta.html"><code>NonCentralBeta</code></a></td><td>0&lt;x&lt;1; shapes α,β, noncentrality λ</td><td>f(x)=Σ<sub>j≥0</sub> Pois(j;λ/2)·BetaPDF(x;α+j,β)</td><td class="methods">DPQR <span title="calculate_ncp">NCP</span></td></tr>
-            <tr><td><a href="api/jdistlib/NonCentralChiSquare.html"><code>NonCentralChiSquare</code></a></td><td>x≥0; df ν, noncentrality λ</td><td>f(x)=Σ<sub>j≥0</sub> Pois(j;λ/2)·χ²PDF(x;ν+2j)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/NonCentralF.html"><code>NonCentralF</code></a></td><td>x≥0; df ν₁,ν₂, noncentrality λ</td><td>X=(χ²<sub>ν₁</sub>(λ)/ν₁)/(χ²<sub>ν₂</sub>/ν₂)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/NonCentralT.html"><code>NonCentralT</code></a></td><td>x∈ℝ; df ν, noncentrality δ</td><td>X=(Z+δ)/√(V/ν), Z∼N(0,1), V∼χ²<sub>ν</sub></td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Normal.html"><code>Normal</code></a></td><td>x∈ℝ; mean μ, SD σ</td><td>f(x)=φ((x−μ)/σ)/σ</td><td class="methods">DPQR <span title="multiple normal generators">R variants</span></td></tr>
-            <tr><td><a href="api/jdistlib/PositiveNormal.html"><code>PositiveNormal</code></a></td><td>x≥0; underlying mean μ, SD σ</td><td>f(x)=φ((x−μ)/σ)/[σΦ(μ/σ)]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/evd/Rayleigh.html"><code>evd.Rayleigh</code></a></td><td>x≥0; scale σ</td><td>f(x)=xe<sup>−x²/(2σ²)</sup>/σ²</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/evd/ReverseWeibull.html"><code>evd.ReverseWeibull</code></a></td><td>x&lt;μ; location μ, scale σ, shape k</td><td>z=(μ−x)/σ; f(x)=kz<sup>k−1</sup>exp(−z<sup>k</sup>)/σ</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Rice.html"><code>Rice</code></a></td><td>x≥0; component SD σ, offset ν</td><td>f(x)=x e<sup>−(x²+ν²)/(2σ²)</sup>I₀(xν/σ²)/σ²</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/SinhArcsinh.html"><code>SinhArcsinh</code></a></td><td>x∈ℝ; μ,σ and tail powers ν,τ</td><td>w=asinh((x−μ)/σ), r=(e<sup>τw</sup>−e<sup>−νw</sup>)/2; F(x)=Φ(r)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/SkewedT.html"><code>SkewedT</code></a></td><td>x∈ℝ; df ν, skew γ</td><td>two-piece t: f(x)=2t<sub>ν</sub>(x/γ)/(γ+γ<sup>−1</sup>) for x≥0; replace γ by γ<sup>−1</sup> for x&lt;0</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/T.html"><code>T</code></a></td><td>x∈ℝ; degrees of freedom ν</td><td>f(x)=Γ((ν+1)/2)[1+x²/ν]<sup>−(ν+1)/2</sup>/[√(νπ)Γ(ν/2)]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Triangular.html"><code>Triangular</code></a></td><td>a≤x≤b; mode c</td><td>f(x)=2(x−a)/[(b−a)(c−a)] left of c; 2(b−x)/[(b−a)(b−c)] right</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Tweedie.html"><code>Tweedie</code></a></td><td>family-dependent; mean μ, dispersion φ, power ξ</td><td>Var(X)=φμ<sup>ξ</sup>; exponential-dispersion density evaluated by exact identities, series, or integration</td><td class="methods">DPQR <span title="deviance, loglik, derivative and saddlepoint helpers">likelihood</span></td></tr>
-            <tr><td><a href="api/jdistlib/Uniform.html"><code>Uniform</code></a></td><td>a≤x≤b</td><td>f(x)=1/(b−a)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Weibull.html"><code>Weibull</code></a></td><td>x≥0; shape k, scale λ</td><td>f(x)=(k/λ)(x/λ)<sup>k−1</sup>exp[−(x/λ)<sup>k</sup>]</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Arcsine.html"><code>Arcsine</code></a></td><td>a&lt;x&lt;b; endpoints a,b</td><td>\(f(x)=\dfrac{1}{\pi\sqrt{(x-a)(b-x)}}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Beta.html"><code>Beta</code></a></td><td>0&lt;x&lt;1; shapes α,β</td><td>\(f(x)=\dfrac{x^{\alpha-1}(1-x)^{\beta-1}}{B(\alpha,\beta)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/BetaPrime.html"><code>BetaPrime</code></a></td><td>x&gt;0; shapes α,β</td><td>\(f(x)=\dfrac{x^{\alpha-1}(1+x)^{-\alpha-\beta}}{B(\alpha,\beta)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/BirnbaumSaunders.html"><code>BirnbaumSaunders</code></a></td><td>x&gt;μ; shape α, scale β, location μ</td><td>\(X=\mu+\beta\left[\dfrac{\alpha Z}{2}+\sqrt{1+\left(\dfrac{\alpha Z}{2}\right)^2}\right]^2,\quad Z\sim N(0,1)\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Cauchy.html"><code>Cauchy</code></a></td><td>x∈ℝ; location μ, scale σ</td><td>\(f(x)=\dfrac{1}{\pi\sigma\left[1+\left(\dfrac{x-\mu}{\sigma}\right)^2\right]}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Chi.html"><code>Chi</code></a></td><td>x&gt;0; degrees of freedom ν</td><td>\(f(x)=\dfrac{2^{1-\nu/2}x^{\nu-1}e^{-x^2/2}}{\Gamma(\nu/2)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/ChiSquare.html"><code>ChiSquare</code></a></td><td>x&gt;0; degrees of freedom ν</td><td>\(f(x)=\dfrac{x^{\nu/2-1}e^{-x/2}}{2^{\nu/2}\Gamma(\nu/2)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Exponential.html"><code>Exponential</code></a></td><td>x≥0; scale θ</td><td>\(f(x)=\dfrac{1}{\theta}e^{-x/\theta}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/F.html"><code>F</code></a></td><td>x&gt;0; degrees of freedom ν₁,ν₂</td><td>\(f(x)=\dfrac{(\nu_1/\nu_2)^{\nu_1/2}x^{\nu_1/2-1}}{B(\nu_1/2,\nu_2/2)(1+\nu_1x/\nu_2)^{(\nu_1+\nu_2)/2}}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/FoldedNormal.html"><code>FoldedNormal</code></a></td><td>x≥0; normal μ,σ and side scales a₁,a₂</td><td>\(f(x)=\dfrac{\phi((x/a_1-\mu)/\sigma)}{a_1\sigma}+\dfrac{\phi((-x/a_2-\mu)/\sigma)}{a_2\sigma}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/evd/Fretchet.html"><code>evd.Fretchet</code></a></td><td>x&gt;μ; location μ, scale σ, shape α</td><td>\(z=\dfrac{x-\mu}{\sigma},\qquad f(x)=\dfrac{\alpha}{\sigma}z^{-\alpha-1}e^{-z^{-\alpha}}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Gamma.html"><code>Gamma</code></a></td><td>x&gt;0; shape α, scale θ</td><td>\(f(x)=\dfrac{x^{\alpha-1}e^{-x/\theta}}{\Gamma(\alpha)\theta^\alpha}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/GeneralizedBetaSecondKind.html"><code>GeneralizedBetaSecondKind</code></a></td><td>x&gt;0; scale b, shape a,p,q</td><td>\(f(x)=\dfrac{a(x/b)^{ap-1}}{bB(p,q)\left[1+(x/b)^a\right]^{p+q}}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/GeneralizedGamma.html"><code>GeneralizedGamma</code></a></td><td>x&gt;0; scale b, powers d,k</td><td>\(f(x)=\dfrac{d\,x^{dk-1}e^{-(x/b)^d}}{b^{dk}\Gamma(k)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/evd/GeneralizedPareto.html"><code>evd.GeneralizedPareto</code></a></td><td>x≥μ, 1+ξ(x−μ)/σ&gt;0</td><td>\(f(x)=\dfrac{1}{\sigma}\left[1+\xi\dfrac{x-\mu}{\sigma}\right]^{-1/\xi-1}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/evd/GEV.html"><code>evd.GEV</code></a></td><td>z=1+ξ(x−μ)/σ&gt;0</td><td>\(f(x)=\dfrac{1}{\sigma}z^{-1/\xi-1}e^{-z^{-1/\xi}}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Gompertz.html"><code>Gompertz</code></a></td><td>x≥0; shape a, rate b</td><td>\(h(x)=be^{ax},\qquad f(x)=h(x)\exp\!\left[-\dfrac{b(e^{ax}-1)}{a}\right]\)</td><td class="methods">DPQR <span title="hazard and cumulativeHazard">H</span></td></tr>
+            <tr><td><a href="api/jdistlib/evd/Gumbel.html"><code>evd.Gumbel</code></a></td><td>x∈ℝ; location μ, scale σ</td><td>\(z=\dfrac{x-\mu}{\sigma},\qquad f(x)=\dfrac{1}{\sigma}e^{-z-e^{-z}}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/HalfNormal.html"><code>HalfNormal</code></a></td><td>x≥0; scale σ</td><td>\(f(x)=\dfrac{2}{\sigma}\phi\!\left(\dfrac{x}{\sigma}\right)\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/InvGamma.html"><code>InvGamma</code></a></td><td>x&gt;0; shape α, scale β</td><td>\(f(x)=\dfrac{\beta^\alpha x^{-\alpha-1}e^{-\beta/x}}{\Gamma(\alpha)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/InvNormal.html"><code>InvNormal</code></a></td><td>x&gt;0; mean μ, dispersion σ (λ=1/σ²)</td><td>\(f(x)=\dfrac{1}{\sqrt{2\pi\sigma^2x^3}}\exp\!\left[-\dfrac{(x/\mu-1)^2}{2\sigma^2x}\right]\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Kumaraswamy.html"><code>Kumaraswamy</code></a></td><td>0&lt;x&lt;1; shapes a,b</td><td>\(f(x)=abx^{a-1}(1-x^a)^{b-1}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Laplace.html"><code>Laplace</code></a></td><td>x∈ℝ; location μ, scale b</td><td>\(f(x)=\dfrac{1}{2b}\exp\!\left(-\dfrac{|x-\mu|}{b}\right)\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Levy.html"><code>Levy</code></a></td><td>x&gt;μ; location μ, scale c</td><td>\(f(x)=\sqrt{\dfrac{c}{2\pi}}\,\dfrac{\exp[-c/(2(x-\mu))]}{(x-\mu)^{3/2}}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Lindley.html"><code>Lindley</code></a></td><td>x≥0; rate θ</td><td>\(f(x)=\dfrac{\theta^2(1+x)e^{-\theta x}}{1+\theta}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Logistic.html"><code>Logistic</code></a></td><td>x∈ℝ; location μ, scale s</td><td>\(z=\dfrac{x-\mu}{s},\qquad f(x)=\dfrac{e^{-z}}{s(1+e^{-z})^2}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/LogLogistic.html"><code>LogLogistic</code></a></td><td>x&gt;0; shape a, scale b</td><td>\(f(x)=\dfrac{(a/b)(x/b)^{a-1}}{[1+(x/b)^a]^2}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/LogNormal.html"><code>LogNormal</code></a></td><td>x&gt;0; log-mean μ, log-SD σ</td><td>\(f(x)=\dfrac{1}{x\sigma}\phi\!\left(\dfrac{\ln x-\mu}{\sigma}\right)\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Makeham.html"><code>Makeham</code></a></td><td>x≥0; scale a, shape b, constant ε</td><td>\(S(x)=\exp\!\left[-\varepsilon x-\dfrac{b}{a}(e^{ax}-1)\right],\quad f(x)=(\varepsilon+be^{ax})S(x)\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Maxwell.html"><code>Maxwell</code></a></td><td>x≥0; rate λ</td><td>\(f(x)=\sqrt{\dfrac{2}{\pi}}\,\lambda^{3/2}x^2e^{-\lambda x^2/2}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/MaxwellBoltzmann.html"><code>MaxwellBoltzmann</code></a></td><td>x≥0; component scale σ</td><td>\(f(x)=\sqrt{\dfrac{2}{\pi}}\,\dfrac{x^2}{\sigma^3}e^{-x^2/(2\sigma^2)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Nakagami.html"><code>Nakagami</code></a></td><td>x≥0; shape m, spread Ω</td><td>\(f(x)=\dfrac{2m^m x^{2m-1}e^{-mx^2/\Omega}}{\Gamma(m)\Omega^m}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/NonCentralBeta.html"><code>NonCentralBeta</code></a></td><td>0&lt;x&lt;1; shapes α,β, noncentrality λ</td><td>\(f(x)=\sum_{j=0}^{\infty}\operatorname{Pois}(j;\lambda/2)\operatorname{BetaPDF}(x;\alpha+j,\beta)\)</td><td class="methods">DPQR <span title="calculate_ncp">NCP</span></td></tr>
+            <tr><td><a href="api/jdistlib/NonCentralChiSquare.html"><code>NonCentralChiSquare</code></a></td><td>x≥0; df ν, noncentrality λ</td><td>\(f(x)=\sum_{j=0}^{\infty}\operatorname{Pois}(j;\lambda/2)\,f_{\chi^2_{\nu+2j}}(x)\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/NonCentralF.html"><code>NonCentralF</code></a></td><td>x≥0; df ν₁,ν₂, noncentrality λ</td><td>\(X=\dfrac{\chi^2_{\nu_1}(\lambda)/\nu_1}{\chi^2_{\nu_2}/\nu_2}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/NonCentralT.html"><code>NonCentralT</code></a></td><td>x∈ℝ; df ν, noncentrality δ</td><td>\(X=\dfrac{Z+\delta}{\sqrt{V/\nu}},\quad Z\sim N(0,1),\quad V\sim\chi^2_\nu\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Normal.html"><code>Normal</code></a></td><td>x∈ℝ; mean μ, SD σ</td><td>\(f(x)=\dfrac{1}{\sigma}\phi\!\left(\dfrac{x-\mu}{\sigma}\right)\)</td><td class="methods">DPQR <span title="multiple normal generators">R variants</span></td></tr>
+            <tr><td><a href="api/jdistlib/PositiveNormal.html"><code>PositiveNormal</code></a></td><td>x≥0; underlying mean μ, SD σ</td><td>\(f(x)=\dfrac{\phi((x-\mu)/\sigma)}{\sigma\Phi(\mu/\sigma)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/evd/Rayleigh.html"><code>evd.Rayleigh</code></a></td><td>x≥0; scale σ</td><td>\(f(x)=\dfrac{x}{\sigma^2}e^{-x^2/(2\sigma^2)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/evd/ReverseWeibull.html"><code>evd.ReverseWeibull</code></a></td><td>x&lt;μ; location μ, scale σ, shape k</td><td>\(z=\dfrac{\mu-x}{\sigma},\qquad f(x)=\dfrac{k}{\sigma}z^{k-1}e^{-z^k}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Rice.html"><code>Rice</code></a></td><td>x≥0; component SD σ, offset ν</td><td>\(f(x)=\dfrac{x}{\sigma^2}e^{-(x^2+\nu^2)/(2\sigma^2)}I_0\!\left(\dfrac{x\nu}{\sigma^2}\right)\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/SinhArcsinh.html"><code>SinhArcsinh</code></a></td><td>x∈ℝ; μ,σ and tail powers ν,τ</td><td>\(w=\operatorname{asinh}\!\left(\dfrac{x-\mu}{\sigma}\right),\quad r=\dfrac{e^{\tau w}-e^{-\nu w}}{2},\quad F(x)=\Phi(r)\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/SkewedT.html"><code>SkewedT</code></a></td><td>x∈ℝ; df ν, skew γ</td><td>\(f(x)=\begin{cases}\dfrac{2t_\nu(x/\gamma)}{\gamma+\gamma^{-1}},&amp;x\ge0,\\[3pt]\dfrac{2t_\nu(\gamma x)}{\gamma+\gamma^{-1}},&amp;x&lt;0.\end{cases}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/T.html"><code>T</code></a></td><td>x∈ℝ; degrees of freedom ν</td><td>\(f(x)=\dfrac{\Gamma((\nu+1)/2)}{\sqrt{\nu\pi}\Gamma(\nu/2)}\left(1+\dfrac{x^2}{\nu}\right)^{-(\nu+1)/2}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Triangular.html"><code>Triangular</code></a></td><td>a≤x≤b; mode c</td><td>\(f(x)=\begin{cases}\dfrac{2(x-a)}{(b-a)(c-a)},&amp;a\le x\le c,\\[3pt]\dfrac{2(b-x)}{(b-a)(b-c)},&amp;c&lt;x\le b.\end{cases}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Tweedie.html"><code>Tweedie</code></a></td><td>family-dependent; mean μ, dispersion φ, power ξ</td><td>\(\operatorname{Var}(X)=\phi\mu^\xi\); exponential-dispersion density via identities, series, or integration</td><td class="methods">DPQR <span title="deviance, loglik, derivative and saddlepoint helpers">likelihood</span></td></tr>
+            <tr><td><a href="api/jdistlib/Uniform.html"><code>Uniform</code></a></td><td>a≤x≤b</td><td>\(f(x)=\dfrac{1}{b-a}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Weibull.html"><code>Weibull</code></a></td><td>x≥0; shape k, scale λ</td><td>\(f(x)=\dfrac{k}{\lambda}\left(\dfrac{x}{\lambda}\right)^{k-1}e^{-(x/\lambda)^k}\)</td><td class="methods">DPQR</td></tr>
           </tbody>
         </table>
       </div>
@@ -129,24 +139,24 @@
         <table class="distribution-table">
           <thead><tr><th>Distribution</th><th>Support &amp; parameters</th><th>Defining formula</th><th>API</th></tr></thead>
           <tbody>
-            <tr><td><a href="api/jdistlib/BetaBinomial.html"><code>BetaBinomial</code></a></td><td>x=0,…,n; mean μ, dispersion σ, size n</td><td>P(X=x)=C(n,x)B(x+μ/σ,n−x+(1−μ)/σ)/B(μ/σ,(1−μ)/σ)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Binomial.html"><code>Binomial</code></a></td><td>x=0,…,n; size n, success p</td><td>P(X=x)=C(n,x)p<sup>x</sup>(1−p)<sup>n−x</sup></td><td class="methods">DPQR <span title="explicit RandomState overloads">state</span></td></tr>
-            <tr><td><a href="api/jdistlib/Categorical.html"><code>Categorical</code></a></td><td>finite supplied outcomes xᵢ and weights wᵢ</td><td>P(X=xᵢ)=wᵢ/Σⱼwⱼ</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Empirical.html"><code>Empirical</code></a></td><td>observed values x₁,…,xₙ</td><td>P(X=x)=#{i:xᵢ=x}/n; quantile uses inverse ECDF (type 1)</td><td class="methods">DPQR <span title="D/P/Q are instance methods">instance</span></td></tr>
-            <tr><td><a href="api/jdistlib/Geometric.html"><code>Geometric</code></a></td><td>x=0,1,…; success p</td><td>P(X=x)=p(1−p)<sup>x</sup></td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/HurdleNegativeBinomial.html"><code>HurdleNegativeBinomial</code></a></td><td>x≥0; NB mean μ, size k, zero probability π</td><td>P(0)=π; P(x&gt;0)=(1−π)NB(x;μ,k)/[1−NB(0;μ,k)]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/HurdlePoisson.html"><code>HurdlePoisson</code></a></td><td>x≥0; rate λ, zero probability π</td><td>P(0)=π; P(x&gt;0)=(1−π)Pois(x;λ)/(1−e<sup>−λ</sup>)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/HyperGeometric.html"><code>HyperGeometric</code></a></td><td>integer x; red r, black b, draws n</td><td>P(X=x)=C(r,x)C(b,n−x)/C(r+b,n)</td><td class="methods">DPQR <span title="explicit RandomState overloads">state</span></td></tr>
-            <tr><td><a href="api/jdistlib/Logarithmic.html"><code>Logarithmic</code></a></td><td>x=1,2,…; 0&lt;p&lt;1</td><td>P(X=x)=−p<sup>x</sup>/[x ln(1−p)]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/NegBinomial.html"><code>NegBinomial</code></a></td><td>x≥0; size k and probability p or mean μ</td><td>P(X=x)=Γ(x+k)[p<sup>k</sup>(1−p)<sup>x</sup>]/[Γ(k)Γ(x+1)]</td><td class="methods">DPQR <span title="parallel mean-parameterized methods">μ variants</span></td></tr>
-            <tr><td><a href="api/jdistlib/Poisson.html"><code>Poisson</code></a></td><td>x=0,1,…; mean λ</td><td>P(X=x)=e<sup>−λ</sup>λ<sup>x</sup>/x!</td><td class="methods">DPQR <span title="explicit RandomState overloads">state</span></td></tr>
-            <tr><td><a href="api/jdistlib/PoissonBinomial.html"><code>PoissonBinomial</code></a></td><td>x=0,…,n; Bernoulli probabilities p₁,…,pₙ</td><td>P(X=x)=[z<sup>x</sup>]∏ᵢ[(1−pᵢ)+pᵢz]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/PoissonInverseGaussian.html"><code>PoissonInverseGaussian</code></a></td><td>x≥0; mixture mean μ, dispersion φ</td><td>X|Λ∼Pois(Λ), Λ∼InvNormal(μ,√φ); Var(X)=μ+φμ³</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/ZeroInflatedNegativeBinomial.html"><code>ZeroInflatedNegativeBinomial</code></a></td><td>x≥0; NB mean μ, size k, inflation π</td><td>P(0)=π+(1−π)NB(0); P(x&gt;0)=(1−π)NB(x)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/ZeroInflatedPoisson.html"><code>ZeroInflatedPoisson</code></a></td><td>x≥0; rate λ, inflation π</td><td>P(0)=π+(1−π)e<sup>−λ</sup>; P(x&gt;0)=(1−π)Pois(x;λ)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/ZeroTruncatedNegativeBinomial.html"><code>ZeroTruncatedNegativeBinomial</code></a></td><td>x=1,2,…; NB mean μ, size k</td><td>P(X=x)=NB(x;μ,k)/[1−NB(0;μ,k)]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/ZeroTruncatedPoisson.html"><code>ZeroTruncatedPoisson</code></a></td><td>x=1,2,…; rate λ</td><td>P(X=x)=e<sup>−λ</sup>λ<sup>x</sup>/{x![1−e<sup>−λ</sup>]}</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Zipf.html"><code>Zipf</code></a></td><td>x=1,…,N; exponent s</td><td>P(X=x)=x<sup>−s</sup>/Σ<sub>k=1</sub><sup>N</sup>k<sup>−s</sup></td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/BetaBinomial.html"><code>BetaBinomial</code></a></td><td>x=0,…,n; mean μ, dispersion σ, size n</td><td>\(\Pr(X=x)=\binom{n}{x}\dfrac{B(x+\mu/\sigma,\;n-x+(1-\mu)/\sigma)}{B(\mu/\sigma,\;(1-\mu)/\sigma)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Binomial.html"><code>Binomial</code></a></td><td>x=0,…,n; size n, success p</td><td>\(\Pr(X=x)=\binom{n}{x}p^x(1-p)^{n-x}\)</td><td class="methods">DPQR <span title="explicit RandomState overloads">state</span></td></tr>
+            <tr><td><a href="api/jdistlib/Categorical.html"><code>Categorical</code></a></td><td>finite supplied outcomes xᵢ and weights wᵢ</td><td>\(\Pr(X=x_i)=\dfrac{w_i}{\sum_j w_j}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Empirical.html"><code>Empirical</code></a></td><td>observed values x₁,…,xₙ</td><td>\(\Pr(X=x)=\dfrac{\#\{i:x_i=x\}}{n}\); quantile is the type-1 inverse ECDF</td><td class="methods">DPQR <span title="D/P/Q are instance methods">instance</span></td></tr>
+            <tr><td><a href="api/jdistlib/Geometric.html"><code>Geometric</code></a></td><td>x=0,1,…; success p</td><td>\(\Pr(X=x)=p(1-p)^x\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/HurdleNegativeBinomial.html"><code>HurdleNegativeBinomial</code></a></td><td>x≥0; NB mean μ, size k, zero probability π</td><td>\(\Pr(X=0)=\pi,\quad \Pr(X=x)=\dfrac{(1-\pi)\operatorname{NB}(x;\mu,k)}{1-\operatorname{NB}(0;\mu,k)},\ x&gt;0\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/HurdlePoisson.html"><code>HurdlePoisson</code></a></td><td>x≥0; rate λ, zero probability π</td><td>\(\Pr(X=0)=\pi,\quad \Pr(X=x)=\dfrac{(1-\pi)\operatorname{Pois}(x;\lambda)}{1-e^{-\lambda}},\ x&gt;0\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/HyperGeometric.html"><code>HyperGeometric</code></a></td><td>integer x; red r, black b, draws n</td><td>\(\Pr(X=x)=\dfrac{\binom{r}{x}\binom{b}{n-x}}{\binom{r+b}{n}}\)</td><td class="methods">DPQR <span title="explicit RandomState overloads">state</span></td></tr>
+            <tr><td><a href="api/jdistlib/Logarithmic.html"><code>Logarithmic</code></a></td><td>x=1,2,…; 0&lt;p&lt;1</td><td>\(\Pr(X=x)=-\dfrac{p^x}{x\ln(1-p)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/NegBinomial.html"><code>NegBinomial</code></a></td><td>x≥0; size k and probability p or mean μ</td><td>\(\Pr(X=x)=\dfrac{\Gamma(x+k)}{\Gamma(k)\Gamma(x+1)}p^k(1-p)^x\)</td><td class="methods">DPQR <span title="parallel mean-parameterized methods">μ variants</span></td></tr>
+            <tr><td><a href="api/jdistlib/Poisson.html"><code>Poisson</code></a></td><td>x=0,1,…; mean λ</td><td>\(\Pr(X=x)=e^{-\lambda}\dfrac{\lambda^x}{x!}\)</td><td class="methods">DPQR <span title="explicit RandomState overloads">state</span></td></tr>
+            <tr><td><a href="api/jdistlib/PoissonBinomial.html"><code>PoissonBinomial</code></a></td><td>x=0,…,n; Bernoulli probabilities p₁,…,pₙ</td><td>\(\Pr(X=x)=[z^x]\prod_i\bigl[(1-p_i)+p_i z\bigr]\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/PoissonInverseGaussian.html"><code>PoissonInverseGaussian</code></a></td><td>x≥0; mixture mean μ, dispersion φ</td><td>\(X\mid\Lambda\sim\operatorname{Pois}(\Lambda),\quad \Lambda\sim\operatorname{InvNormal}(\mu,\sqrt{\phi}),\quad \operatorname{Var}(X)=\mu+\phi\mu^3\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/ZeroInflatedNegativeBinomial.html"><code>ZeroInflatedNegativeBinomial</code></a></td><td>x≥0; NB mean μ, size k, inflation π</td><td>\(\Pr(0)=\pi+(1-\pi)\operatorname{NB}(0),\quad \Pr(x)=(1-\pi)\operatorname{NB}(x),\ x&gt;0\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/ZeroInflatedPoisson.html"><code>ZeroInflatedPoisson</code></a></td><td>x≥0; rate λ, inflation π</td><td>\(\Pr(0)=\pi+(1-\pi)e^{-\lambda},\quad \Pr(x)=(1-\pi)\operatorname{Pois}(x;\lambda),\ x&gt;0\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/ZeroTruncatedNegativeBinomial.html"><code>ZeroTruncatedNegativeBinomial</code></a></td><td>x=1,2,…; NB mean μ, size k</td><td>\(\Pr(X=x)=\dfrac{\operatorname{NB}(x;\mu,k)}{1-\operatorname{NB}(0;\mu,k)}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/ZeroTruncatedPoisson.html"><code>ZeroTruncatedPoisson</code></a></td><td>x=1,2,…; rate λ</td><td>\(\Pr(X=x)=\dfrac{e^{-\lambda}\lambda^x}{x!(1-e^{-\lambda})}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Zipf.html"><code>Zipf</code></a></td><td>x=1,…,N; exponent s</td><td>\(\Pr(X=x)=\dfrac{x^{-s}}{\sum_{k=1}^{N}k^{-s}}\)</td><td class="methods">DPQR</td></tr>
           </tbody>
         </table>
       </div>
@@ -160,19 +170,19 @@
         <table class="distribution-table">
           <thead><tr><th>Distribution</th><th>Support &amp; parameters</th><th>Defining formula</th><th>API</th></tr></thead>
           <tbody>
-            <tr><td><a href="api/jdistlib/BivariateLogistic.html"><code>BivariateLogistic</code></a></td><td>(x₁,x₂)∈ℝ²; locations μᵢ, scales sᵢ</td><td>F(x₁,x₂)=[1+e<sup>−(x₁−μ₁)/s₁</sup>+e<sup>−(x₂−μ₂)/s₂</sup>]<sup>−1</sup></td><td class="methods">DP–R</td></tr>
-            <tr><td><a href="api/jdistlib/BivariatePoisson.html"><code>BivariatePoisson</code></a></td><td>(x,y)∈ℕ₀²; rates λ₁,λ₂,λ₀</td><td>X=U+W, Y=V+W; U,V,W independent Poisson(λ₁,λ₂,λ₀)</td><td class="methods">DP–R</td></tr>
-            <tr><td><a href="api/jdistlib/Dirichlet.html"><code>Dirichlet</code></a></td><td>xᵢ≥0, Σxᵢ=1; concentrations αᵢ</td><td>f(x)=Γ(Σαᵢ)/∏Γ(αᵢ) · ∏xᵢ<sup>αᵢ−1</sup></td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/DirichletMultinomial.html"><code>DirichletMultinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, αᵢ</td><td>P(x)=n!/∏xᵢ! · Γ(α₀)/Γ(n+α₀) · ∏Γ(xᵢ+αᵢ)/Γ(αᵢ)</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/Multinomial.html"><code>Multinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, weights pᵢ</td><td>P(x)=n!∏pᵢ<sup>xᵢ</sup>/∏xᵢ!</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateCauchy.html"><code>MultivariateCauchy</code></a></td><td>x∈ℝᵏ; location μ, scale Σ</td><td>f(x)=Γ((k+1)/2)/{Γ(1/2)π<sup>k/2</sup>|Σ|<sup>1/2</sup>[1+q(x)]<sup>(k+1)/2</sup>}</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateHypergeometric.html"><code>MultivariateHypergeometric</code></a></td><td>xᵢ counts; populations mᵢ, draws n</td><td>P(x)=∏ᵢC(mᵢ,xᵢ)/C(Σmᵢ,n), with Σxᵢ=n</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateLaplace.html"><code>MultivariateLaplace</code></a></td><td>x∈ℝᵏ; location μ, covariance scale Σ</td><td>X=μ+√W Z; W∼Exp(1), Z∼Nₖ(0,Σ)</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateLogNormal.html"><code>MultivariateLogNormal</code></a></td><td>xᵢ&gt;0; log-mean μ, log-covariance Σ</td><td>ln X∼Nₖ(μ,Σ); f<sub>X</sub>(x)=f<sub>N</sub>(ln x)/∏xᵢ</td><td class="methods">DP–R <span title="equicoordinate quantile">Q*</span></td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateNormal.html"><code>MultivariateNormal</code></a></td><td>x∈ℝᵏ; mean μ, covariance Σ</td><td>f(x)=exp[−q(x)/2]/[(2π)<sup>k/2</sup>|Σ|<sup>1/2</sup>]</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
-            <tr><td><a href="api/jdistlib/MultivariatePowerExponential.html"><code>MultivariatePowerExponential</code></a></td><td>x∈ℝᵏ; location μ, scatter Σ, shape β</td><td>f(x)=C(k,β)|Σ|<sup>−1/2</sup>exp{−q(x)<sup>β</sup>/2}</td><td class="methods">D––R <span title="radial quantile">Q*</span></td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateStudentT.html"><code>MultivariateStudentT</code></a></td><td>x∈ℝᵏ; location μ, scale Σ, df ν</td><td>f(x)=Γ((ν+k)/2)[1+q(x)/ν]<sup>−(ν+k)/2</sup>/{Γ(ν/2)(νπ)<sup>k/2</sup>|Σ|<sup>1/2</sup>}</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
-            <tr><td><a href="api/jdistlib/Wishart.html"><code>Wishart</code></a></td><td>positive-definite k×k matrix; df ν, scale Σ or Cholesky L</td><td>f(X)=|X|<sup>(ν−k−1)/2</sup>e<sup>−tr(Σ<sup>−1</sup>X)/2</sup>/{2<sup>νk/2</sup>|Σ|<sup>ν/2</sup>Γ<sub>k</sub>(ν/2)}</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/BivariateLogistic.html"><code>BivariateLogistic</code></a></td><td>(x₁,x₂)∈ℝ²; locations μᵢ, scales sᵢ</td><td>\(F(x_1,x_2)=\left[1+e^{-(x_1-\mu_1)/s_1}+e^{-(x_2-\mu_2)/s_2}\right]^{-1}\)</td><td class="methods">DP–R</td></tr>
+            <tr><td><a href="api/jdistlib/BivariatePoisson.html"><code>BivariatePoisson</code></a></td><td>(x,y)∈ℕ₀²; rates λ₁,λ₂,λ₀</td><td>\(X=U+W,\quad Y=V+W,\quad U,V,W\ \text{independent Poisson}(\lambda_1,\lambda_2,\lambda_0)\)</td><td class="methods">DP–R</td></tr>
+            <tr><td><a href="api/jdistlib/Dirichlet.html"><code>Dirichlet</code></a></td><td>xᵢ≥0, Σxᵢ=1; concentrations αᵢ</td><td>\(f(\mathbf x)=\dfrac{\Gamma(\sum_i\alpha_i)}{\prod_i\Gamma(\alpha_i)}\prod_i x_i^{\alpha_i-1}\)</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/DirichletMultinomial.html"><code>DirichletMultinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, αᵢ</td><td>\(\Pr(\mathbf x)=\dfrac{n!}{\prod_i x_i!}\dfrac{\Gamma(\alpha_0)}{\Gamma(n+\alpha_0)}\prod_i\dfrac{\Gamma(x_i+\alpha_i)}{\Gamma(\alpha_i)}\)</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/Multinomial.html"><code>Multinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, weights pᵢ</td><td>\(\Pr(\mathbf x)=\dfrac{n!}{\prod_i x_i!}\prod_i p_i^{x_i}\)</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateCauchy.html"><code>MultivariateCauchy</code></a></td><td>x∈ℝᵏ; location μ, scale Σ</td><td>\(f(\mathbf x)=\dfrac{\Gamma((k+1)/2)}{\Gamma(1/2)\pi^{k/2}|\Sigma|^{1/2}[1+q(\mathbf x)]^{(k+1)/2}}\)</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateHypergeometric.html"><code>MultivariateHypergeometric</code></a></td><td>xᵢ counts; populations mᵢ, draws n</td><td>\(\Pr(\mathbf x)=\dfrac{\prod_i\binom{m_i}{x_i}}{\binom{\sum_i m_i}{n}},\qquad \sum_i x_i=n\)</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateLaplace.html"><code>MultivariateLaplace</code></a></td><td>x∈ℝᵏ; location μ, covariance scale Σ</td><td>\(\mathbf X=\boldsymbol\mu+\sqrt{W}\,\mathbf Z,\quad W\sim\operatorname{Exp}(1),\quad \mathbf Z\sim N_k(\mathbf0,\Sigma)\)</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateLogNormal.html"><code>MultivariateLogNormal</code></a></td><td>xᵢ&gt;0; log-mean μ, log-covariance Σ</td><td>\(\log\mathbf X\sim N_k(\boldsymbol\mu,\Sigma),\qquad f_{\mathbf X}(\mathbf x)=\dfrac{f_N(\log\mathbf x)}{\prod_i x_i}\)</td><td class="methods">DP–R <span title="equicoordinate quantile">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateNormal.html"><code>MultivariateNormal</code></a></td><td>x∈ℝᵏ; mean μ, covariance Σ</td><td>\(f(\mathbf x)=\dfrac{\exp[-q(\mathbf x)/2]}{(2\pi)^{k/2}|\Sigma|^{1/2}}\)</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/MultivariatePowerExponential.html"><code>MultivariatePowerExponential</code></a></td><td>x∈ℝᵏ; location μ, scatter Σ, shape β</td><td>\(f(\mathbf x)=C(k,\beta)|\Sigma|^{-1/2}\exp\!\left[-\dfrac{q(\mathbf x)^\beta}{2}\right]\)</td><td class="methods">D––R <span title="radial quantile">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateStudentT.html"><code>MultivariateStudentT</code></a></td><td>x∈ℝᵏ; location μ, scale Σ, df ν</td><td>\(f(\mathbf x)=\dfrac{\Gamma((\nu+k)/2)}{\Gamma(\nu/2)(\nu\pi)^{k/2}|\Sigma|^{1/2}}\left[1+\dfrac{q(\mathbf x)}{\nu}\right]^{-(\nu+k)/2}\)</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/Wishart.html"><code>Wishart</code></a></td><td>positive-definite k×k matrix; df ν, scale Σ or Cholesky L</td><td>\(f(X)=\dfrac{|X|^{(\nu-k-1)/2}e^{-\operatorname{tr}(\Sigma^{-1}X)/2}}{2^{\nu k/2}|\Sigma|^{\nu/2}\Gamma_k(\nu/2)}\)</td><td class="methods">D––R</td></tr>
           </tbody>
         </table>
       </div>
@@ -185,14 +195,14 @@
         <table class="distribution-table">
           <thead><tr><th>Distribution</th><th>Support &amp; parameters</th><th>Defining formula</th><th>API</th></tr></thead>
           <tbody>
-            <tr><td><a href="api/jdistlib/Ansari.html"><code>Ansari</code></a></td><td>integer Ansari–Bradley rank statistic; sample sizes m,n</td><td>P(A=a)=number of rank allocations with score a / C(m+n,m)</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/evd/Extreme.html"><code>evd.Extreme</code></a></td><td>minimum or maximum of n IID draws from supplied F</td><td>F<sub>max</sub>(x)=F(x)<sup>n</sup>; F<sub>min</sub>(x)=1−[1−F(x)]<sup>n</sup></td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Kendall.html"><code>Kendall</code></a></td><td>inversion count 0,…,n(n−1)/2 (with τ conversions)</td><td>P(K=k)=M(n,k)/n!, where M is the Mahonian inversion count</td><td class="methods">DPQR <span title="calculate_tau and calculate_count">τ conversion</span></td></tr>
-            <tr><td><a href="api/jdistlib/evd/Order.html"><code>evd.Order</code></a></td><td>j-th order statistic of n IID draws from supplied F</td><td>f<sub>j:n</sub>(x)=n! f(x)F(x)<sup>j−1</sup>[1−F(x)]<sup>n−j</sup>/[(j−1)!(n−j)!]</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/SignRank.html"><code>SignRank</code></a></td><td>Wilcoxon signed-rank statistic; sample size n</td><td>P(W=w)=#{subsets of {1,…,n} summing to w}/2<sup>n</sup></td><td class="methods">DPQR <span title="stateful table; use an instance per concurrent caller">instance</span></td></tr>
-            <tr><td><a href="api/jdistlib/Spearman.html"><code>Spearman</code></a></td><td>Spearman rank statistic; permutation size n</td><td>S=Σᵢ(i−Rᵢ)² over a uniform random permutation R</td><td class="methods">DPQR <span title="exact and AS 89 / t approximations">approximations</span></td></tr>
-            <tr><td><a href="api/jdistlib/Tukey.html"><code>Tukey</code></a></td><td>studentized range q; ranges r, means c, df ν</td><td>Q=(maxᵢ X̄ᵢ−minᵢ X̄ᵢ)/(S/√n), with the requested range multiplicity</td><td class="methods">DPQR</td></tr>
-            <tr><td><a href="api/jdistlib/Wilcoxon.html"><code>Wilcoxon</code></a></td><td>Mann–Whitney form of the rank-sum statistic, 0,…,mn; sample sizes m,n</td><td>P(W=w)=number of two-sample rank allocations with U=w / C(m+n,m)</td><td class="methods">DPQR <span title="stateful table; use an instance per concurrent caller">instance</span></td></tr>
+            <tr><td><a href="api/jdistlib/Ansari.html"><code>Ansari</code></a></td><td>integer Ansari–Bradley rank statistic; sample sizes m,n</td><td>\(\Pr(A=a)=\dfrac{\#\{\text{rank allocations with score }a\}}{\binom{m+n}{m}}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/evd/Extreme.html"><code>evd.Extreme</code></a></td><td>minimum or maximum of n IID draws from supplied F</td><td>\(F_{\max}(x)=F(x)^n,\qquad F_{\min}(x)=1-[1-F(x)]^n\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Kendall.html"><code>Kendall</code></a></td><td>inversion count 0,…,n(n−1)/2 (with τ conversions)</td><td>\(\Pr(K=k)=\dfrac{M(n,k)}{n!}\), where \(M\) is the Mahonian inversion count</td><td class="methods">DPQR <span title="calculate_tau and calculate_count">τ conversion</span></td></tr>
+            <tr><td><a href="api/jdistlib/evd/Order.html"><code>evd.Order</code></a></td><td>j-th order statistic of n IID draws from supplied F</td><td>\(f_{j:n}(x)=\dfrac{n!}{(j-1)!(n-j)!}f(x)F(x)^{j-1}[1-F(x)]^{n-j}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/SignRank.html"><code>SignRank</code></a></td><td>Wilcoxon signed-rank statistic; sample size n</td><td>\(\Pr(W=w)=\dfrac{\#\{A\subseteq\{1,\ldots,n\}:\sum_{i\in A}i=w\}}{2^n}\)</td><td class="methods">DPQR <span title="stateful table; use an instance per concurrent caller">instance</span></td></tr>
+            <tr><td><a href="api/jdistlib/Spearman.html"><code>Spearman</code></a></td><td>Spearman rank statistic; permutation size n</td><td>\(S=\sum_i(i-R_i)^2,\qquad R\ \text{a uniform random permutation}\)</td><td class="methods">DPQR <span title="exact and AS 89 / t approximations">approximations</span></td></tr>
+            <tr><td><a href="api/jdistlib/Tukey.html"><code>Tukey</code></a></td><td>studentized range q; ranges r, means c, df ν</td><td>\(Q=\dfrac{\max_i\bar X_i-\min_i\bar X_i}{S/\sqrt n}\), with the requested range multiplicity</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Wilcoxon.html"><code>Wilcoxon</code></a></td><td>Mann–Whitney form of the rank-sum statistic, 0,…,mn; sample sizes m,n</td><td>\(\Pr(W=w)=\dfrac{\#\{\text{two-sample rank allocations with }U=w\}}{\binom{m+n}{m}}\)</td><td class="methods">DPQR <span title="stateful table; use an instance per concurrent caller">instance</span></td></tr>
           </tbody>
         </table>
       </div>

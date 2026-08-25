@@ -316,7 +316,7 @@ public class Integrate {
 	//static double c_b6 = 0.;
 	//static double c_b7 = 1.;
 
-	/**
+	/*
 	***begin prologue  dqagi
 	***date written   800101   (yymmdd)
 	***revision date  830518   (yymmdd)

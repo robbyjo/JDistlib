@@ -109,27 +109,43 @@ if (!result.isSuccess()) {
 }
 ```
 
-The result includes the estimated integral, absolute error, number of
-subdivisions, and a QUADPACK-compatible status code.
+The mutable `IntegrationResult` remains available for source compatibility.
+New code can call `Integrate.integrateImmutable` for an immutable snapshot with
+a typed `IntegrationStatus`, error estimate, callback cost profile, and no
+retained reference to the user callback.
 
 For hostile or difficult callbacks, the additive `IntegrationOptions` API
 supports evaluation budgets, cancellation checks, declared discontinuity or
 singularity points, caught callback diagnostics, stability assessment, and
-double-exponential methods for finite or infinite intervals. The historical overloads retain
-their R/QUADPACK behavior.
+double-exponential methods for finite or infinite intervals. It also supports
+total/per-callback wall-clock limits and opt-in isolated daemon execution for a
+callback that may not return. The historical overloads retain their R/QUADPACK
+behavior.
 
 ```java
 IntegrationOptions options = IntegrationOptions.builder()
     .tolerances(1e-10, 1e-10)
     .subdivisions(300)
     .maxEvaluations(250_000)
+    .maxCallbackTime(250, TimeUnit.MILLISECONDS)
+    .maxTotalTime(5, TimeUnit.SECONDS)
+    .callbackExecution(
+        IntegrationOptions.CallbackExecution.ISOLATED_DAEMON)
     .breakpoints(0.5)
     .method(IntegrationOptions.Method.AUTO)
     .build();
 
 IntegrationStabilityResult stability =
     Integrate.assessStability(kernel, 0.0, 1.0, options);
+
+String machineReadable = stability.toJson();
 ```
+
+Isolation releases the integrating thread when the deadline expires and uses a
+daemon worker so a permanently blocked callback cannot keep the JVM alive. Java
+cannot forcibly terminate arbitrary user code, so the abandoned daemon may live
+until that callback returns; process isolation is still required for untrusted
+code or strict resource containment.
 
 ## User-defined numerical distributions
 

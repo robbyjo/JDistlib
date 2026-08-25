@@ -25,26 +25,15 @@ public class IntegrationResult {
 	public RuntimeException cause;
 	/** Additional context supplied by the hardened API. */
 	public String detail;
+	/** Callback timing captured by the hardened API. */
+	public CallbackProfile callbackProfile = CallbackProfile.empty();
 
 	public boolean isSuccess() {
 		return ier == 0;
 	}
 
 	public String message() {
-		switch (ier) {
-		case 0: return "OK";
-		case 1: return "maximum number of subdivisions reached";
-		case 2: return "roundoff error was detected";
-		case 3: return "extremely bad integrand behaviour";
-		case 4: return "roundoff error is detected in the extrapolation table";
-		case 5: return "the integral is probably divergent";
-		case 6: return "the input is invalid";
-		case 7: return "the integrand callback failed";
-		case 8: return "integration was cancelled";
-		case 9: return "the function evaluation budget was exhausted";
-		case 10: return "the integrand returned a non-finite value";
-		default: return "unknown integration status";
-		}
+		return IntegrationStatus.fromCode(ier).getMessage();
 	}
 
 	/** Returns the status message with any hardened-API context appended. */
@@ -52,4 +41,20 @@ public class IntegrationResult {
 		return detail == null || detail.length() == 0
 				? message() : message() + ": " + detail;
 	}
+
+	/** Returns the typed interpretation of {@link #ier}. */
+	public IntegrationStatus getStatus() { return IntegrationStatus.fromCode(ier); }
+
+	/** Returns immutable callback timing information. */
+	public CallbackProfile getCallbackProfile() {
+		return callbackProfile == null ? CallbackProfile.empty() : callbackProfile;
+	}
+
+	/** Creates an immutable modern snapshot without retaining {@link #f}. */
+	public ImmutableIntegrationResult toImmutable() {
+		return new ImmutableIntegrationResult(this);
+	}
+
+	/** Returns an RFC 8259 JSON diagnostic record. */
+	public String toJson() { return IntegrationJson.toJson(toImmutable()); }
 }

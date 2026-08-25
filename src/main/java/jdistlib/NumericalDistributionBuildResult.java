@@ -27,4 +27,7 @@ public final class NumericalDistributionBuildResult {
 		}
 		return distribution;
 	}
+
+	/** Returns the analysis and construction outcome as versioned JSON. */
+	public String toJson() { return DiagnosticJson.toJson(this); }
 }

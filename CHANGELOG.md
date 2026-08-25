@@ -4,6 +4,10 @@ Version 0.6.0 (in development):
 * Added a custom continuous and discrete distribution guide with mathematical
   quick starts, advanced construction guidance, diagnostics, troubleshooting,
   and a fully typeset distribution formula catalog.
+* Completed numerical-distribution hardening with immutable typed integration
+  results, callback timing profiles and wall-clock budgets, opt-in daemon-worker
+  callback isolation, versioned dependency-free JSON diagnostics, and an
+  independent high-precision corpus for difficult integral families.
 
 Version 0.5.1 (in development):
 * Added call-local, randomized quasi-Monte Carlo rectangle probabilities for

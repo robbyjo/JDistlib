@@ -297,6 +297,34 @@ if (!candidate.canBuild()) {
 }
 NumericalContinuousDistribution distribution = candidate.build();</code></pre>
 
+      <h3>Bound and profile expensive callbacks</h3>
+      <p>Every hardened integration result includes a callback cost profile.
+        For benchmark or service workloads, set total and per-call wall-clock
+        limits. Opt-in daemon isolation lets the integrating thread return even
+        when one callback blocks:</p>
+      <pre><code>IntegrationOptions bounded = IntegrationOptions.builder()
+    .maxEvaluations(250_000)
+    .maxCallbackTime(250, TimeUnit.MILLISECONDS)
+    .maxTotalTime(5, TimeUnit.SECONDS)
+    .callbackExecution(
+        IntegrationOptions.CallbackExecution.ISOLATED_DAEMON)
+    .build();</code></pre>
+      <aside class="callout">
+        Java cannot forcibly kill arbitrary user code. A callback that ignores
+        interruption may leave that integration's private daemon alive until the
+        callback returns. Use a separate process for untrusted code or strict
+        CPU and memory containment.
+      </aside>
+
+      <h3>Send diagnostics to logs or services</h3>
+      <p>Reports expose versioned, dependency-free JSON. Non-finite numeric
+        measurements are represented as <code>null</code>, because JSON has no NaN or
+        infinity number literals.</p>
+      <pre><code>String json = candidate.getAnalysis().toJson();
+ImmutableIntegrationResult normalization =
+    Integrate.integrateImmutable(kernel, lower, upper, bounded);
+String integrationJson = normalization.toJson();</code></pre>
+
       <div class="policy-grid">
         <article><h3>STRICT</h3><p>Warnings or errors block construction. Useful for
           controlled production pipelines.</p></article>

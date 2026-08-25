@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import jdistlib.math.CallbackProfile;
 import jdistlib.math.Integrate;
 import jdistlib.math.IntegrationOptions;
 import jdistlib.math.IntegrationResult;
@@ -42,15 +43,19 @@ final class LogKernelIntegrator {
 		double[] unit = new double[PROBES];
 		double[] value = new double[PROBES];
 		List<Candidate> candidates = new ArrayList<Candidate>();
+		CallbackProbeExecutor probeExecutor = new CallbackProbeExecutor(logKernel,
+				options);
+		UnivariateFunction probingKernel = probeExecutor;
+		try {
 		for (int i = 0; i < PROBES; i++) {
 			unit[i] = (i + 0.5) / PROBES;
 			double x = ProbabilityFunctionAnalyzer.mapUnit(unit[i], lower, upper);
-			value[i] = checkedLogValue(logKernel, x);
+			value[i] = checkedLogValue(probingKernel, x);
 		}
 		for (int i = 1; i + 1 < PROBES; i++) {
 			if (Double.isFinite(value[i]) && value[i] >= value[i - 1]
 					&& value[i] >= value[i + 1]) {
-				candidates.add(refine(logKernel, lower, upper, unit[i - 1],
+				candidates.add(refine(probingKernel, lower, upper, unit[i - 1],
 						unit[i + 1]));
 			}
 		}
@@ -67,7 +72,7 @@ final class LogKernelIntegrator {
 			}
 		}
 		if (!globalRepresented) {
-			candidates.add(refine(logKernel, lower, upper,
+			candidates.add(refine(probingKernel, lower, upper,
 					Math.max(0.0, unit[best] - 1.0 / PROBES),
 					Math.min(1.0, unit[best] + 1.0 / PROBES)));
 		}
@@ -79,6 +84,9 @@ final class LogKernelIntegrator {
 		}
 		Collections.sort(candidates,
 				Comparator.comparingDouble(candidate -> candidate.unit));
+		} finally {
+			probeExecutor.close();
+		}
 
 		double[] boundaries = new double[candidates.size() + 1];
 		boundaries[0] = lower;
@@ -112,17 +120,21 @@ final class LogKernelIntegrator {
 
 		IntegrationResult aggregate = new IntegrationResult();
 		aggregate.f = scaled(logKernel, globalReference);
+		CallbackProfile[] profiles = new CallbackProfile[regions.length];
 		double result = 0.0;
 		double error = 0.0;
-		for (Region region : regions) {
+		for (int i = 0; i < regions.length; i++) {
+			Region region = regions[i];
 			double factor = Math.exp(region.reference - globalReference);
 			result += region.integral.result * factor;
 			error += region.integral.abserr * factor;
 			aggregate.neval += region.integral.neval;
 			aggregate.last += region.integral.last;
+			profiles[i] = region.integral.getCallbackProfile();
 		}
 		aggregate.result = result;
 		aggregate.abserr = error;
+		aggregate.callbackProfile = CallbackProfile.combine(profiles);
 		aggregate.detail = "mode-searched regional log scaling with "
 				+ regions.length + " region(s)";
 		return new LogKernelIntegrator(logKernel, options, regions, logTotal,

@@ -43,4 +43,7 @@ public final class IntegrationStabilityResult {
 		return stable ? "stable across repeated integrations"
 				: "integration changed more than its error/tolerance allowance";
 	}
+
+	/** Returns an RFC 8259 JSON diagnostic record. */
+	public String toJson() { return IntegrationJson.toJson(this); }
 }

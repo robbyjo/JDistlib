@@ -2,10 +2,19 @@
 package jdistlib.math;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 /** Immutable options for hardened numerical integration. */
 public final class IntegrationOptions {
+	/** Where opt-in hardened callback evaluations execute. */
+	public enum CallbackExecution {
+		/** Evaluate on the integrating thread with no worker overhead. */
+		CALLER_THREAD,
+		/** Evaluate on a private daemon worker so a time limit can release the caller. */
+		ISOLATED_DAEMON
+	}
+
 	/** Available integration strategies. */
 	public enum Method {
 		/** QUADPACK DQAGS/DQAGI, matching the historical implementation. */
@@ -31,6 +40,9 @@ public final class IntegrationOptions {
 	private final BooleanSupplier cancellation;
 	private final Method method;
 	private final int tanhSinhMaxLevels;
+	private final long maxTotalNanos;
+	private final long maxCallbackNanos;
+	private final CallbackExecution callbackExecution;
 
 	private IntegrationOptions(Builder builder) {
 		absoluteTolerance = builder.absoluteTolerance;
@@ -41,6 +53,9 @@ public final class IntegrationOptions {
 		cancellation = builder.cancellation;
 		method = builder.method;
 		tanhSinhMaxLevels = builder.tanhSinhMaxLevels;
+		maxTotalNanos = builder.maxTotalNanos;
+		maxCallbackNanos = builder.maxCallbackNanos;
+		callbackExecution = builder.callbackExecution;
 	}
 
 	/** Returns a builder initialized to R-compatible integration defaults. */
@@ -58,7 +73,10 @@ public final class IntegrationOptions {
 				.breakpoints(breakpoints)
 				.cancellation(cancellation)
 				.method(method)
-				.tanhSinhMaxLevels(tanhSinhMaxLevels);
+				.tanhSinhMaxLevels(tanhSinhMaxLevels)
+				.maxTotalTime(maxTotalNanos, TimeUnit.NANOSECONDS)
+				.maxCallbackTime(maxCallbackNanos, TimeUnit.NANOSECONDS)
+				.callbackExecution(callbackExecution);
 	}
 
 	public double getAbsoluteTolerance() { return absoluteTolerance; }
@@ -69,6 +87,11 @@ public final class IntegrationOptions {
 	public BooleanSupplier getCancellation() { return cancellation; }
 	public Method getMethod() { return method; }
 	public int getTanhSinhMaxLevels() { return tanhSinhMaxLevels; }
+	/** Total wall-clock limit, or {@link Long#MAX_VALUE} when disabled. */
+	public long getMaxTotalNanos() { return maxTotalNanos; }
+	/** Per-evaluation wall-clock limit, or {@link Long#MAX_VALUE} when disabled. */
+	public long getMaxCallbackNanos() { return maxCallbackNanos; }
+	public CallbackExecution getCallbackExecution() { return callbackExecution; }
 
 	/** Builder for {@link IntegrationOptions}. */
 	public static final class Builder {
@@ -80,6 +103,9 @@ public final class IntegrationOptions {
 		private BooleanSupplier cancellation;
 		private Method method = Method.QUADPACK;
 		private int tanhSinhMaxLevels = 12;
+		private long maxTotalNanos = Long.MAX_VALUE;
+		private long maxCallbackNanos = Long.MAX_VALUE;
+		private CallbackExecution callbackExecution = CallbackExecution.CALLER_THREAD;
 
 		private Builder() {}
 
@@ -123,6 +149,31 @@ public final class IntegrationOptions {
 			return this;
 		}
 
+		/**
+		 * Sets a benchmark-oriented total wall-clock budget. A value of
+		 * {@link Long#MAX_VALUE} nanoseconds disables it.
+		 */
+		public Builder maxTotalTime(long value, TimeUnit unit) {
+			maxTotalNanos = toNanos(value, unit, "maxTotalTime");
+			return this;
+		}
+
+		/**
+		 * Sets a benchmark-oriented wall-clock limit for one callback evaluation.
+		 * Caller-thread execution observes this limit after a callback returns;
+		 * isolated execution can return when the limit expires.
+		 */
+		public Builder maxCallbackTime(long value, TimeUnit unit) {
+			maxCallbackNanos = toNanos(value, unit, "maxCallbackTime");
+			return this;
+		}
+
+		/** Selects direct or opt-in private-daemon callback execution. */
+		public Builder callbackExecution(CallbackExecution value) {
+			callbackExecution = value;
+			return this;
+		}
+
 		public IntegrationOptions build() {
 			if (!Double.isFinite(absoluteTolerance)
 					|| !Double.isFinite(relativeTolerance)
@@ -143,6 +194,15 @@ public final class IntegrationOptions {
 			if (tanhSinhMaxLevels < 1 || tanhSinhMaxLevels > 20) {
 				throw new IllegalArgumentException("tanh-sinh levels must be between 1 and 20");
 			}
+			if (callbackExecution == null) {
+				throw new IllegalArgumentException("callbackExecution must not be null");
+			}
+			if (callbackExecution == CallbackExecution.ISOLATED_DAEMON
+					&& maxCallbackNanos == Long.MAX_VALUE
+					&& maxTotalNanos == Long.MAX_VALUE) {
+				throw new IllegalArgumentException(
+						"isolated callback execution requires a callback or total time limit");
+			}
 			for (double point : breakpoints) {
 				if (!Double.isFinite(point)) {
 					throw new IllegalArgumentException("breakpoints must be finite");
@@ -150,6 +210,16 @@ public final class IntegrationOptions {
 			}
 			Arrays.sort(breakpoints);
 			return new IntegrationOptions(this);
+		}
+
+		private static long toNanos(long value, TimeUnit unit, String name) {
+			if (unit == null) throw new IllegalArgumentException(name + " unit must not be null");
+			if (value < 1) throw new IllegalArgumentException(name + " must be positive");
+			if (value == Long.MAX_VALUE && unit == TimeUnit.NANOSECONDS) {
+				return Long.MAX_VALUE;
+			}
+			long nanos = unit.toNanos(value);
+			return nanos <= 0L ? Long.MAX_VALUE : nanos;
 		}
 	}
 }

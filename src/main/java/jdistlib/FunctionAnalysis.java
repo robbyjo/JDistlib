@@ -69,4 +69,7 @@ public final class FunctionAnalysis {
 		return policy == ConstructionPolicy.STRICT
 				? !hasErrors() && !hasWarnings() : !hasErrors();
 	}
+
+	/** Returns a versioned RFC 8259 JSON diagnostic report. */
+	public String toJson() { return DiagnosticJson.toJson(this); }
 }

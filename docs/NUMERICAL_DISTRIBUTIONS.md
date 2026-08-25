@@ -19,11 +19,21 @@ and supplies:
 * cooperative cancellation checked before each evaluation;
 * declared finite breakpoints, with absolute tolerance divided across pieces;
 * callback exceptions, non-finite values, and their coordinates in the result;
+* immutable `ImmutableIntegrationResult` snapshots with typed statuses;
+* callback attempt/completion counts and total, average, maximum, and overall
+  wall-clock timing;
+* benchmark-oriented total and per-callback wall-clock limits;
+* opt-in private daemon-worker execution for callbacks that may not return;
 * QUADPACK, finite tanh-sinh, infinite exp-sinh/sinh-sinh, or automatic
   fallback selection.
 
-Cancellation is cooperative. JDistlib cannot safely interrupt a callback that
-enters an infinite loop or blocks forever inside a single evaluation.
+Cancellation and caller-thread time limits are cooperative: a per-callback limit
+is observed only after that direct callback returns. `ISOLATED_DAEMON` execution
+waits through a `Future` and releases the integrating thread at the configured
+deadline. Java cannot safely kill arbitrary code, so a callback that ignores
+interruption can leave at most that integration's private daemon worker alive.
+The daemon cannot keep the JVM alive, but untrusted callbacks or strict CPU and
+memory containment still require isolation in another process.
 
 `Integrate.assessStability` repeats the calculation with tighter tolerances and
 an additional interval split. Agreement strengthens confidence but does not
@@ -134,6 +144,25 @@ under the selected budgets and tolerances, not that existence was proven.
 `MomentAnalysisOptions` selects orders and the reporting split. The default
 retains orders one and two split at zero, preserving the original mean/variance
 convenience accessors.
+
+## Machine-readable diagnostics
+
+`FunctionAnalysis`, `DistributionAnalysis`, `NumericalDistributionBuildResult`,
+`DiagnosticFinding`, `IntegrationResult`, `ImmutableIntegrationResult`, and
+`IntegrationStabilityResult` expose `toJson()` methods. The dependency-free
+records carry `schemaVersion: 1` and a `type` discriminator. JSON has no NaN or
+infinity numeric literals, so non-finite diagnostic measurements are emitted as
+`null`; status and finding fields retain the reason those measurements are
+unavailable.
+
+## Independent accuracy corpus
+
+`src/test/resources/jdistlib/math/integration-reference.csv` retains 70-digit
+decimal targets obtained independently from closed-form arbitrary-precision
+identities. It covers oscillation, endpoint and interior singularities, extreme
+scaling, a narrow mode, and a heavy tail. The regression test loads decimal
+strings rather than values produced by JDistlib, so implementation changes are
+checked against an independent oracle.
 
 ## Faster optional sampling
 

@@ -27,6 +27,15 @@ import static jdistlib.math.Constants.DBL_EPSILON;
 import static jdistlib.math.Constants.DBL_MAX;
 import static jdistlib.math.Constants.DBL_MIN;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 /**
  * Adaptive numerical integration corresponding to R 4.6.1
  * {@code stats::integrate}. Finite intervals use QUADPACK {@code dqags};
@@ -46,6 +55,18 @@ public class Integrate {
 	public static IntegrationResult integrate(UnivariateFunction f, double lower, double upper) {
 		return integrate(f, lower, upper, DEFAULT_TOLERANCE, DEFAULT_TOLERANCE,
 				DEFAULT_SUBDIVISIONS);
+	}
+
+	/** Integrates with hardened defaults and returns an immutable modern result. */
+	public static ImmutableIntegrationResult integrateImmutable(UnivariateFunction f,
+			double lower, double upper) {
+		return integrate(f, lower, upper, IntegrationOptions.defaults()).toImmutable();
+	}
+
+	/** Integrates with hardened options and returns an immutable modern result. */
+	public static ImmutableIntegrationResult integrateImmutable(UnivariateFunction f,
+			double lower, double upper, IntegrationOptions options) {
+		return integrate(f, lower, upper, options).toImmutable();
 	}
 
 	/**
@@ -93,6 +114,16 @@ public class Integrate {
 		}
 
 		EvaluationGuard guard = new EvaluationGuard(f, options);
+		try {
+			return integrateGuarded(f, lower, upper, options, guard);
+		} finally {
+			guard.close();
+		}
+	}
+
+	private static IntegrationResult integrateGuarded(UnivariateFunction f,
+			double lower, double upper, IntegrationOptions options,
+			EvaluationGuard guard) {
 		boolean reverse = lower > upper;
 		double low = reverse ? upper : lower;
 		double high = reverse ? lower : upper;
@@ -392,7 +423,12 @@ public class Integrate {
 	private static final class EvaluationGuard implements UnivariateFunction {
 		private final UnivariateFunction delegate;
 		private final IntegrationOptions options;
+		private final long startedNanos = System.nanoTime();
+		private final ExecutorService worker;
 		private int evaluations;
+		private int completedEvaluations;
+		private long totalCallbackNanos;
+		private long maximumCallbackNanos;
 		private int failureCode;
 		private double failureX = Double.NaN;
 		private RuntimeException cause;
@@ -401,10 +437,25 @@ public class Integrate {
 		EvaluationGuard(UnivariateFunction delegate, IntegrationOptions options) {
 			this.delegate = delegate;
 			this.options = options;
+			worker = options.getCallbackExecution()
+					== IntegrationOptions.CallbackExecution.ISOLATED_DAEMON
+					? Executors.newSingleThreadExecutor(new ThreadFactory() {
+						@Override public Thread newThread(Runnable task) {
+							Thread thread = new Thread(task,
+									"jdistlib-isolated-integrand");
+							thread.setDaemon(true);
+							return thread;
+						}
+					}) : null;
 		}
 
 		@Override public double eval(double x) {
 			if (failureCode != 0) return Double.NaN;
+			long remaining = remainingTotalNanos();
+			if (remaining <= 0L) {
+				timeLimitFailure(x, "total integration time limit exceeded");
+				return Double.NaN;
+			}
 			if (options.getCancellation() != null) {
 				try {
 					if (options.getCancellation().getAsBoolean()) {
@@ -429,8 +480,21 @@ public class Integrate {
 				return Double.NaN;
 			}
 			evaluations++;
+			long callbackStarted = System.nanoTime();
 			try {
-				double value = delegate.eval(x);
+				double value = worker == null ? delegate.eval(x)
+						: evaluateIsolated(x, remaining);
+				long elapsed = elapsedSince(callbackStarted);
+				recordCompleted(elapsed);
+				if (elapsed > options.getMaxCallbackNanos()) {
+					timeLimitFailure(x, "callback took " + elapsed
+							+ " ns; limit=" + options.getMaxCallbackNanos() + " ns");
+					return Double.NaN;
+				}
+				if (remainingTotalNanos() <= 0L) {
+					timeLimitFailure(x, "total integration time limit exceeded");
+					return Double.NaN;
+				}
 				if (!Double.isFinite(value)) {
 					failureCode = 10;
 					failureX = x;
@@ -438,15 +502,86 @@ public class Integrate {
 					return Double.NaN;
 				}
 				return value;
-			} catch (RuntimeException exception) {
-				failureCode = 7;
-				failureX = x;
-				cause = exception;
-				detail = exception.getClass().getSimpleName() + " at x=" + x
-						+ (exception.getMessage() == null ? ""
-								: ": " + exception.getMessage());
+			} catch (TimeoutException exception) {
+				long elapsed = elapsedSince(callbackStarted);
+				recordElapsed(elapsed);
+				timeLimitFailure(x, "isolated callback did not return within "
+						+ elapsed + " ns");
 				return Double.NaN;
+			} catch (InterruptedException exception) {
+				Thread.currentThread().interrupt();
+				recordElapsed(elapsedSince(callbackStarted));
+				failureCode = 8;
+				failureX = x;
+				detail = "interrupted while waiting for isolated callback";
+				return Double.NaN;
+			} catch (ExecutionException exception) {
+				recordCompleted(elapsedSince(callbackStarted));
+				Throwable original = exception.getCause();
+				if (original instanceof RuntimeException) {
+					return callbackFailure(x, (RuntimeException) original);
+				}
+				if (original instanceof Error) throw (Error) original;
+				return callbackFailure(x, new RuntimeException(original));
+			} catch (RuntimeException exception) {
+				recordCompleted(elapsedSince(callbackStarted));
+				return callbackFailure(x, exception);
 			}
+		}
+
+		private double evaluateIsolated(final double x, long remaining)
+				throws InterruptedException, ExecutionException, TimeoutException {
+			Future<Double> future = worker.submit(new Callable<Double>() {
+				@Override public Double call() { return delegate.eval(x); }
+			});
+			long limit = Math.min(options.getMaxCallbackNanos(), remaining);
+			try {
+				return future.get(limit, TimeUnit.NANOSECONDS);
+			} catch (TimeoutException exception) {
+				future.cancel(true);
+				throw exception;
+			}
+		}
+
+		private double callbackFailure(double x, RuntimeException exception) {
+			failureCode = 7;
+			failureX = x;
+			cause = exception;
+			detail = exception.getClass().getSimpleName() + " at x=" + x
+					+ (exception.getMessage() == null ? ""
+							: ": " + exception.getMessage());
+			return Double.NaN;
+		}
+
+		private long remainingTotalNanos() {
+			long limit = options.getMaxTotalNanos();
+			if (limit == Long.MAX_VALUE) return Long.MAX_VALUE;
+			return limit - elapsedSince(startedNanos);
+		}
+
+		private void timeLimitFailure(double x, String message) {
+			failureCode = 11;
+			failureX = x;
+			detail = message;
+		}
+
+		private void recordCompleted(long elapsed) {
+			completedEvaluations++;
+			recordElapsed(elapsed);
+		}
+
+		private void recordElapsed(long elapsed) {
+			if (Long.MAX_VALUE - totalCallbackNanos < elapsed) {
+				totalCallbackNanos = Long.MAX_VALUE;
+			} else {
+				totalCallbackNanos += elapsed;
+			}
+			maximumCallbackNanos = Math.max(maximumCallbackNanos, elapsed);
+		}
+
+		private static long elapsedSince(long start) {
+			long elapsed = System.nanoTime() - start;
+			return elapsed < 0L ? Long.MAX_VALUE : elapsed;
 		}
 
 		boolean hasFailure() { return failureCode != 0; }
@@ -456,6 +591,13 @@ public class Integrate {
 			result.failureX = failureX;
 			result.cause = cause;
 			if (detail != null) result.detail = detail;
+			result.callbackProfile = new CallbackProfile(evaluations,
+					completedEvaluations, totalCallbackNanos, maximumCallbackNanos,
+					elapsedSince(startedNanos));
+		}
+
+		void close() {
+			if (worker != null) worker.shutdownNow();
 		}
 	}
 

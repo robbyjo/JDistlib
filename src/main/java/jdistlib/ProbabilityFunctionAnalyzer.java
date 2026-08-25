@@ -36,14 +36,19 @@ public final class ProbabilityFunctionAnalyzer {
 		ProbeCounts counts = new ProbeCounts();
 		List<Probe> probes = new ArrayList<Probe>(count
 				+ options.getRandomizedProbeBudget());
+		int randomBudget = options.getRandomizedProbeBudget();
+		double[] x;
+		double[] y;
+		CallbackProbeExecutor probeKernel = new CallbackProbeExecutor(kernel,
+				options.getIntegrationOptions());
+		try {
 		for (int i = 0; i < count; i++) {
 			double unit = (i + 0.5) / count;
 			Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
-			evaluate(kernel, probe, findings, counts);
+			evaluate(probeKernel, probe, findings, counts);
 			probes.add(probe);
 		}
 
-		int randomBudget = options.getRandomizedProbeBudget();
 		if (randomBudget > 0) {
 			Random random = new Random(options.getRandomSeed());
 			int exploratory = Math.min(randomBudget, Math.max(1,
@@ -51,7 +56,7 @@ public final class ProbabilityFunctionAnalyzer {
 			for (int i = 0; i < exploratory; i++) {
 				double unit = (i + random.nextDouble()) / exploratory;
 				Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
-				evaluate(kernel, probe, findings, counts);
+				evaluate(probeKernel, probe, findings, counts);
 				probes.add(probe);
 			}
 			int remaining = randomBudget - exploratory;
@@ -72,7 +77,7 @@ public final class ProbabilityFunctionAnalyzer {
 								* random.nextDouble();
 					}
 					Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
-					evaluate(kernel, probe, findings, counts);
+					evaluate(probeKernel, probe, findings, counts);
 					probes.add(probe);
 				}
 			}
@@ -83,8 +88,8 @@ public final class ProbabilityFunctionAnalyzer {
 		}
 
 		Collections.sort(probes, Probe.BY_UNIT);
-		double[] x = new double[probes.size()];
-		double[] y = new double[probes.size()];
+		x = new double[probes.size()];
+		y = new double[probes.size()];
 		for (int i = 0; i < probes.size(); i++) {
 			x[i] = probes.get(i).x;
 			y[i] = probes.get(i).value;
@@ -109,7 +114,10 @@ public final class ProbabilityFunctionAnalyzer {
 					"NO_POSITIVE_MASS", "no positive finite kernel value was observed"));
 		}
 
-		checkRepeatability(kernel, x, y, options.getRepeatabilityChecks(), findings);
+		checkRepeatability(probeKernel, x, y, options.getRepeatabilityChecks(), findings);
+		} finally {
+			probeKernel.close();
+		}
 		checkShape(x, y, options, findings, breaks);
 		if (counts.minimumPositive < Double.POSITIVE_INFINITY
 				&& counts.maximum > 0.0) {
@@ -160,8 +168,10 @@ public final class ProbabilityFunctionAnalyzer {
 			callbackFailed = true;
 			counts.callbackFailures++;
 			if (counts.callbackFailures <= 8) {
+				String code = exception instanceof CallbackProbeExecutor.CallbackLimitException
+						? "CALLBACK_TIME_LIMIT" : "CALLBACK_EXCEPTION";
 				findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
-						"CALLBACK_EXCEPTION", exception.getClass().getSimpleName()
+						code, exception.getClass().getSimpleName()
 								+ (exception.getMessage() == null ? ""
 										: ": " + exception.getMessage()), probe.x));
 			}

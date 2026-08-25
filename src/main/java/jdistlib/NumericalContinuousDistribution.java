@@ -2,6 +2,7 @@
 package jdistlib;
 
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.ImmutableIntegrationResult;
 import jdistlib.math.Integrate;
 import jdistlib.math.IntegrationOptions;
 import jdistlib.math.IntegrationResult;
@@ -294,7 +295,13 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 		copy.failureX = normalizationResult.failureX;
 		copy.cause = normalizationResult.cause;
 		copy.detail = normalizationResult.detail;
+		copy.callbackProfile = normalizationResult.getCallbackProfile();
 		return copy;
+	}
+
+	/** Returns immutable normalization diagnostics without retaining the kernel. */
+	public ImmutableIntegrationResult getImmutableNormalizationResult() {
+		return normalizationResult.toImmutable();
 	}
 
 	/** Returns the lazily built reusable monotone CDF table. */

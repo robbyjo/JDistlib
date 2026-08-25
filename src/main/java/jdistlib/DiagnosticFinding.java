@@ -34,4 +34,7 @@ public final class DiagnosticFinding {
 		return severity + "[" + code + "] " + message
 				+ (Double.isNaN(x) ? "" : " (x=" + x + ")");
 	}
+
+	/** Returns this finding as an RFC 8259 JSON object. */
+	public String toJson() { return DiagnosticJson.toJson(this); }
 }

@@ -77,4 +77,7 @@ public final class DistributionAnalysis {
 		}
 		return false;
 	}
+
+	/** Returns a versioned RFC 8259 JSON diagnostic report. */
+	public String toJson() { return DiagnosticJson.toJson(this); }
 }

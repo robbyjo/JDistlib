@@ -49,10 +49,30 @@ been compared with the tagged R source and covered by regression vectors.
 The file-by-file disposition and reproducible reference-vector details are in
 [`NMATH_AUDIT.md`](NMATH_AUDIT.md).
 
+## Post-4.6.1 R-devel compatibility
+
+The following changes were audited against the official R trunk on 2026-08-25
+and are covered by upstream regression vectors in
+`RDevelPost461Test`:
+
+- [x] `rhyper.c` revision 90223: use the large-population quantile path when
+  the combined population exceeds `Integer.MAX_VALUE`, even if each group is
+  individually smaller.
+- [x] `rbinom.c` revisions 90299, 90307, and 90310: corrected BTPE Stirling
+  signs and small-mean setup. Corrected BTPE is the default; an explicit
+  `BinomialKind.BUGGY_BTPE` random state preserves the R 4.6-and-earlier
+  stream when reproducibility requires it.
+- [x] `rmultinom.c` revision 89909: sequential conditional binomial sampling
+  with Kahan compensated addition and subtraction. Public weight
+  normalization continues to match R's `FixupProb` wrapper.
+- [x] `stats::wilcox.test` revision 90068: `digits.rank` now defaults to 7 and
+  the new `digits.zap` control defaults to the same value. JDistlib exposes
+  both through overloads of `wilcoxon_test` and `mann_whitney_u_test`.
+
 ## Porting rules
 
-1. Compare the R 3.3.2 and R 4.6.1 tagged files, not the moving R development
-   branch.
+1. Compare the R 3.3.2 and R 4.6.1 tagged files for the baseline audit. Track
+   later R-development changes separately by exact revision, as above.
 2. Preserve JDistlib-only distributions and public APIs unless a compatibility
    shim is supplied.
 3. Convert R process-global work caches to call-local data or explicit state

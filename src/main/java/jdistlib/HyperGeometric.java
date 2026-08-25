@@ -285,16 +285,18 @@ public class HyperGeometric extends GenericDistribution {
 
 		/* check parameter validity */
 
-		if(MathFunctions.isInfinite(nn1in) || MathFunctions.isInfinite(nn2in) || MathFunctions.isInfinite(kkin))
+		if (!Double.isFinite(nn1in) || !Double.isFinite(nn2in)
+				|| !Double.isFinite(kkin))
 			return Double.NaN;
 
 		nn1in = rint(nn1in);
 		nn2in = rint(nn2in);
 		kkin  = rint(kkin);
+		double total = nn1in + nn2in;
 
-		if (nn1in < 0 || nn2in < 0 || kkin < 0 || kkin > nn1in + nn2in)
+		if (nn1in < 0 || nn2in < 0 || kkin < 0 || kkin > total)
 			return Double.NaN;
-		if (nn1in >= Integer.MAX_VALUE || nn2in >= Integer.MAX_VALUE || kkin >= Integer.MAX_VALUE) {
+		if (total > Integer.MAX_VALUE || kkin >= Integer.MAX_VALUE) {
 			/* large n -- evade integer overflow (and inappropriate algorithms)
 	    	   -------- */
 			// FIXME: Much faster to give rbinom() approx when appropriate; -> see Kuensch(1989)
@@ -320,7 +322,7 @@ public class HyperGeometric extends GenericDistribution {
 		if (setup1) {
 			state.n1s = nn1;
 			state.n2s = nn2;
-			state.tn = nn1 + (double) nn2;
+			state.tn = total;
 			if (nn1 <= nn2) {
 				state.n1 = nn1;
 				state.n2 = nn2;

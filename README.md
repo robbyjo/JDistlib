@@ -117,6 +117,13 @@ algorithms for binomial, hypergeometric, and Poisson sampling accept an explicit
 and `Wilcoxon` intentionally keep their work tables in instances, so do not share
 one mutable instance across concurrent callers.
 
+Corrected BTPE sampling is the binomial default. To reproduce the historical R
+4.6-and-earlier BTPE stream, create the per-stream state with
+`Binomial.create_random_state(Binomial.BinomialKind.BUGGY_BTPE)`. The
+`DistributionTest` Wilcoxon helpers default to R-devel's seven significant
+digits and provide overloads for explicit `digitsRank` and `digitsZap` values;
+pass positive infinity to disable either operation.
+
 ## Upstream and license
 
 The nmath-derived code is synchronized against the official R sources and is

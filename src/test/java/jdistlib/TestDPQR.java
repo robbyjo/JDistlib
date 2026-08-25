@@ -3031,7 +3031,7 @@ for(dist in PDQR) {
 		result = DistributionTest.mann_whitney_u_test(x, y, 0, true, true, TestKind.GREATER);
 		System.out.println(result[0]);
 		System.out.println(result[1]);
-		success &= printBool(isEqual(45, result[0]) && isEqual(0.001953125, result[1]));
+		success &= printBool(isEqual(40, result[0]) && isEqual(0.01953125, result[1]));
 		System.out.println("Two-sample Mann-Whitney-U Test");
 		x = new double [] {0.80, 0.83, 1.89, 1.04, 1.45, 1.38, 1.91, 1.64, 0.73, 1.46};
 		y = new double [] {1.15, 0.88, 0.90, 0.74, 1.21};

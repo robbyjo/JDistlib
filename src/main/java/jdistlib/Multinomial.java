@@ -46,27 +46,61 @@ public final class Multinomial {
 	}
 
 	public static int[] random(int size, double[] weights, RandomEngine random) {
+		return random(size, weights, random, Binomial.create_random_state());
+	}
+
+	/**
+	 * Draws a multinomial vector using sequential conditional binomials and
+	 * Kahan compensated probability arithmetic, matching current R's
+	 * {@code rmultinom}. The supplied binomial state also selects corrected or
+	 * legacy BTPE behavior.
+	 */
+	public static int[] random(int size, double[] weights, RandomEngine random,
+			Binomial.RandomState binomialState) {
 		double[] p = probabilities(weights);
-		if (p == null || size < 0) return null;
-		double[] cumulative = new double[p.length];
-		cumulative[0] = p[0];
-		for (int i = 1; i < p.length; i++) cumulative[i] = cumulative[i - 1] + p[i];
+		if (p == null || size < 0 || random == null) return null;
+		if (binomialState == null) binomialState = Binomial.create_random_state();
 		int[] result = new int[p.length];
-		for (int draw = 0; draw < size; draw++) {
-			double u = random.nextDouble();
-			int category = 0;
-			while (category + 1 < cumulative.length && u > cumulative[category]) {
-				category++;
-			}
-			result[category]++;
+		double remainingProbability = 0.0;
+		double compensation = 0.0;
+		for (double probability : p) {
+			double corrected = probability - compensation;
+			double next = remainingProbability + corrected;
+			compensation = (next - remainingProbability) - corrected;
+			remainingProbability = next;
 		}
+		int remainingSize = size;
+		for (int category = 0; category < p.length - 1; category++) {
+			if (p[category] != 0.0) {
+				double conditional = p[category] / remainingProbability;
+				result[category] = conditional < 1.0
+						? (int) Binomial.random(remainingSize, conditional, random,
+								binomialState)
+						: remainingSize;
+				remainingSize -= result[category];
+			}
+			if (remainingSize <= 0) return result;
+			double corrected = -p[category] - compensation;
+			double next = remainingProbability + corrected;
+			compensation = (next - remainingProbability) - corrected;
+			remainingProbability = next;
+		}
+		result[p.length - 1] = remainingSize;
 		return result;
 	}
 
 	public static int[][] random(int n, int size, double[] weights,
 			RandomEngine random) {
+		return random(n, size, weights, random, Binomial.create_random_state());
+	}
+
+	public static int[][] random(int n, int size, double[] weights,
+			RandomEngine random, Binomial.RandomState binomialState) {
+		if (n < 0) return null;
 		int[][] result = new int[n][];
-		for (int i = 0; i < n; i++) result[i] = random(size, weights, random);
+		for (int i = 0; i < n; i++) {
+			result[i] = random(size, weights, random, binomialState);
+		}
 		return result;
 	}
 }

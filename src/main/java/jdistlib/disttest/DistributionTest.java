@@ -15,6 +15,7 @@
 package jdistlib.disttest;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +32,7 @@ import jdistlib.SignRank;
 import jdistlib.T;
 import jdistlib.Wilcoxon;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.math.approx.ApproximationFunction;
 
 import static java.lang.Math.*;
@@ -46,6 +48,7 @@ import static jdistlib.util.Utilities.*;
  *
  */
 public class DistributionTest {
+	private static final double DEFAULT_WILCOX_DIGITS = 7.0;
 	// Needed for dip test
 	private static final double[][] qDiptab = {
 		{0.125,0.125,0.125,0.125,0.125,0.125,0.125,0.125,0.125,0.125,0.132559548782689,0.157497369040235,0.187401878807559,0.20726978858736,0.223755804629222,0.231796258864192,0.237263743826779,0.241992892688593,0.244369839049632,0.245966625504691,0.247439597233262,0.248230659656638,0.248754269146416,0.249302039974259,0.249459652323225,0.24974836247845},
@@ -577,73 +580,122 @@ public class DistributionTest {
 	 * @param kind the kind of test {LOWER, GREATER, TWO_SIDED}
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
-	public static final double[] wilcoxon_test(double[] x, double mu, boolean correction, TestKind kind) {
-		boolean has_zeroes = false;
-		int n_nonzero = 0;
-		Set<Double> seen_set = new HashSet<Double>();
-		for (int i = 0; i < x.length; i++) {
-			if (x[i] == mu) {
-				has_zeroes = true;
-			} else {
-				n_nonzero++;
-				seen_set.add(x[i]);
-			}
-		}
-		double[] new_x = new double[n_nonzero];
-		for (int i = 0, j = 0; i < x.length; i++)
-			if (x[i] != mu)
-				new_x[j++] = x[i] - mu;
-		x = new_x;
-		boolean has_ties = seen_set.size() != x.length;
-		double[] r = rank(vabs(x));
+	public static final double[] wilcoxon_test(double[] x, double mu,
+			boolean correction, TestKind kind) {
+		return wilcoxon_test(x, mu, correction, kind, DEFAULT_WILCOX_DIGITS,
+				DEFAULT_WILCOX_DIGITS);
+	}
+
+	/**
+	 * One-sample Wilcoxon signed-rank test with R-compatible preprocessing.
+	 * Infinite digit values disable the corresponding operation.
+	 *
+	 * @param digitsRank significant digits applied before ranking
+	 * @param digitsZap digits used to turn differences that are tiny relative
+	 *        to the sample scale into exact zeroes
+	 */
+	public static final double[] wilcoxon_test(double[] x, double mu,
+			boolean correction, TestKind kind, double digitsRank,
+			double digitsZap) {
+		double[] differences = new double[x.length];
+		for (int i = 0; i < x.length; i++) differences[i] = x[i] - mu;
+		applySignificantDigits(differences, digitsRank);
+		zapSmallRankDifferences(differences, digitsZap);
+
+		double[] r = rank(vabs(differences));
 		int n = r.length;
-		double limit = n * (n + 1) / 4.0, v = 0, p = Double.NaN;
-		for (int i = 0; i < n; i++)
-			v += r[i];
-		if (!has_ties && !has_zeroes) {
+		int zeroCount = 0;
+		double statistic = 0.0;
+		for (int i = 0; i < n; i++) {
+			if (differences[i] > 0.0) statistic += r[i];
+			else if (differences[i] == 0.0) zeroCount++;
+		}
+		boolean hasZeroes = zeroCount > 0;
+		boolean hasTies = unique(r).length != r.length;
+		double limit = n * (n + 1) / 4.0;
+		double p = Double.NaN;
+		if (!hasTies && !hasZeroes) {
 			SignRank sr = new SignRank(n);
 			switch (kind) {
 				case TWO_SIDED:
-					p = v > limit ? sr.cumulative(v - 1, false, false) : sr.cumulative(v);
+					p = statistic > limit ? sr.cumulative(statistic - 1, false, false)
+							: sr.cumulative(statistic);
 					p = min(2*p, 1);
 					break;
 				case GREATER:
-					p = sr.cumulative(v - 1, false, false);
+					p = sr.cumulative(statistic - 1, false, false);
 					break;
 				case LOWER:
-					p = sr.cumulative(v);
+					p = sr.cumulative(statistic);
 					break;
 			}
 		} else {
-			double sigma = 0;
+			double tieAdjustment = 0.0;
 			for (int nties : table(r).values())
-				sigma += (nties * nties * nties - nties);
-			sigma = sqrt(limit * (2 * n + 1) / 6 - sigma / 48);
-			v = v - limit;
+				tieAdjustment += (nties * nties * nties - nties);
+			double mean = limit - zeroCount * (zeroCount + 1) / 4.0;
+			double variance = limit * (2 * n + 1) / 6.0 - tieAdjustment / 48.0
+					- zeroCount * (zeroCount + 1.0) * (zeroCount + 1.0) / 16.0;
+			double centered = statistic - mean;
 			double cor = 0;
 			if (correction) {
 				switch (kind) {
 					case TWO_SIDED:
-						cor = signum(v) * 0.5; break;
+						cor = signum(centered) * 0.5; break;
 					case GREATER:
 						cor = 0.5; break;
 					case LOWER:
 						cor = -0.5; break;
 				}
 			}
-			v = (v - cor) / sigma;
+			double sigma = sqrt(variance);
+			double z = (centered - cor) / sigma;
+			if (centered == 0.0 && sigma == 0.0) return new double[] {statistic, 1.0};
 			switch (kind) {
 				case TWO_SIDED:
-					p = 2 * min (Normal.cumulative_standard(v),
-						Normal.cumulative(v, 0, 1, false, false));
+					p = 2 * min (Normal.cumulative_standard(z),
+						Normal.cumulative(z, 0, 1, false, false));
 					break;
 				case GREATER:
-					p = Normal.cumulative(v, 0, 1, false, false); break;
+					p = Normal.cumulative(z, 0, 1, false, false); break;
 				case LOWER:
-					p = Normal.cumulative_standard(v); break;
+					p = Normal.cumulative_standard(z); break;
 			}
 		}
-		return new double[] {v, p};
+		return new double[] {statistic, p};
+	}
+
+	private static void applySignificantDigits(double[] values, double digits) {
+		if (!Double.isFinite(digits) || digits > 22.0) return;
+		int roundedDigits = digits < Integer.MIN_VALUE ? Integer.MIN_VALUE
+				: (int) floor(digits + 0.5);
+		for (int i = 0; i < values.length; i++) {
+			values[i] = MathFunctions.signif(values[i], roundedDigits);
+		}
+	}
+
+	private static void zapSmallRankDifferences(double[] values, double digits) {
+		if (!Double.isFinite(digits)) return;
+		double[] positive = new double[values.length];
+		int count = 0;
+		for (double value : values) {
+			double absolute = abs(value);
+			if (Double.isFinite(absolute) && absolute > 0.0) positive[count++] = absolute;
+		}
+		double scale = 0.0;
+		if (count > 0) {
+			positive = Arrays.copyOf(positive, count);
+			Arrays.sort(positive);
+			scale = quantile(positive, 0.75);
+		}
+		double decimalDigits = scale > 0.0
+				? max(-324.0, digits - log10(scale)) : digits;
+		if (decimalDigits > 323.0) return;
+		int roundedDigits = decimalDigits < Integer.MIN_VALUE ? Integer.MIN_VALUE
+				: (int) floor(decimalDigits + 0.5);
+		for (int i = 0; i < values.length; i++) {
+			values[i] = MathFunctions.round(values[i], roundedDigits);
+		}
 	}
 
 	/**
@@ -659,10 +711,24 @@ public class DistributionTest {
 	 */
 	public static final double[] mann_whitney_u_test(double[] x, double[] y, double mu, boolean correction,
 		boolean paired, TestKind kind) {
+		return mann_whitney_u_test(x, y, mu, correction, paired, kind,
+				DEFAULT_WILCOX_DIGITS, DEFAULT_WILCOX_DIGITS);
+	}
+
+	/**
+	 * Mann-Whitney-Wilcoxon test with the same rank rounding controls as
+	 * current R. {@code digitsZap} applies when {@code paired} is true.
+	 */
+	public static final double[] mann_whitney_u_test(double[] x, double[] y,
+			double mu, boolean correction, boolean paired, TestKind kind,
+			double digitsRank, double digitsZap) {
 		int nx = x.length, ny = y.length, n = nx + ny;
 		if (paired)
-			return wilcoxon_test(vmin(x, y), mu, correction, kind);
-		double[] r = mu == 0 ? rank(c(x, y)) : rank(c(vmin(x, mu), y));
+			return wilcoxon_test(vmin(x, y), mu, correction, kind, digitsRank,
+					digitsZap);
+		double[] combined = c(vmin(x, mu), y);
+		applySignificantDigits(combined, digitsRank);
+		double[] r = rank(combined);
 		double w = -nx * (nx + 1) / 2, p = Double.NaN, limit = nx * ny / 2.0;
 		for (int i = 0; i < nx; i++)
 			w += r[i];
@@ -685,30 +751,33 @@ public class DistributionTest {
 			double sigma = 0;
 			for (int nties : table(r).values())
 				sigma += (nties * nties * nties - nties);
-			sigma = sqrt((limit / 6) * ((n + 1) - sigma / (n * (n + 1))));
-			w = w - limit;
+			sigma = sqrt((nx * (double) ny / 12.0)
+					* ((n + 1) - sigma / (n * (double) (n - 1))));
+			double statistic = w;
+			double centered = statistic - limit;
 			double cor = 0;
 			if (correction) {
 				switch (kind) {
 					case TWO_SIDED:
-						cor = signum(w) * 0.5; break;
+						cor = signum(centered) * 0.5; break;
 					case GREATER:
 						cor = 0.5; break;
 					case LOWER:
 						cor = -0.5; break;
 				}
 			}
-			w = (w - cor) / sigma;
+			double z = (centered - cor) / sigma;
 			switch (kind) {
 				case TWO_SIDED:
-					p = 2 * min (Normal.cumulative_standard(w),
-						Normal.cumulative(w, 0, 1, false, false));
+					p = 2 * min (Normal.cumulative_standard(z),
+						Normal.cumulative(z, 0, 1, false, false));
 					break;
 				case GREATER:
-					p = Normal.cumulative(w, 0, 1, false, false); break;
+					p = Normal.cumulative(z, 0, 1, false, false); break;
 				case LOWER:
-					p = Normal.cumulative_standard(w); break;
+					p = Normal.cumulative_standard(z); break;
 			}
+			w = statistic;
 		}
 		return new double[] {w, p};
 	}

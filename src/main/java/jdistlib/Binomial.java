@@ -27,6 +27,16 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
 
 public class Binomial extends GenericDistribution {
+	/**
+	 * Selects the BTPE acceptance test used for binomial random generation.
+	 * {@link #BTPE} contains the R-devel fix for PR#19049;
+	 * {@link #BUGGY_BTPE} preserves the R 4.6 and earlier stream.
+	 */
+	public enum BinomialKind {
+		BTPE,
+		BUGGY_BTPE
+	}
+
 	public static class RandomState {
 		public double c, fm, npq, p1, p2, p3, p4, qn;
 		public double xl, xll, xlr, xm, xr;
@@ -34,10 +44,27 @@ public class Binomial extends GenericDistribution {
 		public double psave = -1.0;
 		public int nsave = -1;
 		public int m;
+		private final BinomialKind kind;
+
+		public RandomState() {
+			this(BinomialKind.BTPE);
+		}
+
+		public RandomState(BinomialKind kind) {
+			if (kind == null) throw new IllegalArgumentException("kind must not be null");
+			this.kind = kind;
+		}
+
+		public BinomialKind getKind() {
+			return kind;
+		}
 	}
 
 	public static final RandomState create_random_state()
 	{	return new RandomState(); }
+
+	public static final RandomState create_random_state(BinomialKind kind)
+	{	return new RandomState(kind); }
 
 	public static final double density_raw(double x, double n, double p, double q, boolean log_p)
 	{
@@ -215,7 +242,8 @@ public class Binomial extends GenericDistribution {
 			state.nsave = n;
 			if (np < 30.0) {
 				/* inverse cdf logic for mean less than 30 */
-				state.qn = pow(q, (double) n);
+				state.qn = p > 0.25 ? pow(q, (double) n)
+						: exp(n * log1p(-p));
 				// goto L_np_small;
 				//L_np_small:
 				/*---------------------- np = n*p < 30 : ------------------------- */
@@ -329,7 +357,9 @@ public class Binomial extends GenericDistribution {
 				}
 			} else {
 				/* squeezing using upper and lower bounds on log(f(x)) */
-				amaxp = (k / state.npq) * ((k * (k / 3. + 0.625) + 0.1666666666666) / state.npq + 0.5);
+				double oneSixth = state.kind == BinomialKind.BTPE
+						? 0.16666666666666666 : 0.1666666666666;
+				amaxp = (k / state.npq) * ((k * (k / 3. + 0.625) + oneSixth) / state.npq + 0.5);
 				ynorm = -k * k / (2.0 * state.npq);
 				alv = log(v);
 				if (alv < ynorm - amaxp) {
@@ -348,8 +378,17 @@ public class Binomial extends GenericDistribution {
 					x2 = x1 * x1;
 					f2 = f1 * f1;
 					w2 = w * w;
-					if (alv <= state.xm * log(f1 / x1) + (n - state.m + 0.5) * log(z / w) + (ix - state.m) * log(w * p / (x1 * q)) + (13860.0 - (462.0 - (132.0 - (99.0 - 140.0 / f2) / f2) / f2) / f2) / f1 / 166320.0 + (13860.0 - (462.0 - (132.0 - (99.0 - 140.0 / z2) / z2) / z2) / z2) / z / 166320.0 + (13860.0 - (462.0 - (132.0 - (99.0 - 140.0 / x2) / x2) / x2) / x2) / x1 / 166320.0 + (13860.0 - (462.0 - (132.0 - (99.0 - 140.0 / w2) / w2) / w2) / w2) / w / 166320.)
-					{
+					double base = state.xm * log(f1 / x1)
+							+ (n - state.m + 0.5) * log(z / w)
+							+ (ix - state.m) * log(w * p / (x1 * q));
+					double fmCorrection = stirlingCorrection(f1, f2);
+					double zCorrection = stirlingCorrection(z, z2);
+					double xCorrection = stirlingCorrection(x1, x2);
+					double wCorrection = stirlingCorrection(w, w2);
+					double threshold = state.kind == BinomialKind.BTPE
+							? base + fmCorrection + zCorrection - xCorrection - wCorrection
+							: base + fmCorrection + zCorrection + xCorrection + wCorrection;
+					if (alv <= threshold) {
 						//goto finis;
 						if (state.psave > 0.5) ix = n - ix;
 						return (double)ix;
@@ -357,6 +396,11 @@ public class Binomial extends GenericDistribution {
 				}
 			}
 		}
+	}
+
+	private static double stirlingCorrection(double value, double square) {
+		return (13860.0 - (462.0 - (132.0 - (99.0 - 140.0 / square)
+				/ square) / square) / square) / value / 166320.0;
 	}
 
 	public static final double[] random(int n, double nin, double pp, RandomEngine random) {
@@ -375,8 +419,12 @@ public class Binomial extends GenericDistribution {
 	protected RandomState state;
 
 	public Binomial(double n, double p) {
+		this(n, p, BinomialKind.BTPE);
+	}
+
+	public Binomial(double n, double p, BinomialKind kind) {
 		this.n = n; this.p = p;
-		state = create_random_state();
+		state = create_random_state(kind);
 	}
 
 	@Override

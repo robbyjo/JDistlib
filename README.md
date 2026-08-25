@@ -175,7 +175,8 @@ double draw = quartic.random();
 
 `NumericalDiscreteDistribution` provides the analogous operation over a finite
 set of outcomes. It evaluates the weight formula once, uses scaled compensated
-summation, and caches the resulting probability and cumulative-mass tables.
+summation, caches the resulting probability and cumulative-mass tables, and
+builds a Walker alias table for constant-time repeated sampling.
 
 ```java
 NumericalDiscreteDistribution customCount =
@@ -216,6 +217,35 @@ if (candidate.canBuild()) {
     DistributionAnalysis checks = distribution.analyzeDistribution();
 }
 ```
+
+Fluent builders gather support, singularities, numerical settings, diagnostics,
+and sampling configuration. Named presets provide useful starting points:
+
+```java
+NumericalContinuousDistribution custom =
+    NumericalContinuousDistribution.builder()
+        .logKernel(x -> -0.5 * x * x)
+        .support(-8.0, 8.0)
+        .diagnosticPreset(DiagnosticPreset.THOROUGH)
+        .adaptiveRejectionSampling(x -> -x, -2.0, 0.0, 2.0)
+        .build();
+```
+
+Distribution objects can be composed without rewriting kernels:
+
+```java
+MixtureDistribution mixture = Distributions.mixture(
+    new double[] {0.25, 0.75}, first, second);
+TruncatedContinuousDistribution positive =
+    Distributions.truncate(mixture, 0.0, Double.POSITIVE_INFINITY);
+MonotoneTransformDistribution rescaled =
+    Distributions.affine(positive, 10.0, 2.0);
+```
+
+Numerical distributions also expose expectations, raw and central moments,
+entropy, modes, and equal-tail probability intervals. Array APIs now include
+allocation-free `densityInto`, `cumulativeInto`, `quantileInto`, and
+`randomInto`; continuous batch CDF calls reuse the monotone cache.
 
 Moment diagnostics integrate `abs(x)^k * density(x)` for user-selected orders
 and report convergence separately on either side of a chosen split. This
@@ -268,7 +298,7 @@ CertifiedInfiniteDiscreteDistribution geometric =
     CertifiedInfiniteDiscreteDistribution.rightInfinite(
         k -> Math.pow(r, k),
         0,
-        (first, firstWeight) -> firstWeight / (1.0 - r),
+        DiscreteTailBounds.geometricRatio(r),
         CertifiedDiscreteOptions.defaults()
     );
 ```

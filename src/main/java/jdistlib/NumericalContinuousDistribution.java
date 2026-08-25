@@ -24,7 +24,8 @@ import jdistlib.math.UnivariateFunction;
  * integrator are checked, and the normalization result is available through
  * {@link #getNormalizationResult()} for inspection.</p>
  */
-public class NumericalContinuousDistribution extends GenericDistribution {
+public class NumericalContinuousDistribution extends GenericDistribution
+		implements SupportedDistribution {
 	private static final int QUANTILE_ITERATIONS = 128;
 	private static final IntegrationOptions DEFAULT_OPTIONS = IntegrationOptions.builder()
 			.tolerances(0.0, 1e-10)
@@ -46,6 +47,129 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 	private volatile NumericalCdfTable cdfTable;
 	private volatile CdfTableOptions cdfTableOptions = CdfTableOptions.defaults();
 	private volatile RejectionSamplingConfig rejectionSampling;
+	private volatile AdaptiveRejectionSampler adaptiveRejectionSampler;
+
+	/** Returns a fluent builder for a custom continuous distribution. */
+	public static Builder builder() { return new Builder(); }
+
+	/** Fluent construction with optional analysis and sampling configuration. */
+	public static final class Builder {
+		private UnivariateFunction kernel;
+		private UnivariateFunction logKernel;
+		private double lower = Double.NaN;
+		private double upper = Double.NaN;
+		private IntegrationOptions integrationOptions = DEFAULT_OPTIONS;
+		private FunctionAnalysisOptions analysisOptions = DiagnosticPreset.STANDARD.options();
+		private double[] singularities = new double[0];
+		private CdfTableOptions cdfTableOptions;
+		private RejectionEnvelope rejectionEnvelope;
+		private int rejectionAttempts = 10000;
+		private UnivariateFunction logDerivative;
+		private double[] adaptivePoints;
+		private int adaptiveMaximumKnots = 128;
+		private int adaptiveMaximumAttempts = 10000;
+
+		private Builder() {}
+		public Builder kernel(UnivariateFunction value) {
+			kernel = value;
+			logKernel = null;
+			return this;
+		}
+		public Builder logKernel(UnivariateFunction value) {
+			logKernel = value;
+			kernel = null;
+			return this;
+		}
+		public Builder support(double lowerBound, double upperBound) {
+			lower = lowerBound;
+			upper = upperBound;
+			return this;
+		}
+		public Builder singularities(double... values) {
+			singularities = values == null ? new double[0] : values.clone();
+			return this;
+		}
+		public Builder integrationOptions(IntegrationOptions value) {
+			integrationOptions = value;
+			return this;
+		}
+		public Builder diagnosticPreset(DiagnosticPreset value) {
+			if (value == null) throw new IllegalArgumentException("preset must not be null");
+			analysisOptions = value.options();
+			return this;
+		}
+		public Builder analysisOptions(FunctionAnalysisOptions value) {
+			analysisOptions = value;
+			return this;
+		}
+		public Builder constructionPolicy(ConstructionPolicy value) {
+			if (analysisOptions == null) {
+				analysisOptions = DiagnosticPreset.STANDARD.options();
+			}
+			analysisOptions = analysisOptions.toBuilder()
+					.constructionPolicy(value).build();
+			return this;
+		}
+		public Builder withoutAnalysis() { analysisOptions = null; return this; }
+		public Builder cdfTable(CdfTableOptions value) {
+			cdfTableOptions = value;
+			return this;
+		}
+		public Builder rejectionSampling(RejectionEnvelope envelope,
+				int maxAttempts) {
+			rejectionEnvelope = envelope;
+			rejectionAttempts = maxAttempts;
+			return this;
+		}
+		public Builder adaptiveRejectionSampling(UnivariateFunction derivative,
+				double... initialPoints) {
+			logDerivative = derivative;
+			adaptivePoints = initialPoints == null ? null : initialPoints.clone();
+			return this;
+		}
+		public Builder adaptiveRejectionLimits(int maximumKnots,
+				int maximumAttempts) {
+			adaptiveMaximumKnots = maximumKnots;
+			adaptiveMaximumAttempts = maximumAttempts;
+			return this;
+		}
+
+		public NumericalContinuousDistribution build() {
+			if ((kernel == null) == (logKernel == null)) {
+				throw new IllegalStateException("exactly one kernel or logKernel is required");
+			}
+			if (integrationOptions == null) {
+				throw new IllegalStateException("integrationOptions must not be null");
+			}
+			double[] declared = integrationOptions.getBreakpoints();
+			double[] combined = new double[declared.length + singularities.length];
+			System.arraycopy(declared, 0, combined, 0, declared.length);
+			System.arraycopy(singularities, 0, combined, declared.length,
+					singularities.length);
+			IntegrationOptions effective = integrationOptions.toBuilder()
+					.breakpoints(combined).build();
+			NumericalContinuousDistribution result;
+			if (logKernel != null) {
+				result = fromLogKernel(logKernel, lower, upper, effective);
+			} else if (analysisOptions != null) {
+				FunctionAnalysisOptions checks = analysisOptions.toBuilder()
+						.integrationOptions(effective).build();
+				result = analyze(kernel, lower, upper, checks).build();
+			} else {
+				result = new NumericalContinuousDistribution(kernel, lower, upper,
+						effective);
+			}
+			if (cdfTableOptions != null) result.rebuildCdfTable(cdfTableOptions);
+			if (rejectionEnvelope != null) {
+				result.configureRejectionSampling(rejectionEnvelope, rejectionAttempts);
+			}
+			if (logDerivative != null) {
+				result.configureAdaptiveRejectionSampling(logDerivative,
+						adaptiveMaximumKnots, adaptiveMaximumAttempts, adaptivePoints);
+			}
+			return result;
+		}
+	}
 
 	/**
 	 * Constructs a distribution using distribution-oriented integration defaults:
@@ -353,6 +477,31 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 		return cumulativeDirect(x, lowerTail, logP);
 	}
 
+	/** Batch CDF evaluation reuses the monotone table for ordinary probabilities. */
+	@Override public void cumulativeInto(double[] input, int inputOffset,
+			double[] output, int outputOffset, int length, boolean lowerTail,
+			boolean logP) {
+		if (input == null || output == null || inputOffset < 0 || outputOffset < 0
+				|| length < 0 || inputOffset > input.length - length
+				|| outputOffset > output.length - length) {
+			throw new IllegalArgumentException("invalid batch input or output range");
+		}
+		if (!logP && length > 0) getCdfTable();
+		if (copyBackward(input, inputOffset, output, outputOffset, length)) {
+			for (int i = length - 1; i >= 0; i--) {
+				output[outputOffset + i] = logP
+						? cumulativeDirect(input[inputOffset + i], lowerTail, true)
+						: cumulativeCached(input[inputOffset + i], lowerTail, false);
+			}
+			return;
+		}
+		for (int i = 0; i < length; i++) {
+			output[outputOffset + i] = logP
+					? cumulativeDirect(input[inputOffset + i], lowerTail, true)
+					: cumulativeCached(input[inputOffset + i], lowerTail, false);
+		}
+	}
+
 	/**
 	 * Evaluates through the reusable CDF table. Extreme or logged tails fall back
 	 * to direct integration to avoid subtractive loss.
@@ -469,6 +618,8 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 	}
 
 	@Override public double random() {
+		AdaptiveRejectionSampler adaptive = adaptiveRejectionSampler;
+		if (adaptive != null) return adaptive.sample(random);
 		RejectionSamplingConfig configured = rejectionSampling;
 		if (configured != null) {
 			return random(configured.envelope, configured.maxAttempts);
@@ -507,6 +658,110 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 
 	public boolean isRejectionSamplingConfigured() {
 		return rejectionSampling != null;
+	}
+
+	/** Configures adaptive rejection under a caller-certified log-concavity promise. */
+	public void configureAdaptiveRejectionSampling(UnivariateFunction logDerivative,
+			int maximumKnots, int maximumAttempts, double... initialPoints) {
+		adaptiveRejectionSampler = new AdaptiveRejectionSampler(this, logDerivative,
+				maximumKnots, maximumAttempts, initialPoints);
+	}
+
+	public void clearAdaptiveRejectionSampling() { adaptiveRejectionSampler = null; }
+	public boolean isAdaptiveRejectionSamplingConfigured() {
+		return adaptiveRejectionSampler != null;
+	}
+	public SamplingStrategy getSamplingStrategy() {
+		if (adaptiveRejectionSampler != null) {
+			return SamplingStrategy.ADAPTIVE_LOG_CONCAVE_REJECTION;
+		}
+		return rejectionSampling == null ? SamplingStrategy.INVERSE_CDF
+				: SamplingStrategy.CERTIFIED_REJECTION;
+	}
+	public String getSamplingStrategyExplanation() {
+		switch (getSamplingStrategy()) {
+		case ADAPTIVE_LOG_CONCAVE_REJECTION:
+			return "adaptive tangent envelope selected from a supplied log derivative";
+		case CERTIFIED_REJECTION:
+			return "caller-supplied certified rejection envelope is configured";
+		default:
+			return "general inverse-CDF sampling requires no shape assumptions";
+		}
+	}
+
+	/** Numerically evaluates E[g(X)] with immutable integration diagnostics. */
+	public ImmutableIntegrationResult expectation(UnivariateFunction function) {
+		if (function == null) throw new IllegalArgumentException("function must not be null");
+		return Integrate.integrateImmutable(x -> {
+			double probabilityDensity = density(x, false);
+			if (probabilityDensity == 0.0) return 0.0;
+			return function.eval(x) * probabilityDensity;
+		}, lower, upper, options);
+	}
+
+	/** Numerically evaluates E[X^order]. Fractional orders require nonnegative support. */
+	public ImmutableIntegrationResult rawMoment(double order) {
+		validateMomentOrder(order, false);
+		return expectation(x -> Math.pow(x, order));
+	}
+
+	/** Numerically evaluates E[(X-E[X])^order]. Orders must be integers. */
+	public ImmutableIntegrationResult centralMoment(double order) {
+		validateMomentOrder(order, true);
+		ImmutableIntegrationResult mean = rawMoment(1.0);
+		if (!mean.isSuccess()) return mean;
+		double center = mean.getValue();
+		return expectation(x -> Math.pow(x - center, order));
+	}
+
+	/** Numerically evaluates differential entropy, -E[log f(X)]. */
+	public ImmutableIntegrationResult entropy() {
+		return expectation(x -> -density(x, true));
+	}
+
+	/** Returns the best mode observed by transformed-grid search and refinement. */
+	public double mode() {
+		final int probes = 1025;
+		int best = 0;
+		double bestValue = Double.NEGATIVE_INFINITY;
+		for (int i = 0; i < probes; i++) {
+			double unit = (i + 0.5) / probes;
+			double value = density(ProbabilityFunctionAnalyzer.mapUnit(unit,
+					lower, upper), true);
+			if (value > bestValue) { bestValue = value; best = i; }
+		}
+		double left = Math.max(0.0, (best - 1.0) / probes);
+		double right = Math.min(1.0, (best + 2.0) / probes);
+		final double ratio = (Math.sqrt(5.0) - 1.0) * 0.5;
+		double c = right - ratio * (right - left);
+		double d = left + ratio * (right - left);
+		for (int i = 0; i < 64; i++) {
+			double fc = density(ProbabilityFunctionAnalyzer.mapUnit(c, lower, upper), true);
+			double fd = density(ProbabilityFunctionAnalyzer.mapUnit(d, lower, upper), true);
+			if (fc >= fd) { right = d; d = c; c = right - ratio * (right - left); }
+			else { left = c; c = d; d = left + ratio * (right - left); }
+		}
+		return ProbabilityFunctionAnalyzer.mapUnit((left + right) * 0.5,
+				lower, upper);
+	}
+
+	/** Returns the equal-tail interval containing the requested probability. */
+	public ProbabilityInterval probabilityInterval(double probability) {
+		if (!(probability > 0.0 && probability < 1.0)) {
+			throw new IllegalArgumentException("probability must lie between zero and one");
+		}
+		double tail = (1.0 - probability) * 0.5;
+		return new ProbabilityInterval(quantile(tail), quantile(1.0 - tail),
+				probability, "equal-tail");
+	}
+
+	private void validateMomentOrder(double order, boolean requireInteger) {
+		if (!(order >= 0.0) || !Double.isFinite(order)
+				|| (requireInteger && order != Math.rint(order))
+				|| (lower < 0.0 && order != Math.rint(order))) {
+			throw new IllegalArgumentException(
+					"moment order must be finite and nonnegative; negative support and central moments require integer orders");
+		}
 	}
 
 	/** Draws one value using an explicit rejection envelope. */

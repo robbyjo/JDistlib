@@ -29,6 +29,11 @@ public final class FunctionAnalysisOptions {
 
 	public static Builder builder() { return new Builder(); }
 	public static FunctionAnalysisOptions defaults() { return builder().build(); }
+	/** Returns the ready-to-use settings represented by a named preset. */
+	public static FunctionAnalysisOptions forPreset(DiagnosticPreset preset) {
+		if (preset == null) throw new IllegalArgumentException("preset must not be null");
+		return preset.options();
+	}
 	public int getSampleCount() { return sampleCount; }
 	public int getRepeatabilityChecks() { return repeatabilityChecks; }
 	public double getDiscontinuityRatio() { return discontinuityRatio; }
@@ -41,6 +46,18 @@ public final class FunctionAnalysisOptions {
 	public long getRandomSeed() { return randomSeed; }
 	public ConstructionPolicy getConstructionPolicy() { return constructionPolicy; }
 	public IntegrationOptions getIntegrationOptions() { return integrationOptions; }
+	/** Returns a builder initialized from these settings. */
+	public Builder toBuilder() {
+		return new Builder().sampleCount(sampleCount)
+				.repeatabilityChecks(repeatabilityChecks)
+				.discontinuityRatio(discontinuityRatio)
+				.dynamicRangeOrders(dynamicRangeOrders)
+				.randomizedProbeBudget(randomizedProbeBudget)
+				.adaptiveProbeRounds(adaptiveProbeRounds)
+				.randomSeed(randomSeed)
+				.constructionPolicy(constructionPolicy)
+				.integrationOptions(integrationOptions);
+	}
 
 	public static final class Builder {
 		private int sampleCount = 257;

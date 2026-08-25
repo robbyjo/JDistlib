@@ -12,7 +12,8 @@ import jdistlib.math.UnivariateFunction;
  * Finite approximation to an infinite integer-supported distribution, stopped
  * only when user-provided tail certificates bound the omitted probability.
  */
-public final class CertifiedInfiniteDiscreteDistribution extends GenericDistribution {
+public final class CertifiedInfiniteDiscreteDistribution extends GenericDistribution
+		implements SupportedDistribution {
 	private static final long MAX_EXACT_INTEGER = 9007199254740992L;
 	private final NumericalDiscreteDistribution truncated;
 	private final double tailWeightUpperBound;
@@ -96,6 +97,8 @@ public final class CertifiedInfiniteDiscreteDistribution extends GenericDistribu
 	public NumericalDiscreteDistribution getTruncatedDistribution() {
 		return truncated;
 	}
+	@Override public double getLowerBound() { return truncated.getLowerBound(); }
+	@Override public double getUpperBound() { return truncated.getUpperBound(); }
 
 	@Override public double density(double x, boolean log) {
 		return truncated.density(x, log);

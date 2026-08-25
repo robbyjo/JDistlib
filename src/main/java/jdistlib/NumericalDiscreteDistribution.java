@@ -15,7 +15,8 @@ import jdistlib.math.UnivariateFunction;
  * inclusive integer range. Summation is scaled to avoid overflow when weights
  * have a large common magnitude.</p>
  */
-public class NumericalDiscreteDistribution extends GenericDistribution {
+public class NumericalDiscreteDistribution extends GenericDistribution
+		implements SupportedDistribution {
 	private static final int MAX_GENERATED_SUPPORT = 1000000;
 	private final double[] support;
 	private final double[] probabilities;
@@ -23,6 +24,48 @@ public class NumericalDiscreteDistribution extends GenericDistribution {
 	private final double[] upperCumulative;
 	private final double normalization;
 	private final double logNormalization;
+	private final double[] aliasProbability;
+	private final int[] aliasIndex;
+
+	/** Returns a fluent builder for a finite custom discrete distribution. */
+	public static Builder builder() { return new Builder(); }
+
+	public static final class Builder {
+		private UnivariateFunction weight;
+		private UnivariateFunction logWeight;
+		private double[] support;
+		private Builder() {}
+		public Builder weights(UnivariateFunction value) {
+			weight = value;
+			logWeight = null;
+			return this;
+		}
+		public Builder logWeights(UnivariateFunction value) {
+			logWeight = value;
+			weight = null;
+			return this;
+		}
+		public Builder support(double... values) {
+			support = values == null ? null : values.clone();
+			return this;
+		}
+		public Builder integerSupport(int lowerInclusive, int upperInclusive) {
+			support = NumericalDiscreteDistribution.integerSupport(lowerInclusive,
+					upperInclusive);
+			return this;
+		}
+		public NumericalDiscreteDistribution build() {
+			if ((weight == null) == (logWeight == null)) {
+				throw new IllegalStateException("exactly one weights or logWeights function is required");
+			}
+			if (support == null || support.length == 0) {
+				throw new IllegalStateException("nonempty support is required");
+			}
+			return logWeight == null
+					? new NumericalDiscreteDistribution(weight, support)
+					: fromLogWeights(logWeight, support);
+		}
+	}
 
 	/**
 	 * Constructs a distribution over an arbitrary finite set of outcomes.
@@ -101,6 +144,9 @@ public class NumericalDiscreteDistribution extends GenericDistribution {
 			upperCumulative[i] = Math.min(1.0, sum);
 		}
 		upperCumulative[0] = 1.0;
+		aliasProbability = new double[probabilities.length];
+		aliasIndex = new int[probabilities.length];
+		buildAliasTable();
 	}
 
 	/**
@@ -148,6 +194,8 @@ public class NumericalDiscreteDistribution extends GenericDistribution {
 
 	/** Returns the sorted declared support. */
 	public double[] getSupport() { return support.clone(); }
+	@Override public double getLowerBound() { return support[0]; }
+	@Override public double getUpperBound() { return support[support.length - 1]; }
 
 	/** Returns probabilities corresponding to {@link #getSupport()}. */
 	public double[] getProbabilities() { return probabilities.clone(); }
@@ -196,24 +244,125 @@ public class NumericalDiscreteDistribution extends GenericDistribution {
 		if (Double.isNaN(p) || DistributionUtil.invalidProbability(p, logP)) {
 			return Double.NaN;
 		}
-		boolean zero = p == (logP ? Double.NEGATIVE_INFINITY : 0.0);
-		boolean one = p == (logP ? 0.0 : 1.0);
-		if ((lowerTail && zero) || (!lowerTail && one)) return support[0];
-		if ((lowerTail && one) || (!lowerTail && zero)) {
-			return support[support.length - 1];
+		double probability = logP ? Math.exp(p) : p;
+		double target = lowerTail ? probability : 1.0 - probability;
+		if (target <= 0.0) return support[0];
+		if (target >= 1.0) return support[support.length - 1];
+		int low = 0;
+		int high = lowerCumulative.length - 1;
+		while (low < high) {
+			int middle = (low + high) >>> 1;
+			if (lowerCumulative[middle] >= target) high = middle;
+			else low = middle + 1;
 		}
-
-		for (int i = 0; i < support.length; i++) {
-			double probability = lowerTail ? lowerCumulative[i]
-					: (i + 1 == support.length ? 0.0 : upperCumulative[i + 1]);
-			double compared = logP ? Math.log(probability) : probability;
-			if (lowerTail ? compared >= p : compared <= p) return support[i];
-		}
-		return support[support.length - 1];
+		return support[low];
 	}
 
 	@Override public double random() {
-		return quantile(random.nextDouble(), true, false);
+		int column = (int) (random.nextDouble() * support.length);
+		if (column == support.length) column--;
+		return support[random.nextDouble() < aliasProbability[column]
+				? column : aliasIndex[column]];
+	}
+
+	public SamplingStrategy getSamplingStrategy() { return SamplingStrategy.WALKER_ALIAS; }
+	public String getSamplingStrategyExplanation() {
+		return "Walker alias table built once from the normalized finite support";
+	}
+
+	/** Exactly evaluates E[g(X)] over the retained finite support. */
+	public double expectation(UnivariateFunction function) {
+		if (function == null) throw new IllegalArgumentException("function must not be null");
+		double sum = 0.0;
+		double correction = 0.0;
+		for (int i = 0; i < support.length; i++) {
+			double adjusted = function.eval(support[i]) * probabilities[i] - correction;
+			double next = sum + adjusted;
+			correction = (next - sum) - adjusted;
+			sum = next;
+		}
+		return sum;
+	}
+
+	public double rawMoment(double order) {
+		validateMomentOrder(order, false);
+		return expectation(x -> Math.pow(x, order));
+	}
+
+	public double centralMoment(double order) {
+		validateMomentOrder(order, true);
+		double mean = expectation(x -> x);
+		return expectation(x -> Math.pow(x - mean, order));
+	}
+
+	/** Shannon entropy in nats. */
+	public double entropy() {
+		double result = 0.0;
+		for (double probability : probabilities) {
+			if (probability > 0.0) result -= probability * Math.log(probability);
+		}
+		return result;
+	}
+
+	/** Returns the smallest outcome having maximum mass. */
+	public double mode() {
+		int best = 0;
+		for (int i = 1; i < probabilities.length; i++) {
+			if (probabilities[i] > probabilities[best]) best = i;
+		}
+		return support[best];
+	}
+
+	/** Returns an equal-tail interval; its actual discrete mass may exceed the request. */
+	public ProbabilityInterval probabilityInterval(double probability) {
+		if (!(probability > 0.0 && probability < 1.0)) {
+			throw new IllegalArgumentException("probability must lie between zero and one");
+		}
+		double tail = (1.0 - probability) * 0.5;
+		return new ProbabilityInterval(quantile(tail), quantile(1.0 - tail),
+				probability, "equal-tail-discrete");
+	}
+
+	private void validateMomentOrder(double order, boolean requireInteger) {
+		if (!(order >= 0.0) || !Double.isFinite(order)
+				|| (requireInteger && order != Math.rint(order))
+				|| (support[0] < 0.0 && order != Math.rint(order))) {
+			throw new IllegalArgumentException(
+					"moment order must be finite and nonnegative; negative support and central moments require integer orders");
+		}
+	}
+
+	private void buildAliasTable() {
+		int n = probabilities.length;
+		double[] scaled = new double[n];
+		int[] small = new int[n];
+		int[] large = new int[n];
+		int smallCount = 0;
+		int largeCount = 0;
+		for (int i = 0; i < n; i++) {
+			scaled[i] = probabilities[i] * n;
+			if (scaled[i] < 1.0) small[smallCount++] = i;
+			else large[largeCount++] = i;
+		}
+		while (smallCount > 0 && largeCount > 0) {
+			int below = small[--smallCount];
+			int above = large[--largeCount];
+			aliasProbability[below] = scaled[below];
+			aliasIndex[below] = above;
+			scaled[above] = scaled[above] + scaled[below] - 1.0;
+			if (scaled[above] < 1.0) small[smallCount++] = above;
+			else large[largeCount++] = above;
+		}
+		while (largeCount > 0) {
+			int index = large[--largeCount];
+			aliasProbability[index] = 1.0;
+			aliasIndex[index] = index;
+		}
+		while (smallCount > 0) {
+			int index = small[--smallCount];
+			aliasProbability[index] = 1.0;
+			aliasIndex[index] = index;
+		}
 	}
 
 	private int upperBound(double x) {

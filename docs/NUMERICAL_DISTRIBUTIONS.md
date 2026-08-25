@@ -98,6 +98,42 @@ and maximum accuracy. `cumulativeCached` opts into the table. Central quantiles
 use the table as an initial inverse and then perform direct Newton corrections;
 logged and extreme tails continue through direct quadrature.
 
+Array operations inherited from `GenericDistribution` now have allocation-free
+`densityInto`, `cumulativeInto`, `quantileInto`, and `randomInto` forms.
+Continuous ordinary-probability CDF batches build the monotone table once and
+reuse it across the batch; logged and extreme tails still use direct integration.
+
+## Fluent construction and diagnostic presets
+
+`NumericalContinuousDistribution.builder()` collects a kernel or log-kernel,
+support, singularity breakpoints, integration options, analysis policy, CDF
+table settings, and an optional sampling configuration.
+`NumericalDiscreteDistribution.builder()` accepts ordinary or log weights and
+explicit or consecutive support. `NumericalPiecewiseDistribution.builder()`
+handles interval unions, holes, singularities, and atoms.
+
+`DiagnosticPreset.FAST`, `STANDARD`, and `THOROUGH` scale deterministic and
+random probes, refinement rounds, integration tolerances, subdivisions, and
+evaluation budgets. A preset produces an ordinary `FunctionAnalysisOptions`
+object, so every value remains independently editable.
+
+## Distribution composition
+
+`MixtureDistribution`, `TruncatedContinuousDistribution`,
+`MonotoneTransformDistribution`, and `CensoredDistribution` compose scalar
+distribution objects. The `Distributions` class supplies short factories.
+Mixtures combine densities and masses in log space when requested. Monotone
+transforms require the inverse map and its log absolute derivative; the affine
+factory supplies these automatically. Censoring follows the same convention as
+piecewise distributions: `density` at a censoring bound returns its atom mass.
+
+Truncation and the Jacobian transform formulas are
+
+\[
+f_{[a,b]}(x)=\frac{f(x)}{F(b)-F(a)},\qquad
+f_Y(y)=f_X(h^{-1}(y))\left|\frac{d h^{-1}(y)}{dy}\right|.
+\]
+
 ## Piecewise and mixed support
 
 `NumericalSupport` represents a union of intervals after optional hole
@@ -123,6 +159,11 @@ tail-weight bound and the resulting omitted-probability bound. Its guarantee is
 conditional on the user-provided certificate being mathematically correct;
 JDistlib can check that the bound includes the first omitted term but cannot
 prove the remainder formula.
+
+`DiscreteTailBounds` supplies conditional certificates for geometric ratio
+bounds, right/left/symmetric power-law integral bounds, constants, and delayed
+remainders after a verified finite prefix. These helpers make the formula less
+error-prone; their mathematical assumptions remain promises from the caller.
 
 ## Constructed-distribution checks
 
@@ -173,6 +214,29 @@ checked against an independent oracle.
 a global normalized log-density upper bound. JDistlib checks every encountered
 ratio and fails on a violation or exhausted attempt budget, but cannot prove a
 user-supplied bound over unsampled coordinates.
+
+Finite `NumericalDiscreteDistribution` objects automatically build a Walker
+alias table, making each draw constant-time. Continuous builders select inverse
+CDF sampling by default, a supplied certified envelope when configured, or an
+adaptive tangent-envelope sampler when supplied a log-density derivative and
+initial knots. `getSamplingStrategy()` and
+`getSamplingStrategyExplanation()` make that selection observable.
+
+Adaptive rejection currently requires finite support and a differentiable,
+strictly log-concave density at the retained knots. JDistlib checks decreasing
+sampled derivatives and every encountered tangent-envelope inequality, but the
+global log-concavity claim remains the caller's responsibility.
+
+## Numerical summaries
+
+Continuous numerical distributions expose `expectation`, `rawMoment`,
+`centralMoment`, `entropy`, `mode`, and `probabilityInterval`. Integrals return
+`ImmutableIntegrationResult`, retaining error and callback diagnostics.
+Finite-discrete counterparts are exact sums in double arithmetic. Fractional
+raw moments require nonnegative support, while central moments require integer
+orders. Mode search for arbitrary continuous callbacks is evidence from a
+transformed grid plus local refinement, not proof that a narrower mode does not
+exist.
 
 ## Choosing a better kernel
 

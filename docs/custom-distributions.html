@@ -40,6 +40,7 @@
       <strong>On this page</strong>
       <a href="#quick-start">Quick start</a>
       <a href="#model">How normalization works</a>
+      <a href="#workflow">Builders and composition</a>
       <a href="#continuous-details">Continuous options</a>
       <a href="#discrete-details">Discrete options</a>
       <a href="#diagnostics">Diagnostics</a>
@@ -151,6 +152,76 @@ double draw = countLaw.random();</code></pre>
         formula safer to evaluate.</p>
     </section>
 
+    <section class="guide-section" id="workflow">
+      <p class="eyebrow">JDistlib 0.6.0 workflow</p>
+      <h2>Build, compose, summarize, and evaluate in batches</h2>
+
+      <h3>Keep related choices in one builder</h3>
+      <p>The fluent builders gather the formula, support, singularities,
+        numerical controls, diagnostic strength, cache, and sampling strategy.
+        <code>FAST</code>, <code>STANDARD</code>, and <code>THOROUGH</code> are starting
+        points; their resulting options remain fully editable.</p>
+      <pre><code>NumericalContinuousDistribution custom =
+    NumericalContinuousDistribution.builder()
+        .logKernel(x -&gt; -0.5 * x * x)
+        .support(-8.0, 8.0)
+        .singularities(0.0)
+        .diagnosticPreset(DiagnosticPreset.THOROUGH)
+        .adaptiveRejectionSampling(
+            x -&gt; -x, -2.0, 0.0, 2.0)
+        .build();</code></pre>
+      <p><code>NumericalDiscreteDistribution.builder()</code> accepts ordinary or log
+        weights. <code>NumericalPiecewiseDistribution.builder()</code> accepts a
+        <code>NumericalSupport</code> containing interval unions, holes,
+        singularities, and atoms.</p>
+
+      <h3>Compose existing distribution objects</h3>
+      <p>Mixture, truncation, affine or general monotone transformation, and
+        censoring are available without restating an unnormalized kernel:</p>
+      <div class="formula-panel">
+        \[
+          f_{\mathrm{mix}}(x)=\sum_i\pi_i f_i(x),\qquad
+          f_{[a,b]}(x)=\frac{f(x)}{F(b)-F(a)},\qquad
+          f_Y(y)=f_X(h^{-1}(y))\left|\frac{dh^{-1}(y)}{dy}\right|.
+        \]
+      </div>
+      <pre><code>MixtureDistribution mixture = Distributions.mixture(
+    new double[] {0.25, 0.75}, first, second);
+TruncatedContinuousDistribution positive =
+    Distributions.truncate(
+        mixture, 0.0, Double.POSITIVE_INFINITY);
+MonotoneTransformDistribution shifted =
+    Distributions.affine(positive, 10.0, 2.0);
+CensoredDistribution observed =
+    Distributions.censor(shifted, 10.0, 20.0);</code></pre>
+      <p>At a censoring bound, <code>density</code> returns atom probability rather
+        than an ordinary continuous density, matching the mixed-support API.</p>
+
+      <h3>Inspect summaries and the selected sampler</h3>
+      <pre><code>double mode = custom.mode();
+ImmutableIntegrationResult variance = custom.centralMoment(2.0);
+ImmutableIntegrationResult entropy = custom.entropy();
+ProbabilityInterval interval = custom.probabilityInterval(0.95);
+
+System.out.println(custom.getSamplingStrategy());
+System.out.println(custom.getSamplingStrategyExplanation());</code></pre>
+      <p>Finite discrete distributions automatically use a Walker alias table.
+        Adaptive continuous rejection is conditional on the caller's global
+        log-concavity promise; decreasing derivatives and all encountered tangent
+        bounds are checked.</p>
+
+      <h3>Evaluate without per-call allocation</h3>
+      <pre><code>double[] x = {0.1, 0.5, 0.9};
+double[] probabilities = new double[x.length];
+custom.cumulativeInto(
+    x, 0, probabilities, 0, x.length, true, false);
+
+double[] draws = new double[10_000];
+custom.randomInto(draws, 0, draws.length);</code></pre>
+      <p>Ordinary continuous CDF batches reuse one monotone CDF table. Logged and
+        extreme tails continue through direct integration.</p>
+    </section>
+
     <section class="guide-section" id="continuous-details">
       <p class="eyebrow">Continuous distributions</p>
       <h2>Choose support and numerical strategy deliberately</h2>
@@ -253,8 +324,7 @@ CertifiedInfiniteDiscreteDistribution geometric =
     CertifiedInfiniteDiscreteDistribution.rightInfinite(
         k -&gt; Math.pow(r, k),
         0,
-        (firstOmitted, firstWeight) -&gt;
-            firstWeight / (1.0 - r),
+        DiscreteTailBounds.geometricRatio(r),
         CertifiedDiscreteOptions.defaults()
     );</code></pre>
       <aside class="callout">

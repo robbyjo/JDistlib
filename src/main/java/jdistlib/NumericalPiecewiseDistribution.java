@@ -11,7 +11,49 @@ import jdistlib.math.UnivariateFunction;
  * Numerical distribution over a union of continuous intervals and optional
  * point atoms. At an atom, {@code density} returns its probability mass.
  */
-public final class NumericalPiecewiseDistribution extends GenericDistribution {
+public final class NumericalPiecewiseDistribution extends GenericDistribution
+		implements SupportedDistribution {
+	/** Returns a fluent builder for interval unions with optional atoms. */
+	public static Builder builder() { return new Builder(); }
+
+	public static final class Builder {
+		private UnivariateFunction kernel;
+		private UnivariateFunction logKernel;
+		private UnivariateFunction atomWeight = x -> 0.0;
+		private UnivariateFunction logAtomWeight = x -> Double.NEGATIVE_INFINITY;
+		private NumericalSupport support;
+		private IntegrationOptions options = IntegrationOptions.defaults();
+		private Builder() {}
+		public Builder kernel(UnivariateFunction value) {
+			kernel = value; logKernel = null; return this;
+		}
+		public Builder logKernel(UnivariateFunction value) {
+			logKernel = value; kernel = null; return this;
+		}
+		public Builder atomWeights(UnivariateFunction value) {
+			atomWeight = value; return this;
+		}
+		public Builder logAtomWeights(UnivariateFunction value) {
+			logAtomWeight = value; return this;
+		}
+		public Builder support(NumericalSupport value) { support = value; return this; }
+		public Builder integrationOptions(IntegrationOptions value) {
+			options = value; return this;
+		}
+		public NumericalPiecewiseDistribution build() {
+			if ((kernel == null) == (logKernel == null)) {
+				throw new IllegalStateException("exactly one kernel or logKernel is required");
+			}
+			if (support == null || options == null) {
+				throw new IllegalStateException("support and integration options are required");
+			}
+			return logKernel == null
+					? new NumericalPiecewiseDistribution(kernel, support, atomWeight,
+							options)
+					: NumericalPiecewiseDistribution.fromLogKernel(logKernel, support,
+							logAtomWeight, options);
+		}
+	}
 	private static final int QUANTILE_ITERATIONS = 128;
 	private final NumericalSupport support;
 	private final NumericalContinuousDistribution[] components;
@@ -51,6 +93,8 @@ public final class NumericalPiecewiseDistribution extends GenericDistribution {
 	}
 
 	public NumericalSupport getSupport() { return support; }
+	@Override public double getLowerBound() { return support.getLowerBound(); }
+	@Override public double getUpperBound() { return support.getUpperBound(); }
 	public double getNormalizationConstant() { return normalization; }
 	public double getLogNormalizationConstant() { return logNormalization; }
 

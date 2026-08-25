@@ -8,6 +8,12 @@ Version 0.6.0 (in development):
   results, callback timing profiles and wall-clock budgets, opt-in daemon-worker
   callback isolation, versioned dependency-free JSON diagnostics, and an
   independent high-precision corpus for difficult integral families.
+* Added the complete custom-distribution workflow: fluent builders and named
+  diagnostic presets; mixture, truncation, monotone-transform, affine, and
+  censoring composition; Walker-alias and adaptive log-concave rejection
+  sampling with strategy explanations; certified tail-bound helpers; numerical
+  expectations, moments, entropy, modes, and probability intervals; and
+  cache-aware allocation-free batch APIs.
 
 Version 0.5.1 (in development):
 * Added call-local, randomized quasi-Monte Carlo rectangle probabilities for

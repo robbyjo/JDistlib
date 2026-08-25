@@ -32,11 +32,24 @@ public abstract class GenericDistribution {
 	public abstract double random();
 
 	public double[] density(double[] x, boolean log) {
-		int n = x.length;
-		double[] v = new double[n];
-		for (int i = 0; i < n; i++)
-			v[i] = density(x[i], log);
+		double[] v = new double[x.length];
+		densityInto(x, 0, v, 0, x.length, log);
 		return v;
+	}
+
+	/** Evaluates densities into caller-owned storage after one range validation. */
+	public void densityInto(double[] input, int inputOffset, double[] output,
+			int outputOffset, int length, boolean log) {
+		validateBatch(input, inputOffset, output, outputOffset, length);
+		if (copyBackward(input, inputOffset, output, outputOffset, length)) {
+			for (int i = length - 1; i >= 0; i--) {
+				output[outputOffset + i] = density(input[inputOffset + i], log);
+			}
+			return;
+		}
+		for (int i = 0; i < length; i++) {
+			output[outputOffset + i] = density(input[inputOffset + i], log);
+		}
 	}
 
 	/**
@@ -58,11 +71,26 @@ public abstract class GenericDistribution {
 	}
 
 	public double[] cumulative(double[] p, boolean lower_tail, boolean log_p) {
-		int n = p.length;
-		double[] v = new double[n];
-		for (int i = 0; i < n; i++)
-			v[i] = cumulative(p[i], lower_tail, log_p);
+		double[] v = new double[p.length];
+		cumulativeInto(p, 0, v, 0, p.length, lower_tail, log_p);
 		return v;
+	}
+
+	/** Evaluates CDF values into caller-owned storage. */
+	public void cumulativeInto(double[] input, int inputOffset, double[] output,
+			int outputOffset, int length, boolean lowerTail, boolean logP) {
+		validateBatch(input, inputOffset, output, outputOffset, length);
+		if (copyBackward(input, inputOffset, output, outputOffset, length)) {
+			for (int i = length - 1; i >= 0; i--) {
+				output[outputOffset + i] = cumulative(input[inputOffset + i],
+						lowerTail, logP);
+			}
+			return;
+		}
+		for (int i = 0; i < length; i++) {
+			output[outputOffset + i] = cumulative(input[inputOffset + i],
+					lowerTail, logP);
+		}
 	}
 
 	/**
@@ -75,11 +103,26 @@ public abstract class GenericDistribution {
 	}
 
 	public double[] quantile(double[] q, boolean lower_tail, boolean log_p) {
-		int n = q.length;
-		double[] v = new double[n];
-		for (int i = 0; i < n; i++)
-			v[i] = quantile(q[i], lower_tail, log_p);
+		double[] v = new double[q.length];
+		quantileInto(q, 0, v, 0, q.length, lower_tail, log_p);
 		return v;
+	}
+
+	/** Evaluates quantiles into caller-owned storage. */
+	public void quantileInto(double[] input, int inputOffset, double[] output,
+			int outputOffset, int length, boolean lowerTail, boolean logP) {
+		validateBatch(input, inputOffset, output, outputOffset, length);
+		if (copyBackward(input, inputOffset, output, outputOffset, length)) {
+			for (int i = length - 1; i >= 0; i--) {
+				output[outputOffset + i] = quantile(input[inputOffset + i],
+						lowerTail, logP);
+			}
+			return;
+		}
+		for (int i = 0; i < length; i++) {
+			output[outputOffset + i] = quantile(input[inputOffset + i],
+					lowerTail, logP);
+		}
 	}
 
 	/**
@@ -101,10 +144,19 @@ public abstract class GenericDistribution {
 	}
 
 	public double[] random(int n) {
+		if (n < 0) throw new IllegalArgumentException("sample size must be nonnegative");
 		double[] rand = new double[n];
-		for (int i = 0; i < n; i++)
-			rand[i] = random();
+		randomInto(rand, 0, n);
 		return rand;
+	}
+
+	/** Generates directly into caller-owned storage. */
+	public void randomInto(double[] output, int offset, int length) {
+		if (output == null || offset < 0 || length < 0
+				|| offset > output.length - length) {
+			throw new IllegalArgumentException("invalid output range");
+		}
+		for (int i = 0; i < length; i++) output[offset + i] = random();
 	}
 
 	/**
@@ -209,5 +261,21 @@ public abstract class GenericDistribution {
 		double v = random();
 		random = temp;
 		return v;
+	}
+
+	private static void validateBatch(double[] input, int inputOffset,
+			double[] output, int outputOffset, int length) {
+		if (input == null || output == null || inputOffset < 0 || outputOffset < 0
+				|| length < 0 || inputOffset > input.length - length
+				|| outputOffset > output.length - length) {
+			throw new IllegalArgumentException("invalid batch input or output range");
+		}
+	}
+
+	/** Whether an in-place, right-shifted operation must run from right to left. */
+	protected static boolean copyBackward(double[] input, int inputOffset,
+			double[] output, int outputOffset, int length) {
+		return input == output && outputOffset > inputOffset
+				&& outputOffset < inputOffset + length;
 	}
 }

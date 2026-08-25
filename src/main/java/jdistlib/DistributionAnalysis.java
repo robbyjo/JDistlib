@@ -16,12 +16,13 @@ public final class DistributionAnalysis {
 	private final double firstAbsoluteMoment;
 	private final double secondAbsoluteMoment;
 	private final boolean momentsStable;
+	private final List<AbsoluteMomentAnalysis> absoluteMoments;
 
 	DistributionAnalysis(List<DiagnosticFinding> findings,
 			double normalizationRelativeError, double maximumTailDisagreement,
 			double maximumQuantileRoundTripError, double mean, double variance,
 			double firstAbsoluteMoment, double secondAbsoluteMoment,
-			boolean momentsStable) {
+			boolean momentsStable, List<AbsoluteMomentAnalysis> absoluteMoments) {
 		this.findings = Collections.unmodifiableList(
 				new ArrayList<DiagnosticFinding>(findings));
 		this.normalizationRelativeError = normalizationRelativeError;
@@ -32,6 +33,8 @@ public final class DistributionAnalysis {
 		this.firstAbsoluteMoment = firstAbsoluteMoment;
 		this.secondAbsoluteMoment = secondAbsoluteMoment;
 		this.momentsStable = momentsStable;
+		this.absoluteMoments = Collections.unmodifiableList(
+				new ArrayList<AbsoluteMomentAnalysis>(absoluteMoments));
 	}
 
 	public List<DiagnosticFinding> getFindings() { return findings; }
@@ -49,6 +52,17 @@ public final class DistributionAnalysis {
 	/** Returns the estimated second absolute moment, E[|X|^2]. */
 	public double getSecondAbsoluteMoment() { return secondAbsoluteMoment; }
 	public boolean areMomentsStable() { return momentsStable; }
+	public List<AbsoluteMomentAnalysis> getAbsoluteMoments() {
+		return absoluteMoments;
+	}
+
+	/** Returns the requested order's report, or null when it was not requested. */
+	public AbsoluteMomentAnalysis getAbsoluteMoment(double order) {
+		for (AbsoluteMomentAnalysis moment : absoluteMoments) {
+			if (moment.getOrder() == order) return moment;
+		}
+		return null;
+	}
 
 	public boolean hasErrors() {
 		for (DiagnosticFinding finding : findings) {

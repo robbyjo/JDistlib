@@ -44,6 +44,7 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 	private final IntegrationResult normalizationResult;
 	private volatile NumericalCdfTable cdfTable;
 	private volatile CdfTableOptions cdfTableOptions = CdfTableOptions.defaults();
+	private volatile RejectionSamplingConfig rejectionSampling;
 
 	/**
 	 * Constructs a distribution using distribution-oriented integration defaults:
@@ -208,6 +209,13 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 		return analyze(kernel, lower, upper, FunctionAnalysisOptions.defaults());
 	}
 
+	/** Analyzes using defaults and an explicit construction policy. */
+	public static NumericalDistributionBuildResult analyze(UnivariateFunction kernel,
+			double lower, double upper, ConstructionPolicy policy) {
+		return analyze(kernel, lower, upper, FunctionAnalysisOptions.builder()
+				.constructionPolicy(policy).build());
+	}
+
 	/** Analyzes and attempts construction with explicit analysis settings. */
 	public static NumericalDistributionBuildResult analyze(UnivariateFunction kernel,
 			double lower, double upper, FunctionAnalysisOptions analysisOptions) {
@@ -215,7 +223,8 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 				upper, analysisOptions);
 		NumericalContinuousDistribution distribution = null;
 		IllegalArgumentException failure = null;
-		if (analysis.isSuitableForConstruction()) {
+		ConstructionPolicy policy = analysisOptions.getConstructionPolicy();
+		if (analysis.isSuitableForConstruction(policy)) {
 			try {
 				IntegrationOptions base = analysisOptions.getIntegrationOptions();
 				double[] declared = base.getBreakpoints();
@@ -231,7 +240,8 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 			}
 		} else {
 			failure = new IllegalArgumentException(
-					"kernel analysis contains error findings");
+					"kernel analysis is rejected by " + policy
+							+ " construction policy");
 		}
 		return new NumericalDistributionBuildResult(analysis, distribution, failure);
 	}
@@ -239,6 +249,11 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 	/** Runs CDF, quantile, tail, normalization, and moment diagnostics. */
 	public DistributionAnalysis analyzeDistribution() {
 		return NumericalDistributionAnalyzer.analyze(this);
+	}
+
+	/** Runs diagnostics with user-selected absolute-moment orders and tail split. */
+	public DistributionAnalysis analyzeDistribution(MomentAnalysisOptions settings) {
+		return NumericalDistributionAnalyzer.analyze(this, settings);
 	}
 
 	/** Returns the lower support bound. */
@@ -447,7 +462,78 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 	}
 
 	@Override public double random() {
+		RejectionSamplingConfig configured = rejectionSampling;
+		if (configured != null) {
+			return random(configured.envelope, configured.maxAttempts);
+		}
 		return quantile(random.nextDouble(), true, false);
+	}
+
+	/**
+	 * Configures rejection-envelope sampling for subsequent {@link #random()}
+	 * calls. The caller is responsible for the envelope's global majorization
+	 * promise; sampled violations are detected and rejected with an exception.
+	 */
+	public void configureRejectionSampling(RejectionEnvelope envelope,
+			int maxAttempts) {
+		if (envelope == null) throw new IllegalArgumentException("envelope must not be null");
+		if (maxAttempts < 1) throw new IllegalArgumentException("maxAttempts must be positive");
+		if (!Double.isFinite(envelope.getLogMajorizationConstant())) {
+			throw new IllegalArgumentException("envelope majorization constant must be finite");
+		}
+		rejectionSampling = new RejectionSamplingConfig(envelope, maxAttempts);
+	}
+
+	/** Configures a uniform rejection envelope over this finite support. */
+	public void configureUniformRejectionSampling(double logDensityUpperBound,
+			int maxAttempts) {
+		if (!Double.isFinite(lower) || !Double.isFinite(upper)) {
+			throw new IllegalStateException(
+					"uniform rejection sampling requires finite support");
+		}
+		configureRejectionSampling(new UniformRejectionEnvelope(lower, upper,
+				logDensityUpperBound), maxAttempts);
+	}
+
+	/** Restores inverse-CDF sampling. */
+	public void clearRejectionSampling() { rejectionSampling = null; }
+
+	public boolean isRejectionSamplingConfigured() {
+		return rejectionSampling != null;
+	}
+
+	/** Draws one value using an explicit rejection envelope. */
+	public double random(RejectionEnvelope envelope, int maxAttempts) {
+		if (envelope == null) throw new IllegalArgumentException("envelope must not be null");
+		if (maxAttempts < 1) throw new IllegalArgumentException("maxAttempts must be positive");
+		double logMajorization = envelope.getLogMajorizationConstant();
+		if (!Double.isFinite(logMajorization)) {
+			throw new IllegalArgumentException("envelope majorization constant must be finite");
+		}
+		for (int attempt = 0; attempt < maxAttempts; attempt++) {
+			double candidate = envelope.sample(random);
+			double logProposal = envelope.logProposalDensity(candidate);
+			if (!Double.isFinite(logProposal)) {
+				throw new IllegalStateException(
+						"envelope sampled outside its positive proposal density");
+			}
+			double logTarget = density(candidate, true);
+			if (Double.isNaN(logTarget)) {
+				throw new IllegalStateException("target density is invalid at sampled x="
+						+ candidate);
+			}
+			if (logTarget == Double.NEGATIVE_INFINITY) continue;
+			double logAcceptance = logTarget - logProposal - logMajorization;
+			if (logAcceptance > 1e-12) {
+				throw new IllegalStateException("rejection envelope violated at x="
+						+ candidate + " by log ratio " + logAcceptance);
+			}
+			if (Math.log(random.nextDouble()) <= Math.min(0.0, logAcceptance)) {
+				return candidate;
+			}
+		}
+		throw new IllegalStateException("rejection sampler exceeded " + maxAttempts
+				+ " attempts; use a tighter envelope or a larger attempt budget");
 	}
 
 	private double checkedKernel(double x) {
@@ -478,6 +564,16 @@ public class NumericalContinuousDistribution extends GenericDistribution {
 		double middle = low + (high - low) * 0.5;
 		if (!Double.isFinite(middle)) middle = low * 0.5 + high * 0.5;
 		return middle;
+	}
+
+	private static final class RejectionSamplingConfig {
+		final RejectionEnvelope envelope;
+		final int maxAttempts;
+
+		RejectionSamplingConfig(RejectionEnvelope envelope, int maxAttempts) {
+			this.envelope = envelope;
+			this.maxAttempts = maxAttempts;
+		}
 	}
 
 	private static double chooseLogReference(UnivariateFunction logKernel,

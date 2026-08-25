@@ -114,8 +114,8 @@ subdivisions, and a QUADPACK-compatible status code.
 
 For hostile or difficult callbacks, the additive `IntegrationOptions` API
 supports evaluation budgets, cancellation checks, declared discontinuity or
-singularity points, caught callback diagnostics, stability assessment, and an
-optional finite-interval tanh-sinh method. The historical overloads retain
+singularity points, caught callback diagnostics, stability assessment, and
+double-exponential methods for finite or infinite intervals. The historical overloads retain
 their R/QUADPACK behavior.
 
 ```java
@@ -172,11 +172,18 @@ an arbitrary function is nonnegative and integrable at every unsampled point.
 Kernels can be inspected before construction. The report checks sampled signs,
 finite values, repeatability, sharp changes, oscillation, dynamic range, tail
 decay, and normalization stability. A build result retains this report even
-when construction fails.
+when construction fails. Seeded randomized probes have an explicit budget and
+adapt toward observed sharp changes. `STRICT`, `WARNING`, and `PERMISSIVE`
+construction policies decide whether advisory findings prevent an attempt.
 
 ```java
+FunctionAnalysisOptions checks = FunctionAnalysisOptions.builder()
+    .randomizedProbeBudget(256)
+    .randomSeed(42L)
+    .constructionPolicy(ConstructionPolicy.WARNING)
+    .build();
 NumericalDistributionBuildResult candidate =
-    NumericalContinuousDistribution.analyze(kernel, lower, upper);
+    NumericalContinuousDistribution.analyze(kernel, lower, upper, checks);
 
 for (DiagnosticFinding finding : candidate.getAnalysis().getFindings()) {
     System.out.println(finding);
@@ -188,9 +195,15 @@ if (candidate.canBuild()) {
 }
 ```
 
-Moment diagnostics integrate `abs(x)^k * density(x)` for orders one and two.
-This prevents symmetric cancellation from making a nonexistent signed moment
-look convergent.
+Moment diagnostics integrate `abs(x)^k * density(x)` for user-selected orders
+and report convergence separately on either side of a chosen split. This
+prevents symmetric cancellation from making a nonexistent signed moment look
+convergent.
+
+For suitable finite-support densities, callers can install a certified uniform
+or custom `RejectionEnvelope`; `random()` then uses rejection sampling instead
+of repeated inverse-CDF calculations. Encountered envelope violations fail
+explicitly, but the caller remains responsible for the global bound.
 
 Log-kernel and log-weight factories avoid overflow or underflow when the
 unnormalized formula cannot be represented on the ordinary scale:

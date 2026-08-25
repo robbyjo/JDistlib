@@ -19,7 +19,8 @@ and supplies:
 * cooperative cancellation checked before each evaluation;
 * declared finite breakpoints, with absolute tolerance divided across pieces;
 * callback exceptions, non-finite values, and their coordinates in the result;
-* QUADPACK, finite-interval tanh-sinh, or automatic fallback selection.
+* QUADPACK, finite tanh-sinh, infinite exp-sinh/sinh-sinh, or automatic
+  fallback selection.
 
 Cancellation is cooperative. JDistlib cannot safely interrupt a callback that
 enters an infinite loop or blocks forever inside a single evaluation.
@@ -29,7 +30,8 @@ an additional interval split. Agreement strengthens confidence but does not
 prove convergence: related algorithms can agree on the same wrong answer.
 
 Known discontinuities and interior integrable singularities should be declared
-as breakpoints. Tanh-sinh is useful for difficult finite endpoints. Because a
+as breakpoints. `DOUBLE_EXPONENTIAL` chooses tanh-sinh for finite intervals,
+exp-sinh for a semi-infinite interval, and sinh-sinh for the whole line. Because a
 double callback cannot resolve points beyond the nearest representable number,
 the tanh-sinh result uses a conservative square-root-machine-epsilon error floor
 when transformed points round onto an endpoint.
@@ -37,7 +39,9 @@ when transformed points round onto an endpoint.
 ## Kernel analysis
 
 `ProbabilityFunctionAnalyzer` samples a transformed grid that supports finite,
-semi-infinite, and doubly-infinite domains. It reports observed:
+semi-infinite, and doubly-infinite domains. It also performs seeded, stratified
+random exploration, then spends the remaining explicit probe budget around
+observed high-variation intervals. It reports observed:
 
 * callback exceptions, NaNs, infinities, and negative values;
 * changes when the same coordinate is evaluated repeatedly;
@@ -49,7 +53,10 @@ semi-infinite, and doubly-infinite domains. It reports observed:
 
 Suggested breakpoints are advisory. `NumericalContinuousDistribution.analyze`
 uses them when it attempts construction and returns both the report and either
-a distribution or a retained construction failure.
+a distribution or a retained construction failure. `ConstructionPolicy.STRICT`
+rejects warnings and errors, `WARNING` rejects errors, and `PERMISSIVE` attempts
+construction regardless of advisory findings. Hard integration and kernel
+validity failures are never bypassed.
 
 ## Log-scale construction
 
@@ -116,12 +123,27 @@ prove the remainder formula.
 * CDF range and quantile monotonicity;
 * direct lower-tail plus upper-tail agreement;
 * CDF/quantile round trips over central and tail probabilities;
-* stability of the first and second absolute continuous moments;
+* stability of user-selected absolute continuous moments, independently on
+  either side of a selected split point;
 * exact finite-support moments for discrete distributions.
 
 Absolute-moment stability prevents odd or symmetric cancellation from being
 mistaken for existence. It still means only that the tested calculations agreed
 under the selected budgets and tolerances, not that existence was proven.
+
+`MomentAnalysisOptions` selects orders and the reporting split. The default
+retains orders one and two split at zero, preserving the original mean/variance
+convenience accessors.
+
+## Faster optional sampling
+
+`RejectionEnvelope` describes a normalized proposal and a certified constant
+`M` satisfying `target <= M * proposal`. Installing it with
+`configureRejectionSampling` makes `random()` use rejection sampling.
+`UniformRejectionEnvelope` is supplied for finite supports when the caller knows
+a global normalized log-density upper bound. JDistlib checks every encountered
+ratio and fails on a violation or exhausted attempt budget, but cannot prove a
+user-supplied bound over unsampled coordinates.
 
 ## Choosing a better kernel
 

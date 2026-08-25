@@ -12,7 +12,12 @@ public final class IntegrationOptions {
 		QUADPACK,
 		/** Double-exponential tanh-sinh quadrature for finite intervals. */
 		TANH_SINH,
-		/** QUADPACK with a tanh-sinh fallback on finite intervals. */
+		/**
+		 * Double-exponential tanh-sinh, exp-sinh, or sinh-sinh quadrature,
+		 * selected according to the interval bounds.
+		 */
+		DOUBLE_EXPONENTIAL,
+		/** QUADPACK with a matching double-exponential fallback. */
 		AUTO
 	}
 

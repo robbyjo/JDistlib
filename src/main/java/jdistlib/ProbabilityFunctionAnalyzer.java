@@ -2,7 +2,10 @@
 package jdistlib;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
 
 import jdistlib.math.Integrate;
 import jdistlib.math.IntegrationResult;
@@ -28,79 +31,90 @@ public final class ProbabilityFunctionAnalyzer {
 		}
 
 		int count = options.getSampleCount();
-		double[] x = new double[count];
-		double[] y = new double[count];
 		List<DiagnosticFinding> findings = new ArrayList<DiagnosticFinding>();
 		List<Double> breaks = new ArrayList<Double>();
-		double minimumPositive = Double.POSITIVE_INFINITY;
-		double maximum = 0.0;
-		int finiteCount = 0;
-		int negativeCount = 0;
-		int callbackFailureCount = 0;
-		int nonFiniteCount = 0;
+		ProbeCounts counts = new ProbeCounts();
+		List<Probe> probes = new ArrayList<Probe>(count
+				+ options.getRandomizedProbeBudget());
 		for (int i = 0; i < count; i++) {
 			double unit = (i + 0.5) / count;
-			x[i] = mapUnit(unit, lower, upper);
-			boolean callbackFailed = false;
-			try {
-				y[i] = kernel.eval(x[i]);
-			} catch (RuntimeException exception) {
-				y[i] = Double.NaN;
-				callbackFailed = true;
-				callbackFailureCount++;
-				if (callbackFailureCount <= 8) {
-					findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
-							"CALLBACK_EXCEPTION", exception.getClass().getSimpleName()
-									+ (exception.getMessage() == null ? ""
-											: ": " + exception.getMessage()), x[i]));
-				}
-			}
-			if (!Double.isFinite(y[i])) {
-				if (!callbackFailed) {
-					nonFiniteCount++;
-					if (nonFiniteCount <= 8) {
-						findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
-								"NON_FINITE", "kernel returned " + y[i], x[i]));
-					}
-				}
-				continue;
-			}
-			finiteCount++;
-			if (y[i] < 0.0) {
-				negativeCount++;
-				if (negativeCount <= 8) {
-					findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
-							"NEGATIVE", "probability kernel is negative", x[i]));
-				}
-			} else if (y[i] > 0.0) {
-				minimumPositive = Math.min(minimumPositive, y[i]);
-				maximum = Math.max(maximum, y[i]);
-			}
+			Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
+			evaluate(kernel, probe, findings, counts);
+			probes.add(probe);
 		}
-		if (negativeCount > 8) {
+
+		int randomBudget = options.getRandomizedProbeBudget();
+		if (randomBudget > 0) {
+			Random random = new Random(options.getRandomSeed());
+			int exploratory = Math.min(randomBudget, Math.max(1,
+					(randomBudget + 1) / 2));
+			for (int i = 0; i < exploratory; i++) {
+				double unit = (i + random.nextDouble()) / exploratory;
+				Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
+				evaluate(kernel, probe, findings, counts);
+				probes.add(probe);
+			}
+			int remaining = randomBudget - exploratory;
+			for (int round = 0; round < options.getAdaptiveProbeRounds()
+					&& remaining > 0; round++) {
+				Collections.sort(probes, Probe.BY_UNIT);
+				int roundsLeft = options.getAdaptiveProbeRounds() - round;
+				int inRound = Math.max(1, remaining / roundsLeft);
+				int interval = selectAdaptiveInterval(probes, random);
+				double focusLeft = probes.get(interval).unit;
+				double focusRight = probes.get(interval + 1).unit;
+				for (int i = 0; i < inRound && remaining > 0; i++, remaining--) {
+					double unit;
+					if ((i & 3) == 3) {
+						unit = random.nextDouble();
+					} else {
+						unit = focusLeft + (focusRight - focusLeft)
+								* random.nextDouble();
+					}
+					Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
+					evaluate(kernel, probe, findings, counts);
+					probes.add(probe);
+				}
+			}
+			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.INFO,
+					"RANDOMIZED_PROBES", randomBudget
+							+ " seeded adaptive probes completed with seed "
+							+ options.getRandomSeed()));
+		}
+
+		Collections.sort(probes, Probe.BY_UNIT);
+		double[] x = new double[probes.size()];
+		double[] y = new double[probes.size()];
+		for (int i = 0; i < probes.size(); i++) {
+			x[i] = probes.get(i).x;
+			y[i] = probes.get(i).value;
+		}
+		if (counts.negative > 8) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
-					"NEGATIVE_COUNT", (negativeCount - 8)
+					"NEGATIVE_COUNT", (counts.negative - 8)
 							+ " additional negative samples were omitted"));
 		}
-		if (callbackFailureCount > 8) {
+		if (counts.callbackFailures > 8) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
-					"CALLBACK_EXCEPTION_COUNT", (callbackFailureCount - 8)
+					"CALLBACK_EXCEPTION_COUNT", (counts.callbackFailures - 8)
 							+ " additional callback exceptions were omitted"));
 		}
-		if (nonFiniteCount > 8) {
+		if (counts.nonFinite > 8) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
-					"NON_FINITE_COUNT", (nonFiniteCount - 8)
+					"NON_FINITE_COUNT", (counts.nonFinite - 8)
 							+ " additional non-finite samples were omitted"));
 		}
-		if (finiteCount == 0 || !(maximum > 0.0)) {
+		if (counts.finite == 0 || !(counts.maximum > 0.0)) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
 					"NO_POSITIVE_MASS", "no positive finite kernel value was observed"));
 		}
 
 		checkRepeatability(kernel, x, y, options.getRepeatabilityChecks(), findings);
 		checkShape(x, y, options, findings, breaks);
-		if (minimumPositive < Double.POSITIVE_INFINITY && maximum > 0.0) {
-			double orders = Math.log10(maximum) - Math.log10(minimumPositive);
+		if (counts.minimumPositive < Double.POSITIVE_INFINITY
+				&& counts.maximum > 0.0) {
+			double orders = Math.log10(counts.maximum)
+					- Math.log10(counts.minimumPositive);
 			if (orders > options.getDynamicRangeOrders()) {
 				findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.WARNING,
 						"DYNAMIC_RANGE", "observed dynamic range spans about "
@@ -131,8 +145,75 @@ public final class ProbabilityFunctionAnalyzer {
 
 		double[] suggested = new double[breaks.size()];
 		for (int i = 0; i < suggested.length; i++) suggested[i] = breaks.get(i);
-		return new FunctionAnalysis(findings, count, minimumPositive, maximum,
+		return new FunctionAnalysis(findings, probes.size(), randomBudget,
+				options.getRandomSeed(), counts.minimumPositive, counts.maximum,
 				suggested, stability);
+	}
+
+	private static void evaluate(UnivariateFunction kernel, Probe probe,
+			List<DiagnosticFinding> findings, ProbeCounts counts) {
+		boolean callbackFailed = false;
+		try {
+			probe.value = kernel.eval(probe.x);
+		} catch (RuntimeException exception) {
+			probe.value = Double.NaN;
+			callbackFailed = true;
+			counts.callbackFailures++;
+			if (counts.callbackFailures <= 8) {
+				findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
+						"CALLBACK_EXCEPTION", exception.getClass().getSimpleName()
+								+ (exception.getMessage() == null ? ""
+										: ": " + exception.getMessage()), probe.x));
+			}
+		}
+		if (!Double.isFinite(probe.value)) {
+			if (!callbackFailed) {
+				counts.nonFinite++;
+				if (counts.nonFinite <= 8) {
+					findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
+							"NON_FINITE", "kernel returned " + probe.value, probe.x));
+				}
+			}
+			return;
+		}
+		counts.finite++;
+		if (probe.value < 0.0) {
+			counts.negative++;
+			if (counts.negative <= 8) {
+				findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
+						"NEGATIVE", "probability kernel is negative", probe.x));
+			}
+		} else if (probe.value > 0.0) {
+			counts.minimumPositive = Math.min(counts.minimumPositive, probe.value);
+			counts.maximum = Math.max(counts.maximum, probe.value);
+		}
+	}
+
+	private static int selectAdaptiveInterval(List<Probe> probes, Random random) {
+		double total = 0.0;
+		double[] scores = new double[probes.size() - 1];
+		for (int i = 0; i < scores.length; i++) {
+			Probe left = probes.get(i);
+			Probe right = probes.get(i + 1);
+			double width = right.unit - left.unit;
+			double shape = 0.0;
+			if (left.value > 0.0 && right.value > 0.0
+					&& Double.isFinite(left.value) && Double.isFinite(right.value)) {
+				shape = Math.min(30.0,
+						Math.abs(Math.log(left.value) - Math.log(right.value)));
+			} else if (left.value != right.value) {
+				shape = 8.0;
+			}
+			scores[i] = width * (1.0 + shape);
+			total += scores[i];
+		}
+		if (!(total > 0.0)) return random.nextInt(scores.length);
+		double target = random.nextDouble() * total;
+		for (int i = 0; i < scores.length; i++) {
+			target -= scores[i];
+			if (target <= 0.0) return i;
+		}
+		return scores.length - 1;
 	}
 
 	private static void checkRepeatability(UnivariateFunction kernel, double[] x,
@@ -208,6 +289,31 @@ public final class ProbabilityFunctionAnalyzer {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.WARNING,
 					"RIGHT_TAIL", "sampled right tail does not show clear decay"));
 		}
+	}
+
+	private static final class Probe {
+		static final Comparator<Probe> BY_UNIT = new Comparator<Probe>() {
+			@Override public int compare(Probe left, Probe right) {
+				return Double.compare(left.unit, right.unit);
+			}
+		};
+		final double unit;
+		final double x;
+		double value;
+
+		Probe(double unit, double x) {
+			this.unit = unit;
+			this.x = x;
+		}
+	}
+
+	private static final class ProbeCounts {
+		double minimumPositive = Double.POSITIVE_INFINITY;
+		double maximum;
+		int finite;
+		int negative;
+		int callbackFailures;
+		int nonFinite;
 	}
 
 	static double mapUnit(double unit, double lower, double upper) {

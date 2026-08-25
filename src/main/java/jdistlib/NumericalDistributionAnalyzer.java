@@ -19,8 +19,18 @@ public final class NumericalDistributionAnalyzer {
 
 	public static DistributionAnalysis analyze(
 			NumericalContinuousDistribution distribution) {
+		return analyze(distribution, MomentAnalysisOptions.defaults());
+	}
+
+	/** Analyzes a continuous distribution with user-selected absolute moments. */
+	public static DistributionAnalysis analyze(
+			NumericalContinuousDistribution distribution,
+			MomentAnalysisOptions momentOptions) {
 		if (distribution == null) {
 			throw new IllegalArgumentException("distribution must not be null");
+		}
+		if (momentOptions == null) {
+			throw new IllegalArgumentException("momentOptions must not be null");
 		}
 		List<DiagnosticFinding> findings = new ArrayList<DiagnosticFinding>();
 		IntegrationResult normalization = distribution.getNormalizationResult();
@@ -84,46 +94,61 @@ public final class NumericalDistributionAnalyzer {
 				distribution.getLowerBound(), distribution.getUpperBound(),
 				distribution.getIntegrationOptions());
 		double mean = firstMoment.getTightened().result;
-		IntegrationStabilityResult firstAbsolute = Integrate.assessStability(
-				x -> Math.abs(x) * distribution.density(x, false),
-				distribution.getLowerBound(), distribution.getUpperBound(),
-				distribution.getIntegrationOptions());
-		double absoluteMean = firstAbsolute.getTightened().result;
-		IntegrationStabilityResult secondAbsolute = Integrate.assessStability(
-				x -> x * x * distribution.density(x, false),
-				distribution.getLowerBound(), distribution.getUpperBound(),
-				distribution.getIntegrationOptions());
-		double second = secondAbsolute.getTightened().result;
-		boolean momentsStable = firstMoment.isStable() && firstAbsolute.isStable()
-				&& secondAbsolute.isStable() && Double.isFinite(mean)
-				&& Double.isFinite(absoluteMean) && Double.isFinite(second);
-		double variance = momentsStable ? Math.max(0.0, second - mean * mean)
-				: Double.NaN;
+		List<AbsoluteMomentAnalysis> moments = new ArrayList<AbsoluteMomentAnalysis>();
+		boolean momentsStable = firstMoment.isStable() && Double.isFinite(mean);
+		double absoluteMean = Double.NaN;
+		double second = Double.NaN;
+		for (double order : momentOptions.getOrders()) {
+			AbsoluteMomentAnalysis moment = analyzeContinuousMoment(distribution,
+					order, momentOptions.getSplitPoint());
+			moments.add(moment);
+			momentsStable &= moment.isStable();
+			if (order == 1.0) absoluteMean = moment.getValue();
+			if (order == 2.0) second = moment.getValue();
+			if (!moment.isStable()) {
+				findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.WARNING,
+						"ABSOLUTE_MOMENT_UNSTABLE", "absolute moment order "
+								+ order + " was unstable (left="
+								+ moment.isLeftStable() + ", right="
+								+ moment.isRightStable() + ")"));
+			}
+		}
+		double variance = momentsStable && Double.isFinite(second)
+				? Math.max(0.0, second - mean * mean) : Double.NaN;
 		if (!momentsStable) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.WARNING,
 					"ABSOLUTE_MOMENTS_UNSTABLE",
-					"the first or second absolute moment did not converge stably; signed cancellation is not accepted as evidence of existence"));
+					"one or more requested absolute moments did not converge stably; signed cancellation is not accepted as evidence of existence"));
 		} else {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.INFO,
 					"ABSOLUTE_MOMENTS_STABLE",
-					"the first two absolute moments were stable under repeated integration"));
+					"all requested absolute moments were stable on both reported sides"));
 		}
 		return new DistributionAnalysis(findings, relativeError, maxTail,
-				maxRoundTrip, mean, variance, absoluteMean, second, momentsStable);
+				maxRoundTrip, mean, variance, absoluteMean, second, momentsStable,
+				moments);
 	}
 
 	public static DistributionAnalysis analyze(
 			NumericalDiscreteDistribution distribution) {
+		return analyze(distribution, MomentAnalysisOptions.defaults());
+	}
+
+	/** Analyzes a finite discrete distribution with selected moment orders. */
+	public static DistributionAnalysis analyze(
+			NumericalDiscreteDistribution distribution,
+			MomentAnalysisOptions momentOptions) {
 		if (distribution == null) {
 			throw new IllegalArgumentException("distribution must not be null");
+		}
+		if (momentOptions == null) {
+			throw new IllegalArgumentException("momentOptions must not be null");
 		}
 		List<DiagnosticFinding> findings = new ArrayList<DiagnosticFinding>();
 		double[] support = distribution.getSupport();
 		double[] probabilities = distribution.getProbabilities();
 		double sum = 0.0;
 		double mean = 0.0;
-		double absoluteMean = 0.0;
-		double second = 0.0;
 		for (int i = 0; i < support.length; i++) {
 			if (!(probabilities[i] >= 0.0) || !Double.isFinite(probabilities[i])) {
 				findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
@@ -131,8 +156,6 @@ public final class NumericalDistributionAnalyzer {
 			}
 			sum += probabilities[i];
 			mean += support[i] * probabilities[i];
-			absoluteMean += Math.abs(support[i]) * probabilities[i];
-			second += support[i] * support[i] * probabilities[i];
 		}
 		double relativeError = Math.abs(sum - 1.0);
 		if (relativeError > 1e-14) {
@@ -151,10 +174,31 @@ public final class NumericalDistributionAnalyzer {
 			maxRoundTrip = Math.max(maxRoundTrip,
 					Math.max(0.0, Math.abs(lower - probability) - atom));
 		}
-		boolean momentsStable = Double.isFinite(mean)
-				&& Double.isFinite(absoluteMean) && Double.isFinite(second);
-		double variance = momentsStable ? Math.max(0.0, second - mean * mean)
-				: Double.NaN;
+		List<AbsoluteMomentAnalysis> moments = new ArrayList<AbsoluteMomentAnalysis>();
+		boolean momentsStable = Double.isFinite(mean);
+		double absoluteMean = Double.NaN;
+		double second = Double.NaN;
+		for (double order : momentOptions.getOrders()) {
+			double left = 0.0;
+			double right = 0.0;
+			for (int i = 0; i < support.length; i++) {
+				double term = Math.pow(Math.abs(support[i]), order)
+						* probabilities[i];
+				if (support[i] < momentOptions.getSplitPoint()) left += term;
+				else right += term;
+			}
+			boolean leftStable = Double.isFinite(left);
+			boolean rightStable = Double.isFinite(right);
+			AbsoluteMomentAnalysis moment = new AbsoluteMomentAnalysis(order,
+					momentOptions.getSplitPoint(), left, right, leftStable,
+					rightStable, null, null);
+			moments.add(moment);
+			momentsStable &= moment.isStable();
+			if (order == 1.0) absoluteMean = moment.getValue();
+			if (order == 2.0) second = moment.getValue();
+		}
+		double variance = momentsStable && Double.isFinite(second)
+				? Math.max(0.0, second - mean * mean) : Double.NaN;
 		if (momentsStable) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.INFO,
 					"FINITE_MOMENTS",
@@ -165,6 +209,31 @@ public final class NumericalDistributionAnalyzer {
 					"finite-support moments overflowed double arithmetic"));
 		}
 		return new DistributionAnalysis(findings, relativeError, maxTail,
-				maxRoundTrip, mean, variance, absoluteMean, second, momentsStable);
+				maxRoundTrip, mean, variance, absoluteMean, second, momentsStable,
+				moments);
+	}
+
+	private static AbsoluteMomentAnalysis analyzeContinuousMoment(
+			NumericalContinuousDistribution distribution, double order,
+			double splitPoint) {
+		double lower = distribution.getLowerBound();
+		double upper = distribution.getUpperBound();
+		double split = Math.max(lower, Math.min(upper, splitPoint));
+		IntegrationStabilityResult left = split > lower
+				? Integrate.assessStability(
+						x -> Math.pow(Math.abs(x), order)
+								* distribution.density(x, false),
+						lower, split, distribution.getIntegrationOptions()) : null;
+		IntegrationStabilityResult right = split < upper
+				? Integrate.assessStability(
+						x -> Math.pow(Math.abs(x), order)
+								* distribution.density(x, false),
+						split, upper, distribution.getIntegrationOptions()) : null;
+		double leftValue = left == null ? 0.0 : left.getTightened().result;
+		double rightValue = right == null ? 0.0 : right.getTightened().result;
+		boolean leftStable = left == null || left.isStable();
+		boolean rightStable = right == null || right.isStable();
+		return new AbsoluteMomentAnalysis(order, splitPoint, leftValue, rightValue,
+				leftStable, rightStable, left, right);
 	}
 }

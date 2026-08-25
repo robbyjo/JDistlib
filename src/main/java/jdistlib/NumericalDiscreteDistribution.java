@@ -166,6 +166,11 @@ public class NumericalDiscreteDistribution extends GenericDistribution {
 		return NumericalDistributionAnalyzer.analyze(this);
 	}
 
+	/** Runs diagnostics with user-selected absolute-moment orders and tail split. */
+	public DistributionAnalysis analyzeDistribution(MomentAnalysisOptions settings) {
+		return NumericalDistributionAnalyzer.analyze(this, settings);
+	}
+
 	@Override public double density(double x, boolean log) {
 		if (Double.isNaN(x)) return Double.NaN;
 		int index = Arrays.binarySearch(support, x);

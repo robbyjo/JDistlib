@@ -33,7 +33,10 @@ Version 0.5.0 (August 25, 2026):
   Follow-up hardening adds absolute-moment existence checks, reusable adaptive
   monotone CDF tables, mode-searched regional log scaling, interval-union/hole/
   singularity/atom supports, and certified truncation for one- or two-sided
-  infinite integer domains.
+  infinite integer domains. The next hardening pass adds seeded adaptive probes,
+  configurable construction policies, arbitrary split-tail absolute moments,
+  certified rejection-envelope sampling, and double-exponential quadrature on
+  semi-infinite and whole-line domains.
 * Began the audited sync from R 3.3.2 to R 4.6.1: modernized normal quantiles,
   discrete quantile search, negative-binomial mean parameterization, Stirling
   error, deviance terms, and selected density edge cases.

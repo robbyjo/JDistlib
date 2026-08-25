@@ -202,21 +202,34 @@ public class Integrate {
 			return tanhSinh(guard, lower, upper, epsabs,
 					options.getRelativeTolerance(), options.getTanhSinhMaxLevels());
 		}
+		if (method == IntegrationOptions.Method.DOUBLE_EXPONENTIAL) {
+			return doubleExponential(guard, lower, upper, epsabs,
+					options.getRelativeTolerance(), options.getTanhSinhMaxLevels());
+		}
 
 		IntegrationResult quadpack = integrate(guard, lower, upper, epsabs,
 				options.getRelativeTolerance(), options.getSubdivisions());
 		if (method != IntegrationOptions.Method.AUTO || quadpack.isSuccess()
-				|| !Double.isFinite(lower) || !Double.isFinite(upper)
 				|| guard.hasFailure()) return quadpack;
 
-		IntegrationResult alternative = tanhSinh(guard, lower, upper, epsabs,
+		IntegrationResult alternative = doubleExponential(guard, lower, upper, epsabs,
 				options.getRelativeTolerance(), options.getTanhSinhMaxLevels());
 		if (alternative.isSuccess()) {
-			alternative.detail = "tanh-sinh fallback used after QUADPACK status "
+			alternative.detail = "double-exponential fallback used after QUADPACK status "
 					+ quadpack.ier;
 			return alternative;
 		}
 		return alternative.abserr < quadpack.abserr ? alternative : quadpack;
+	}
+
+	private static IntegrationResult doubleExponential(UnivariateFunction f,
+			double lower, double upper, double epsabs, double epsrel,
+			int maxLevels) {
+		if (Double.isFinite(lower) && Double.isFinite(upper)) {
+			return tanhSinh(f, lower, upper, epsabs, epsrel, maxLevels);
+		}
+		return infiniteDoubleExponential(f, lower, upper, epsabs, epsrel,
+				maxLevels);
 	}
 
 	private static double[] internalBreakpoints(double[] declared, double lower,
@@ -291,6 +304,79 @@ public class Integrate {
 					/* A callback using doubles cannot resolve the final transformed
 					 * sliver next to a singular endpoint. Do not claim accuracy below
 					 * the conservative square-root-epsilon scale. */
+					result.abserr = max(result.abserr,
+							Math.sqrt(DBL_EPSILON) * abs(current));
+				}
+				double target = max(epsabs, epsrel * abs(current));
+				if (result.abserr <= target) return result;
+			}
+			previous = current;
+		}
+		result.ier = 1;
+		return result;
+	}
+
+	private static IntegrationResult infiniteDoubleExponential(
+			UnivariateFunction f, double lower, double upper, double epsabs,
+			double epsrel, int maxLevels) {
+		IntegrationResult result = new IntegrationResult();
+		result.f = f;
+		result.abserr = DBL_MAX;
+		if (!(lower < upper) || (Double.isFinite(lower) && Double.isFinite(upper))) {
+			result.ier = 6;
+			return result;
+		}
+		double previous = Double.NaN;
+		final double halfPi = Math.PI * 0.5;
+		for (int level = 0; level < maxLevels; level++) {
+			double step = Math.scalb(1.0, -level);
+			int extent = (int) Math.ceil(3.5 / step);
+			double sum = 0.0;
+			double correction = 0.0;
+			boolean endpointRounded = false;
+			for (int k = -extent; k <= extent; k++) {
+				double t = k * step;
+				double u = halfPi * Math.sinh(t);
+				double x;
+				double jacobian;
+				if (Double.isFinite(lower)) {
+					double radial = Math.exp(u);
+					x = lower + radial;
+					jacobian = halfPi * Math.cosh(t) * radial;
+					if (!(x > lower)) {
+						endpointRounded = true;
+						continue;
+					}
+				} else if (Double.isFinite(upper)) {
+					double radial = Math.exp(u);
+					x = upper - radial;
+					jacobian = halfPi * Math.cosh(t) * radial;
+					if (!(x < upper)) {
+						endpointRounded = true;
+						continue;
+					}
+				} else {
+					x = Math.sinh(u);
+					jacobian = halfPi * Math.cosh(t) * Math.cosh(u);
+				}
+				double term = f.eval(x) * jacobian;
+				if (!Double.isFinite(term)) {
+					result.ier = 3;
+					result.failureX = x;
+					result.detail = "non-finite infinite double-exponential contribution";
+					return result;
+				}
+				double adjusted = term - correction;
+				double next = sum + adjusted;
+				correction = (next - sum) - adjusted;
+				sum = next;
+			}
+			double current = sum * step;
+			result.result = current;
+			result.last = level + 1;
+			if (level > 0) {
+				result.abserr = abs(current - previous);
+				if (endpointRounded) {
 					result.abserr = max(result.abserr,
 							Math.sqrt(DBL_EPSILON) * abs(current));
 				}

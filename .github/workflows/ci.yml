@@ -43,7 +43,10 @@ jobs:
       - name: Compile and run against the packaged JAR on Java 8
         run: |
           mkdir -p build/java8-smoke
-          javac -cp build/libs/jdistlib-0.6.0-SNAPSHOT.jar \
+          JAR="$(find build/libs -maxdepth 1 -type f -name 'jdistlib-*.jar' \
+            ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print -quit)"
+          test -n "$JAR"
+          javac -cp "$JAR" \
             -d build/java8-smoke examples/Java8JarSmoke.java
-          java -cp build/libs/jdistlib-0.6.0-SNAPSHOT.jar:build/java8-smoke \
+          java -cp "$JAR:build/java8-smoke" \
             examples.Java8JarSmoke

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'net.sourceforge.jdistlib'
-def releaseLine = '0.6.0'
+def releaseLine = '0.7.0'
 def requestedReleaseVersion = providers.gradleProperty('releaseVersion').orNull
 if (requestedReleaseVersion != null && requestedReleaseVersion != releaseLine) {
     throw new GradleException("releaseVersion ${requestedReleaseVersion} does not match ${releaseLine}")
@@ -182,7 +182,7 @@ tasks.register('centralBundle', Zip) {
     archiveFileName = "jdistlib-${project.version}-central.zip"
     doFirst {
         if (project.version.toString().endsWith('-SNAPSHOT')) {
-            throw new GradleException('centralBundle requires -PreleaseVersion=0.6.0')
+            throw new GradleException("centralBundle requires -PreleaseVersion=${releaseLine}")
         }
         if (!providers.gradleProperty('signingKey').isPresent()) {
             throw new GradleException('centralBundle requires an in-memory signingKey')

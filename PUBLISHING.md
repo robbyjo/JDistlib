@@ -6,9 +6,11 @@ artifacts to the GitHub tag.
 
 The build can also prepare a Maven Repository Layout bundle for the Maven
 Central Publisher Portal without adding an unsupported third-party publishing
-plugin:
+plugin. Build the released source from its immutable tag rather than from the
+later development branch:
 
 ```text
+git switch --detach v0.6.0
 gradlew.bat clean centralBundle '-PreleaseVersion=0.6.0'
 ```
 

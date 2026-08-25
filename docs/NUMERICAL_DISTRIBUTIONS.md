@@ -68,6 +68,13 @@ rejects warnings and errors, `WARNING` rejects errors, and `PERMISSIVE` attempts
 construction regardless of advisory findings. Hard integration and kernel
 validity failures are never bypassed.
 
+`ProbabilityFunctionAnalyzer.analyzeLogKernel` and
+`NumericalContinuousDistribution.analyzeLogKernel` perform the corresponding
+probes without first exponentiating the formula. Negative infinity is valid
+zero mass, while NaN and positive infinity are errors. Dynamic-range and sharp-
+change checks compare log values directly. The fluent continuous builder
+selects this path automatically whenever `logKernel` is used.
+
 ## Log-scale construction
 
 `NumericalContinuousDistribution.fromLogKernel` subtracts a finite reference
@@ -115,7 +122,9 @@ handles interval unions, holes, singularities, and atoms.
 `DiagnosticPreset.FAST`, `STANDARD`, and `THOROUGH` scale deterministic and
 random probes, refinement rounds, integration tolerances, subdivisions, and
 evaluation budgets. A preset produces an ordinary `FunctionAnalysisOptions`
-object, so every value remains independently editable.
+object, so every value remains independently editable. Presets apply equally
+to `kernel` and `logKernel` construction; `withoutAnalysis()` is the explicit
+opt-out for either representation.
 
 ## Distribution composition
 
@@ -126,6 +135,9 @@ Mixtures combine densities and masses in log space when requested. Monotone
 transforms require the inverse map and its log absolute derivative; the affine
 factory supplies these automatically. Censoring follows the same convention as
 piecewise distributions: `density` at a censoring bound returns its atom mass.
+Discrete, mixed, censored, mixture, and transformed laws implement
+`AtomAwareDistribution`; decreasing transforms use that exact mass information
+to preserve CDF jumps and do not apply a continuous Jacobian to an atom.
 
 Truncation and the Jacobian transform formulas are
 

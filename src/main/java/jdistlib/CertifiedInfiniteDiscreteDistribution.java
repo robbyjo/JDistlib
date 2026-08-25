@@ -13,7 +13,7 @@ import jdistlib.math.UnivariateFunction;
  * only when user-provided tail certificates bound the omitted probability.
  */
 public final class CertifiedInfiniteDiscreteDistribution extends GenericDistribution
-		implements SupportedDistribution {
+		implements SupportedDistribution, AtomAwareDistribution {
 	private static final long MAX_EXACT_INTEGER = 9007199254740992L;
 	private final NumericalDiscreteDistribution truncated;
 	private final double tailWeightUpperBound;
@@ -110,6 +110,9 @@ public final class CertifiedInfiniteDiscreteDistribution extends GenericDistribu
 		return truncated.quantile(p, lowerTail, logP);
 	}
 	@Override public double random() { return truncated.quantile(random.nextDouble()); }
+	@Override public double atomProbability(double x) {
+		return truncated.atomProbability(x);
+	}
 
 	private static Prepared oneSided(UnivariateFunction weight, long start,
 			int direction, DiscreteTailBound tailBound,

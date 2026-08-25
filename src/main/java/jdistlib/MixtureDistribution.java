@@ -5,7 +5,7 @@ import jdistlib.generic.GenericDistribution;
 
 /** Normalized finite mixture of scalar distribution objects. */
 public final class MixtureDistribution extends GenericDistribution
-		implements SupportedDistribution {
+		implements SupportedDistribution, AtomAwareDistribution {
 	private static final int QUANTILE_ITERATIONS = 160;
 	private final GenericDistribution[] components;
 	private final double[] weights;
@@ -94,6 +94,17 @@ public final class MixtureDistribution extends GenericDistribution
 		}
 		probability = Math.max(0.0, Math.min(1.0, probability));
 		return logP ? Math.log(probability) : probability;
+	}
+
+	@Override public double atomProbability(double x) {
+		double probability = 0.0;
+		for (int i = 0; i < components.length; i++) {
+			if (weights[i] != 0.0 && components[i] instanceof AtomAwareDistribution) {
+				probability += weights[i]
+						* ((AtomAwareDistribution) components[i]).atomProbability(x);
+			}
+		}
+		return probability;
 	}
 
 	@Override public double quantile(double p, boolean lowerTail, boolean logP) {

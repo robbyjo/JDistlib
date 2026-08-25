@@ -22,7 +22,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
       - name: Build and test release artifacts
-        run: ./gradlew clean build --no-daemon
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ./gradlew clean build --no-daemon -PreleaseVersion="$VERSION"
+          test -f "build/libs/jdistlib-$VERSION.jar"
+          unzip -p "build/libs/jdistlib-$VERSION.jar" META-INF/MANIFEST.MF |
+            grep -F "Implementation-Version: $VERSION"
       - name: Create SHA-256 checksums
         working-directory: build/libs
         run: sha256sum *.jar > SHA256SUMS

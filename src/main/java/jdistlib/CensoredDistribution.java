@@ -5,7 +5,7 @@ import jdistlib.generic.GenericDistribution;
 
 /** Winsorized/censored scalar distribution with explicit atoms at both bounds. */
 public final class CensoredDistribution extends GenericDistribution
-		implements SupportedDistribution {
+		implements SupportedDistribution, AtomAwareDistribution {
 	private final GenericDistribution base;
 	private final double lower;
 	private final double upper;
@@ -21,7 +21,7 @@ public final class CensoredDistribution extends GenericDistribution
 		this.lower = lower;
 		this.upper = upper;
 		lowerMass = base.cumulative(lower, true, false);
-		upperMass = base.cumulative(upper, false, false);
+		upperMass = base.cumulative(Math.nextDown(upper), false, false);
 	}
 
 	public GenericDistribution getBaseDistribution() { return base; }
@@ -38,6 +38,13 @@ public final class CensoredDistribution extends GenericDistribution
 		else if (x > lower && x < upper) value = base.density(x, false);
 		else value = 0.0;
 		return log ? Math.log(value) : value;
+	}
+
+	@Override public double atomProbability(double x) {
+		if (x == lower) return lowerMass;
+		if (x == upper) return upperMass;
+		return x > lower && x < upper && base instanceof AtomAwareDistribution
+				? ((AtomAwareDistribution) base).atomProbability(x) : 0.0;
 	}
 
 	@Override public double cumulative(double x, boolean lowerTail, boolean logP) {

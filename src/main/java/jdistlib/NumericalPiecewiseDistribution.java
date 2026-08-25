@@ -12,7 +12,7 @@ import jdistlib.math.UnivariateFunction;
  * point atoms. At an atom, {@code density} returns its probability mass.
  */
 public final class NumericalPiecewiseDistribution extends GenericDistribution
-		implements SupportedDistribution {
+		implements SupportedDistribution, AtomAwareDistribution {
 	/** Returns a fluent builder for interval unions with optional atoms. */
 	public static Builder builder() { return new Builder(); }
 
@@ -112,6 +112,11 @@ public final class NumericalPiecewiseDistribution extends GenericDistribution
 			}
 		}
 		return log ? Double.NEGATIVE_INFINITY : 0.0;
+	}
+
+	@Override public double atomProbability(double x) {
+		int atom = Arrays.binarySearch(atoms, x);
+		return atom < 0 ? 0.0 : atomProbability[atom];
 	}
 
 	@Override public double cumulative(double x, boolean lowerTail, boolean logP) {

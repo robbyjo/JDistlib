@@ -9,13 +9,13 @@ Version 0.6.0 (in development):
   callback isolation, versioned dependency-free JSON diagnostics, and an
   independent high-precision corpus for difficult integral families.
 * Added the complete custom-distribution workflow: fluent builders and named
-  diagnostic presets; mixture, truncation, monotone-transform, affine, and
+  diagnostic presets, including native log-kernel analysis; mixture,
+  truncation, monotone-transform, affine, and
   censoring composition; Walker-alias and adaptive log-concave rejection
   sampling with strategy explanations; certified tail-bound helpers; numerical
   expectations, moments, entropy, modes, and probability intervals; and
-  cache-aware allocation-free batch APIs.
-
-Version 0.5.1 (in development):
+  cache-aware allocation-free batch APIs. Atom-aware composition preserves CDF
+  jumps and masses through censoring, mixtures, and decreasing transformations.
 * Added call-local, randomized quasi-Monte Carlo rectangle probabilities for
   multivariate normal, Student t, Cauchy, and log-normal laws. Results report
   estimated absolute error, evaluation count, and convergence status; callers
@@ -29,6 +29,9 @@ Version 0.5.1 (in development):
   scale-matrix convenience methods, and log/non-log matrix densities.
 * Added independent quadrature, scalar-reduction, exact-orthant, Wishart-moment,
   invalid-input, reproducibility, and evaluation-budget regression tests.
+* Hardened release packaging so the v0.6.0 tag produces non-SNAPSHOT artifacts,
+  rejects a mismatched release version, verifies the JAR manifest, and compiles
+  the documented custom-distribution example against the packaged JAR.
 
 Version 0.5.0 (August 25, 2026):
 * Restructured the historical SourceForge repository as a conventional,

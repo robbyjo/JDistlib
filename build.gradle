@@ -5,7 +5,12 @@ plugins {
 }
 
 group = 'net.sourceforge.jdistlib'
-version = '0.6.0-SNAPSHOT'
+def releaseLine = '0.6.0'
+def requestedReleaseVersion = providers.gradleProperty('releaseVersion').orNull
+if (requestedReleaseVersion != null && requestedReleaseVersion != releaseLine) {
+    throw new GradleException("releaseVersion ${requestedReleaseVersion} does not match ${releaseLine}")
+}
+version = requestedReleaseVersion ?: "${releaseLine}-SNAPSHOT"
 
 def projectHomepage = providers.gradleProperty('projectUrl')
     .getOrElse('https://robbyjo.github.io/JDistlib/')
@@ -63,6 +68,17 @@ tasks.register('site', Sync) {
         into 'api'
     }
     into layout.buildDirectory.dir('site')
+}
+
+def compileDocumentationExamples = tasks.register('compileDocumentationExamples', JavaCompile) {
+    dependsOn tasks.named('jar')
+    source fileTree('examples') { include '**/*.java' }
+    classpath = files(tasks.named('jar').flatMap { it.archiveFile })
+    destinationDirectory = layout.buildDirectory.dir('documentation-examples')
+}
+
+tasks.named('check') {
+    dependsOn compileDocumentationExamples
 }
 
 test {

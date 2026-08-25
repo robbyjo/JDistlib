@@ -155,12 +155,20 @@ double draw = countLaw.random();</code></pre>
     <section class="guide-section" id="workflow">
       <p class="eyebrow">JDistlib 0.6.0 workflow</p>
       <h2>Build, compose, summarize, and evaluate in batches</h2>
+      <p>A <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/CustomDistributionExamples.java">complete compilable example</a>
+        accompanies these focused snippets and is checked against the packaged
+        JAR by the release build.</p>
 
       <h3>Keep related choices in one builder</h3>
       <p>The fluent builders gather the formula, support, singularities,
         numerical controls, diagnostic strength, cache, and sampling strategy.
         <code>FAST</code>, <code>STANDARD</code>, and <code>THOROUGH</code> are starting
         points; their resulting options remain fully editable.</p>
+      <p>Builders analyze ordinary formulas directly and log formulas in log
+        space. A log-kernel may return negative infinity to represent zero mass;
+        NaN and positive infinity are diagnostic errors. Use
+        <code>withoutAnalysis()</code> only when this advisory pass is intentionally
+        disabled.</p>
       <pre><code>NumericalContinuousDistribution custom =
     NumericalContinuousDistribution.builder()
         .logKernel(x -&gt; -0.5 * x * x)

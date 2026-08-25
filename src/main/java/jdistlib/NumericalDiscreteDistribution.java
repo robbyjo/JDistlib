@@ -16,7 +16,7 @@ import jdistlib.math.UnivariateFunction;
  * have a large common magnitude.</p>
  */
 public class NumericalDiscreteDistribution extends GenericDistribution
-		implements SupportedDistribution {
+		implements SupportedDistribution, AtomAwareDistribution {
 	private static final int MAX_GENERATED_SUPPORT = 1000000;
 	private final double[] support;
 	private final double[] probabilities;
@@ -263,6 +263,11 @@ public class NumericalDiscreteDistribution extends GenericDistribution
 		if (column == support.length) column--;
 		return support[random.nextDouble() < aliasProbability[column]
 				? column : aliasIndex[column]];
+	}
+
+	@Override public double atomProbability(double x) {
+		int index = Arrays.binarySearch(support, x);
+		return index < 0 ? 0.0 : probabilities[index];
 	}
 
 	public SamplingStrategy getSamplingStrategy() { return SamplingStrategy.WALKER_ALIAS; }

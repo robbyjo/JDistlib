@@ -149,7 +149,11 @@ public class NumericalContinuousDistribution extends GenericDistribution
 			IntegrationOptions effective = integrationOptions.toBuilder()
 					.breakpoints(combined).build();
 			NumericalContinuousDistribution result;
-			if (logKernel != null) {
+			if (logKernel != null && analysisOptions != null) {
+				FunctionAnalysisOptions checks = analysisOptions.toBuilder()
+						.integrationOptions(effective).build();
+				result = analyzeLogKernel(logKernel, lower, upper, checks).build();
+			} else if (logKernel != null) {
 				result = fromLogKernel(logKernel, lower, upper, effective);
 			} else if (analysisOptions != null) {
 				FunctionAnalysisOptions checks = analysisOptions.toBuilder()
@@ -366,6 +370,58 @@ public class NumericalContinuousDistribution extends GenericDistribution
 		} else {
 			failure = new IllegalArgumentException(
 					"kernel analysis is rejected by " + policy
+							+ " construction policy");
+		}
+		return new NumericalDistributionBuildResult(analysis, distribution, failure);
+	}
+
+	/**
+	 * Analyzes a log-kernel in log space and attempts construction using the
+	 * default settings. Negative infinity is accepted as zero mass.
+	 */
+	public static NumericalDistributionBuildResult analyzeLogKernel(
+			UnivariateFunction logKernel, double lower, double upper) {
+		return analyzeLogKernel(logKernel, lower, upper,
+				FunctionAnalysisOptions.defaults());
+	}
+
+	/** Analyzes a log-kernel with defaults and an explicit policy. */
+	public static NumericalDistributionBuildResult analyzeLogKernel(
+			UnivariateFunction logKernel, double lower, double upper,
+			ConstructionPolicy policy) {
+		return analyzeLogKernel(logKernel, lower, upper,
+				FunctionAnalysisOptions.builder().constructionPolicy(policy).build());
+	}
+
+	/** Analyzes and attempts log-kernel construction with explicit settings. */
+	public static NumericalDistributionBuildResult analyzeLogKernel(
+			UnivariateFunction logKernel, double lower, double upper,
+			FunctionAnalysisOptions analysisOptions) {
+		if (analysisOptions == null) {
+			throw new IllegalArgumentException("analysisOptions must not be null");
+		}
+		FunctionAnalysis analysis = ProbabilityFunctionAnalyzer.analyzeLogKernel(
+				logKernel, lower, upper, analysisOptions);
+		NumericalContinuousDistribution distribution = null;
+		IllegalArgumentException failure = null;
+		ConstructionPolicy policy = analysisOptions.getConstructionPolicy();
+		if (analysis.isSuitableForConstruction(policy)) {
+			try {
+				IntegrationOptions base = analysisOptions.getIntegrationOptions();
+				double[] declared = base.getBreakpoints();
+				double[] suggested = analysis.getSuggestedBreakpoints();
+				double[] combined = new double[declared.length + suggested.length];
+				System.arraycopy(declared, 0, combined, 0, declared.length);
+				System.arraycopy(suggested, 0, combined, declared.length,
+						suggested.length);
+				distribution = fromLogKernel(logKernel, lower, upper,
+						base.toBuilder().breakpoints(combined).build());
+			} catch (IllegalArgumentException exception) {
+				failure = exception;
+			}
+		} else {
+			failure = new IllegalArgumentException(
+					"log-kernel analysis is rejected by " + policy
 							+ " construction policy");
 		}
 		return new NumericalDistributionBuildResult(analysis, distribution, failure);

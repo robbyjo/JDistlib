@@ -23,6 +23,27 @@ public final class ProbabilityFunctionAnalyzer {
 
 	public static FunctionAnalysis analyze(UnivariateFunction kernel, double lower,
 			double upper, FunctionAnalysisOptions options) {
+		return analyze(kernel, lower, upper, options, false);
+	}
+
+	/**
+	 * Analyzes a log-kernel without exponentiating its probe values. Negative
+	 * infinity is treated as zero mass; NaN and positive infinity are errors.
+	 */
+	public static FunctionAnalysis analyzeLogKernel(UnivariateFunction logKernel,
+			double lower, double upper) {
+		return analyzeLogKernel(logKernel, lower, upper,
+				FunctionAnalysisOptions.defaults());
+	}
+
+	/** Analyzes a log-kernel with explicit settings. */
+	public static FunctionAnalysis analyzeLogKernel(UnivariateFunction logKernel,
+			double lower, double upper, FunctionAnalysisOptions options) {
+		return analyze(logKernel, lower, upper, options, true);
+	}
+
+	private static FunctionAnalysis analyze(UnivariateFunction kernel, double lower,
+			double upper, FunctionAnalysisOptions options, boolean logarithmic) {
 		if (kernel == null || options == null) {
 			throw new IllegalArgumentException("kernel and options must not be null");
 		}
@@ -45,7 +66,7 @@ public final class ProbabilityFunctionAnalyzer {
 		for (int i = 0; i < count; i++) {
 			double unit = (i + 0.5) / count;
 			Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
-			evaluate(probeKernel, probe, findings, counts);
+			evaluate(probeKernel, probe, findings, counts, logarithmic);
 			probes.add(probe);
 		}
 
@@ -56,7 +77,7 @@ public final class ProbabilityFunctionAnalyzer {
 			for (int i = 0; i < exploratory; i++) {
 				double unit = (i + random.nextDouble()) / exploratory;
 				Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
-				evaluate(probeKernel, probe, findings, counts);
+				evaluate(probeKernel, probe, findings, counts, logarithmic);
 				probes.add(probe);
 			}
 			int remaining = randomBudget - exploratory;
@@ -65,7 +86,7 @@ public final class ProbabilityFunctionAnalyzer {
 				Collections.sort(probes, Probe.BY_UNIT);
 				int roundsLeft = options.getAdaptiveProbeRounds() - round;
 				int inRound = Math.max(1, remaining / roundsLeft);
-				int interval = selectAdaptiveInterval(probes, random);
+				int interval = selectAdaptiveInterval(probes, random, logarithmic);
 				double focusLeft = probes.get(interval).unit;
 				double focusRight = probes.get(interval + 1).unit;
 				for (int i = 0; i < inRound && remaining > 0; i++, remaining--) {
@@ -77,7 +98,7 @@ public final class ProbabilityFunctionAnalyzer {
 								* random.nextDouble();
 					}
 					Probe probe = new Probe(unit, mapUnit(unit, lower, upper));
-					evaluate(probeKernel, probe, findings, counts);
+					evaluate(probeKernel, probe, findings, counts, logarithmic);
 					probes.add(probe);
 				}
 			}
@@ -109,7 +130,7 @@ public final class ProbabilityFunctionAnalyzer {
 					"NON_FINITE_COUNT", (counts.nonFinite - 8)
 							+ " additional non-finite samples were omitted"));
 		}
-		if (counts.finite == 0 || !(counts.maximum > 0.0)) {
+		if (counts.finite == 0 || (!logarithmic && !(counts.maximum > 0.0))) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
 					"NO_POSITIVE_MASS", "no positive finite kernel value was observed"));
 		}
@@ -118,20 +139,24 @@ public final class ProbabilityFunctionAnalyzer {
 		} finally {
 			probeKernel.close();
 		}
-		checkShape(x, y, options, findings, breaks);
+		checkShape(x, y, options, findings, breaks, logarithmic);
 		if (counts.minimumPositive < Double.POSITIVE_INFINITY
-				&& counts.maximum > 0.0) {
-			double orders = Math.log10(counts.maximum)
-					- Math.log10(counts.minimumPositive);
+				&& (logarithmic || counts.maximum > 0.0)) {
+			double orders = logarithmic
+					? (counts.maximum - counts.minimumPositive) / Math.log(10.0)
+					: Math.log10(counts.maximum) - Math.log10(counts.minimumPositive);
 			if (orders > options.getDynamicRangeOrders()) {
 				findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.WARNING,
 						"DYNAMIC_RANGE", "observed dynamic range spans about "
-								+ Math.round(orders) + " decimal orders; consider a log-kernel"));
+								+ Math.round(orders) + " decimal orders"
+								+ (logarithmic ? "" : "; consider a log-kernel")));
 			}
 		}
-		checkTails(y, lower, upper, findings);
+		checkTails(y, lower, upper, findings, logarithmic);
 
-		IntegrationStabilityResult stability = Integrate.assessStability(kernel,
+		UnivariateFunction integrationKernel = logarithmic
+				? scaledLogKernel(kernel, counts.maximum) : kernel;
+		IntegrationStabilityResult stability = Integrate.assessStability(integrationKernel,
 				lower, upper, options.getIntegrationOptions());
 		IntegrationResult normalization = stability.getTightened();
 		if (!normalization.isSuccess()) {
@@ -153,13 +178,19 @@ public final class ProbabilityFunctionAnalyzer {
 
 		double[] suggested = new double[breaks.size()];
 		for (int i = 0; i < suggested.length; i++) suggested[i] = breaks.get(i);
+		double reportedMinimum = logarithmic && counts.finite > 0
+				? Math.exp(counts.minimumPositive - counts.maximum)
+				: counts.minimumPositive;
+		double reportedMaximum = logarithmic && counts.finite > 0
+				? 1.0 : counts.maximum;
 		return new FunctionAnalysis(findings, probes.size(), randomBudget,
-				options.getRandomSeed(), counts.minimumPositive, counts.maximum,
+				options.getRandomSeed(), reportedMinimum, reportedMaximum,
 				suggested, stability);
 	}
 
 	private static void evaluate(UnivariateFunction kernel, Probe probe,
-			List<DiagnosticFinding> findings, ProbeCounts counts) {
+			List<DiagnosticFinding> findings, ProbeCounts counts,
+			boolean logarithmic) {
 		boolean callbackFailed = false;
 		try {
 			probe.value = kernel.eval(probe.x);
@@ -176,6 +207,7 @@ public final class ProbabilityFunctionAnalyzer {
 										: ": " + exception.getMessage()), probe.x));
 			}
 		}
+		if (logarithmic && probe.value == Double.NEGATIVE_INFINITY) return;
 		if (!Double.isFinite(probe.value)) {
 			if (!callbackFailed) {
 				counts.nonFinite++;
@@ -187,7 +219,10 @@ public final class ProbabilityFunctionAnalyzer {
 			return;
 		}
 		counts.finite++;
-		if (probe.value < 0.0) {
+		if (logarithmic) {
+			counts.minimumPositive = Math.min(counts.minimumPositive, probe.value);
+			counts.maximum = Math.max(counts.maximum, probe.value);
+		} else if (probe.value < 0.0) {
 			counts.negative++;
 			if (counts.negative <= 8) {
 				findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.ERROR,
@@ -199,7 +234,8 @@ public final class ProbabilityFunctionAnalyzer {
 		}
 	}
 
-	private static int selectAdaptiveInterval(List<Probe> probes, Random random) {
+	private static int selectAdaptiveInterval(List<Probe> probes, Random random,
+			boolean logarithmic) {
 		double total = 0.0;
 		double[] scores = new double[probes.size() - 1];
 		for (int i = 0; i < scores.length; i++) {
@@ -207,7 +243,10 @@ public final class ProbabilityFunctionAnalyzer {
 			Probe right = probes.get(i + 1);
 			double width = right.unit - left.unit;
 			double shape = 0.0;
-			if (left.value > 0.0 && right.value > 0.0
+			if (logarithmic && Double.isFinite(left.value)
+					&& Double.isFinite(right.value)) {
+				shape = Math.min(30.0, Math.abs(left.value - right.value));
+			} else if (!logarithmic && left.value > 0.0 && right.value > 0.0
 					&& Double.isFinite(left.value) && Double.isFinite(right.value)) {
 				shape = Math.min(30.0,
 						Math.abs(Math.log(left.value) - Math.log(right.value)));
@@ -253,14 +292,29 @@ public final class ProbabilityFunctionAnalyzer {
 
 	private static void checkShape(double[] x, double[] y,
 			FunctionAnalysisOptions options, List<DiagnosticFinding> findings,
-			List<Double> breaks) {
+			List<Double> breaks, boolean logarithmic) {
 		int changes = 0;
 		double previousSlope = Double.NaN;
 		for (int i = 1; i < y.length; i++) {
+			if (logarithmic && (y[i - 1] == Double.NEGATIVE_INFINITY)
+					!= (y[i] == Double.NEGATIVE_INFINITY)) {
+				if (i > 1 && i + 1 < y.length && breaks.size() < 32) {
+					double point = Double.isFinite(y[i - 1]) ? x[i - 1] : x[i];
+					findings.add(new DiagnosticFinding(
+							DiagnosticFinding.Severity.WARNING, "SHARP_CHANGE",
+							"adjacent log-kernel samples cross a zero-mass boundary",
+							point));
+					breaks.add(point);
+				}
+				continue;
+			}
 			if (!Double.isFinite(y[i - 1]) || !Double.isFinite(y[i])) continue;
 			double small = Math.min(Math.abs(y[i - 1]), Math.abs(y[i]));
 			double large = Math.max(Math.abs(y[i - 1]), Math.abs(y[i]));
-			if (small > 0.0 && large / small > options.getDiscontinuityRatio()
+			boolean sharp = logarithmic
+					? Math.abs(y[i] - y[i - 1]) > Math.log(options.getDiscontinuityRatio())
+					: small > 0.0 && large / small > options.getDiscontinuityRatio();
+			if (sharp
 					&& i > 1 && i + 1 < y.length) {
 				double point = x[i - 1] * 0.5 + x[i] * 0.5;
 				if (breaks.size() < 32) {
@@ -284,21 +338,35 @@ public final class ProbabilityFunctionAnalyzer {
 	}
 
 	private static void checkTails(double[] y, double lower, double upper,
-			List<DiagnosticFinding> findings) {
+			List<DiagnosticFinding> findings, boolean logarithmic) {
 		if (!Double.isFinite(lower) && y.length >= 4 && Double.isFinite(y[0])
-				&& Double.isFinite(y[1]) && Math.abs(y[1]) > 0.0
-				&& Math.abs(y[0]) >= 0.9 * Math.abs(y[1])) {
+				&& Double.isFinite(y[1])
+				&& (logarithmic ? y[0] >= y[1] + Math.log(0.9)
+						: Math.abs(y[1]) > 0.0
+								&& Math.abs(y[0]) >= 0.9 * Math.abs(y[1]))) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.WARNING,
 					"LEFT_TAIL", "sampled left tail does not show clear decay"));
 		}
 		int n = y.length;
 		if (!Double.isFinite(upper) && n >= 4 && Double.isFinite(y[n - 1])
 				&& Double.isFinite(y[n - 2])
-				&& Math.abs(y[n - 2]) > 0.0
-				&& Math.abs(y[n - 1]) >= 0.9 * Math.abs(y[n - 2])) {
+				&& (logarithmic ? y[n - 1] >= y[n - 2] + Math.log(0.9)
+						: Math.abs(y[n - 2]) > 0.0
+								&& Math.abs(y[n - 1]) >= 0.9 * Math.abs(y[n - 2]))) {
 			findings.add(new DiagnosticFinding(DiagnosticFinding.Severity.WARNING,
 					"RIGHT_TAIL", "sampled right tail does not show clear decay"));
 		}
+	}
+
+	private static UnivariateFunction scaledLogKernel(UnivariateFunction logKernel,
+			double reference) {
+		if (!Double.isFinite(reference)) return x -> Double.NaN;
+		return x -> {
+			double value = logKernel.eval(x);
+			if (value == Double.NEGATIVE_INFINITY) return 0.0;
+			if (!Double.isFinite(value)) return Double.NaN;
+			return Math.exp(value - reference);
+		};
 	}
 
 	private static final class Probe {
@@ -319,7 +387,7 @@ public final class ProbabilityFunctionAnalyzer {
 
 	private static final class ProbeCounts {
 		double minimumPositive = Double.POSITIVE_INFINITY;
-		double maximum;
+		double maximum = Double.NEGATIVE_INFINITY;
 		int finite;
 		int negative;
 		int callbackFailures;

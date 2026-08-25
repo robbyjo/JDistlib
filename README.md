@@ -24,9 +24,10 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.5.0 is the current stable release; `master` is the 0.5.1 development
-line. The R `src/nmath` file-by-file audit from the historical R 3.3.2 baseline
-to R 4.6.1 is complete.
+Version 0.6.0 is the next release; `master` is its release-candidate development
+line. Version 0.5.0 remains the current stable release until the v0.6.0 tag is
+published. The R `src/nmath` file-by-file audit from the historical R 3.3.2
+baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
@@ -36,7 +37,7 @@ and tested.
 
 The [latest GitHub release](https://github.com/robbyjo/JDistlib/releases/latest)
 contains the Java library, source archive, JavaDoc archive, and SHA-256
-checksums. Version 0.5.0 produces Java 8-compatible bytecode.
+checksums. Version 0.6.0 produces Java 8-compatible bytecode.
 
 ## Building
 
@@ -198,6 +199,9 @@ decay, and normalization stability. A build result retains this report even
 when construction fails. Seeded randomized probes have an explicit budget and
 adapt toward observed sharp changes. `STRICT`, `WARNING`, and `PERMISSIVE`
 construction policies decide whether advisory findings prevent an attempt.
+Use `analyzeLogKernel` for a log-density formula; fluent builders select the
+ordinary or log-space analyzer automatically. Log-space probes accept
+`Double.NEGATIVE_INFINITY` as zero mass and reject NaN or positive infinity.
 
 ```java
 FunctionAnalysisOptions checks = FunctionAnalysisOptions.builder()
@@ -246,6 +250,10 @@ Numerical distributions also expose expectations, raw and central moments,
 entropy, modes, and equal-tail probability intervals. Array APIs now include
 allocation-free `densityInto`, `cumulativeInto`, `quantileInto`, and
 `randomInto`; continuous batch CDF calls reuse the monotone cache.
+
+The complete snippets in
+[`examples/CustomDistributionExamples.java`](examples/CustomDistributionExamples.java)
+are compiled against the packaged JAR during every `check` build.
 
 Moment diagnostics integrate `abs(x)^k * density(x)` for user-selected orders
 and report convergence separately on either side of a chosen split. This

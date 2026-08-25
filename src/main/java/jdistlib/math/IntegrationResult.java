@@ -19,6 +19,12 @@ public class IntegrationResult {
 	public UnivariateFunction f;
 	public double result, abserr;
 	public int neval, ier, last;
+	/** Coordinate associated with a callback or non-finite-value failure. */
+	public double failureX = Double.NaN;
+	/** Original callback failure, when one was caught by the hardened API. */
+	public RuntimeException cause;
+	/** Additional context supplied by the hardened API. */
+	public String detail;
 
 	public boolean isSuccess() {
 		return ier == 0;
@@ -33,7 +39,17 @@ public class IntegrationResult {
 		case 4: return "roundoff error is detected in the extrapolation table";
 		case 5: return "the integral is probably divergent";
 		case 6: return "the input is invalid";
+		case 7: return "the integrand callback failed";
+		case 8: return "integration was cancelled";
+		case 9: return "the function evaluation budget was exhausted";
+		case 10: return "the integrand returned a non-finite value";
 		default: return "unknown integration status";
 		}
+	}
+
+	/** Returns the status message with any hardened-API context appended. */
+	public String detailedMessage() {
+		return detail == null || detail.length() == 0
+				? message() : message() + ": " + detail;
 	}
 }

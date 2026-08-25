@@ -24,8 +24,9 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.5.0 is the current stable release. The R `src/nmath` file-by-file
-audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
+Version 0.5.0 is the current stable release; `master` is the 0.5.1 development
+line. The R `src/nmath` file-by-file audit from the historical R 3.3.2 baseline
+to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
@@ -72,6 +73,24 @@ double x = Normal.quantile(0.975, 0.0, 1.0, true, false);
 
 Boolean arguments follow R's `lower.tail` and `log.p` conventions.
 
+For multivariate normal, Student t, Cauchy, and log-normal laws, `probability`
+evaluates an arbitrary rectangular region and `cumulative` uses a lower bound of
+negative infinity in every coordinate. `MultivariateProbabilityResult` reports
+the estimated error, work count, and convergence status. The overloads accepting
+`MultivariateProbabilityOptions` and `RandomEngine` provide reproducible,
+thread-safe control of the randomized integration. Multivariate quantiles are
+named `equicoordinateQuantile` or `radialQuantile` because a random vector has no
+unique scalar inverse CDF.
+
+```java
+MultivariateProbabilityResult region = MultivariateNormal.probability(
+    new double[] {-1.0, -1.0}, new double[] {1.0, 1.0},
+    new double[] {0.0, 0.0}, new double[][] {{1.0, 0.5}, {0.5, 1.0}});
+if (!region.isSuccess()) {
+    System.err.println(region.message());
+}
+```
+
 ## Numerical integration
 
 `Integrate.integrate` supports finite, semi-infinite, and doubly-infinite
@@ -92,6 +111,135 @@ if (!result.isSuccess()) {
 
 The result includes the estimated integral, absolute error, number of
 subdivisions, and a QUADPACK-compatible status code.
+
+For hostile or difficult callbacks, the additive `IntegrationOptions` API
+supports evaluation budgets, cancellation checks, declared discontinuity or
+singularity points, caught callback diagnostics, stability assessment, and an
+optional finite-interval tanh-sinh method. The historical overloads retain
+their R/QUADPACK behavior.
+
+```java
+IntegrationOptions options = IntegrationOptions.builder()
+    .tolerances(1e-10, 1e-10)
+    .subdivisions(300)
+    .maxEvaluations(250_000)
+    .breakpoints(0.5)
+    .method(IntegrationOptions.Method.AUTO)
+    .build();
+
+IntegrationStabilityResult stability =
+    Integrate.assessStability(kernel, 0.0, 1.0, options);
+```
+
+## User-defined numerical distributions
+
+`NumericalContinuousDistribution` turns a nonnegative kernel into a complete
+continuous distribution. The normalization constant is integrated and cached;
+density, lower and upper CDF tails, numerical quantiles, and inverse-transform
+random generation follow the usual `GenericDistribution` API.
+
+```java
+NumericalContinuousDistribution quartic =
+    new NumericalContinuousDistribution(
+        x -> Math.exp(-x * x * x * x),
+        Double.NEGATIVE_INFINITY,
+        Double.POSITIVE_INFINITY
+    );
+
+double logZ = quartic.getLogNormalizationConstant();
+double p = quartic.cumulative(1.0, true, false);
+double draw = quartic.random();
+```
+
+`NumericalDiscreteDistribution` provides the analogous operation over a finite
+set of outcomes. It evaluates the weight formula once, uses scaled compensated
+summation, and caches the resulting probability and cumulative-mass tables.
+
+```java
+NumericalDiscreteDistribution customCount =
+    new NumericalDiscreteDistribution(
+        k -> 1.0 / (1.0 + k * k),
+        0, 100 // inclusive integer support
+    );
+```
+
+An explicit `double[]` may be used for an irregular finite support. Constructors
+reject sampled negative/non-finite values and zero normalization. For continuous
+kernels, `getNormalizationResult()` exposes the integration error, evaluation
+count, subdivisions, and status. These checks cannot mathematically prove that
+an arbitrary function is nonnegative and integrable at every unsampled point.
+
+Kernels can be inspected before construction. The report checks sampled signs,
+finite values, repeatability, sharp changes, oscillation, dynamic range, tail
+decay, and normalization stability. A build result retains this report even
+when construction fails.
+
+```java
+NumericalDistributionBuildResult candidate =
+    NumericalContinuousDistribution.analyze(kernel, lower, upper);
+
+for (DiagnosticFinding finding : candidate.getAnalysis().getFindings()) {
+    System.out.println(finding);
+}
+
+if (candidate.canBuild()) {
+    NumericalContinuousDistribution distribution = candidate.build();
+    DistributionAnalysis checks = distribution.analyzeDistribution();
+}
+```
+
+Moment diagnostics integrate `abs(x)^k * density(x)` for orders one and two.
+This prevents symmetric cancellation from making a nonexistent signed moment
+look convergent.
+
+Log-kernel and log-weight factories avoid overflow or underflow when the
+unnormalized formula cannot be represented on the ordinary scale:
+
+```java
+NumericalContinuousDistribution shiftedNormal =
+    NumericalContinuousDistribution.fromLogKernel(
+        x -> 1000.0 - 0.5 * x * x,
+        Double.NEGATIVE_INFINITY,
+        Double.POSITIVE_INFINITY
+    );
+```
+
+Automatic log-kernel construction searches for multiple modes, normalizes up to
+eight regions with independent scales, and combines them with log-sum-exp. A
+reusable adaptive monotone CDF table accelerates central quantiles and sampling;
+the ordinary CDF remains direct for compatibility, while `cumulativeCached`
+explicitly selects the approximation.
+
+Piecewise and mixed distributions use `NumericalSupport`:
+
+```java
+NumericalSupport support = NumericalSupport.builder()
+    .interval(-10.0, 10.0)
+    .hole(-1.0, 1.0)
+    .atom(0.0)
+    .singularity(4.0)
+    .build();
+
+NumericalPiecewiseDistribution mixed =
+    new NumericalPiecewiseDistribution(kernel, support, atomWeights, options);
+```
+
+Infinite integer supports require a user-supplied remainder certificate. The
+result records an upper bound on omitted probability rather than inferring
+convergence from several small terms.
+
+```java
+CertifiedInfiniteDiscreteDistribution geometric =
+    CertifiedInfiniteDiscreteDistribution.rightInfinite(
+        k -> Math.pow(r, k),
+        0,
+        (first, firstWeight) -> firstWeight / (1.0 - r),
+        CertifiedDiscreteOptions.defaults()
+    );
+```
+
+See [the numerical-distribution guide](docs/NUMERICAL_DISTRIBUTIONS.md) for the
+diagnostic model, limitations, and integration-method guidance.
 
 ## Tweedie distributions
 

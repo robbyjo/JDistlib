@@ -153,8 +153,9 @@
 
       <h3 class="catalog-section" id="multivariate">Multivariate and matrix distributions</h3>
       <p class="section-note">For random vectors there is no canonical scalar quantile.
-        Joint CDFs are exposed only where this package implements a specific rectangular
-        probability calculation.</p>
+        Normal, Student t, Cauchy, and log-normal laws expose rectangular probabilities
+        with numerical error/status results plus explicitly named equicoordinate and
+        radial quantiles.</p>
       <div class="table-wrap">
         <table class="distribution-table">
           <thead><tr><th>Distribution</th><th>Support &amp; parameters</th><th>Defining formula</th><th>API</th></tr></thead>
@@ -164,14 +165,14 @@
             <tr><td><a href="api/jdistlib/Dirichlet.html"><code>Dirichlet</code></a></td><td>xᵢ≥0, Σxᵢ=1; concentrations αᵢ</td><td>f(x)=Γ(Σαᵢ)/∏Γ(αᵢ) · ∏xᵢ<sup>αᵢ−1</sup></td><td class="methods">D––R</td></tr>
             <tr><td><a href="api/jdistlib/DirichletMultinomial.html"><code>DirichletMultinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, αᵢ</td><td>P(x)=n!/∏xᵢ! · Γ(α₀)/Γ(n+α₀) · ∏Γ(xᵢ+αᵢ)/Γ(αᵢ)</td><td class="methods">D––R</td></tr>
             <tr><td><a href="api/jdistlib/Multinomial.html"><code>Multinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, weights pᵢ</td><td>P(x)=n!∏pᵢ<sup>xᵢ</sup>/∏xᵢ!</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateCauchy.html"><code>MultivariateCauchy</code></a></td><td>x∈ℝᵏ; location μ, scale Σ</td><td>f(x)=Γ((k+1)/2)/{Γ(1/2)π<sup>k/2</sup>|Σ|<sup>1/2</sup>[1+q(x)]<sup>(k+1)/2</sup>}</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateCauchy.html"><code>MultivariateCauchy</code></a></td><td>x∈ℝᵏ; location μ, scale Σ</td><td>f(x)=Γ((k+1)/2)/{Γ(1/2)π<sup>k/2</sup>|Σ|<sup>1/2</sup>[1+q(x)]<sup>(k+1)/2</sup>}</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
             <tr><td><a href="api/jdistlib/MultivariateHypergeometric.html"><code>MultivariateHypergeometric</code></a></td><td>xᵢ counts; populations mᵢ, draws n</td><td>P(x)=∏ᵢC(mᵢ,xᵢ)/C(Σmᵢ,n), with Σxᵢ=n</td><td class="methods">D––R</td></tr>
             <tr><td><a href="api/jdistlib/MultivariateLaplace.html"><code>MultivariateLaplace</code></a></td><td>x∈ℝᵏ; location μ, covariance scale Σ</td><td>X=μ+√W Z; W∼Exp(1), Z∼Nₖ(0,Σ)</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateLogNormal.html"><code>MultivariateLogNormal</code></a></td><td>xᵢ&gt;0; log-mean μ, log-covariance Σ</td><td>ln X∼Nₖ(μ,Σ); f<sub>X</sub>(x)=f<sub>N</sub>(ln x)/∏xᵢ</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateNormal.html"><code>MultivariateNormal</code></a></td><td>x∈ℝᵏ; mean μ, covariance Σ</td><td>f(x)=exp[−q(x)/2]/[(2π)<sup>k/2</sup>|Σ|<sup>1/2</sup>]</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariatePowerExponential.html"><code>MultivariatePowerExponential</code></a></td><td>x∈ℝᵏ; location μ, scatter Σ, shape β</td><td>f(x)=C(k,β)|Σ|<sup>−1/2</sup>exp{−q(x)<sup>β</sup>/2}</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateStudentT.html"><code>MultivariateStudentT</code></a></td><td>x∈ℝᵏ; location μ, scale Σ, df ν</td><td>f(x)=Γ((ν+k)/2)[1+q(x)/ν]<sup>−(ν+k)/2</sup>/{Γ(ν/2)(νπ)<sup>k/2</sup>|Σ|<sup>1/2</sup>}</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/Wishart.html"><code>Wishart</code></a></td><td>positive-definite k×k matrix; df ν, Cholesky L</td><td>f(X)=|X|<sup>(ν−k−1)/2</sup>e<sup>−tr(Σ<sup>−1</sup>X)/2</sup>/{2<sup>νk/2</sup>|Σ|<sup>ν/2</sup>Γ<sub>k</sub>(ν/2)}, Σ=LL<sup>T</sup></td><td class="methods">–––R</td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateLogNormal.html"><code>MultivariateLogNormal</code></a></td><td>xᵢ&gt;0; log-mean μ, log-covariance Σ</td><td>ln X∼Nₖ(μ,Σ); f<sub>X</sub>(x)=f<sub>N</sub>(ln x)/∏xᵢ</td><td class="methods">DP–R <span title="equicoordinate quantile">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateNormal.html"><code>MultivariateNormal</code></a></td><td>x∈ℝᵏ; mean μ, covariance Σ</td><td>f(x)=exp[−q(x)/2]/[(2π)<sup>k/2</sup>|Σ|<sup>1/2</sup>]</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/MultivariatePowerExponential.html"><code>MultivariatePowerExponential</code></a></td><td>x∈ℝᵏ; location μ, scatter Σ, shape β</td><td>f(x)=C(k,β)|Σ|<sup>−1/2</sup>exp{−q(x)<sup>β</sup>/2}</td><td class="methods">D––R <span title="radial quantile">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateStudentT.html"><code>MultivariateStudentT</code></a></td><td>x∈ℝᵏ; location μ, scale Σ, df ν</td><td>f(x)=Γ((ν+k)/2)[1+q(x)/ν]<sup>−(ν+k)/2</sup>/{Γ(ν/2)(νπ)<sup>k/2</sup>|Σ|<sup>1/2</sup>}</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/Wishart.html"><code>Wishart</code></a></td><td>positive-definite k×k matrix; df ν, scale Σ or Cholesky L</td><td>f(X)=|X|<sup>(ν−k−1)/2</sup>e<sup>−tr(Σ<sup>−1</sup>X)/2</sup>/{2<sup>νk/2</sup>|Σ|<sup>ν/2</sup>Γ<sub>k</sub>(ν/2)}</td><td class="methods">D––R</td></tr>
           </tbody>
         </table>
       </div>

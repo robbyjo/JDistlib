@@ -54,4 +54,14 @@ public final class MultivariatePowerExponential {
 			result[i] = random(location, scatter, shape, random);
 		return result;
 	}
+
+	/** Quantile of the scatter-standardized radial distance. */
+	public static double radialQuantile(double p, int dimension, double shape,
+			boolean lowerTail, boolean logProbability) {
+		if (dimension < 1 || !(shape > 0.0) || !Double.isFinite(shape))
+			return Double.NaN;
+		double gamma = Gamma.quantile(p, dimension / (2.0 * shape), 1.0,
+				lowerTail, logProbability);
+		return Math.pow(2.0 * gamma, 1.0 / (2.0 * shape));
+	}
 }

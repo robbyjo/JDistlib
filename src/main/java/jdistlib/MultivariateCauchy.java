@@ -21,4 +21,46 @@ public final class MultivariateCauchy {
 			RandomEngine random) {
 		return MultivariateStudentT.random(n, location, scale, 1.0, random);
 	}
+
+	public static MultivariateProbabilityResult probability(double[] lower,
+			double[] upper, double[] location, double[][] scale,
+			MultivariateProbabilityOptions options, RandomEngine random) {
+		return MultivariateStudentT.probability(lower, upper, location, scale, 1.0,
+				options, random);
+	}
+
+	public static MultivariateProbabilityResult probability(double[] lower,
+			double[] upper, double[] location, double[][] scale) {
+		return MultivariateStudentT.probability(lower, upper, location, scale, 1.0);
+	}
+
+	public static MultivariateProbabilityResult cumulative(double[] upper,
+			double[] location, double[][] scale,
+			MultivariateProbabilityOptions options, RandomEngine random) {
+		return MultivariateStudentT.cumulative(upper, location, scale, 1.0,
+				options, random);
+	}
+
+	public static MultivariateProbabilityResult cumulative(double[] upper,
+			double[] location, double[][] scale) {
+		return MultivariateStudentT.cumulative(upper, location, scale, 1.0);
+	}
+
+	public static double equicoordinateQuantile(double p, double[] location,
+			double[][] scale, MultivariateProbabilityOptions options,
+			RandomEngine random) {
+		return MultivariateStudentT.equicoordinateQuantile(p, location, scale, 1.0,
+				options, random);
+	}
+
+	public static double equicoordinateQuantile(double p, double[] location,
+			double[][] scale) {
+		return MultivariateStudentT.equicoordinateQuantile(p, location, scale, 1.0);
+	}
+
+	public static double radialQuantile(double p, int dimension,
+			boolean lowerTail, boolean logProbability) {
+		return MultivariateStudentT.radialQuantile(p, dimension, 1.0, lowerTail,
+				logProbability);
+	}
 }

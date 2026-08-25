@@ -42,11 +42,13 @@ shared mutable caches.
 | `MultivariateHypergeometric` | [`extraDistr`](https://cran.r-project.org/package=extraDistr) and task-view definition | 1.10.0.5 / task view 2026-05-07 | GPL-2 | Exact combinatorial mass, sequential conditional sampling, support checks |
 | `BivariatePoisson` | [`bivpois`](https://cran.r-project.org/package=bivpois) | 1.2 | GPL-2-or-later | Independent-plus-shared Poisson identity, exact joint CDF, simulated covariance |
 | `BivariateLogistic` | `VGAM`, `d/p/rbilogis` | 1.1-14 | GPL-3 | Closed-form density/CDF, endpoint behavior and conditional generator |
-| `MultivariateNormal`, `MultivariateStudentT`, `MultivariateCauchy`, `MultivariateLogNormal` | [`mvtnorm`](https://cran.r-project.org/package=mvtnorm), task-view definitions | 1.4-2 / task view 2026-05-07 | GPL-2 | Cholesky density/generation, univariate reductions, Jacobian and covariance checks |
-| `MultivariateLaplace`, `MultivariatePowerExponential` | [`LaplacesDemon`](https://cran.r-project.org/package=LaplacesDemon), task-view definitions | 16.1.6 / task view 2026-05-07 | MIT | Normal-mixture and radial-gamma constructions, Bessel density, Gaussian/Laplace reductions |
+| `MultivariateNormal`, `MultivariateStudentT`, `MultivariateCauchy`, `MultivariateLogNormal` | [`mvtnorm`](https://cran.r-project.org/package=mvtnorm), Genz conditional transformation, task-view definitions | 1.4-2 / task view 2026-05-07 | GPL-2 | Cholesky density/generation, randomized rectangle probabilities with error estimates, independent quadrature, exact orthants, equicoordinate/radial quantiles |
+| `MultivariateLaplace`, `MultivariatePowerExponential` | [`LaplacesDemon`](https://cran.r-project.org/package=LaplacesDemon), task-view definitions | 16.1.6 / task view 2026-05-07 | MIT | Normal-mixture and radial-gamma constructions, Bessel density, Gaussian/Laplace reductions and power-exponential radial quantiles |
+| `Wishart` | R `stats::rWishart`, Bartlett decomposition and standard matrix density | R 4.6.1 / AS 53 | GPL-2-or-later | Scaled-chi-square reduction, density/log-density agreement, exact seeded Bartlett reduction, matrix means and support validation |
 
 The numerical reference checks are in `AdditionalDistributionsTest`,
-`ContributedPackageDistributionsTest`, and `MultivariateDistributionsTest`.
+`ContributedPackageDistributionsTest`, `MultivariateDistributionsTest`, and
+`MultivariateProbabilityTest`.
 The source packages are used as references; the public Java APIs follow
 JDistlib naming conventions. Vector-valued laws are intentionally static vector
 APIs rather than `GenericDistribution` instances, matching the absence of a
@@ -72,12 +74,13 @@ parameter conversion rather than duplicate classes.
 
 The discrete and continuous multivariate sections of the CRAN task view were
 also screened. This batch establishes the broadly reusable count, simplex, and
-elliptical foundations. It includes all task-view operations that have a clear
-vector meaning: density or mass and random generation, plus exact joint CDFs
-for the bivariate Poisson and VGAM bivariate logistic laws. Multivariate CDFs,
-componentwise quantiles, and truncated probabilities are not inferred from a
-univariate API because those operations require explicit region semantics and
-specialized numerical algorithms.
+elliptical foundations. It includes density or mass and random generation, exact
+joint CDFs for the bivariate Poisson and VGAM bivariate logistic laws, and
+explicit lower/upper rectangular probabilities for the normal, Student t,
+Cauchy, and log-normal families. Their named equicoordinate and radial quantiles
+avoid implying a unique vector inverse CDF. Simplex/count CDFs and matrix-valued
+quantiles remain intentionally absent because their region or ordering semantics
+and computational cost require a separate contract.
 
 ## Historical contributed APIs
 
@@ -111,7 +114,7 @@ candidate queue, not a completeness claim or release promise.
 | Multivariate inverted beta, Burr, F, Lomax/Pareto and Cook-Johnson uniform | `NonNorMvtDist` | Application families; parameterization and joint-quantile semantics need a dedicated audit |
 | Bivariate geometric/logarithmic/negative-binomial and Poisson-lognormal | `bivgeom`, `trawl`, `MNB`, `poilog` | Several inequivalent dependence constructions; avoid choosing one silently |
 | Multivariate gamma, inverse-Gaussian, generalized-hyperbolic, stable and extreme-value laws | `joker`, `mig`, `ghyp`, `mvpd`, `evd` | Require family-specific special functions or numerical probability algorithms |
-| Truncated/skew multivariate normal and t probabilities | `mvtnorm`, `TruncatedNormal`, `tmvtnorm`, `sn` | Requires a reproducible Genz-style region probability and truncated sampler core |
+| Truncated/skew multivariate normal and t laws | `mvtnorm`, `TruncatedNormal`, `tmvtnorm`, `sn` | Rectangle probabilities now exist; reusable truncated/skew densities and samplers remain to be designed |
 | Hyper-Dirichlet and multiplicative multinomial | `hyper2`, `MM` | Graph- or dimension-dependent normalizing constants make these more than thin distribution ports |
 
 Aliases and exact special cases are intentionally not separate classes. For

@@ -77,6 +77,302 @@ public class Integrate {
 		return dqagie(f, 0.0, 2, epsabs, epsrel, limit);
 	}
 
+	/**
+	 * Integrates with hardened callback handling, evaluation budgets, optional
+	 * breakpoints, cancellation, and selectable quadrature methods. The legacy
+	 * overloads remain unchanged for R/QUADPACK compatibility.
+	 */
+	public static IntegrationResult integrate(UnivariateFunction f, double lower,
+			double upper, IntegrationOptions options) {
+		IntegrationResult invalid = new IntegrationResult();
+		invalid.f = f;
+		if (f == null || options == null || Double.isNaN(lower)
+				|| Double.isNaN(upper)) {
+			invalid.ier = 6;
+			return invalid;
+		}
+
+		EvaluationGuard guard = new EvaluationGuard(f, options);
+		boolean reverse = lower > upper;
+		double low = reverse ? upper : lower;
+		double high = reverse ? lower : upper;
+		double[] points = internalBreakpoints(options.getBreakpoints(), low, high);
+		int pieces = points.length + 1;
+		double absolute = options.getAbsoluteTolerance() / pieces;
+		double sum = 0.0;
+		double correction = 0.0;
+		double error = 0.0;
+		int last = 0;
+		IntegrationResult combined = new IntegrationResult();
+		combined.f = f;
+		double from = low;
+		for (int i = 0; i < pieces; i++) {
+			double to = i == points.length ? high : points[i];
+			IntegrationResult part = integrateSelected(guard, from, to, absolute,
+					options);
+			double adjusted = part.result - correction;
+			double next = sum + adjusted;
+			correction = (next - sum) - adjusted;
+			sum = next;
+			error += part.abserr;
+			last += part.last;
+			if (part.detail != null && combined.detail == null) {
+				combined.detail = part.detail;
+			}
+			if (!part.isSuccess()) {
+				combined.ier = part.ier;
+				combined.failureX = part.failureX;
+				combined.cause = part.cause;
+				combined.detail = part.detail;
+				break;
+			}
+			from = to;
+		}
+		combined.result = reverse ? -sum : sum;
+		combined.abserr = error;
+		combined.last = last;
+		combined.neval = guard.evaluations;
+		guard.decorate(combined);
+		return combined;
+	}
+
+	/**
+	 * Repeats an integral with tighter tolerances and an additional midpoint
+	 * split. Agreement is a useful stability check, but is not a proof of
+	 * correctness or convergence.
+	 */
+	public static IntegrationStabilityResult assessStability(UnivariateFunction f,
+			double lower, double upper, IntegrationOptions options) {
+		if (options == null) throw new IllegalArgumentException("options must not be null");
+		IntegrationResult baseline = integrate(f, lower, upper, options);
+		double tighterAbsolute = options.getAbsoluteTolerance() * 0.1;
+		double tighterRelative = options.getRelativeTolerance() * 0.1;
+		if (tighterAbsolute == 0.0 && tighterRelative < 100.0 * DBL_EPSILON) {
+			tighterRelative = 100.0 * DBL_EPSILON;
+		}
+		int tighterLimit = options.getSubdivisions() > Integer.MAX_VALUE / 2
+				? Integer.MAX_VALUE : options.getSubdivisions() * 2;
+		IntegrationOptions tightenedOptions = options.toBuilder()
+				.tolerances(tighterAbsolute, tighterRelative)
+				.subdivisions(tighterLimit)
+				.build();
+		IntegrationResult tightened = integrate(f, lower, upper, tightenedOptions);
+
+		double[] declared = options.getBreakpoints();
+		double[] splitPoints;
+		if (Double.isFinite(lower) && Double.isFinite(upper) && lower != upper) {
+			splitPoints = new double[declared.length + 1];
+			System.arraycopy(declared, 0, splitPoints, 0, declared.length);
+			splitPoints[declared.length] = lower * 0.5 + upper * 0.5;
+		} else {
+			splitPoints = new double[declared.length + 1];
+			System.arraycopy(declared, 0, splitPoints, 0, declared.length);
+			splitPoints[declared.length] = Double.isFinite(lower) ? lower + 1.0
+					: (Double.isFinite(upper) ? upper - 1.0 : 0.0);
+		}
+		IntegrationOptions splitOptions = tightenedOptions.toBuilder()
+				.breakpoints(splitPoints).build();
+		IntegrationResult split = integrate(f, lower, upper, splitOptions);
+
+		double discrepancy = Math.max(abs(baseline.result - tightened.result),
+				abs(tightened.result - split.result));
+		double scale = Math.max(1.0, abs(tightened.result));
+		double toleranceAllowance = Math.max(tighterAbsolute,
+				tighterRelative * scale) * 8.0;
+		double errorAllowance = 4.0 * (baseline.abserr + tightened.abserr
+				+ split.abserr);
+		double allowed = Math.max(toleranceAllowance, errorAllowance);
+		boolean stable = baseline.isSuccess() && tightened.isSuccess()
+				&& split.isSuccess() && Double.isFinite(discrepancy)
+				&& discrepancy <= allowed;
+		return new IntegrationStabilityResult(baseline, tightened, split,
+				discrepancy, allowed, stable);
+	}
+
+	private static IntegrationResult integrateSelected(EvaluationGuard guard,
+			double lower, double upper, double epsabs, IntegrationOptions options) {
+		IntegrationOptions.Method method = options.getMethod();
+		if (method == IntegrationOptions.Method.TANH_SINH) {
+			if (!Double.isFinite(lower) || !Double.isFinite(upper)) {
+				IntegrationResult invalid = new IntegrationResult();
+				invalid.ier = 6;
+				invalid.detail = "tanh-sinh currently requires finite bounds";
+				return invalid;
+			}
+			return tanhSinh(guard, lower, upper, epsabs,
+					options.getRelativeTolerance(), options.getTanhSinhMaxLevels());
+		}
+
+		IntegrationResult quadpack = integrate(guard, lower, upper, epsabs,
+				options.getRelativeTolerance(), options.getSubdivisions());
+		if (method != IntegrationOptions.Method.AUTO || quadpack.isSuccess()
+				|| !Double.isFinite(lower) || !Double.isFinite(upper)
+				|| guard.hasFailure()) return quadpack;
+
+		IntegrationResult alternative = tanhSinh(guard, lower, upper, epsabs,
+				options.getRelativeTolerance(), options.getTanhSinhMaxLevels());
+		if (alternative.isSuccess()) {
+			alternative.detail = "tanh-sinh fallback used after QUADPACK status "
+					+ quadpack.ier;
+			return alternative;
+		}
+		return alternative.abserr < quadpack.abserr ? alternative : quadpack;
+	}
+
+	private static double[] internalBreakpoints(double[] declared, double lower,
+			double upper) {
+		double[] selected = new double[declared.length];
+		int count = 0;
+		for (double point : declared) {
+			if (point > lower && point < upper
+					&& (count == 0 || point != selected[count - 1])) {
+				selected[count++] = point;
+			}
+		}
+		double[] result = new double[count];
+		System.arraycopy(selected, 0, result, 0, count);
+		return result;
+	}
+
+	private static IntegrationResult tanhSinh(UnivariateFunction f, double lower,
+			double upper, double epsabs, double epsrel, int maxLevels) {
+		IntegrationResult result = new IntegrationResult();
+		result.f = f;
+		result.abserr = DBL_MAX;
+		if (!(lower < upper)) {
+			if (lower == upper) return result;
+			result.ier = 6;
+			return result;
+		}
+		double midpoint = lower * 0.5 + upper * 0.5;
+		double halfWidth = upper * 0.5 - lower * 0.5;
+		double previous = Double.NaN;
+		final double halfPi = Math.PI * 0.5;
+		for (int level = 0; level < maxLevels; level++) {
+			double step = Math.scalb(1.0, -level);
+			int extent = (int) Math.ceil(3.5 / step);
+			double sum = 0.0;
+			double correction = 0.0;
+			boolean endpointRounded = false;
+			for (int k = -extent; k <= extent; k++) {
+				double t = k * step;
+				double sinh = Math.sinh(t);
+				double u = halfPi * sinh;
+				double y = Math.tanh(u);
+				if (!(y > -1.0 && y < 1.0)) continue;
+				double coshU = Math.cosh(u);
+				double jacobian = halfWidth * halfPi * Math.cosh(t)
+						/ (coshU * coshU);
+				double x = midpoint + halfWidth * y;
+				/* The transform can round to an exact endpoint before tanh rounds to
+				 * +/-1. Endpoint singularities are approached, never evaluated. */
+				if (!(x > lower && x < upper)) {
+					endpointRounded = true;
+					continue;
+				}
+				double term = f.eval(x) * jacobian;
+				if (!Double.isFinite(term)) {
+					result.ier = 3;
+					result.failureX = x;
+					result.detail = "non-finite tanh-sinh contribution";
+					return result;
+				}
+				double adjusted = term - correction;
+				double next = sum + adjusted;
+				correction = (next - sum) - adjusted;
+				sum = next;
+			}
+			double current = sum * step;
+			result.result = current;
+			result.last = level + 1;
+			if (level > 0) {
+				result.abserr = abs(current - previous);
+				if (endpointRounded) {
+					/* A callback using doubles cannot resolve the final transformed
+					 * sliver next to a singular endpoint. Do not claim accuracy below
+					 * the conservative square-root-epsilon scale. */
+					result.abserr = max(result.abserr,
+							Math.sqrt(DBL_EPSILON) * abs(current));
+				}
+				double target = max(epsabs, epsrel * abs(current));
+				if (result.abserr <= target) return result;
+			}
+			previous = current;
+		}
+		result.ier = 1;
+		return result;
+	}
+
+	private static final class EvaluationGuard implements UnivariateFunction {
+		private final UnivariateFunction delegate;
+		private final IntegrationOptions options;
+		private int evaluations;
+		private int failureCode;
+		private double failureX = Double.NaN;
+		private RuntimeException cause;
+		private String detail;
+
+		EvaluationGuard(UnivariateFunction delegate, IntegrationOptions options) {
+			this.delegate = delegate;
+			this.options = options;
+		}
+
+		@Override public double eval(double x) {
+			if (failureCode != 0) return Double.NaN;
+			if (options.getCancellation() != null) {
+				try {
+					if (options.getCancellation().getAsBoolean()) {
+						failureCode = 8;
+						failureX = x;
+						detail = "cancelled before evaluating x=" + x;
+						return Double.NaN;
+					}
+				} catch (RuntimeException exception) {
+					failureCode = 7;
+					failureX = x;
+					cause = exception;
+					detail = "cancellation callback threw "
+							+ exception.getClass().getSimpleName();
+					return Double.NaN;
+				}
+			}
+			if (evaluations >= options.getMaxEvaluations()) {
+				failureCode = 9;
+				failureX = x;
+				detail = "limit=" + options.getMaxEvaluations();
+				return Double.NaN;
+			}
+			evaluations++;
+			try {
+				double value = delegate.eval(x);
+				if (!Double.isFinite(value)) {
+					failureCode = 10;
+					failureX = x;
+					detail = "value=" + value + " at x=" + x;
+					return Double.NaN;
+				}
+				return value;
+			} catch (RuntimeException exception) {
+				failureCode = 7;
+				failureX = x;
+				cause = exception;
+				detail = exception.getClass().getSimpleName() + " at x=" + x
+						+ (exception.getMessage() == null ? ""
+								: ": " + exception.getMessage());
+				return Double.NaN;
+			}
+		}
+
+		boolean hasFailure() { return failureCode != 0; }
+
+		void decorate(IntegrationResult result) {
+			if (failureCode != 0) result.ier = failureCode;
+			result.failureX = failureX;
+			result.cause = cause;
+			if (detail != null) result.detail = detail;
+		}
+	}
+
 	private static IntegrationResult integrateFinite(UnivariateFunction f, double lower, double upper,
 			double epsabs, double epsrel, int limit) {
 		double[] alist = new double[limit + 1];
@@ -140,7 +436,9 @@ public class Integrate {
 
 		for (result.last = 2; result.last <= limit; result.last++) {
 			double a1 = alist[maxerr];
-			double b1 = (alist[maxerr] + blist[maxerr]) * 0.5;
+			double intervalSum = alist[maxerr] + blist[maxerr];
+			double b1 = Double.isFinite(intervalSum) ? intervalSum * 0.5
+					: alist[maxerr] * 0.5 + blist[maxerr] * 0.5;
 			double a2 = b1;
 			double b2 = blist[maxerr];
 			double erlast = errmax;
@@ -1216,8 +1514,12 @@ public class Integrate {
 
 		double[] fv1 = new double[10];
 		double[] fv2 = new double[10];
-		double center = (a + b) * 0.5;
-		double halfLength = (b - a) * 0.5;
+		double intervalSum = a + b;
+		double intervalDifference = b - a;
+		double center = Double.isFinite(intervalSum) ? intervalSum * 0.5
+				: a * 0.5 + b * 0.5;
+		double halfLength = Double.isFinite(intervalDifference)
+				? intervalDifference * 0.5 : b * 0.5 - a * 0.5;
 		double absHalfLength = abs(halfLength);
 		double centerValue = f.eval(center);
 		double resg = 0.0;

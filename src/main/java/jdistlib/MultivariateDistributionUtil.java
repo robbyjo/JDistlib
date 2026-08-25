@@ -20,9 +20,18 @@ final class MultivariateDistributionUtil {
 	static Factor factor(double[] location, double[][] scatter) {
 		if (location == null || scatter == null || location.length == 0 ||
 				scatter.length != location.length) return null;
-		int dimension = location.length;
 		for (double value : location)
 			if (!Double.isFinite(value)) return null;
+		return factor(scatter, location.length);
+	}
+
+	static Factor factor(double[][] scatter) {
+		return factor(scatter, scatter == null ? 0 : scatter.length);
+	}
+
+	private static Factor factor(double[][] scatter, int dimension) {
+		if (scatter == null || dimension == 0 || scatter.length != dimension)
+			return null;
 		for (int i = 0; i < dimension; i++)
 			if (scatter[i] == null || scatter[i].length != dimension) return null;
 		for (int i = 0; i < dimension; i++) {

@@ -1,5 +1,20 @@
 What's new:
 
+Version 0.5.1 (in development):
+* Added call-local, randomized quasi-Monte Carlo rectangle probabilities for
+  multivariate normal, Student t, Cauchy, and log-normal laws. Results report
+  estimated absolute error, evaluation count, and convergence status; callers
+  may supply both accuracy limits and an explicit random stream.
+* Added explicitly named equicoordinate quantiles for those vector laws and
+  closed-form Mahalanobis/radial quantiles for the normal, t, Cauchy, and
+  multivariate power-exponential families, avoiding an ambiguous vector inverse
+  CDF contract.
+* Corrected the historical Wishart Bartlett sampler to use the documented
+  `W(scale, df)` parameterization and added scalar/vector generation overloads,
+  scale-matrix convenience methods, and log/non-log matrix densities.
+* Added independent quadrature, scalar-reduction, exact-orthant, Wishart-moment,
+  invalid-input, reproducibility, and evaluation-budget regression tests.
+
 Version 0.5.0 (August 25, 2026):
 * Restructured the historical SourceForge repository as a conventional,
   GitHub-ready Gradle project while retaining the complete commit history.
@@ -9,6 +24,16 @@ Version 0.5.0 (August 25, 2026):
   DQAGI semi-infinite and doubly-infinite integration, epsilon extrapolation,
   R-compatible error estimates/statuses, and call-local workspaces; added an
   R-generated reference corpus and concurrency tests.
+* Added user-defined numerical continuous and finite-discrete distributions:
+  nonnegative formulas are normalized over declared supports and exposed through
+  density/mass, CDF, quantile, random, and normalization-diagnostic APIs. The
+  hardened integration path adds immutable options, breakpoints, budgets,
+  cancellation, callback context, stability repeats, finite tanh-sinh fallback,
+  advisory kernel/distribution reports, and log-kernel/log-weight construction.
+  Follow-up hardening adds absolute-moment existence checks, reusable adaptive
+  monotone CDF tables, mode-searched regional log scaling, interval-union/hole/
+  singularity/atom supports, and certified truncation for one- or two-sided
+  infinite integer domains.
 * Began the audited sync from R 3.3.2 to R 4.6.1: modernized normal quantiles,
   discrete quantile search, negative-binomial mean parameterization, Stirling
   error, deviance terms, and selected density edge cases.

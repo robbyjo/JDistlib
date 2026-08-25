@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+      - name: Build and test release artifacts
+        run: ./gradlew clean build --no-daemon
+      - name: Create SHA-256 checksums
+        working-directory: build/libs
+        run: sha256sum *.jar > SHA256SUMS
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" build/libs/*
+          --title "JDistlib ${GITHUB_REF_NAME#v}"
+          --notes-file RELEASE_NOTES.md
+          --verify-tag
+          --latest

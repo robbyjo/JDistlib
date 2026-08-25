@@ -15,7 +15,7 @@ This ledger prevents a partially updated library from being presented as a
 complete R 4.6.1 port. Each item should be checked only after the Java port has
 been compared with the tagged R source and covered by regression vectors.
 
-## Completed in the 0.5.0 development tree
+## Completed in version 0.5.0
 
 - [x] `qnorm.c`: extreme log-tail refinements
 - [x] Normal family (`dnorm.c`, `pnorm.c`, `qnorm.c`, `rnorm.c`, `snorm.c`),

@@ -1,6 +1,6 @@
 What's new:
 
-Version 0.5.0 (in development):
+Version 0.5.0 (August 25, 2026):
 * Restructured the historical SourceForge repository as a conventional,
   GitHub-ready Gradle project while retaining the complete commit history.
 * Replaced retired build plugins and vendored jars with Gradle 9, Maven Central,
@@ -19,6 +19,9 @@ Version 0.5.0 (in development):
   noncentral chi-square, hypergeometric and rank statistics, Bessel functions,
   count and continuous distributions, RNG boundaries, and arithmetic helpers;
   added a reproducible R-generated cross-language regression corpus.
+* Ported selected post-4.6.1 R-devel fixes for binomial BTPE sampling,
+  large-population hypergeometric sampling, compensated multinomial sampling,
+  and Wilcoxon rank/zap controls while retaining an explicit legacy BTPE mode.
 * Replaced the low-accuracy AS 226 noncentral-beta CDF with an AS 310-guided,
   Benton--Krishnamoorthy mode-centred mixture that evaluates both tails on the
   log scale; quantiles now invert underflowing log probabilities directly.
@@ -47,11 +50,6 @@ Version 0.5.0 (in development):
   power-exponential density/mass and random-vector APIs.
 * Preserved JDistlib-only distributions and the explicit per-stream random-state
   design used by cached random generators.
-
-Future version (?):
-* Skewed T distribution (will research various parameterization first)
-
-Version 0.5.0 (?):
 * Added various central tendencies routine per request of Bug #32
 * jdistlib.matrix.QMatrixUtils is now being deprecated
 * Added Geometric Standard Deviation, per Bug #34

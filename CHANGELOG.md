@@ -1,11 +1,14 @@
 What's new:
 
 Version 0.6.0 (in development):
-* Audited all 11 historical SourceForge tickets, replaced obsolete open-ticket
-  R Bugzilla monitoring with tagged-source checks and focused regressions,
-  repaired the PR#16332 extreme beta log-tail and PR#15554 huge-order Bessel
-  paths, generated a standalone R source/test patch for PR#16332, and recorded
-  the one out-of-scope `stats::fisher.test` ticket.
+* Closed the historical SourceForge numerical backlog: consistent integer
+  validation for hypergeometric parameters, guarded split-deviance Poisson
+  densities, compensated noncentral-beta density arithmetic, smaller-tail
+  noncentral-chi-square inversion, and conditional quadrature removing the
+  PR#16845 noncentral-t cutoff discontinuity. Replaced obsolete open-ticket R
+  Bugzilla monitoring with tagged-source regressions, generated standalone R
+  source/test patches for PR#16332 and PR#16845, and recorded the one
+  out-of-scope `stats::fisher.test` ticket.
 * Finalized the multivariate probability result contract with a typed status,
   convergence and usable-estimate queries, a public tolerance calculation, and
   explicit documentation that the replication error is a heuristic rather than

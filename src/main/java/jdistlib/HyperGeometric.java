@@ -131,6 +131,10 @@ public class HyperGeometric extends GenericDistribution {
 		/* Sample of  n balls from  NR red  and	 NB black ones;	 x are red */
 		double d, pd;
 		if(Double.isNaN(x) || Double.isNaN(NR) || Double.isNaN(NB) || Double.isNaN(n)) return x + NR + NB + n;
+		if (!Double.isFinite(NR) || !Double.isFinite(NB) || !Double.isFinite(n)
+				|| NR < 0 || NB < 0 || n < 0
+				|| isNonInt(NR) || isNonInt(NB) || isNonInt(n))
+			return Double.NaN;
 
 		x = floor (x + 1e-7);
 		NR = rint(NR); // NR = R_D_forceint(NR);
@@ -178,6 +182,9 @@ public class HyperGeometric extends GenericDistribution {
 		boolean small_N;
 		if(Double.isNaN(p) || Double.isNaN(NR) || Double.isNaN(NB) || Double.isNaN(n)) return p + NR + NB + n;
 		if(MathFunctions.isInfinite(p) || MathFunctions.isInfinite(NR) || MathFunctions.isInfinite(NB) || MathFunctions.isInfinite(n))
+			return Double.NaN;
+		if (NR < 0 || NB < 0 || n < 0
+				|| isNonInt(NR) || isNonInt(NB) || isNonInt(n))
 			return Double.NaN;
 		NR = rint(NR); // floor(NR + 0.5);
 		NB = rint(NB); // floor(NB + 0.5);
@@ -287,6 +294,9 @@ public class HyperGeometric extends GenericDistribution {
 
 		if (!Double.isFinite(nn1in) || !Double.isFinite(nn2in)
 				|| !Double.isFinite(kkin))
+			return Double.NaN;
+		if (nn1in < 0 || nn2in < 0 || kkin < 0
+				|| isNonInt(nn1in) || isNonInt(nn2in) || isNonInt(kkin))
 			return Double.NaN;
 
 		nn1in = rint(nn1in);

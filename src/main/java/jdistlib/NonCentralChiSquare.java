@@ -326,9 +326,10 @@ public class NonCentralChiSquare extends GenericDistribution {
 				if (!log_p) ans = max(ans, 0.0);  /* Precaution PR#7099 */
 			}
 		}
-		if (!log_p || ans < -1e-8)
+		if (!log_p || ans <= -M_LN2)
 			return ans;
-		// prob. = exp(ans) is near one: we can do better using the other tail
+		// The requested log probability is in the larger tail: compute its
+		// complement directly instead of taking log of a value near one.
 		// FIXME: (sum,sum2) will be the same (=> return them as well and reuse here ?)
 		if (Debug.warningAsError) {
 			try {
@@ -383,9 +384,20 @@ public class NonCentralChiSquare extends GenericDistribution {
 			if(p == 1)
 				return lower_tail ? Double.POSITIVE_INFINITY : 0;
 		}
-		// pp = R_D_qIv(p);
-		pp = log_p	? exp(p) : p;
-		if(pp > 1 - DBL_EPSILON) return lower_tail ? Double.POSITIVE_INFINITY : 0.0;
+		/* Always invert the smaller tail.  This avoids searching with a CDF
+		 * rounded close to one and preserves log probabilities near zero. */
+		if (log_p) {
+			if (p > -M_LN2) {
+				p = -expm1(p);
+				lower_tail = !lower_tail;
+			} else {
+				p = exp(p);
+			}
+		} else if (p > 0.5) {
+			p = 0.5 - p + 0.5;
+			lower_tail = !lower_tail;
+		}
+		pp = p;
 
 		/* Invert pnchisq(.) :
 		 * 1. finding an upper and lower bound */
@@ -396,7 +408,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 			b = (ncp*ncp)/(df + 3*ncp);
 			c = (df + 3*ncp)/(df + 2*ncp);
 			ff = (df + 2 * ncp)/(c*c);
-			ux = b + c * ChiSquare.quantile(p, ff, lower_tail, log_p);
+			ux = b + c * ChiSquare.quantile(p, ff, lower_tail, false);
 			if(ux <= 0) ux = 1;
 			ux0 = ux;
 		}
@@ -407,7 +419,7 @@ public class NonCentralChiSquare extends GenericDistribution {
 				System.err.println("Precision loss detected in NonCentralChiSquare.quantile");
 				if (Debug.warningAsError) throw new RuntimeException("Precision loss detected in NonCentralChiSquare.quantile");
 			}
-			p = /* R_DT_qIv(p)*/ log_p ? -expm1(p) : (0.5 - (p) + 0.5);
+			p = 0.5 - p + 0.5;
 			lower_tail = true;
 		} else {
 			p = pp;

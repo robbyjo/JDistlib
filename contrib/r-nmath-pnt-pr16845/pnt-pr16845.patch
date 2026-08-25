@@ -1,0 +1,162 @@
+--- a/src/nmath/pnt.c
++++ b/src/nmath/pnt.c
+@@ -50,6 +50,100 @@
+ 	- but for ncp > 100
+  */
+ 
++typedef struct {
++    double t, df, ncp;
++    int lower_tail;
++} pnt_quad_context;
++
++static double pnt_quad_integrand(double z, const pnt_quad_context *ctx)
++{
++    double ratio = (z + ctx->ncp) / ctx->t;
++    double threshold = ctx->df * ratio * ratio;
++    double conditional = pchisq(threshold, ctx->df,
++				!ctx->lower_tail, FALSE);
++    return dnorm4(z, 0., 1., FALSE) * conditional;
++}
++
++static double pnt_adaptive_simpson(const pnt_quad_context *ctx,
++				   double left, double right,
++				   double fleft, double fmid, double fright,
++				   double whole, double tolerance,
++				   int depth, int *ok)
++{
++    double mid = (left + right) / 2.;
++    double left_mid = (left + mid) / 2.;
++    double right_mid = (mid + right) / 2.;
++    double flm = pnt_quad_integrand(left_mid, ctx);
++    double frm = pnt_quad_integrand(right_mid, ctx);
++    if (!R_FINITE(flm) || !R_FINITE(frm)) {
++	*ok = FALSE;
++	return ML_NAN;
++    }
++    double left_value = (mid - left) * (fleft + 4.*flm + fmid) / 6.;
++    double right_value = (right - mid) * (fmid + 4.*frm + fright) / 6.;
++    double combined = left_value + right_value;
++    double error = combined - whole;
++    if (depth <= 0 || fabs(error) <= 15.*tolerance)
++	return combined + error / 15.;
++    return pnt_adaptive_simpson(ctx, left, mid, fleft, flm, fmid,
++				left_value, tolerance/2., depth-1, ok)
++	 + pnt_adaptive_simpson(ctx, mid, right, fmid, frm, fright,
++				right_value, tolerance/2., depth-1, ok);
++}
++
++static double pnt_integrate_piece(const pnt_quad_context *ctx,
++				  double left, double right, int *ok)
++{
++    double mid = (left + right) / 2.;
++    double fleft = pnt_quad_integrand(left, ctx);
++    double fmid = pnt_quad_integrand(mid, ctx);
++    double fright = pnt_quad_integrand(right, ctx);
++    if (!R_FINITE(fleft) || !R_FINITE(fmid) || !R_FINITE(fright)) {
++	*ok = FALSE;
++	return ML_NAN;
++    }
++    double whole = (right-left) * (fleft + 4.*fmid + fright) / 6.;
++    return pnt_adaptive_simpson(ctx, left, right, fleft, fmid, fright,
++				whole, 2e-14, 20, ok);
++}
++
++static double pnt_large_ncp(double t, double df, double ncp,
++			    int lower_tail)
++{
++    pnt_quad_context ctx = { t, df, ncp, lower_tail };
++    double result = lower_tail ? pnorm(-ncp, 0., 1., TRUE, FALSE) : 0.;
++    double lower = fmax2(-ncp, -10.);
++    if (!(lower < 10.)) return result;
++
++    double points[] = { lower, -5., 0., 5., t-ncp, 10. };
++    const int count = sizeof(points) / sizeof(points[0]);
++    for (int i = 1; i < count; i++) {
++	double value = points[i];
++	int j = i;
++	while (j > 0 && points[j-1] > value) {
++	    points[j] = points[j-1];
++	    j--;
++	}
++	points[j] = value;
++    }
++
++    double from = lower, correction = 0.;
++    int ok = TRUE;
++    for (int i = 0; i < count; i++) {
++	double to = points[i];
++	if (!(to > from) || to > 10.) continue;
++	double value = pnt_integrate_piece(&ctx, from, to, &ok);
++	if (!ok || !R_FINITE(value)) return ML_NAN;
++	double adjusted = value - correction;
++	double next = result + adjusted;
++	correction = (next - result) - adjusted;
++	result = next;
++	from = to;
++	if (from == 10.) break;
++    }
++    return fmin2(fmax2(result, 0.), 1.);
++}
++
+ double pnt(double t, double df, double ncp, int lower_tail, int log_p)
+ {
+     double albeta, a, b, del, errbd, lambda, rxb, tt, x;
+@@ -70,15 +164,13 @@ double pnt(double t, double df, double ncp, int lower_tail, int log_p)
+ 	negdel = FALSE; tt = t;	 del = ncp;
+     }
+     else {
+-	/* We deal quickly with left tail if extreme,
+-	   since pt(q, df, ncp) <= pt(0, df, ncp) = \Phi(-ncp) */
+-	if (ncp > 40 && (!log_p || !lower_tail)) return R_DT_0;
+ 	negdel = TRUE;	tt = -t; del = -ncp;
+     }
+ 
+-    if (df > 4e5 || del*del > 2*M_LN2*(-(DBL_MIN_EXP))) {
+-	/*-- 2nd part: if del > 37.62, then p=0 below
+-	  FIXME: test should depend on `df', `tt' AND `del' ! */
++    if (tt == 0.)
++	return pnorm(0., ncp, 1., lower_tail, log_p);
++
++    if (df > 4e5) {
+ 	/* Approx. from	 Abramowitz & Stegun 26.7.10 (p.949) */
+ 	s = 1./(4.*df);
+ 
+@@ -86,6 +178,17 @@ double pnt(double t, double df, double ncp, int lower_tail, int log_p)
+ 		     sqrt((double) (1. + tt*tt*2.*s)),
+ 		     lower_tail != negdel, log_p);
+     }
++    if (del*del > 2*M_LN2*(-(DBL_MIN_EXP))) {
++	int effective_lower = lower_tail != negdel;
++	double ans = pnt_large_ncp(tt, df, del, effective_lower);
++	if (R_FINITE(ans) && ans > 0. && ans < 1.)
++	    return log_p ? log(ans) : ans;
++	/* Retain the old approximation for a saturated extreme tail. */
++	s = 1./(4.*df);
++	return pnorm((double)(tt*(1. - s)), del,
++		     sqrt((double) (1. + tt*tt*2.*s)),
++		     effective_lower, log_p);
++    }
+ 
+     /* initialize twin series */
+     /* Guenther, J. (1978). Statist. Computn. Simuln. vol.6, 199. */
+--- a/tests/d-p-q-r-tests.R
++++ b/tests/d-p-q-r-tests.R
+@@ -248,6 +248,18 @@
+ z.ok <- z > -37.5 | !is.finite(z)
+ for(df in 1:10) stopifnot(all.equal(pt(z, df), 1 - pt(-z,df), tolerance = 1e-15))
+ 
++## PR#16845: no discontinuity at the old |ncp| ~= 37.62 cutoff
++pnt.cases <- rbind(
++    c(limit=.0378, rsd=3.75,   expected=.15429891097300658974488321321376159),
++    c(limit=.0378, rsd=3.76,   expected=.15539778452845913495491252761260947),
++    c(limit=.02,   rsd=3.759,  expected=.45187612058802224726627608785540290),
++    c(limit=.02,   rsd=3.7591, expected=.45188815299772598689884861170274824))
++pnt.actual <- apply(pnt.cases, 1L, function(z)
++    pt(1/z[["limit"]], df=1, ncp=sqrt(2)*100/z[["rsd"]]))
++stopifnot(all.equal(pnt.actual, pnt.cases[, "expected"], tolerance=1e-11),
++          abs(pnt.actual[2L] - pnt.actual[1L]) < .002,
++          abs(pnt.actual[4L] - pnt.actual[3L]) < .00002)
++
+ stopifnot(All.eq(pz <- pnorm(z), 1 - pnorm(z, lower=FALSE)),
+           All.eq(pz,		    pnorm(-z, lower=FALSE)),
+           All.eq(log(pz[z.ok]), pnorm(z[z.ok], log=TRUE)))

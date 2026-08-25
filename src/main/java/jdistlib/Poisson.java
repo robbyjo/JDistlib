@@ -55,12 +55,24 @@ public class Poisson extends GenericDistribution {
 			x = -lambda + x*log(lambda) -lgammafn(x+1);
 			return(give_log ? x : exp(x));
 		}
-		double exponent = -stirlerr(x)-bd0(x,lambda);
 		boolean largeX = x >= 2.8611174857570282e307;
 		double denominator = largeX ? sqrt(M_2PI) * sqrt(x) : M_2PI * x;
+		/* Loader's symmetric series is more accurate when x and lambda are
+		 * close, including the large-deviance region where R's ebd0 can lose
+		 * precision.  Use the split calculation outside that region. */
+		if (abs(x - lambda) < 0.1 * (x + lambda)) {
+			double exponent = -stirlerr(x) - bd0(x, lambda);
+			return give_log
+					? exponent - (largeX ? log(denominator) : 0.5 * log(denominator))
+					: exp(exponent) / (largeX ? denominator : sqrt(denominator));
+		}
+		double[] deviance = new double[2];
+		ebd0(x, lambda, deviance);
+		double high = deviance[0];
+		double low = deviance[1] + stirlerr(x);
 		return give_log
-				? exponent - (largeX ? log(denominator) : 0.5 * log(denominator))
-				: exp(exponent) / (largeX ? denominator : sqrt(denominator));
+				? -low - high - (largeX ? log(denominator) : 0.5 * log(denominator))
+				: exp(-low) * exp(-high) / (largeX ? denominator : sqrt(denominator));
 	}
 
 	public static final double density(double x, double lambda, boolean give_log) {

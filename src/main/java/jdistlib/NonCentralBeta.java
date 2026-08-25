@@ -30,12 +30,92 @@ import jdistlib.rng.RandomEngine;
 import jdistlib.util.Debug;
 
 public class NonCentralBeta extends GenericDistribution {
+	private static final double DD_SPLITTER = 134217729.0; // 2^27 + 1
+
+	private static void normalize(double[] value, double high, double low) {
+		double sum = high + low;
+		value[0] = sum;
+		value[1] = low - (sum - high);
+	}
+
+	private static double productError(double a, double b, double product) {
+		double splitA = DD_SPLITTER * a;
+		double splitB = DD_SPLITTER * b;
+		if (!Double.isFinite(splitA) || !Double.isFinite(splitB)
+				|| !Double.isFinite(product))
+			return 0.0;
+		double highA = splitA - (splitA - a);
+		double highB = splitB - (splitB - b);
+		double lowA = a - highA;
+		double lowB = b - highB;
+		return ((highA * highB - product) + highA * lowB
+				+ lowA * highB) + lowA * lowB;
+	}
+
+	private static void multiply(double[] value, double factor) {
+		double high = value[0] * factor;
+		double low = productError(value[0], factor, high) + value[1] * factor;
+		normalize(value, high, low);
+	}
+
+	private static void divide(double[] value, double divisor) {
+		double quotient = value[0] / divisor;
+		double product = quotient * divisor;
+		double remainder = (value[0] - product)
+				- productError(quotient, divisor, product) + value[1];
+		normalize(value, quotient, remainder / divisor);
+	}
+
+	private static void add(double[] accumulator, double high, double low) {
+		double sum = accumulator[0] + high;
+		double error = abs(accumulator[0]) >= abs(high)
+				? (accumulator[0] - sum) + high
+				: (high - sum) + accumulator[0];
+		normalize(accumulator, sum, error + accumulator[1] + low);
+	}
+
+	private static void add(double[] accumulator, double value) {
+		add(accumulator, value, 0.0);
+	}
+
+	private static void addPoissonLog(double[] accumulator, double x, double mean) {
+		if (x == 0.0 || x <= mean * DBL_MIN || mean < x * DBL_MIN) {
+			add(accumulator, Poisson.density_raw(x, mean, true));
+			return;
+		}
+		add(accumulator, -stirlerr(x));
+		if (abs(x - mean) < 0.1 * (x + mean)) {
+			add(accumulator, -bd0(x, mean));
+		} else {
+			double[] deviance = new double[2];
+			ebd0(x, mean, deviance);
+			add(accumulator, -deviance[0], -deviance[1]);
+		}
+		add(accumulator, -0.5 * log(M_2PI * x));
+	}
+
+	private static void addBetaLog(double[] accumulator, double x,
+			double a, double b) {
+		if (a <= 10.0 || b <= 10.0) {
+			double[] product = {a - 1.0, 0.0};
+			multiply(product, log(x));
+			add(accumulator, product[0], product[1]);
+			product[0] = b - 1.0;
+			product[1] = 0.0;
+			multiply(product, log1p(-x));
+			add(accumulator, product[0], product[1]);
+			add(accumulator, -lbeta(a, b));
+		} else {
+			add(accumulator, Beta.density(x, a, b, true));
+		}
+	}
+
 	public static final double density(double x, double a, double b, double ncp, boolean give_log) {
 		final double eps = 1.e-15;
 
 		int kMax;
 		double k, ncp2, dx2, d, D;
-		double sum, term, p_k, q; // #TODO Should be long double
+		double betaLog, poissonLog;
 
 		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b) || Double.isNaN(ncp)) return x + a + b + ncp;
 		if (ncp < 0 || a <= 0 || b <= 0) return Double.NaN;
@@ -60,40 +140,50 @@ public class NonCentralBeta extends GenericDistribution {
 		}
 
 		/* The starting "middle term" --- first look at it's log scale: */
-		term = Beta.density(x, a + kMax, b, /* log = */ true);
-		p_k = Poisson.density_raw(kMax, ncp2,true);
-		if(x == 0. || MathFunctions.isInfinite(term) || MathFunctions.isInfinite(p_k)) /* if term = +Inf */
+		betaLog = Beta.density(x, a + kMax, b, /* log = */ true);
+		poissonLog = Poisson.density_raw(kMax, ncp2,true);
+		if(x == 0. || MathFunctions.isInfinite(betaLog) || MathFunctions.isInfinite(poissonLog)) /* if term = +Inf */
 			//return R_D_exp(p_k + term);
-			return (give_log ? (p_k + term) : exp(p_k + term));
+			return (give_log ? (poissonLog + betaLog) : exp(poissonLog + betaLog));
 
 		/* Now if s_k := p_k * t_k  {here = exp(p_k + term)} would underflow,
 		 * we should rather scale everything and re-scale at the end:*/
 
-		p_k += term; /* = log(p_k) + log(t_k) == log(s_k) -- used at end to rescale */
+		double[] logScale = {0.0, 0.0};
+		addPoissonLog(logScale, kMax, ncp2);
+		addBetaLog(logScale, x, a + kMax, b);
 		/* mid = 1 = the rescaled value, instead of  mid = exp(p_k); */
 
 		/* Now sum from the inside out */
-		sum = term = 1. /* = mid term */;
+		double[] sum = {1.0, 0.0};
+		double[] term = {1.0, 0.0};
 		/* middle to the left */
 		k = kMax;
-		while(k > 0 && term > sum * eps) {
+		while(k > 0 && term[0] > sum[0] * eps) {
 			k--;
-			q = /* 1 / r_k = */ (k+1)*(k+a) / (k+a+b) / dx2;
-			term *= q;
-			sum += term;
+			multiply(term, k + 1.0);
+			multiply(term, k + a);
+			divide(term, k + a + b);
+			divide(term, dx2);
+			add(sum, term[0], term[1]);
 		}
 		/* middle to the right */
-		term = 1.;
+		term[0] = 1.0;
+		term[1] = 0.0;
 		k = kMax;
 		do {
-			q = /* r_{old k} = */ dx2 * (k+a+b) / (k+a) / (k+1);
+			multiply(term, dx2);
+			multiply(term, k + a + b);
+			divide(term, k + a);
+			divide(term, k + 1.0);
 			k++;
-			term *= q;
-			sum += term;
-		} while (term > sum * eps);
+			add(sum, term[0], term[1]);
+		} while (term[0] > sum[0] * eps);
 
 		//return R_D_exp(p_k + log(sum));
-		return (give_log ? (p_k + log(sum)) : exp(p_k + log(sum)));
+		add(logScale, log(sum[0]) + log1p(sum[1] / sum[0]));
+		return give_log ? logScale[0] + logScale[1]
+				: exp(logScale[0]) * exp(logScale[1]);
 	}
 
 	private static final int CDF_MAX_ITERATIONS = 1_000_000;

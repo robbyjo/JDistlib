@@ -23,13 +23,59 @@ import static java.lang.Math.*;
 import static jdistlib.math.Constants.*;
 import static jdistlib.math.MathFunctions.*;
 
+import java.util.Arrays;
+
 import jdistlib.exception.PrecisionException;
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.Integrate;
+import jdistlib.math.IntegrationResult;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 import jdistlib.util.Debug;
 
 public class NonCentralT extends GenericDistribution {
+	private static double largeNoncentralityCumulative(final double t,
+			final double df, final double ncp, final boolean lowerTail) {
+		/* Condition on the standard-normal numerator Z.  For t > 0,
+		 *
+		 * P(T <= t) = Phi(-ncp) + integral phi(z)
+		 *                 P(ChiSq(df) >= df*((z+ncp)/t)^2) dz,
+		 *
+		 * where the integral starts at -ncp.  This formulation stays scaled
+		 * when exp(-ncp^2/2) underflows in AS 243. */
+		double result = lowerTail
+				? Normal.cumulative(-ncp, 0.0, 1.0, true, false) : 0.0;
+		double lower = max(-ncp, -10.0);
+		if (!(lower < 10.0)) return result;
+
+		double transition = t - ncp;
+		double[] points = {lower, -5.0, 0.0, 5.0, transition, 10.0};
+		Arrays.sort(points);
+		double correction = 0.0;
+		double from = lower;
+		for (int i = 0; i < points.length; i++) {
+			double to = points[i];
+			if (!(to > from) || to > 10.0) continue;
+			final boolean requestedLower = lowerTail;
+			IntegrationResult part = Integrate.integrate(z -> {
+				double ratio = (z + ncp) / t;
+				double threshold = df * ratio * ratio;
+				double conditional = ChiSquare.cumulative(
+						threshold, df, !requestedLower, false);
+				return Normal.density(z, 0.0, 1.0, false) * conditional;
+			}, from, to, 1e-14, 1e-13, 200);
+			if (!part.isSuccess() || !Double.isFinite(part.result))
+				return Double.NaN;
+			double adjusted = part.result - correction;
+			double next = result + adjusted;
+			correction = (next - result) - adjusted;
+			result = next;
+			from = to;
+			if (from == 10.0) break;
+		}
+		return min(max(result, 0.0), 1.0);
+	}
+
 	/**<pre>
 	 *    From Johnson, Kotz and Balakrishnan (1995) [2nd ed.; formula (31.15), p.516],
 	 *    the non-central t density is
@@ -135,20 +181,31 @@ public class NonCentralT extends GenericDistribution {
 			negdel = false; tt = t;	 del = ncp;
 		}
 		else {
-			/* We deal quickly with left tail if extreme,
-		   since pt(q, df, ncp) <= pt(0, df, ncp) = \Phi(-ncp) */
-			if (ncp > 40 && (!log_p || !lower_tail)) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 			negdel = true;	tt = -t; del = -ncp;
 		}
 
-		if (df > 4e5 || del*del > 2*M_LN2*(-(DBL_MIN_EXP))) {
-			/*-- 2nd part: if del > 37.62, then p=0 below
-		  FIXME: test should depend on `df', `tt' AND `del' ! */
+		if (tt == 0.0)
+			return Normal.cumulative(0.0, ncp, 1.0, lower_tail, log_p);
+
+		if (df > 4e5) {
 			/* Approx. from	 Abramowitz & Stegun 26.7.10 (p.949) */
 			s = 1./(4.*df);
 
 			return Normal.cumulative(tt*(1. - s), del, sqrt(1. + tt*tt*2.*s),
 					lower_tail != negdel, log_p);
+		}
+		if (del * del > 2 * M_LN2 * (-(DBL_MIN_EXP))) {
+			boolean effectiveLowerTail = lower_tail != negdel;
+			double probability = largeNoncentralityCumulative(
+					tt, df, del, effectiveLowerTail);
+			if (Double.isFinite(probability) && probability > 0.0
+					&& probability < 1.0)
+				return log_p ? log(probability) : probability;
+			/* Preserve representable extreme log tails if ordinary quadrature
+			 * saturates at a boundary. */
+			s = 1./(4.*df);
+			return Normal.cumulative(tt*(1. - s), del,
+					sqrt(1. + tt*tt*2.*s), effectiveLowerTail, log_p);
 		}
 
 		/* initialize twin series */

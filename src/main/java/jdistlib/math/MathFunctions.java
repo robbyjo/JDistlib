@@ -606,6 +606,20 @@ public class MathFunctions {
 		return x > np ? x * (logRatio - 1) + np : x * logRatio + np - x;
 	}
 
+	/**
+	 * Computes the deviance part {@code x * log(x / mean) + mean - x}
+	 * as a high and low component.  Keeping the two components separate
+	 * avoids losing the small remainder when {@code x} and {@code mean}
+	 * are large.
+	 *
+	 * @param x non-negative observation
+	 * @param mean non-negative mean
+	 * @param result receives the high component at index 0 and low component at index 1
+	 */
+	public static final void ebd0(double x, double mean, double[] result) {
+		Deviance.extendedBd0(x, mean, result);
+	}
+
 	/** Computes {@code (1 + x)^y} without discarding a small {@code x}. */
 	public static final double pow1p(double x, double y) {
 		if (Double.isNaN(y))

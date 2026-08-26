@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+import jdistlib.rng.MersenneTwister;
 import jdistlib.rng.RandomEngine;
 
 /** Fits candidate families and ranks them by AIC or BIC. */
@@ -47,6 +48,21 @@ public final class CopulaSelector {
 			if (result.isSuccess()) { selected = result; break; }
 		}
 		return new CopulaSelectionResult(criterion, results, selected);
+	}
+
+	/** Selects a family after continuous/discrete marginal transformation. */
+	public static CopulaSelectionResult selectMixed(double[][] data,
+			CopulaMarginal[] marginals, CopulaFitOptions options,
+			CopulaSelectionCriterion criterion, CopulaFamily... candidates) {
+		return selectMixed(data, marginals, null, options, criterion, candidates);
+	}
+
+	/** Selects a family after a reproducible randomized marginal transform. */
+	public static CopulaSelectionResult selectMixed(double[][] data,
+			CopulaMarginal[] marginals, long seed, CopulaFitOptions options,
+			CopulaSelectionCriterion criterion, CopulaFamily... candidates) {
+		return selectMixed(data, marginals, new MersenneTwister(seed), options,
+				criterion, candidates);
 	}
 
 	/** Selects a family after continuous/discrete marginal transformation. */

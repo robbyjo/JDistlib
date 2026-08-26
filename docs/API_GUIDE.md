@@ -18,6 +18,7 @@ Use the smallest API that expresses the distribution you have.
 | Continuous marginals joined by a dependence model | A `Copula` implementation and `CopulaDistribution` |
 | Discrete or mixed marginals joined by a copula | `CopulaMarginal` declarations and `MixedCopulaDistribution` |
 | Flexible multivariate dependence or family fitting | `CVineCopula`/`DVineCopula`, `CopulaFitter`, or `CopulaSelector` |
+| Audit copula likelihood rows and boundary proximity | `CopulaLikelihoodDiagnostics` or `MixedCopulaDistribution.logLikelihoodResult` |
 | Adjust many p-values or calculate Storey q-values | `jdistlib.disttest.MultipleTesting` |
 | Test prespecified groups of hypotheses | `MultipleTesting.selectiveGroupedBenjaminiHochberg` |
 | Test hypotheses arriving sequentially | `jdistlib.disttest.online.LordPlusPlus` or `Saffron` |
@@ -39,6 +40,11 @@ Numerical APIs return result objects when convergence matters. Check the typed
 status and inspect the reported error or diagnostics; a finite estimate is not
 the same promise as convergence. Builder diagnostics identify observed risks,
 not a proof that an arbitrary caller-supplied formula is a probability law.
+
+The additive 0.7.2 copula conveniences preserve the 0.7.0 signatures. Use an
+overload without a random engine for a deterministic midpoint transform, a
+`long` seed overload for repeatable randomized transforms, or an explicit
+`RandomEngine` when the caller owns the stream.
 
 See `NUMERICAL_DISTRIBUTIONS.md` for integration and custom-law guarantees and
 `MULTIVARIATE_PROBABILITIES.md` for randomized rectangle probabilities. See

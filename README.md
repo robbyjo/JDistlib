@@ -28,12 +28,11 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.7.1 is the current stable release. It expands multiple-testing support
-with weighted, grouped, online, and discrete procedures; adds finite-interval
-CQUAD integration; and adds a general monotone-transformation factory with a
-beginner composition tutorial. Version 0.7.0 introduced copula composition,
-vines, dependence fitting and selection, expanded distribution tests, and the
-multiple-testing/FDR API. The R `src/nmath`
+Version 0.7.1 is the current stable release. Version 0.7.2 is under development
+with independent boundary-heavy mixed/vine reference validation, fitted-model
+diagnostics, analytic built-in pair conditionals, and additive fitting
+conveniences. Version 0.7.1 expanded multiple testing, added CQUAD integration,
+and introduced general monotone-transformation composition. The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
@@ -155,7 +154,11 @@ numerical results for mixed-measure derivatives. `CVineCopula` and
 `DVineCopula` assemble simplified vines from `PairCopula` objects, while
 `CopulaFitter`, `CopulaSelector`, and `VineFitter` provide rank or
 distributional transforms, dependence estimation, and AIC/BIC family
-selection. See the [copula guide](docs/COPULAS.md) for the full contract.
+selection. The additive 0.7.2 API exposes row-level
+`CopulaLikelihoodDiagnostics`, retained mixed-measure contributions through
+`logLikelihoodResult`, vine AIC/BIC, and explicit seed overloads; all 0.7.0
+entry points remain available. See the [copula guide](docs/COPULAS.md) for the
+full contract and independent high-precision reference cases.
 
 ## Multiple testing and false discovery rates
 

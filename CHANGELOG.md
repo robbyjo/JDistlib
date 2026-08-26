@@ -1,5 +1,19 @@
 What's new:
 
+Version 0.7.2 (development):
+* Added checked-in 90-digit Decimal reference corpora for boundary-heavy mixed
+  Clayton measures and simplified C-/D-vine log densities, with a standalone
+  generator derived independently from the Java implementation.
+* Added analytic conditional CDFs for the built-in Clayton, Gumbel, and Frank
+  pair copulas and analytic inverses for Clayton and Frank, retaining the
+  numerical fallback for custom bivariate copulas.
+* Added row-level `CopulaLikelihoodDiagnostics`, auditable mixed-measure
+  `CopulaLogLikelihoodResult` aggregation, fitted-model diagnostics, and AIC/BIC
+  support for vine fits.
+* Added deterministic midpoint and explicit-seed mixed fitting/selection
+  overloads, defensive marginal-array access, and conventional result getters
+  while retaining every 0.7.0 method and field.
+
 Version 0.7.1 (August 26, 2026):
 * Added a pure-Java finite-interval CQUAD integration method with nested
   degree-4/8/16/32 Clenshaw-Curtis interpolants, L2 error estimates,

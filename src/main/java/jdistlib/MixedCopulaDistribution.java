@@ -30,6 +30,7 @@ public final class MixedCopulaDistribution {
 	public int dimension() { return marginals.length; }
 	public Copula getCopula() { return copula; }
 	public CopulaMeasureOptions getOptions() { return options; }
+	public CopulaMarginal[] getMarginals() { return marginals.clone(); }
 	public CopulaMarginal getMarginal(int coordinate) {
 		if (coordinate < 0 || coordinate >= dimension())
 			throw new IndexOutOfBoundsException("marginal coordinate out of range");
@@ -60,14 +61,66 @@ public final class MixedCopulaDistribution {
 	}
 
 	public double logLikelihood(double[][] observations) {
-		if (observations == null) return Double.NaN;
-		double result = 0.0;
-		for (double[] observation : observations) {
-			CopulaMeasureResult contribution = measure(observation);
-			if (!contribution.hasEstimate()) return Double.NaN;
-			result += contribution.logValue;
+		return logLikelihoodResult(observations).getLogLikelihood();
+	}
+
+	/** Aggregates likelihood contributions while retaining row-level diagnostics. */
+	public CopulaLogLikelihoodResult logLikelihoodResult(double[][] observations) {
+		if (observations == null) {
+			return new CopulaLogLikelihoodResult(Double.NaN,
+					new CopulaMeasureResult[0], 0, 0, 0, 0, Double.NaN, -1,
+					CopulaLogLikelihoodResult.Status.INVALID_INPUT,
+					"observations must not be null");
 		}
-		return result;
+		CopulaMeasureResult[] contributions =
+				new CopulaMeasureResult[observations.length];
+		double sum = 0.0;
+		double correction = 0.0;
+		double maximumError = 0.0;
+		int successful = 0;
+		int warnings = 0;
+		int zeros = 0;
+		long evaluations = 0;
+		int firstProblem = -1;
+		for (int index = 0; index < observations.length; index++) {
+			CopulaMeasureResult contribution = measure(observations[index]);
+			contributions[index] = contribution;
+			evaluations += contribution.cdfEvaluations;
+			if (Double.isFinite(contribution.absoluteError))
+				maximumError = Math.max(maximumError, contribution.absoluteError);
+			if (!contribution.hasEstimate()) {
+				if (firstProblem < 0) firstProblem = index;
+				continue;
+			}
+			if (contribution.isSuccess()) successful++;
+			else warnings++;
+			if (contribution.value == 0.0) zeros++;
+			if (Double.isFinite(sum) && Double.isFinite(contribution.logValue)) {
+				double adjusted = contribution.logValue - correction;
+				double next = sum + adjusted;
+				correction = (next - sum) - adjusted;
+				sum = next;
+			} else {
+				sum += contribution.logValue;
+				correction = 0.0;
+			}
+		}
+		if (firstProblem >= 0) {
+			return new CopulaLogLikelihoodResult(Double.NaN, contributions,
+					successful, warnings, zeros, evaluations, maximumError,
+					firstProblem, CopulaLogLikelihoodResult.Status.MEASURE_FAILURE,
+					"likelihood contribution failed at observation " + firstProblem
+					+ ": " + contributions[firstProblem].message());
+		}
+		CopulaLogLikelihoodResult.Status status = warnings > 0
+				? CopulaLogLikelihoodResult.Status.NUMERICAL_WARNING
+				: zeros > 0 ? CopulaLogLikelihoodResult.Status.ZERO_LIKELIHOOD
+				: CopulaLogLikelihoodResult.Status.SUCCESS;
+		String message = warnings > 0 ? warnings + " numerical contribution warnings"
+				: zeros > 0 ? zeros + " zero-likelihood contributions"
+				: "all likelihood contributions succeeded";
+		return new CopulaLogLikelihoodResult(sum, contributions, successful,
+				warnings, zeros, evaluations, maximumError, -1, status, message);
 	}
 
 	public double[] random(RandomEngine random) {

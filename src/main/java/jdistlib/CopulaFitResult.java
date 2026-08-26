@@ -15,16 +15,19 @@ public final class CopulaFitResult {
 	private final double logLikelihood;
 	private final int observations;
 	private final int parameters;
+	private final CopulaLikelihoodDiagnostics diagnostics;
 	private final Status status;
 	private final String message;
 
 	CopulaFitResult(CopulaFamily family, Copula copula, double logLikelihood,
-			int observations, int parameters, Status status, String message) {
+			int observations, int parameters, Status status, String message,
+			CopulaLikelihoodDiagnostics diagnostics) {
 		this.family = family;
 		this.copula = copula;
 		this.logLikelihood = logLikelihood;
 		this.observations = observations;
 		this.parameters = parameters;
+		this.diagnostics = diagnostics;
 		this.status = status;
 		this.message = message;
 	}
@@ -34,7 +37,9 @@ public final class CopulaFitResult {
 	public double getLogLikelihood() { return logLikelihood; }
 	public int getObservations() { return observations; }
 	public int getParameters() { return parameters; }
+	public CopulaLikelihoodDiagnostics getDiagnostics() { return diagnostics; }
 	public Status getStatus() { return status; }
+	public String getMessage() { return message; }
 	public String message() { return message; }
 	public boolean isSuccess() { return status == Status.SUCCESS; }
 	public double aic() {

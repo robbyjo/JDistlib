@@ -4,6 +4,7 @@ package jdistlib;
 import java.util.ArrayList;
 import java.util.List;
 
+import jdistlib.rng.MersenneTwister;
 import jdistlib.rng.RandomEngine;
 
 /** Sequential simplified C-vine and D-vine fitting with pair-family selection. */
@@ -36,6 +37,24 @@ public final class VineFitter {
 		return structure == VineStructure.C_VINE
 				? fitCVine(uniforms, options, criterion, candidates)
 				: fitDVine(uniforms, options, criterion, candidates);
+	}
+
+	/** Fits a vine after continuous/discrete marginal probability transforms. */
+	public static VineFitResult fitMixed(double[][] data,
+			CopulaMarginal[] marginals, VineStructure structure,
+			CopulaFitOptions options, CopulaSelectionCriterion criterion,
+			CopulaFamily... candidates) {
+		return fitMixed(data, marginals, null, structure, options, criterion,
+				candidates);
+	}
+
+	/** Fits a vine after a reproducible randomized marginal transform. */
+	public static VineFitResult fitMixed(double[][] data,
+			CopulaMarginal[] marginals, long seed, VineStructure structure,
+			CopulaFitOptions options, CopulaSelectionCriterion criterion,
+			CopulaFamily... candidates) {
+		return fitMixed(data, marginals, new MersenneTwister(seed), structure,
+				options, criterion, candidates);
 	}
 
 	/** Fits a vine after continuous/discrete marginal probability transforms. */
@@ -130,20 +149,28 @@ public final class VineFitter {
 
 	private static VineFitResult success(VineStructure structure, VineCopula copula,
 			List<CopulaSelectionResult> selections, double[][] uniforms) {
-		double logLikelihood = 0.0;
-		for (double[] uniform : uniforms) logLikelihood += copula.logDensity(uniform);
+		CopulaLikelihoodDiagnostics diagnostics =
+				CopulaLikelihoodDiagnostics.assess(copula, uniforms);
+		if (!diagnostics.isSuccess()) {
+			return new VineFitResult(structure, null, selections, Double.NaN, 0,
+					uniforms.length, VineFitResult.Status.NUMERICAL_FAILURE,
+					diagnostics.message(), diagnostics);
+		}
 		int parameters = 0;
 		for (CopulaSelectionResult selection : selections)
 			parameters += selection.getSelected().getParameters();
-		return new VineFitResult(structure, copula, selections, logLikelihood,
-				parameters, VineFitResult.Status.SUCCESS, "vine fit completed");
+		return new VineFitResult(structure, copula, selections,
+				diagnostics.getLogLikelihood(), parameters, uniforms.length,
+				VineFitResult.Status.SUCCESS, "vine fit completed", diagnostics);
 	}
 
 	private static VineFitResult failure(VineStructure structure,
 			VineFitResult.Status status, String message,
 			List<CopulaSelectionResult> selections) {
-		return new VineFitResult(structure, null, selections, Double.NaN, 0,
-				status, message == null ? status.name() : message);
+		return new VineFitResult(structure, null, selections, Double.NaN, 0, 0,
+				status, message == null ? status.name() : message,
+				CopulaLikelihoodDiagnostics.invalid(0,
+						message == null ? status.name() : message));
 	}
 
 	private static String validateUniforms(double[][] uniforms) {

@@ -3,6 +3,7 @@ package jdistlib;
 
 import java.util.Arrays;
 
+import jdistlib.rng.MersenneTwister;
 import jdistlib.rng.RandomEngine;
 
 /** Rank transformation and dependence fitting for the built-in copula families. */
@@ -71,6 +72,12 @@ public final class CopulaFitter {
 		return result;
 	}
 
+	/** Applies a reproducible randomized distributional transform. */
+	public static double[][] marginalTransforms(double[][] data, long seed,
+			CopulaMarginal... marginals) {
+		return marginalTransforms(data, new MersenneTwister(seed), marginals);
+	}
+
 	public static CopulaFitResult fit(double[][] data, CopulaFamily family) {
 		return fit(data, family, new CopulaFitOptions());
 	}
@@ -98,6 +105,21 @@ public final class CopulaFitter {
 	public static CopulaFitResult fitMixed(double[][] data,
 			CopulaMarginal[] marginals, CopulaFamily family) {
 		return fitMixed(data, marginals, null, family, new CopulaFitOptions());
+	}
+
+	/** Fits declared marginals using a reproducible randomized transform. */
+	public static CopulaFitResult fitMixed(double[][] data,
+			CopulaMarginal[] marginals, long seed, CopulaFamily family) {
+		return fitMixed(data, marginals, new MersenneTwister(seed), family,
+				new CopulaFitOptions());
+	}
+
+	/** Fits declared marginals using a reproducible randomized transform. */
+	public static CopulaFitResult fitMixed(double[][] data,
+			CopulaMarginal[] marginals, long seed, CopulaFamily family,
+			CopulaFitOptions options) {
+		return fitMixed(data, marginals, new MersenneTwister(seed), family,
+				options);
 	}
 
 	/** Fits declared marginals using midpoint or randomized distributional transforms. */
@@ -303,12 +325,17 @@ public final class CopulaFitter {
 
 	private static CopulaFitResult success(CopulaFamily family, Copula copula,
 			double[][] uniforms, int parameters) {
-		double likelihood = logLikelihood(copula, uniforms);
-		if (!Double.isFinite(likelihood)) return failure(family,
-				CopulaFitResult.Status.NUMERICAL_FAILURE,
-				"fitted log likelihood is not finite", uniforms.length);
+		CopulaLikelihoodDiagnostics diagnostics =
+				CopulaLikelihoodDiagnostics.assess(copula, uniforms);
+		double likelihood = diagnostics.getLogLikelihood();
+		if (!diagnostics.isSuccess()) {
+			return new CopulaFitResult(family, null, Double.NaN, uniforms.length,
+					0, CopulaFitResult.Status.NUMERICAL_FAILURE,
+					diagnostics.message(), diagnostics);
+		}
 		return new CopulaFitResult(family, copula, likelihood, uniforms.length,
-				parameters, CopulaFitResult.Status.SUCCESS, "fit completed");
+				parameters, CopulaFitResult.Status.SUCCESS, "fit completed",
+				diagnostics);
 	}
 
 	private static CopulaFitResult incompatible(CopulaFamily family, int count,
@@ -320,7 +347,9 @@ public final class CopulaFitter {
 	private static CopulaFitResult failure(CopulaFamily family,
 			CopulaFitResult.Status status, String message, int count) {
 		return new CopulaFitResult(family, null, Double.NaN, count, 0, status,
-				message == null ? status.name() : message);
+				message == null ? status.name() : message,
+				CopulaLikelihoodDiagnostics.invalid(count,
+						message == null ? status.name() : message));
 	}
 
 	private static double logLikelihood(Copula copula, double[][] uniforms) {

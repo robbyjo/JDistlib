@@ -1,12 +1,5 @@
 # JDistlib to-do
 
-## Future candidates
-
-* Expand independent reference validation for mixed and vine copulas,
-  especially boundary-heavy likelihoods and fitted-model diagnostics.
-* Incorporate feedback from the 0.7.0 APIs while preserving Java 8 bytecode,
-  deterministic seeded behavior, and backward compatibility.
-
 ## 0.8.0: Bayesian modeling and inference
 
 * Define a stable model intermediate representation and programmatic Java
@@ -94,6 +87,11 @@
 
 ## Recently completed
 
+* Expanded mixed/vine copula validation with independent high-precision
+  boundary-heavy likelihood references and row-level fitted-model diagnostics.
+* Incorporated 0.7.0 API feedback through additive result getters, auditable
+  likelihood summaries, vine information criteria, and explicit midpoint/seed
+  fitting conveniences while retaining Java 8 and the existing public API.
 * Added finite-interval CQUAD integration and incorporated it into the hardened
   automatic fallback sequence.
 * Added the general monotone-transformation factory and a prominent beginner

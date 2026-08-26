@@ -2,6 +2,8 @@ import jdistlib.Binomial;
 import jdistlib.ClaytonCopula;
 import jdistlib.CopulaFamily;
 import jdistlib.CopulaFitOptions;
+import jdistlib.CopulaLikelihoodDiagnostics;
+import jdistlib.CopulaLogLikelihoodResult;
 import jdistlib.CopulaMarginal;
 import jdistlib.CopulaMeasureResult;
 import jdistlib.CopulaSelectionCriterion;
@@ -23,13 +25,24 @@ public final class CopulaExpansionExamples {
         System.out.println(value.logValue + " " + value.getStatus());
 
         double[][] observations = joint.random(250, 20260826L);
+        CopulaLogLikelihoodResult likelihood =
+                joint.logLikelihoodResult(observations);
+        System.out.println("log likelihood = " + likelihood.getLogLikelihood());
+        System.out.println("maximum numerical error = "
+                + likelihood.getMaximumAbsoluteError());
         CopulaSelectionResult selected = CopulaSelector.selectMixed(observations,
                 new CopulaMarginal[] {
                     CopulaMarginal.continuous(new Normal()),
                     CopulaMarginal.discrete(new Binomial(1, 0.35))
-                }, null, new CopulaFitOptions(), CopulaSelectionCriterion.BIC,
+                }, new CopulaFitOptions(), CopulaSelectionCriterion.BIC,
                 CopulaFamily.INDEPENDENCE, CopulaFamily.GAUSSIAN,
                 CopulaFamily.CLAYTON, CopulaFamily.FRANK);
         System.out.println(selected.getSelected().getFamily());
+        CopulaLikelihoodDiagnostics diagnostics =
+                selected.getSelected().getDiagnostics();
+        System.out.println("closest unit-cube boundary = "
+                + diagnostics.getMinimumBoundaryDistance());
+        System.out.println("least log-density contribution = "
+                + diagnostics.getMinimumLogContribution());
     }
 }

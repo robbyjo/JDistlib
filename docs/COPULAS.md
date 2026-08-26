@@ -82,8 +82,13 @@ MixedCopulaDistribution joint = new MixedCopulaDistribution(
 
 CopulaMeasureResult contribution = joint.measure(new double[] {0.3, 2.0});
 if (!contribution.isSuccess()) {
-    System.err.println(contribution.message());
+    System.err.println(contribution.getMessage());
 }
+
+double[][] observations = {{0.3, 2.0}, {-0.4, 1.0}, {1.1, 4.0}};
+CopulaLogLikelihoodResult likelihood = joint.logLikelihoodResult(observations);
+System.out.println(likelihood.getMaximumAbsoluteError());
+System.out.println(likelihood.getFirstProblemIndex());
 ```
 
 For all-continuous inputs, `measure` uses the analytic copula density and
@@ -94,6 +99,10 @@ with a smaller step, and report the difference as `absoluteError`.
 `CopulaMeasureOptions` bounds the CDF-corner count and controls derivative steps
 and negative-cancellation tolerance. The calculation has `2^d` corner growth,
 so high-dimensional mixed likelihoods should use an explicit evaluation budget.
+`logLikelihoodResult` retains every `CopulaMeasureResult`, the total CDF cost,
+largest reported error, zero or warning counts, and the first failing row. The
+original `logLikelihood` method remains available and returns the same scalar
+or `NaN` behavior as in 0.7.0.
 
 For fitting data with atoms, `CopulaFitter.marginalTransforms` accepts the same
 marginal declarations. It uses CDF-jump midpoints deterministically or a
@@ -102,8 +111,11 @@ caller-owned random engine for the distributional transform.
 ## Pair copulas and vines
 
 `PairCopula` adapts any bivariate `Copula` with conditional CDF and inverse
-conditional operations. Gaussian and Student-t conditionals are analytic;
-other families use bounded finite differences and bisection.
+conditional operations. All built-in Gaussian, Student-t, Clayton, Gumbel, and
+Frank conditionals are analytic. Gaussian, Student-t, Clayton, and Frank also
+have direct analytic inverses; Gumbel inverts its analytic conditional by
+bisection. A custom bivariate `Copula` continues to use bounded finite
+differences and bisection.
 
 `CVineCopula` and `DVineCopula` implement simplified pair-copula constructions.
 Their triangular `PairCopula` arrays follow the documented C-vine root order or
@@ -139,6 +151,10 @@ CopulaSelectionResult selected = CopulaSelector.select(data,
     CopulaFamily.STUDENT_T, CopulaFamily.CLAYTON,
     CopulaFamily.GUMBEL, CopulaFamily.FRANK);
 Copula fitted = selected.getSelected().getCopula();
+CopulaLikelihoodDiagnostics diagnostics =
+    selected.getSelected().getDiagnostics();
+System.out.println(diagnostics.getMinimumBoundaryDistance());
+System.out.println(diagnostics.getMinimumLogContribution());
 ```
 
 Every candidate remains in the ranked result. An incompatible family, such as
@@ -152,6 +168,18 @@ complete ranking so the selected structure is auditable. Structure ordering is
 caller-supplied; automatic variable reordering and arbitrary R-vine structure
 search are outside this core API.
 
+Both `CopulaFitResult` and `VineFitResult` expose
+`CopulaLikelihoodDiagnostics`: defensive copies of row contributions and their
+unit-cube boundary distances, extrema and mean, non-finite counts, and the first
+problem row. Vine results also expose observation count, AIC, and BIC. This is
+diagnostic evidence, not an omnibus goodness-of-fit test; inspect influential
+rows and validate the selected family against the scientific use case.
+
+Mixed fitting, selection, and vine fitting now have explicit deterministic
+midpoint overloads and `long seed` overloads. Existing overloads taking a
+caller-owned `RandomEngine` are unchanged. The seed overload is exactly
+equivalent to supplying a fresh `MersenneTwister` with that seed.
+
 ## Random streams and concurrency
 
 All implementations are immutable and retain no random engine. Prefer
@@ -159,3 +187,15 @@ All implementations are immutable and retain no random engine. Prefer
 create a fresh `MersenneTwister`, so repeated calls with the same seed reproduce
 the same sample. As elsewhere in JDistlib, do not share one mutable
 `RandomEngine` between threads without synchronization.
+
+## Independent reference validation
+
+The checked-in `mixed-reference.csv` corpus evaluates Clayton rectangle masses
+and continuous/discrete likelihoods at central, rare-event, and near-boundary
+points. `vine-reference.csv` independently factorizes three-dimensional
+Clayton C-vine and D-vine log densities, including opposing unit-cube tails.
+Both are generated at 90 decimal digits by
+`src/test/python/generate-copula-high-precision.py`, which uses Python Decimal
+and direct published formulas rather than JDistlib code. The vine factorization
+follows Aas, Czado, Frigessi, and Bakken, “Pair-copula constructions of multiple
+dependence,” [doi:10.1016/j.insmatheco.2007.02.001](https://doi.org/10.1016/j.insmatheco.2007.02.001).

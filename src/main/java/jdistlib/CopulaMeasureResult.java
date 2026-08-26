@@ -36,6 +36,11 @@ public final class CopulaMeasureResult {
 	}
 
 	public Status getStatus() { return status; }
+	public double getValue() { return value; }
+	public double getLogValue() { return logValue; }
+	public double getAbsoluteError() { return absoluteError; }
+	public int getCdfEvaluations() { return cdfEvaluations; }
+	public String getMessage() { return message; }
 	public String message() { return message; }
 	public boolean isSuccess() {
 		return status == Status.EXACT_CONTINUOUS

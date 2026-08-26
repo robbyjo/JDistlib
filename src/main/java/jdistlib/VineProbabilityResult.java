@@ -12,4 +12,8 @@ public final class VineProbabilityResult {
 		this.standardError = standardError;
 		this.samples = samples;
 	}
+
+	public double getProbability() { return probability; }
+	public double getStandardError() { return standardError; }
+	public int getSamples() { return samples; }
 }

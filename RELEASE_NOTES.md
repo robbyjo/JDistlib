@@ -1,4 +1,13 @@
-# JDistlib 0.7.1
+# JDistlib 0.7.2 (development)
+
+JDistlib 0.7.2 development begins with independent high-precision validation
+for boundary-heavy mixed and simplified-vine likelihoods. It adds auditable
+row-level likelihood diagnostics, fitted-vine information criteria, analytic
+conditionals for every built-in pair family, and additive deterministic or
+explicit-seed mixed fitting conveniences while retaining the 0.7.0 API and
+Java 8 bytecode.
+
+## Previous release: JDistlib 0.7.1
 
 JDistlib 0.7.1 expands multiple-testing and numerical-integration support while
 preserving Java 8-compatible bytecode, deterministic seeded behavior, and the

@@ -33,8 +33,14 @@ double[] repeatableDraw = joint.random(20260826L);</code></pre><p>The matrix pas
 CopulaMeasureResult at = mixed.measure(
     new double[] {0.3, 1.0});
 if (!at.isSuccess()) {
-    throw new ArithmeticException(at.message());
-}</code></pre><p><code>measure</code> returns a density with respect to continuous coordinates and probability mass with respect to discrete ones, plus a status and error information when numerical differentiation is needed.</p></section>
+    throw new ArithmeticException(at.getMessage());
+}
+
+CopulaLogLikelihoodResult likelihood =
+    mixed.logLikelihoodResult(new double[][] {{0.3, 1.0}});
+if (!likelihood.hasEstimate()) {
+    throw new ArithmeticException(likelihood.getMessage());
+}</code></pre><p><code>measure</code> returns a density with respect to continuous coordinates and probability mass with respect to discrete ones, plus a status and error information when numerical differentiation is needed. From 0.7.2, <code>logLikelihoodResult</code> also retains every row contribution, evaluation cost, numerical error estimate, and the first problematic observation. The original scalar <code>logLikelihood</code> remains available.</p></section>
     <section class="guide-section" id="fit"><p class="eyebrow">Dependence fitting · 0.7.0+</p><h2>Let criteria compare plausible families</h2><pre><code>double[][] observations = mixed.random(250, 20260826L);
 
 CopulaSelectionResult choice = CopulaSelector.selectMixed(
@@ -43,7 +49,6 @@ CopulaSelectionResult choice = CopulaSelector.selectMixed(
         CopulaMarginal.continuous(new Normal()),
         CopulaMarginal.discrete(new Binomial(1, 0.35))
     },
-    null,
     new CopulaFitOptions(),
     CopulaSelectionCriterion.BIC,
     CopulaFamily.INDEPENDENCE,
@@ -51,9 +56,11 @@ CopulaSelectionResult choice = CopulaSelector.selectMixed(
     CopulaFamily.CLAYTON,
     CopulaFamily.FRANK);
 
-CopulaFamily selected = choice.getSelected().getFamily();</code></pre><p>Selection ranks only the candidates you provide. Treat AIC or BIC as comparative evidence, then inspect diagnostics and whether each family's tail behavior makes sense for the domain.</p></section>
+CopulaFitResult selected = choice.getSelected();
+CopulaLikelihoodDiagnostics diagnostics = selected.getDiagnostics();
+int boundaryHeavyRows = diagnostics.countNearBoundary(1e-6);</code></pre><p>Selection ranks only the candidates you provide. Treat AIC or BIC as comparative evidence, then inspect the row-level diagnostics and whether each family's tail behavior makes sense for the domain. Pass a <code>long</code> seed when randomized discrete transforms are desired; the overload above uses deterministic jump midpoints.</p></section>
     <section class="guide-section" id="vines"><p class="eyebrow">More than two dimensions · 0.7.0+</p><h2>Use vines for pair-by-pair structure</h2><p><code>CVineCopula</code> and <code>DVineCopula</code> assemble simplified vines from <code>PairCopula</code> objects. <code>VineFitter</code> estimates sequential trees and can select pair families. A C-vine emphasizes hub variables; a D-vine emphasizes an ordering or chain. Start with an interpretable ordering and remember that the simplified-vine assumption keeps conditional copula parameters constant.</p><p>For a first three-dimensional model, read the complete <a href="https://github.com/robbyjo/JDistlib/blob/master/docs/COPULAS.md">copula contract</a> alongside the JavaDoc.</p></section>
-    <section class="guide-section" id="checks"><p class="eyebrow">Before trusting a result</p><h2>Diagnose boundaries, margins, and identifiability</h2><div class="guide-columns"><article><h3>Unit-cube boundaries</h3><p>Copula densities are defined on the open unit cube. Use <code>diagnose</code> before interpreting boundary values.</p></article><article><h3>Marginal fit matters</h3><p>A copula cannot repair a poor marginal model. Check every margin first.</p></article><article><h3>Discrete data carry less information</h3><p>Coarse discrete margins can make the underlying copula weakly identifiable. Report uncertainty and compare families.</p></article><article><h3>Own random streams</h3><p>Use explicit engines or seed overloads for reproducibility and do not share a mutable engine across threads.</p></article></div></section>
+    <section class="guide-section" id="checks"><p class="eyebrow">Before trusting a result</p><h2>Diagnose boundaries, margins, and identifiability</h2><div class="guide-columns"><article><h3>Unit-cube boundaries</h3><p>Copula densities are defined on the open unit cube. Inspect <code>CopulaLikelihoodDiagnostics</code> before interpreting boundary-heavy fits.</p></article><article><h3>Marginal fit matters</h3><p>A copula cannot repair a poor marginal model. Check every margin first.</p></article><article><h3>Discrete data carry less information</h3><p>Coarse discrete margins can make the underlying copula weakly identifiable. Report uncertainty and compare families.</p></article><article><h3>Own random streams</h3><p>Use explicit engines or seed overloads for reproducibility and do not share a mutable engine across threads.</p></article></div></section>
     <section class="guide-section guide-next"><p class="eyebrow">Next · still 0.7.0+</p><h2>Follow a mixed-marginal analysis</h2><p>The <a href="copula-vignette.html">insurance-claims vignette</a> puts composition, simulation, family selection, and interpretation into one workflow.</p></section>
   </main>
   <footer><span>JDistlib copula tutorial.</span><span>Copula APIs require JDistlib 0.7.0+.</span></footer>

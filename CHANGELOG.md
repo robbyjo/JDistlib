@@ -1,6 +1,6 @@
 What's new:
 
-Version 0.7.0 (development):
+Version 0.7.0 (August 26, 2026):
 * Added the stateless `jdistlib.disttest.MultipleTesting` API for Bonferroni,
   Holm, Hochberg, Hommel, Šidák, Holm–Šidák, Benjamini–Hochberg, and
   Benjamini–Yekutieli adjusted p-values, decision thresholds, and Storey

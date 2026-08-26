@@ -11,12 +11,16 @@ retain R-compatible results without inheriting the process-global caches that
 made older native implementations awkward to call concurrently.
 
 The library also contains distributions and utilities that are not part of R,
-including arcsine, beta-binomial, beta-prime, Birnbaum-Saunders, categorical,
-empirical, generalized beta/gamma, Gompertz, hurdle and zero-modified counts,
-half-normal, inverse gamma, inverse normal, Lindley, Makeham, Kumaraswamy,
-Laplace, Levy, log-logistic, logarithmic, Maxwell/Maxwell-Boltzmann, multinomial, Nakagami,
-Poisson-binomial, Poisson-inverse-Gaussian, Rice, sinh-arcsinh, skewed t,
-triangular, Tweedie, Wishart, Zipf, and the `jdistlib.evd` package. Vector APIs
+including arcsine, asymmetric Laplace, beta-binomial, beta-negative-binomial, beta-prime,
+Birnbaum-Saunders, categorical, discrete Laplace/Weibull, empirical, Feller-Pareto,
+exponentially modified Gaussian, generalized beta/gamma/F, Gompertz, Huber,
+hurdle and zero-modified counts,
+half-Cauchy/normal/t, inverse gamma, inverse normal, Lindley, logit-normal,
+Makeham, Kumaraswamy, Laplace, Levy, log-logistic, logarithmic,
+Maxwell/Maxwell-Boltzmann, multinomial, Nakagami, negative hypergeometric,
+phase-type, Poisson-binomial, Poisson-inverse-Gaussian, Rice, sinh-arcsinh,
+Skellam, skewed t, slash, triangular, Tukey lambda, Tweedie, Wishart, Zipf,
+and the `jdistlib.evd` package. Vector APIs
 cover Dirichlet and Dirichlet-multinomial, multivariate hypergeometric,
 bivariate Poisson/logistic, and multivariate normal, Student t, Cauchy,
 lognormal, Laplace, and power-exponential laws. These are first-class JDistlib features
@@ -24,8 +28,8 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.6.0 is the current stable release. The `master` branch is the
-development line for the planned 0.7.0 copula framework. The R `src/nmath`
+Version 0.6.1 is the current stable release. The next development milestone is
+the planned 0.7.0 copula framework. The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
@@ -36,7 +40,7 @@ and tested.
 
 The [latest GitHub release](https://github.com/robbyjo/JDistlib/releases/latest)
 contains the Java library, source archive, JavaDoc archive, and SHA-256
-checksums. Version 0.6.0 produces Java 8-compatible bytecode.
+checksums. Version 0.6.1 produces Java 8-compatible bytecode.
 
 ## Building
 
@@ -331,10 +335,11 @@ series plus adaptive integration above 2.
 JDistlib also audits GPL-compatible CRAN packages for useful distributions that
 are absent from R's `src/nmath`. Modern contributed batches add complete APIs
 from `distributions3`, VGAM, `actuar`, `extraDistr`, and `flexsurv`, including
-modified count models, Poisson-binomial, sinh-arcsinh, generalized gamma/GB2,
-lifetime models, and Poisson-inverse-Gaussian. Sources, versions,
-parameterizations, verification, duplicate exclusions, and the screened backlog
-are recorded in [DISTRIBUTIONS.md](DISTRIBUTIONS.md).
+modified count models, Poisson-binomial, sinh-arcsinh, generalized gamma/GB2/F,
+phase-type and Feller-Pareto lifetime models, heavy-tailed half/slash families,
+and Poisson-inverse-Gaussian. Sources, versions, parameterizations,
+verification, duplicate exclusions, and screened dispositions are recorded in
+[DISTRIBUTIONS.md](DISTRIBUTIONS.md).
 
 Multivariate distributions use arrays for observations and parameters. They
 provide joint density or mass and explicit-engine random generation; exact

@@ -1095,7 +1095,7 @@ public class Spearman extends GenericDistribution {
 		2257323403728064042.0,2257287926517768227.0}};
 
 	/**
-	 * Spearman exact cumulative distribution function for n <= 22. For n > 22,
+	 * Spearman exact cumulative distribution function for n &lt;= 22. For n &gt; 22,
 	 * cumulative_as89 is invoked. Taken from pspearman package.
 	 * @param is
 	 * @param n

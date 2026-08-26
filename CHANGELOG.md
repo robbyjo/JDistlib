@@ -1,5 +1,18 @@
 What's new:
 
+Version 0.6.1 (August 26, 2026):
+* Closed the contributed-distribution screened backlog with complete D/P/Q/R
+  APIs for generalized F, beta-negative-binomial, negative hypergeometric,
+  discrete Weibull, Skellam, half-Cauchy, half-t, slash, Tukey lambda,
+  Feller-Pareto, and phase-type laws. Added discrete-Laplace and logit-normal
+  from the 2026-08-21 CRAN Probability Distributions Task View, repaired the
+  historical beta-prime transformation and instance truncation bugs, and
+  recorded explicit dispositions for ambiguous or infrastructure-heavy
+  multivariate families.
+* Added asymmetric Laplace, exponentially modified Gaussian, and Huber's
+  least-favourable distribution after a full task-view gap sweep. Cleaned all
+  legacy Javadoc markup warnings so the API documentation build is warning-free.
+
 Version 0.6.0 (August 25, 2026):
 * Closed the historical SourceForge numerical backlog: consistent integer
   validation for hypergeometric parameters, guarded split-deviance Poisson

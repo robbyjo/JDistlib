@@ -1,48 +1,33 @@
-# JDistlib 0.6.0
+# JDistlib 0.6.1
 
-JDistlib 0.6.0 makes user-defined probability distributions a first-class part
-of the library and adds hardened numerical tools for assessing, composing, and
-sampling them. It preserves Java 8-compatible bytecode, explicit per-stream
+JDistlib 0.6.1 completes the screened distribution backlog and incorporates the
+practical scalar additions identified in the CRAN Probability Distributions
+Task View audit. It preserves Java 8-compatible bytecode, explicit per-stream
 random state, and the GPL-2.0-or-later license.
 
 Highlights:
 
-- adds fluent builders for continuous, finite-discrete, and mixed-support
-  distributions, with fast, standard, and thorough diagnostic presets;
-- analyzes ordinary and log-space kernels under explicit strict, warning, or
-  permissive construction policies, including deterministic and seeded adaptive
-  probes, callback budgets, repeatability checks, and normalization stability;
-- composes scalar distributions through normalized mixtures, truncation,
-  censoring, and general monotone or affine transformations;
-- adds Walker-alias sampling for finite discrete laws, adaptive rejection for
-  caller-certified finite-support log-concave densities, and explicit sampling
-  strategy reports;
-- adds reusable geometric and power-law discrete-tail certificates, numerical
-  expectations, moments, entropy, modes, probability intervals, and cache-aware
-  allocation-free batch APIs;
-- hardens integration with immutable results, callback timing profiles and
-  wall-clock budgets, optional daemon-worker isolation, double-exponential
-  quadrature, versioned JSON diagnostics, and independently generated
-  high-precision regression data;
-- adds randomized quasi-Monte Carlo rectangle probabilities for multivariate
-  normal, Student t, Cauchy, and log-normal laws, with reproducible streams,
-  error estimates, evaluation budgets, and explicit equicoordinate or radial
-  quantiles; and
-- corrects the Wishart Bartlett sampler parameterization and expands its
-  density and generation overloads;
-- resolves or dispositions every historical SourceForge ticket, including
-  extreme beta log-tail precision and safe huge-order Bessel handling; and
-- strengthens the release gates with complete checks, a packaged-JAR Java 8
-  smoke run, API/thread-safety guidance, and a signed Central Portal bundle.
+- adds complete density/mass, cumulative, quantile, and random-generation APIs
+  for generalized F, beta-negative-binomial, negative hypergeometric, discrete
+  Weibull, Skellam, half-Cauchy, half-t, slash, Tukey lambda, Feller-Pareto, and
+  phase-type distributions;
+- adds asymmetric Laplace, exponentially modified Gaussian, Huber,
+  discrete-Laplace, and logit-normal distributions from the broader CRAN
+  task-view audit;
+- corrects the historical beta-prime transformation, density Jacobian, support
+  handling, tail stability, and instance truncation behavior;
+- expands the distribution catalog and provenance ledger, including explicit
+  dispositions for compound-count, periodic, discretized, compositional, and
+  infrastructure-heavy families that were not selected for this release; and
+- cleans legacy JavaDoc markup throughout the numerical and statistical APIs so
+  the documentation build completes without warnings.
 
-The custom-distribution guide includes mathematical quick starts for continuous
-and discrete laws, advanced construction, diagnostics, troubleshooting, and a
-typeset distribution catalog. Adaptive rejection remains conditional on the
-caller's global log-concavity assertion, and infinite discrete truncation
-certificates remain mathematical promises supplied by the caller.
+The release adds focused regression coverage for the backlog and task-view
+families, including boundary behavior, tail conventions, quantile inversion,
+and deterministic random-stream checks. The full Gradle check and JavaDoc gates
+pass cleanly.
 
 Release assets include the binary library, sources, JavaDoc, and SHA-256
-checksums. See `CHANGELOG.md` for the detailed change list and
-`docs/custom-distributions.html` for the complete workflow. The ticket-by-ticket
-record is in `SOURCEFORGE_TICKET_AUDIT.md`, and `PUBLISHING.md` describes the
-separate Maven Central maintainer step.
+checksums. See `CHANGELOG.md` for the detailed change list,
+`DISTRIBUTIONS.md` for sources and audit dispositions, and `PUBLISHING.md` for
+the separate Maven Central maintainer step.

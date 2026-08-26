@@ -38,7 +38,7 @@ import jdistlib.util.Debug;
  *
  * <P> REFERENCE
  *
- *    <P>Copenhaver, Margaret Diponzio & Holland, Burt S.
+ *    <P>Copenhaver, Margaret Diponzio &amp; Holland, Burt S.
  *    Multiple comparisons of simple effects in
  *    the two-way analysis of variance with fixed effects.
  *    Journal of Statistical Computation and Simulation,
@@ -235,13 +235,13 @@ public class Tukey extends GenericDistribution {
 	<p>nlegq = order of legendre quadrature
 	<br>ihalfq = int ((nlegq + 1) / 2)
 	<br>eps = max. allowable value of integral
-	<br>eps1 & eps2 = values below which there is
+	<br>eps1 &amp; eps2 = values below which there is
 		      no contribution to integral.
 
-	<P>d.f. <= dhaf:	integral is divided into ulen1 length intervals.  else
-	<br>d.f. <= dquar:	integral is divided into ulen2 length intervals.  else
-	<br>d.f. <= deigh:	integral is divided into ulen3 length intervals.  else
-	<br>d.f. <= dlarg:	integral is divided into ulen4 length intervals.
+	<P>d.f. &lt;= dhaf:	integral is divided into ulen1 length intervals.  else
+	<br>d.f. &lt;= dquar:	integral is divided into ulen2 length intervals.  else
+	<br>d.f. &lt;= deigh:	integral is divided into ulen3 length intervals.  else
+	<br>d.f. &lt;= dlarg:	integral is divided into ulen4 length intervals.
 
 	<br>d.f. > dlarg:	the range is used to calculate integral.
 
@@ -263,7 +263,7 @@ public class Tukey extends GenericDistribution {
 
 	<p>f(x) = .5 + erf(x / sqrt(2)) / 2      for x > 0
 
-	<p>f(x) = erfc( -x / sqrt(2)) / 2	      for x < 0
+	<p>f(x) = erfc( -x / sqrt(2)) / 2	      for x &lt; 0
 
 	<p>where f(x) is standard normal c. d. f.
 
@@ -463,7 +463,7 @@ public class Tukey extends GenericDistribution {
 	}
 
 	/**
-	 *  <p>Copenhaver, Margaret Diponzio & Holland, Burt S.
+	 *  <p>Copenhaver, Margaret Diponzio &amp; Holland, Burt S.
 	 *  Multiple comparisons of simple effects in
 	 *  the two-way analysis of variance with fixed effects.
 	 *  Journal of Statistical Computation and Simulation,
@@ -479,7 +479,7 @@ public class Tukey extends GenericDistribution {
 	 *  <p>ir(1) = error flag = 1 if wprob probability > 1
 	 *  <br>ir(2) = error flag = 1 if ptukey probability > 1
 	 *  <br>ir(3) = error flag = 1 if convergence not reached in 50 iterations
-	 *		       = 2 if df < 2
+	 *		       = 2 if df &lt; 2
 	 *
 	 *  <p>qtukey = returned critical value
 	 *

@@ -485,14 +485,14 @@ public class NonCentralChiSquare extends GenericDistribution {
 
 	  R code that works is
 
-	    rchisq0 <- function(n, ncp) {
-		p <- 0 < (K <- rpois(n, lambda = ncp / 2))
-		r <- numeric(n)
-		r[p] <- rchisq(sum(p), df = 2*K[p])
+	    rchisq0 &lt;- function(n, ncp) {
+		p &lt;- 0 &lt; (K &lt;- rpois(n, lambda = ncp / 2))
+		r &lt;- numeric(n)
+		r[p] &lt;- rchisq(sum(p), df = 2*K[p])
 		r
 	    }
 
-	    rchisq <- function(n, df, ncp=0) {
+	    rchisq &lt;- function(n, df, ncp=0) {
 		if(missing(ncp)) .Internal(rchisq(n, df))
 		else rchisq0(n, ncp) + .Internal(rchisq(n, df))
 	    }</pre>

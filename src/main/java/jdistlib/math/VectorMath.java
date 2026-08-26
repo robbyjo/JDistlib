@@ -222,7 +222,7 @@ public class VectorMath {
 	/**
 	 * Vector signum.
 	 * @param e
-	 * @return -1 if e[i] < 0; 0 if e[i] == 0; 1 if e[i] > 0
+	 * @return -1 if e[i] &lt; 0; 0 if e[i] == 0; 1 if e[i] &gt; 0
 	 */
 	public static final int[] vsgn(double[] e) {
 		int[] v = new int[e.length];
@@ -299,7 +299,7 @@ public class VectorMath {
 	/**
 	 * Find quantile given a sorted data of array (Definition 7)
 	 * @param sortedData This data is assumed to be presorted! Use quantile0 if you want to use unsorted data!
-	 * @param quantile must be 0 <= quantile <= 1
+	 * @param quantile must be 0 &lt;= quantile &lt;= 1
 	 * @return quantile value
 	 */
 	public static final double quantile(double[] sortedData, double quantile) {
@@ -332,7 +332,7 @@ public class VectorMath {
 	/**
 	 * Find quantile in an array (Definition 7). Data is assumed to be unsorted
 	 * @param e
-	 * @param quantile must be 0 <= quantile <= 1
+	 * @param quantile must be 0 &lt;= quantile &lt;= 1
 	 * @return quantile value
 	 */
 	public static final double quantile0(double[] e, double quantile) {
@@ -346,7 +346,7 @@ public class VectorMath {
 	/**
 	 * Find quantile in an array (Definition 7). Data is assumed to be unsorted
 	 * @param e
-	 * @param quantile must be 0 <= quantile <= 1
+	 * @param quantile must be 0 &lt;= quantile &lt;= 1
 	 * @return quantile values
 	 */
 	public static final double[] quantile0(double[] e, double[] quantile) {

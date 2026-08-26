@@ -118,7 +118,7 @@ public class LinPack
 	 *         the order of the matrix  a .
 	 * 
 	 * m       integer
-	 *         the number of diagonals above the main diagonal. 0 <= m < n
+	 *         the number of diagonals above the main diagonal. 0 &lt;= m &lt; n
 	 * 
 	 * on return
 	 * abd     an upper triangular matrix  r , stored in band form, so that a = trans(r)*r .

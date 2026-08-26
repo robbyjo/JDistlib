@@ -44,7 +44,7 @@ import static java.lang.Math.*;
  *
  *  SYNOPSIS
  *
- *    #include <Rmath.h>
+ *    #include &lt;Rmath.h&gt;
  *    double[] dpsifn(double x, int n, int kode, int m)
  *    double digamma(double x);
  *    double trigamma(double x)
@@ -92,7 +92,7 @@ import static java.lang.Math.*;
  *
  *	x     - argument, x > 0.
  *
- *	n     - first member of the sequence, 0 <= n <= 100
+ *	n     - first member of the sequence, 0 &lt;= n &lt;= 100
  *		n == 0 gives ans(1) = -psi(x)	    for kode=1
  *				      -psi(x)+ln(x) for kode=2
  *
@@ -146,7 +146,7 @@ import static java.lang.Math.*;
  *
  *    Amos, D. E.  	(Fortran)
  *    Ross Ihaka   	(C Translation)
- *    Martin Maechler   (x < 0, and psigamma())
+ *    Martin Maechler   (x &lt; 0, and psigamma())
  *    Roby Joehanes (Java translation)
  *
  *  REFERENCES

@@ -753,7 +753,7 @@ public class MathFunctions {
 	/**
 	 * log1px takes a double and returns a double.
 	 * It is a Taylor series expansion of log(1+x).
-	 * x is presumed to be < 1.  As I have called it, x < .1,
+	 * x is presumed to be &lt; 1. As I have called it, x &lt; .1,
 	 * and so I know the algorithm will terminate quickly.
 	 * The closer x is to 1, the slower this will be. (From AS 885)
 	 */
@@ -917,7 +917,7 @@ public class MathFunctions {
 	/** <pre>-----------------------------------------------------------------------
 	 *	      Evaluation of the Incomplete Beta function I_x(a,b)
 	 *		       --------------------
-	 *     It is assumed that a and b are nonnegative, and that x <= 1
+	 *     It is assumed that a and b are nonnegative, and that x &lt;= 1
 	 *     and y = 1 - x.  Bratio assigns w and w1 the values
 	 *			w  = I_x(a,b)
 	 *			w1 = 1 - I_x(a,b)
@@ -928,8 +928,8 @@ public class MathFunctions {
 	 *     one of the following values ...
 	 *	  ierr = 1  if a or b is negative
 	 *	  ierr = 2  if a = b = 0
-	 *	  ierr = 3  if x < 0 or x > 1
-	 *	  ierr = 4  if y < 0 or y > 1
+	 *	  ierr = 3  if x &lt; 0 or x &gt; 1
+	 *	  ierr = 4  if y &lt; 0 or y &gt; 1
 	 *	  ierr = 5  if x + y != 1
 	 *	  ierr = 6  if x = a = 0
 	 *	  ierr = 7  if y = b = 0
@@ -2511,7 +2511,7 @@ public class MathFunctions {
 
 	/**
 	 * ------------------------------------------------------------------
-	 *     COMPUTATION OF 1/GAMMA(A+1) - 1  FOR -0.5 <= A <= 1.5
+	 *     COMPUTATION OF 1/GAMMA(A+1) - 1 FOR -0.5 &lt;= A &lt;= 1.5
 	 * ------------------------------------------------------------------
 	 */
 	public static final double gam1(double a)
@@ -2557,7 +2557,7 @@ public class MathFunctions {
 
 	/**
 	 * -----------------------------------------------------------------------
-	 *     EVALUATION OF LN(GAMMA(1 + A)) FOR -0.2 <= A <= 1.25
+	 *     EVALUATION OF LN(GAMMA(1 + A)) FOR -0.2 &lt;= A &lt;= 1.25
 	 * -----------------------------------------------------------------------
 	 */
 	public static final double gamln1(double a)
@@ -2890,7 +2890,7 @@ public class MathFunctions {
 	/**
 	 * -----------------------------------------------------------------------
 	 *          EVALUATION OF THE FUNCTION LN(GAMMA(A + B))
-	 *          FOR 1 <= A <= 2  AND  1 <= B <= 2
+	 *          FOR 1 &lt;= A &lt;= 2 AND 1 &lt;= B &lt;= 2
 	 * -----------------------------------------------------------------------
 	 */
 	public static final double gsumln(double a, double b)

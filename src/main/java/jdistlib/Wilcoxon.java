@@ -29,7 +29,7 @@ import jdistlib.math.MathFunctions;
 /**<pre>
   SYNOPSIS
 
-    #include <Rmath.h>
+    #include &lt;Rmath.h&gt;
     double dwilcox(double x, double m, double n, int give_log)
     double pwilcox(double x, double m, double n, int lower_tail, int log_p)
     double qwilcox(double x, double m, double n, int lower_tail, int log_p);

@@ -1333,7 +1333,7 @@ public class SmoothSpline
 	 * @param y array of n observations
 	 * @param weights array of n observations. Null for default weights.
 	 * @param criterion one of NO_CRITERION, GCV, CV, and DF_MATCHING
-	 * @param penalty Must be 0 < penalty <= 1. Default to 1
+	 * @param penalty Must be 0 &lt; penalty &lt;= 1. Default to 1
 	 * @param df Supply if you want DF matching. Else, it will be used for DF offset.
 	 * @param smoothingParam Put Double.NaN to estimate it.
 	 */
@@ -1351,7 +1351,7 @@ public class SmoothSpline
 	 * @param y array of n observations
 	 * @param weights array of n observations. Null for default weights.
 	 * @param criterion one of NO_CRITERION, GCV, CV, and DF_MATCHING
-	 * @param penalty Must be 0 < penalty <= 1. Default to 1
+	 * @param penalty Must be 0 &lt; penalty &lt;= 1. Default to 1
 	 * @param df Supply if you want DF matching. Else, it will be used for DF offset.
 	 * @param smoothingParam Put Double.NaN to estimate it.
 	 * @param smoothingParamLBound Will be ignored if smoothingParam is not NaN. Default = -1.5

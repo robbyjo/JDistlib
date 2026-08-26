@@ -286,7 +286,7 @@ public class NormalityTest {
 
 	/**
 	 * Calculate D'Agostino-Pearson test for normality. Follows Chi^2 distribution with df = 2.
-	 * This is the infamous omnibus test. Note: It breaks down for n <= 7. See:<br>
+	 * This is the infamous omnibus test. Note: It breaks down for n &lt;= 7. See:<br>
 	 * Doornik, Hansen, An Omnibus Test for Univariate and Multivariate Normality, 1994
 	 * 
 	 * @param X

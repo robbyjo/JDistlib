@@ -220,7 +220,7 @@ public class Bessel {
 	 * <P>Acknowledgement
 	 * 
 	 * <P>This program draws heavily on Temme's Algol program for Y(a,x) and Y(a+1,x) and on Campbell's programs for Y_nu(x).
-	 * Temme's scheme is used for  x < THRESH, and Campbell's scheme is used in the asymptotic region.  Segments of code from
+	 * Temme's scheme is used for x &lt; THRESH, and Campbell's scheme is used in the asymptotic region. Segments of code from
 	 * both sources have been translated into Fortran 77, merged, and heavily modified. Modifications include parameterization
 	 * of machine dependencies, use of a new approximation for ln(gamma(x)), and built-in protection against over/underflow.
 	 * 

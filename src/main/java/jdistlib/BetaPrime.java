@@ -1,80 +1,80 @@
-/*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, a copy is available at
- *  http://www.r-project.org/Licenses/
- */
+/* Copyright (C) 2026 Roby Joehanes; GPL-2.0-or-later */
 package jdistlib;
 
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
-/**
- * Beta Prime distribution. Also known as Beta distribution of the second kind.
- * @author Roby Joehanes
- *
- */
-public class BetaPrime extends GenericDistribution {
-	public static final double density(double x, double a, double b, boolean give_log) {
-	    return Beta.density(x/(1-x), a, b, give_log);
+/** Beta-prime (beta of the second kind) distribution. */
+public final class BetaPrime extends GenericDistribution
+		implements SupportedDistribution {
+	private final double shape1;
+	private final double shape2;
+
+	public BetaPrime(double shape1, double shape2) {
+		this.shape1 = shape1;
+		this.shape2 = shape2;
 	}
 
-	public static final double cumulative(double x, double a, double b, boolean lower_tail, boolean log_p) {
-		return Beta.cumulative(x/(1-x), a, b, lower_tail, log_p);
+	private static boolean invalid(double a, double b) {
+		return !(a > 0.0) || !(b > 0.0) || !Double.isFinite(a) || !Double.isFinite(b);
 	}
 
-	public static final double quantile(double p, double a, double b, boolean lower_tail, boolean log_p) {
-		p = Beta.quantile(p, a, b, lower_tail, log_p);
-		return p / (p + 1);
+	public static double density(double x, double a, double b, boolean log) {
+		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
+		if (invalid(a, b)) return Double.NaN;
+		if (x < 0.0 || x == Double.POSITIVE_INFINITY) {
+			return log ? Double.NEGATIVE_INFINITY : 0.0;
+		}
+		if (x == 0.0) {
+			if (a < 1.0) return Double.POSITIVE_INFINITY;
+			if (a > 1.0) return log ? Double.NEGATIVE_INFINITY : 0.0;
+			double value = Math.log(b);
+			return log ? value : b;
+		}
+		double value = (a - 1.0) * Math.log(x)
+				- (a + b) * Math.log1p(x) - MathFunctions.lbeta(a, b);
+		return log ? value : Math.exp(value);
 	}
 
-	public static final double random(double a, double b, RandomEngine random) {
-		if (a <= 0 || b <= 0) return Double.NaN;
-		double u1 = random.nextDouble();
-		u1 = (int) (134217728 * u1) + random.nextDouble();
-		u1 = Beta.quantile(u1 / 134217728, a, b, true, false);
-		return u1 / (u1 + 1);
+	public static double cumulative(double x, double a, double b,
+			boolean lowerTail, boolean logP) {
+		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
+		if (invalid(a, b)) return Double.NaN;
+		if (x <= 0.0) return DistributionUtil.boundary(false, lowerTail, logP);
+		if (x == Double.POSITIVE_INFINITY) {
+			return DistributionUtil.boundary(true, lowerTail, logP);
+		}
+		if (x <= 1.0) {
+			return Beta.cumulative(x / (1.0 + x), a, b, lowerTail, logP);
+		}
+		return Beta.cumulative(1.0 / (1.0 + x), b, a, !lowerTail, logP);
 	}
 
-	public static final double[] random(int n, double a, double b, RandomEngine random) {
-		double[] rand = new double[n];
-		for (int i = 0; i < n; i++)
-			rand[i] = random(a, b, random);
-		return rand;
+	public static double quantile(double p, double a, double b,
+			boolean lowerTail, boolean logP) {
+		if (Double.isNaN(p) || invalid(a, b)
+				|| DistributionUtil.invalidProbability(p, logP)) return Double.NaN;
+		double value = Beta.quantile(p, a, b, lowerTail, logP);
+		return value / (1.0 - value);
 	}
 
-	protected double a, b;
-
-	public BetaPrime(double a, double b) {
-		this.a = a; this.b = b;
+	public static double random(double a, double b, RandomEngine random) {
+		if (invalid(a, b)) return Double.NaN;
+		double value = Beta.random(a, b, random);
+		return value / (1.0 - value);
 	}
 
-	@Override
-	public double density(double x, boolean log) {
-		return density((int) x, a, b, log);
+	@Override public double density(double x, boolean log) {
+		return density(x, shape1, shape2, log);
 	}
-
-	@Override
-	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		return cumulative((int) p, a, b, lower_tail, log_p);
+	@Override public double cumulative(double x, boolean lowerTail, boolean logP) {
+		return cumulative(x, shape1, shape2, lowerTail, logP);
 	}
-
-	@Override
-	public double quantile(double q, boolean lower_tail, boolean log_p) {
-		return quantile(q, a, b, lower_tail, log_p);
+	@Override public double quantile(double p, boolean lowerTail, boolean logP) {
+		return quantile(p, shape1, shape2, lowerTail, logP);
 	}
-
-	@Override
-	public double random() {
-		return random(a, b, random);
-	}
+	@Override public double random() { return random(shape1, shape2, random); }
+	@Override public double getLowerBound() { return 0.0; }
+	@Override public double getUpperBound() { return Double.POSITIVE_INFINITY; }
 }

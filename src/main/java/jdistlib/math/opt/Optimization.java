@@ -145,7 +145,7 @@ public class Optimization {
 	 *	b - the last and the best approximation to the root
 	 *	a - the last but one approximation
 	 *	c - the last but one or even earlier approximation than a that
-	 *		1) |f(b)| <= |f(c)|
+	 *		1) |f(b)| &lt;= |f(c)|
 	 *		2) f(b) and f(c) have opposite signs, i.e., b and c confine
 	 *		   the root
 	 *	At every step Zeroin selects one of the two new approximations, the

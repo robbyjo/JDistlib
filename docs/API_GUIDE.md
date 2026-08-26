@@ -72,6 +72,11 @@ directly on natural-log p-values, and `testRightCensored` conservatively handles
 a recorded lower tail when both the censoring limit and full family size are
 known.
 
+Version 0.7.1 adds `adjustWeightedBenjaminiHochberg`, with automatic
+mean-one normalization of positive prespecified weights and a log-domain
+variant, plus `gavrilovBenjaminiSarkar` for adaptive step-down FDR decisions
+under independence.
+
 `qValues` implements Storey q-values with a smoothing-spline π₀ estimate by
 default. Callers can instead provide π₀ directly or use the quantile estimator.
 See the [multiple-testing guide](https://robbyjo.github.io/JDistlib/multiple-testing.html)

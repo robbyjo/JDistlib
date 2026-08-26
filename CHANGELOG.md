@@ -1,8 +1,11 @@
 What's new:
 
 Version 0.7.1 (development):
-* Development has started. Candidate work is tracked in `TODO.md` and will be
-  promoted here as it is completed.
+* Added weighted Benjamini–Hochberg adjustment for positive prespecified
+  hypothesis weights, including scale-invariant normalization, natural-log
+  inputs, and rejection helpers.
+* Added the level-dependent Gavrilov–Benjamini–Sarkar adaptive step-down FDR
+  procedure with declared-family-size support and an immutable decision result.
 
 Version 0.7.0 (August 26, 2026):
 * Added the stateless `jdistlib.disttest.MultipleTesting` API for Bonferroni,

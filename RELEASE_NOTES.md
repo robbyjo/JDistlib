@@ -1,7 +1,10 @@
 # JDistlib 0.7.1 (development)
 
-JDistlib 0.7.1 is under development. Completed changes will be summarized here
-before release.
+JDistlib 0.7.1 adds weighted Benjamini–Hochberg adjustment for positive
+prespecified weights, including direct natural-log inputs, and the adaptive
+Gavrilov–Benjamini–Sarkar step-down procedure for independent tests. Both APIs
+preserve input order and expose their statistical assumptions in JavaDoc and
+the beginner multiple-testing guide.
 
 ## Previous release: JDistlib 0.7.0
 

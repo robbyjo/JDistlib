@@ -4,6 +4,7 @@ import jdistlib.disttest.MultipleTesting;
 import jdistlib.disttest.MultipleTesting.AdaptiveFdrResult;
 import jdistlib.disttest.MultipleTesting.CensoredTestResult;
 import jdistlib.disttest.MultipleTesting.Method;
+import jdistlib.disttest.MultipleTesting.StepDownFdrResult;
 
 /** Minimal multiple-testing and q-value examples compiled by the check task. */
 public final class MultipleTestingExamples {
@@ -21,6 +22,11 @@ public final class MultipleTestingExamples {
 
         AdaptiveFdrResult bky = MultipleTesting
                 .benjaminiKriegerYekutieli(pValues, 0.05);
+        double[] weightedBh = MultipleTesting
+                .adjustWeightedBenjaminiHochberg(pValues,
+                        new double[] {2.0, 1.0, 0.5, 0.5, 1.0, 1.0});
+        StepDownFdrResult gbs = MultipleTesting
+                .gavrilovBenjaminiSarkar(pValues, 0.05);
         double[] logAdjusted = MultipleTesting.adjustLog(
                 new double[] {Math.log(0.01), -1000.0, Math.log(0.2)},
                 Method.BENJAMINI_HOCHBERG);
@@ -39,6 +45,8 @@ public final class MultipleTestingExamples {
         System.out.println(Arrays.toString(bh));
         System.out.println(Arrays.toString(discoveries));
         System.out.println("BKY discoveries: " + bky.getRejectedCount());
+        System.out.println("weighted BH: " + Arrays.toString(weightedBh));
+        System.out.println("GBS discoveries: " + gbs.getRejectedCount());
         System.out.println("log adjusted: " + Arrays.toString(logAdjusted));
         System.out.println("censored decisions exact: "
                 + censored.areDecisionsExact());

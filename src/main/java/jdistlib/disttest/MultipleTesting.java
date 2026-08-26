@@ -107,6 +107,31 @@ public final class MultipleTesting {
 		public double getThreshold() { return threshold; }
 	}
 
+	/** Result of a level-dependent step-down FDR procedure. */
+	public static final class StepDownFdrResult {
+		private final boolean[] rejected;
+		private final int rejectedCount;
+		private final double threshold;
+		private final double criticalValue;
+
+		private StepDownFdrResult(boolean[] rejected, int rejectedCount,
+				double threshold, double criticalValue) {
+			this.rejected = rejected;
+			this.rejectedCount = rejectedCount;
+			this.threshold = threshold;
+			this.criticalValue = criticalValue;
+		}
+
+		/** Returns rejection flags in input order; missing values are false. */
+		public boolean[] getRejected() { return rejected.clone(); }
+		/** Returns the number of rejected hypotheses. */
+		public int getRejectedCount() { return rejectedCount; }
+		/** Returns the largest rejected raw p-value, or NaN. */
+		public double getThreshold() { return threshold; }
+		/** Returns the rank-specific cutoff at the last rejection, or NaN. */
+		public double getCriticalValue() { return criticalValue; }
+	}
+
 	/** Supported p-value adjustment procedures. */
 	public enum Method {
 		/** No adjustment. */
@@ -187,6 +212,62 @@ public final class MultipleTesting {
 		return adjustLog(validateLogPValues(logPValues), method, numberOfTests);
 	}
 
+	/**
+	 * Computes weighted Benjamini-Hochberg adjusted p-values.
+	 *
+	 * <p>Weights must be finite, strictly positive, and chosen independently of
+	 * the p-values under their null hypotheses. They are rescaled over the
+	 * non-missing family to have mean one, so multiplying every weight by the
+	 * same positive constant does not change the result. Larger weights give a
+	 * hypothesis greater priority.</p>
+	 *
+	 * @see <a href="https://doi.org/10.1093/biomet/93.3.509">Genovese,
+	 * Roeder, and Wasserman (2006)</a>
+	 */
+	public static double[] adjustWeightedBenjaminiHochberg(
+			double[] pValues, double[] weights) {
+		ValidatedPValues validated = validatePValues(pValues);
+		ValidatedPValues weightedLogs = weightedLogPValues(validated,
+				weights, false);
+		double[] logAdjusted = adjustLog(weightedLogs,
+				Method.BENJAMINI_HOCHBERG, validated.values.length);
+		double[] result = missingResult(pValues.length);
+		for (int i = 0; i < result.length; i++) {
+			if (!Double.isNaN(logAdjusted[i])) result[i] = Math.exp(logAdjusted[i]);
+		}
+		return result;
+	}
+
+	/**
+	 * Computes weighted BH adjusted values directly from natural-log p-values.
+	 * The output remains in natural-log form.
+	 */
+	public static double[] adjustLogWeightedBenjaminiHochberg(
+			double[] logPValues, double[] weights) {
+		ValidatedPValues validated = validateLogPValues(logPValues);
+		return adjustLog(weightedLogPValues(validated, weights, true),
+				Method.BENJAMINI_HOCHBERG, validated.values.length);
+	}
+
+	/** Returns weighted-BH rejection flags at the requested FDR level. */
+	public static boolean[] rejectWeightedBenjaminiHochberg(
+			double[] pValues, double[] weights, double level) {
+		validateLevel(level);
+		return rejectAdjusted(adjustWeightedBenjaminiHochberg(pValues, weights),
+				level);
+	}
+
+	/** Returns weighted-BH rejection flags for natural-log p-values. */
+	public static boolean[] rejectLogWeightedBenjaminiHochberg(
+			double[] logPValues, double[] weights, double level) {
+		validateLevel(level);
+		double[] adjusted = adjustLogWeightedBenjaminiHochberg(logPValues,
+				weights);
+		double logLevel = level == 0.0 ? Double.NEGATIVE_INFINITY
+				: Math.log(level);
+		return rejectAdjusted(adjusted, logLevel);
+	}
+
 	/** Returns rejection flags for natural-log p-values. */
 	public static boolean[] rejectLog(double[] logPValues, double level,
 			Method method) {
@@ -217,6 +298,30 @@ public final class MultipleTesting {
 		ValidatedPValues validated = validatePValues(pValues);
 		return benjaminiKriegerYekutieli(validated, level,
 				validated.values.length);
+	}
+
+	/**
+	 * Runs the Gavrilov-Benjamini-Sarkar adaptive step-down FDR procedure.
+	 *
+	 * <p>Sorted hypotheses are rejected only while every p-value through rank
+	 * {@code i} is at most {@code i*q/(m+1-i*(1-q))}. The proven finite-sample
+	 * FDR guarantee is for independent test statistics.</p>
+	 *
+	 * @see <a href="https://doi.org/10.1214/07-AOS586">Gavrilov,
+	 * Benjamini, and Sarkar (2009)</a>
+	 */
+	public static StepDownFdrResult gavrilovBenjaminiSarkar(
+			double[] pValues, double level) {
+		ValidatedPValues validated = validatePValues(pValues);
+		return gavrilovBenjaminiSarkar(validated, level,
+				validated.values.length);
+	}
+
+	/** Runs GBS for a declared total family size. */
+	public static StepDownFdrResult gavrilovBenjaminiSarkar(
+			double[] pValues, double level, int numberOfTests) {
+		return gavrilovBenjaminiSarkar(validatePValues(pValues), level,
+				numberOfTests);
 	}
 
 	/** Runs two-stage BKY for a declared total family size. */
@@ -585,11 +690,78 @@ public final class MultipleTesting {
 				rawThreshold(validated, finalRejected));
 	}
 
+	private static StepDownFdrResult gavrilovBenjaminiSarkar(
+			ValidatedPValues validated, double level, int numberOfTests) {
+		validateLevel(level);
+		if (numberOfTests < validated.values.length)
+			throw new IllegalArgumentException(
+					"number of tests is smaller than observed p-values");
+		boolean[] rejected = new boolean[validated.originalLength];
+		if (numberOfTests == 0 || validated.values.length == 0)
+			return new StepDownFdrResult(rejected, 0, Double.NaN, Double.NaN);
+		SortedPValues sorted = sort(validated);
+		int rejectedCount = 0;
+		double criticalValue = Double.NaN;
+		for (int rank = 0; rank < sorted.values.length; rank++) {
+			double candidate = gbsCriticalValue(rank + 1, numberOfTests, level);
+			if (sorted.values[rank] > candidate) break;
+			rejected[sorted.originalIndices[rank]] = true;
+			rejectedCount++;
+			criticalValue = candidate;
+		}
+		double threshold = rejectedCount == 0 ? Double.NaN
+				: sorted.values[rejectedCount - 1];
+		return new StepDownFdrResult(rejected, rejectedCount, threshold,
+				criticalValue);
+	}
+
+	private static double gbsCriticalValue(int rank, int numberOfTests,
+			double level) {
+		return rank * level
+				/ (numberOfTests + 1.0 - rank * (1.0 - level));
+	}
+
 	private static boolean[] rejectAdjusted(double[] adjusted, double level) {
 		boolean[] rejected = new boolean[adjusted.length];
 		for (int i = 0; i < adjusted.length; i++)
 			rejected[i] = !Double.isNaN(adjusted[i]) && adjusted[i] <= level;
 		return rejected;
+	}
+
+	private static ValidatedPValues weightedLogPValues(
+			ValidatedPValues validated, double[] weights,
+			boolean valuesAreLogs) {
+		if (weights == null || weights.length != validated.originalLength)
+			throw new IllegalArgumentException(
+					"weights must have the same length as the p-values");
+		for (double weight : weights) {
+			if (!Double.isFinite(weight) || weight <= 0.0)
+				throw new IllegalArgumentException(
+						"weights must be finite and strictly positive");
+		}
+		if (validated.values.length == 0)
+			return new ValidatedPValues(validated.originalLength,
+					new double[0], new int[0]);
+		double maximum = 0.0;
+		for (int index : validated.originalIndices)
+			maximum = Math.max(maximum, weights[index]);
+		double scaledSum = 0.0;
+		for (int index : validated.originalIndices)
+			scaledSum += weights[index] / maximum;
+		double logMeanWeight = Math.log(maximum) + Math.log(scaledSum)
+				- Math.log(validated.values.length);
+		double[] values = new double[validated.values.length];
+		for (int i = 0; i < values.length; i++) {
+			double logPValue = valuesAreLogs ? validated.values[i]
+					: validated.values[i] == 0.0
+							? Double.NEGATIVE_INFINITY
+							: Math.log(validated.values[i]);
+			double logNormalizedWeight = Math.log(
+					weights[validated.originalIndices[i]]) - logMeanWeight;
+			values[i] = logPValue - logNormalizedWeight;
+		}
+		return new ValidatedPValues(validated.originalLength, values,
+				validated.originalIndices.clone());
 	}
 
 	private static int countTrue(boolean[] values) {

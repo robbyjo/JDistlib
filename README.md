@@ -171,6 +171,10 @@ Adaptive two-stage BKY is available through
 `benjaminiKriegerYekutieli(pValues, level)`. Extremely small probabilities can
 remain in natural-log form with `adjustLog`, and `testRightCensored` supports a
 known p-value recording limit when the original family size is also known.
+Version 0.7.1 adds prespecified-weight BH through
+`adjustWeightedBenjaminiHochberg` (including a log-domain variant) and the
+independence-based adaptive GBS step-down procedure through
+`gavrilovBenjaminiSarkar`.
 
 Storey q-values can use the default smoothing-spline estimate of π₀, the
 quantile estimator inherited from QGeneric, or a caller-supplied π₀. Setting π₀

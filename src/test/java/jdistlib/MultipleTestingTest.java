@@ -22,6 +22,7 @@ import jdistlib.disttest.MultipleTesting;
 import jdistlib.disttest.MultipleTesting.AdaptiveFdrResult;
 import jdistlib.disttest.MultipleTesting.CensoredTestResult;
 import jdistlib.disttest.MultipleTesting.Method;
+import jdistlib.disttest.MultipleTesting.StepDownFdrResult;
 
 public class MultipleTestingTest {
 	private static final double[] P = {0.01, 0.04, 0.03, 0.002, 0.5,
@@ -138,6 +139,73 @@ public class MultipleTestingTest {
 	}
 
 	@Test
+	public void weightedBhMatchesHandCalculationAndIsScaleInvariant() {
+		double[] pValues = {0.01, 0.04, 0.03, 0.002, 0.50};
+		double[] weights = {2.0, 1.0, 0.5, 0.5, 1.0};
+		double[] expected = {0.0125, 1.0 / 15.0, 0.075, 0.0125, 0.50};
+		assertArrayEquals(expected,
+				MultipleTesting.adjustWeightedBenjaminiHochberg(
+						pValues, weights), 1e-15);
+		double[] scaledWeights = {20.0, 10.0, 5.0, 5.0, 10.0};
+		assertArrayEquals(expected,
+				MultipleTesting.adjustWeightedBenjaminiHochberg(
+						pValues, scaledWeights), 1e-15);
+		boolean[] rejected = MultipleTesting.rejectWeightedBenjaminiHochberg(
+				pValues, weights, 0.05);
+		assertTrue(rejected[0]);
+		assertTrue(rejected[3]);
+		assertFalse(rejected[1]);
+
+		assertArrayEquals(MultipleTesting.adjust(P,
+				Method.BENJAMINI_HOCHBERG),
+				MultipleTesting.adjustWeightedBenjaminiHochberg(P,
+						new double[] {1, 1, 1, 1, 1, 1}), 1e-15);
+	}
+
+	@Test
+	public void weightedBhSupportsLogPValuesWithoutUnderflow() {
+		double[] pValues = {1e-200, 0.02, 0.40};
+		double[] logPValues = {Math.log(pValues[0]), Math.log(pValues[1]),
+				Math.log(pValues[2])};
+		double[] weights = {2.0, 0.5, 0.5};
+		double[] ordinary = MultipleTesting.adjustWeightedBenjaminiHochberg(
+				pValues, weights);
+		double[] logged = MultipleTesting.adjustLogWeightedBenjaminiHochberg(
+				logPValues, weights);
+		for (int i = 0; i < ordinary.length; i++)
+			assertEquals(ordinary[i], Math.exp(logged[i]), 2e-15);
+
+		double[] extreme = MultipleTesting.adjustLogWeightedBenjaminiHochberg(
+				new double[] {-1000.0, -800.0}, new double[] {1.5, 0.5});
+		assertTrue(Double.isFinite(extreme[0]));
+		assertTrue(extreme[0] < -900.0);
+	}
+
+	@Test
+	public void gbsUsesAdaptiveCriticalConstantsAndStopsAtFirstFailure() {
+		double[] pValues = {0.03, 0.80, 0.001, 0.12, 0.06, 0.01,
+				Double.NaN};
+		StepDownFdrResult result = MultipleTesting.gavrilovBenjaminiSarkar(
+				pValues, 0.05);
+		assertEquals(4, result.getRejectedCount());
+		assertEquals(0.06, result.getThreshold(), 0.0);
+		assertEquals(4.0 * 0.05 / (7.0 - 4.0 * 0.95),
+				result.getCriticalValue(), 1e-15);
+		boolean[] rejected = result.getRejected();
+		assertTrue(rejected[0]);
+		assertTrue(rejected[2]);
+		assertTrue(rejected[4]);
+		assertTrue(rejected[5]);
+		assertFalse(rejected[1]);
+		assertFalse(rejected[3]);
+		assertFalse(rejected[6]);
+
+		StepDownFdrResult largerFamily = MultipleTesting
+				.gavrilovBenjaminiSarkar(pValues, 0.05, 10);
+		assertEquals(2, largerFamily.getRejectedCount());
+	}
+
+	@Test
 	public void rightCensoredFamiliesUseKnownTotalConservatively() {
 		double[] recorded = {0.001, 0.004, 0.01, 0.03};
 		CensoredTestResult result = MultipleTesting.testRightCensored(
@@ -202,6 +270,15 @@ public class MultipleTestingTest {
 				MultipleTesting.qValues(new double[] {0.1}, 1.1));
 		assertThrows(IllegalArgumentException.class, () ->
 				MultipleTesting.adjustLog(new double[] {0.01}, Method.HOLM));
+		assertThrows(IllegalArgumentException.class, () ->
+				MultipleTesting.adjustWeightedBenjaminiHochberg(
+						new double[] {0.1}, new double[] {0.0}));
+		assertThrows(IllegalArgumentException.class, () ->
+				MultipleTesting.adjustWeightedBenjaminiHochberg(
+						new double[] {0.1}, new double[] {1.0, 2.0}));
+		assertThrows(IllegalArgumentException.class, () ->
+				MultipleTesting.gavrilovBenjaminiSarkar(
+						new double[] {0.1, 0.2}, 0.05, 1));
 		assertThrows(ArithmeticException.class, () ->
 				MultipleTesting.estimateNullProportionQuantile(
 						new double[] {0.001, 0.002, 0.003},

@@ -3,8 +3,10 @@
 ## Version 0.7.1 candidates
 
 * Round out `MultipleTesting` convenience overloads for declared family sizes
-  and log-domain decision helpers; evaluate prespecified-weight BH and the
-  Gavrilov–Benjamini–Sarkar adaptive step-down procedure.
+  and log-domain decision, count, and threshold helpers.
+* Evaluate grouped or hierarchical FDR and online FDR procedures as separate
+  APIs whose data-ordering and grouping contracts cannot be confused with a
+  fixed batch of p-values.
 * Expand independent reference validation for mixed and vine copulas,
   especially boundary-heavy likelihoods and fitted-model diagnostics.
 * Incorporate feedback from the 0.7.0 APIs while preserving Java 8 bytecode,
@@ -30,6 +32,8 @@
 
 ## Recently completed
 
+* Added prespecified-weight Benjamini–Hochberg adjustment and the adaptive
+  Gavrilov–Benjamini–Sarkar step-down procedure for 0.7.1.
 * Consolidated the QGeneric FDR plugins into the stateless 0.7.0
   `MultipleTesting` API, adding standard p-value adjustments, Storey q-values,
   missing-value preservation, family-size overrides, and decision helpers.

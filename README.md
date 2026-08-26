@@ -354,7 +354,9 @@ for the forward function, inverse function, log absolute inverse derivative,
 direction, and transformed support. The beginner-friendly
 [composition tutorial](docs/composition-tutorial.html) walks through mixtures,
 truncation, censoring, affine transformations, and a complete nonlinear
-example; [`examples/CompositionExamples.java`](examples/CompositionExamples.java)
+example. Its worked response-time vignette transforms a normal mixture and then
+uses the resulting distribution for density, CDF, quantile, and reproducible
+random-sample calculations. [`examples/CompositionExamples.java`](examples/CompositionExamples.java)
 is compiled by every `check` build.
 
 Numerical distributions also expose expectations, raw and central moments,

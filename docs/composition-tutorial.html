@@ -45,6 +45,7 @@
       <a href="#bounds">Truncate or censor</a>
       <a href="#affine">Change units</a>
       <a href="#custom">Custom transformations</a>
+      <a href="#mixture-transform">Transform a mixture</a>
       <a href="#decreasing">Decreasing transformations</a>
       <a href="#check">Check the design</a>
     </nav>
@@ -180,6 +181,60 @@ MonotoneTransformDistribution reflected =
         <code>inverse</code> agree everywhere, that the direction flag is correct,
         or that the derivative matches the inverse. Test those identities at
         representative interior and boundary-near points.</aside>
+    </section>
+
+    <section class="guide-section" id="mixture-transform">
+      <p class="eyebrow">Worked vignette · mixture + nonlinear transform</p>
+      <h2>Analyze two response-time regimes through one distribution object</h2>
+      <p>Suppose normal traffic has a median response time of 4 seconds, while
+        15% of requests arrive during a degraded regime with a median of 20
+        seconds. Model the logarithm of response time as a normal mixture, then
+        exponentiate the complete mixture:</p>
+      <div class="formula-panel">
+        \[
+          Z\sim0.85\,N(\log 4,0.30^2)+0.15\,N(\log 20,0.45^2),
+          \qquad T=e^Z.
+        \]
+      </div>
+      <pre><code>MixtureDistribution logSeconds = Distributions.mixture(
+    new double[] {0.85, 0.15},
+    new Normal(Math.log(4.0), 0.30),
+    new Normal(Math.log(20.0), 0.45));
+
+MonotoneTransformDistribution responseTime =
+    Distributions.transform(
+        logSeconds,
+        Math::exp,
+        Math::log,
+        y -&gt; -Math.log(y),
+        true,
+        0.0,
+        Double.POSITIVE_INFINITY);</code></pre>
+      <p>The transformed mixture has the same scalar API as its components.
+        Density uses both the mixture weights and the transformation Jacobian;
+        the CDF reverses through the inverse transformation; quantiles invert
+        the mixture CDF numerically; and random draws follow the transformed
+        mixture law.</p>
+      <pre><code>// Analytical questions in seconds.
+double densityAtTen = responseTime.density(10.0, false);
+double withinTen = responseTime.cumulative(10.0);
+double percentile95 = responseTime.quantile(0.95);
+
+// Reproducible random scenarios from the same model.
+// import jdistlib.rng.MersenneTwister;
+responseTime.setRandomEngine(new MersenneTwister(20260826L));
+double oneScenario = responseTime.random();
+double[] scenarios = responseTime.random(1_000);</code></pre>
+      <p>Applying one common monotone transformation after mixing is equivalent
+        to transforming every component first and then mixing with the same
+        weights. Transforming the mixture directly keeps the shared change of
+        scale in one place. The complete example is compiled during every
+        <code>check</code> build in
+        <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/CompositionExamples.java"><code>CompositionExamples.java</code></a>.</p>
+      <aside class="callout"><strong>Simulation complements the analytical API.</strong>
+        Compare the fraction of <code>scenarios</code> at or below 10 seconds with
+        <code>withinTen</code>, and compare an empirical 95th percentile with
+        <code>percentile95</code>. They should be close, not identical.</aside>
     </section>
 
     <section class="guide-section" id="decreasing">

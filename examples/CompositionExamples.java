@@ -14,6 +14,7 @@ import jdistlib.MixtureDistribution;
 import jdistlib.MonotoneTransformDistribution;
 import jdistlib.Normal;
 import jdistlib.TruncatedContinuousDistribution;
+import jdistlib.rng.MersenneTwister;
 
 /** Compilable examples for the composition and transformation tutorial. */
 public final class CompositionExamples {
@@ -23,6 +24,22 @@ public final class CompositionExamples {
 	public static MonotoneTransformDistribution exponentialTransform() {
 		return Distributions.transform(
 				new Normal(0.0, 0.5),
+				Math::exp,
+				Math::log,
+				y -> -Math.log(y),
+				true,
+				0.0,
+				Double.POSITIVE_INFINITY);
+	}
+
+	/** A two-regime response-time mixture transformed from log seconds. */
+	public static MonotoneTransformDistribution responseTimeMixture() {
+		MixtureDistribution logSeconds = Distributions.mixture(
+				new double[] {0.85, 0.15},
+				new Normal(Math.log(4.0), 0.30),
+				new Normal(Math.log(20.0), 0.45));
+		return Distributions.transform(
+				logSeconds,
 				Math::exp,
 				Math::log,
 				y -> -Math.log(y),
@@ -49,6 +66,17 @@ public final class CompositionExamples {
 		MonotoneTransformDistribution positive = exponentialTransform();
 		System.out.println("P(Y <= 1) = " + positive.cumulative(1.0));
 		System.out.println("90th percentile = " + positive.quantile(0.9));
+
+		MonotoneTransformDistribution responseTime = responseTimeMixture();
+		double densityAtTen = responseTime.density(10.0, false);
+		double withinTen = responseTime.cumulative(10.0);
+		double percentile95 = responseTime.quantile(0.95);
+		responseTime.setRandomEngine(new MersenneTwister(20260826L));
+		double[] scenarios = responseTime.random(1_000);
+		System.out.println("density at 10 seconds = " + densityAtTen);
+		System.out.println("P(response <= 10 seconds) = " + withinTen);
+		System.out.println("95th percentile = " + percentile95);
+		System.out.println("simulated scenarios = " + scenarios.length);
 
 		CensoredDistribution observed = measurementDesign();
 		System.out.println("P(observed at upper limit) = "

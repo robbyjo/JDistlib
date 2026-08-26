@@ -4,6 +4,8 @@ New to JDistlib? Start with the website's
 [learning center](https://robbyjo.github.io/JDistlib/learn.html). It links a
 beginner distribution tutorial and vignette, a custom-distribution tutorial and
 vignette, and copula material clearly marked for JDistlib 0.7.0 and later.
+The [composition tutorial](composition-tutorial.html) shows how the scalar
+factories fit together and how to define a general monotone transformation.
 
 Use the smallest API that expresses the distribution you have.
 

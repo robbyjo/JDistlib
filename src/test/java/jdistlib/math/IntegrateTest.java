@@ -55,6 +55,59 @@ public class IntegrateTest {
 	}
 
 	@Test
+	public void cquadIntegratesSmoothAndNonsmoothFiniteFunctions() {
+		IntegrationOptions options = IntegrationOptions.builder()
+				.tolerances(1e-11, 1e-11)
+				.subdivisions(200)
+				.maxEvaluations(200000)
+				.method(IntegrationOptions.Method.CQUAD)
+				.build();
+		IntegrationResult exponential = Integrate.integrate(Math::exp,
+				-1.0, 1.0, options);
+		assertTrue(exponential.detailedMessage(), exponential.isSuccess());
+		assertEquals(Math.E - 1.0 / Math.E, exponential.result, 2e-13);
+
+		double location = 0.123456789;
+		IntegrationResult cusp = Integrate.integrate(
+				x -> Math.abs(x - location), -1.0, 1.0, options);
+		double expected = 0.5 * ((location + 1.0) * (location + 1.0)
+				+ (1.0 - location) * (1.0 - location));
+		assertTrue(cusp.detailedMessage(), cusp.isSuccess());
+		assertEquals(expected, cusp.result, 2e-10);
+
+		IntegrationResult localizedPeak = Integrate.integrate(
+				x -> 1.0 / (1.0 + 10000.0 * (x - 0.2) * (x - 0.2)),
+				0.0, 1.0, options);
+		double peakExpected = (Math.atan(80.0) + Math.atan(20.0)) / 100.0;
+		assertTrue(localizedPeak.detailedMessage(), localizedPeak.isSuccess());
+		assertEquals(peakExpected, localizedPeak.result, 2e-11);
+	}
+
+	@Test
+	public void cquadHonorsBreakpointsBudgetsAndFiniteDomainContract() {
+		IntegrationOptions split = IntegrationOptions.builder()
+				.tolerances(1e-12, 1e-12)
+				.breakpoints(0.25)
+				.method(IntegrationOptions.Method.CQUAD)
+				.build();
+		IntegrationResult discontinuous = Integrate.integrate(
+				x -> x < 0.25 ? 1.0 : 3.0, 0.0, 1.0, split);
+		assertTrue(discontinuous.detailedMessage(), discontinuous.isSuccess());
+		assertEquals(2.5, discontinuous.result, 2e-12);
+
+		IntegrationOptions budget = split.toBuilder().breakpoints()
+				.maxEvaluations(5).build();
+		IntegrationResult exhausted = Integrate.integrate(Math::exp,
+				0.0, 1.0, budget);
+		assertEquals(IntegrationStatus.EVALUATION_BUDGET_EXHAUSTED,
+				exhausted.getStatus());
+
+		IntegrationResult invalid = Integrate.integrate(x -> Math.exp(-x),
+				0.0, Double.POSITIVE_INFINITY, split);
+		assertEquals(IntegrationStatus.INVALID_INPUT, invalid.getStatus());
+	}
+
+	@Test
 	public void concurrentCallsDoNotShareWorkState() throws Exception {
 		ExecutorService pool = Executors.newFixedThreadPool(8);
 		try {

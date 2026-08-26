@@ -19,6 +19,8 @@ public final class IntegrationOptions {
 	public enum Method {
 		/** QUADPACK DQAGS/DQAGI, matching the historical implementation. */
 		QUADPACK,
+		/** Doubly-adaptive Clenshaw-Curtis quadrature on finite intervals. */
+		CQUAD,
 		/** Double-exponential tanh-sinh quadrature for finite intervals. */
 		TANH_SINH,
 		/**
@@ -26,7 +28,7 @@ public final class IntegrationOptions {
 		 * selected according to the interval bounds.
 		 */
 		DOUBLE_EXPONENTIAL,
-		/** QUADPACK with a matching double-exponential fallback. */
+		/** QUADPACK with CQUAD and double-exponential fallbacks. */
 		AUTO
 	}
 

@@ -76,6 +76,9 @@ The website now puts beginner material first:
   density/mass, CDF, quantile, tails, and reproducible simulation.
 * [Response-time vignette](https://robbyjo.github.io/JDistlib/distribution-vignette.html) —
   an applied univariate analysis with goodness-of-fit checks.
+* [Compose and transform distributions](https://robbyjo.github.io/JDistlib/composition-tutorial.html) —
+  a beginner guide to mixtures, truncation, censoring, changes of units, and
+  general monotone transformations.
 * [Multiple testing and FDR](https://robbyjo.github.io/JDistlib/multiple-testing.html) —
   adjusted and log p-values, adaptive BKY, censored families, rejection
   thresholds, and Storey q-values (JDistlib 0.7.0+).
@@ -210,7 +213,8 @@ retained reference to the user callback.
 For hostile or difficult callbacks, the additive `IntegrationOptions` API
 supports evaluation budgets, cancellation checks, declared discontinuity or
 singularity points, caught callback diagnostics, stability assessment, and
-double-exponential methods for finite or infinite intervals. It also supports
+CQUAD or double-exponential methods for difficult finite integrals, plus
+double-exponential methods for infinite intervals. It also supports
 total/per-callback wall-clock limits and opt-in isolated daemon execution for a
 callback that may not return. The historical overloads retain their R/QUADPACK
 behavior.
@@ -233,6 +237,11 @@ IntegrationStabilityResult stability =
 
 String machineReadable = stability.toJson();
 ```
+
+`AUTO` retains QUADPACK as its first choice, tries CQUAD next for a finite
+interval, and then uses the applicable double-exponential rule. Select
+`IntegrationOptions.Method.CQUAD` directly when you want doubly adaptive
+Clenshaw-Curtis integration on finite bounds.
 
 Isolation releases the integrating thread when the deadline expires and uses a
 daemon worker so a permanently blocked callback cannot keep the JVM alive. Java
@@ -337,6 +346,14 @@ TruncatedContinuousDistribution positive =
 MonotoneTransformDistribution rescaled =
     Distributions.affine(positive, 10.0, 2.0);
 ```
+
+General monotone changes of variable use `Distributions.transform`, which asks
+for the forward function, inverse function, log absolute inverse derivative,
+direction, and transformed support. The beginner-friendly
+[composition tutorial](docs/composition-tutorial.html) walks through mixtures,
+truncation, censoring, affine transformations, and a complete nonlinear
+example; [`examples/CompositionExamples.java`](examples/CompositionExamples.java)
+is compiled by every `check` build.
 
 Numerical distributions also expose expectations, raw and central moments,
 entropy, modes, and equal-tail probability intervals. Array APIs now include

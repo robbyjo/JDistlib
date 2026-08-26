@@ -2,6 +2,7 @@
 package jdistlib;
 
 import jdistlib.generic.GenericDistribution;
+import jdistlib.math.UnivariateFunction;
 
 /** Concise factories for composing scalar distribution objects. */
 public final class Distributions {
@@ -21,5 +22,25 @@ public final class Distributions {
 	public static MonotoneTransformDistribution affine(GenericDistribution base,
 			double shift, double scale) {
 		return MonotoneTransformDistribution.affine(base, shift, scale);
+	}
+	/**
+	 * Creates the distribution induced by a differentiable strictly monotone
+	 * transformation of an existing distribution.
+	 *
+	 * @param base distribution of X
+	 * @param forward h(x), producing Y
+	 * @param inverse inverse transform h^-1(y)
+	 * @param logAbsInverseDerivative log |d h^-1(y) / dy|
+	 * @param increasing whether h is increasing
+	 * @param lower lower bound of Y
+	 * @param upper upper bound of Y
+	 */
+	public static MonotoneTransformDistribution transform(
+			GenericDistribution base, UnivariateFunction forward,
+			UnivariateFunction inverse,
+			UnivariateFunction logAbsInverseDerivative,
+			boolean increasing, double lower, double upper) {
+		return new MonotoneTransformDistribution(base, forward, inverse,
+				logAbsInverseDerivative, increasing, lower, upper);
 	}
 }

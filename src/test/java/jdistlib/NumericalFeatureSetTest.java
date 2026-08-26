@@ -92,6 +92,15 @@ public class NumericalFeatureSetTest {
 		assertEquals(1.0, transformed.getUpperBound(), 0.0);
 		assertEquals(0.5, transformed.density(0.0, false), 2e-12);
 		assertEquals(0.5, transformed.cumulative(0.0), 2e-12);
+		MonotoneTransformDistribution exponential = Distributions.transform(
+				new Normal(0.0, 1.0), Math::exp, Math::log,
+				y -> -Math.log(y), true, 0.0,
+				Double.POSITIVE_INFINITY);
+		assertEquals(Normal.density(0.0, 0.0, 1.0, false),
+				exponential.density(1.0, false), 2e-15);
+		assertEquals(0.5, exponential.cumulative(1.0), 2e-15);
+		assertEquals(Math.exp(Normal.quantile(0.9, 0.0, 1.0,
+				true, false)), exponential.quantile(0.9), 2e-15);
 
 		CensoredDistribution censored = Distributions.censor(uniform, 0.2, 0.8);
 		assertEquals(0.2, censored.getLowerAtomProbability(), 2e-12);

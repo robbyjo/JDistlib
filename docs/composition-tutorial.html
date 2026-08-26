@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A beginner-friendly tutorial for designing composed and transformed probability distributions with JDistlib.">
+  <title>Compose and transform distributions — JDistlib</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">JDistlib</a>
+    <nav aria-label="Primary navigation">
+      <a href="learn.html">Learn</a>
+      <a href="getting-started.html">Distributions</a>
+      <a aria-current="page" href="composition-tutorial.html">Composition</a>
+      <a href="custom-distributions.html">Custom distributions</a>
+      <a href="api/">JavaDoc</a>
+    </nav>
+  </header>
+
+  <main class="guide">
+    <section class="guide-hero">
+      <p class="eyebrow">Beginner tutorial · composition · JDistlib 0.6.0+</p>
+      <h1>Design a new probability model from distributions you already trust</h1>
+      <p class="lede">A composition design is a pipeline. Start with one or more
+        base distributions, then mix populations, condition on an allowed range,
+        change units or scale, and finally represent observation limits. Each step
+        produces another ordinary JDistlib distribution.</p>
+      <span class="version-pill">Available from 0.6.0</span>
+    </section>
+
+    <nav class="guide-toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <a href="#choose">Choose an operation</a>
+      <a href="#pipeline">Build a pipeline</a>
+      <a href="#mixture">Mix populations</a>
+      <a href="#bounds">Truncate or censor</a>
+      <a href="#affine">Change units</a>
+      <a href="#custom">Custom transformations</a>
+      <a href="#decreasing">Decreasing transformations</a>
+      <a href="#check">Check the design</a>
+    </nav>
+
+    <section class="guide-section" id="choose">
+      <p class="eyebrow">Start with the scientific story</p>
+      <h2>Choose the operation that matches what happened</h2>
+      <div class="table-wrap"><table class="troubleshooting-table">
+        <thead><tr><th>Story</th><th>Operation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td>An observation comes from one of several populations.</td><td><code>Distributions.mixture</code></td><td>Density and CDF become weighted averages.</td></tr>
+          <tr><td>Only values inside a range belong to the population.</td><td><code>Distributions.truncate</code></td><td>Outside values are removed and the retained range is renormalized.</td></tr>
+          <tr><td>A device reports every low or high value at a limit.</td><td><code>Distributions.censor</code></td><td>Tail probability becomes point mass at the limits.</td></tr>
+          <tr><td>Units or calibration change by <code>shift + scale*x</code>.</td><td><code>Distributions.affine</code></td><td>Support, density, CDF, quantiles, and draws are transformed.</td></tr>
+          <tr><td>A differentiable one-to-one formula maps X to Y.</td><td><code>Distributions.transform</code></td><td>The inverse and its Jacobian define the new density.</td></tr>
+        </tbody>
+      </table></div>
+      <aside class="callout"><strong>Order is part of the model.</strong> Truncating
+        and then censoring is generally different from censoring and then
+        truncating. Write the real data-generating steps from left to right.</aside>
+    </section>
+
+    <section class="guide-section" id="pipeline">
+      <p class="eyebrow">Complete design</p>
+      <h2>Give every intermediate step a meaningful name</h2>
+      <pre><code>MixtureDistribution latent = Distributions.mixture(
+    new double[] {0.8, 0.2},
+    new Normal(50.0, 8.0),
+    new Normal(75.0, 12.0));
+
+TruncatedContinuousDistribution physicallyPossible =
+    Distributions.truncate(
+        latent, 0.0, Double.POSITIVE_INFINITY);
+
+MonotoneTransformDistribution calibrated =
+    Distributions.affine(physicallyPossible, 2.0, 1.1);
+
+CensoredDistribution observed =
+    Distributions.censor(calibrated, 5.0, 100.0);</code></pre>
+      <p>This design says that latent measurements come from two subpopulations,
+        negative latent values are physically impossible, calibration reports
+        <code>2 + 1.1*x</code>, and the instrument records anything beyond its range
+        at 5 or 100. The final object still supports density or mass, CDF,
+        quantile, and random generation.</p>
+      <pre><code>double below60 = observed.cumulative(60.0);
+double median = observed.quantile(0.5);
+double atCeiling = observed.getUpperAtomProbability();
+double simulated = observed.random();</code></pre>
+      <p>The complete snippet is compiled during the release build in
+        <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/CompositionExamples.java"><code>CompositionExamples.java</code></a>.</p>
+    </section>
+
+    <section class="guide-section" id="mixture">
+      <p class="eyebrow">Several populations</p>
+      <h2>Mixture weights describe how often each component is chosen</h2>
+      <div class="formula-panel">
+        \[
+          f(x)=\sum_{j=1}^{k}\pi_j f_j(x),\qquad
+          F(x)=\sum_{j=1}^{k}\pi_j F_j(x).
+        \]
+      </div>
+      <pre><code>MixtureDistribution response = Distributions.mixture(
+    new double[] {3.0, 1.0},
+    new Normal(100.0, 15.0),
+    new Normal(150.0, 20.0));</code></pre>
+      <p>Weights need only be nonnegative and have a positive finite sum;
+        JDistlib normalizes them. Here, <code>3:1</code> means 75% and 25%.
+        A mixture is not the same as averaging two random variables: one
+        component is selected for each draw.</p>
+    </section>
+
+    <section class="guide-section" id="bounds">
+      <p class="eyebrow">Two different boundary stories</p>
+      <h2>Truncation removes values; censoring records them at a boundary</h2>
+      <div class="guide-columns">
+        <article><h3>Truncation</h3><p>If only (a&lt;X&lt;b) can enter the population,
+          probability outside the range is discarded. The retained density is</p>
+          <div class="formula-panel">\[f_T(x)=\frac{f(x)}{F(b)-F(a)}.\]</div>
+          <pre><code>Distributions.truncate(base, a, b)</code></pre></article>
+        <article><h3>Censoring</h3><p>If values outside the range still occur but
+          the instrument reports the nearest limit, their probability accumulates
+          as atoms at (a) and (b).</p>
+          <pre><code>CensoredDistribution measured =
+    Distributions.censor(base, a, b);
+double lowerMass = measured.getLowerAtomProbability();</code></pre></article>
+      </div>
+      <aside class="callout caution"><strong>Density has mixed semantics after
+        censoring.</strong> At a censoring bound, <code>density</code> returns point
+        probability; strictly between the bounds it returns continuous density.
+        Use <code>atomProbability</code> when the distinction matters in generic code.</aside>
+    </section>
+
+    <section class="guide-section" id="affine">
+      <p class="eyebrow">Units and calibration</p>
+      <h2>Use the affine shortcut for Y = shift + scale × X</h2>
+      <pre><code>// Celsius to Fahrenheit
+MonotoneTransformDistribution fahrenheit =
+    Distributions.affine(celsius, 32.0, 9.0 / 5.0);
+
+// Reflection is supported because scale may be negative.
+MonotoneTransformDistribution reflected =
+    Distributions.affine(base, 0.0, -1.0);</code></pre>
+      <p>The affine factory derives the inverse, Jacobian, direction, and output
+        support automatically. Prefer it over a general transformation whenever
+        it expresses the design.</p>
+    </section>
+
+    <section class="guide-section" id="custom">
+      <p class="eyebrow">One-to-one formulas</p>
+      <h2>For Y = h(X), supply the inverse and its log-Jacobian</h2>
+      <p>For a differentiable strictly monotone transformation,</p>
+      <div class="formula-panel">
+        \[
+          f_Y(y)=f_X(h^{-1}(y))
+          \left|\frac{d h^{-1}(y)}{dy}\right|.
+        \]
+      </div>
+      <p>This example constructs (Y=\exp(X)) explicitly:</p>
+      <pre><code>MonotoneTransformDistribution positive =
+    Distributions.transform(
+        new Normal(0.0, 0.5),
+        Math::exp,             // h(x)
+        Math::log,             // h^-1(y)
+        y -&gt; -Math.log(y),    // log |d log(y)/dy| = -log(y)
+        true,                  // h is increasing
+        0.0,
+        Double.POSITIVE_INFINITY);</code></pre>
+      <p>The derivative is supplied in log-absolute form because transformed
+        densities can span an extreme numerical range. Output bounds describe
+        the support of Y, not X.</p>
+      <aside class="callout caution"><strong>The functions are a mathematical
+        contract.</strong> JDistlib cannot prove that <code>forward</code> and
+        <code>inverse</code> agree everywhere, that the direction flag is correct,
+        or that the derivative matches the inverse. Test those identities at
+        representative interior and boundary-near points.</aside>
+    </section>
+
+    <section class="guide-section" id="decreasing">
+      <p class="eyebrow">Direction matters</p>
+      <h2>A decreasing transformation reverses probability tails</h2>
+      <p>For (Y=\exp(-X)), the inverse is (-\log y), the absolute inverse
+        derivative is still (1/y), and <code>increasing</code> must be false:</p>
+      <pre><code>MonotoneTransformDistribution decreasing =
+    Distributions.transform(
+        base,
+        x -&gt; Math.exp(-x),
+        y -&gt; -Math.log(y),
+        y -&gt; -Math.log(y),
+        false,
+        0.0,
+        Double.POSITIVE_INFINITY);</code></pre>
+      <p>The direction flag lets CDF and quantile operations reverse tails
+        correctly. The Jacobian uses an absolute derivative, so its sign is never
+        included in the density.</p>
+    </section>
+
+    <section class="guide-section" id="check">
+      <p class="eyebrow">Before relying on the result</p>
+      <h2>Check each layer, then check the complete design</h2>
+      <ul class="lesson-steps">
+        <li><strong>Support</strong><span>Confirm the final lower and upper bounds match the story.</span></li>
+        <li><strong>Transformation identities</strong><span>Check inverse(forward(x)) ≈ x and forward(inverse(y)) ≈ y.</span></li>
+        <li><strong>CDF and quantiles</strong><span>Check cumulative(quantile(p)) ≈ p away from atoms.</span></li>
+        <li><strong>Atoms</strong><span>For censoring or mixed components, inspect atom probabilities explicitly.</span></li>
+        <li><strong>Simulation</strong><span>Compare empirical frequencies and quantiles with the analytical methods.</span></li>
+      </ul>
+      <p>Composition is preferable to rewriting a custom kernel when these
+        operations match the scientific design: it preserves exact component
+        CDFs and quantiles, exposes intermediate assumptions, and reduces the
+        amount of numerical integration required.</p>
+    </section>
+
+    <section class="guide-section guide-next">
+      <p class="eyebrow">Next</p>
+      <h2>Build a component only when the catalog is not enough</h2>
+      <p>Use the <a href="custom-distributions.html">custom-distribution tutorial</a>
+        to create a component from a kernel or discrete weights. Use the
+        <a href="copula-tutorial.html">copula tutorial (0.7.0+)</a> when the goal is
+        a multivariate model rather than a one-dimensional composition.</p>
+    </section>
+  </main>
+  <footer><span>JDistlib composition tutorial.</span><span>Mixtures, truncation, transformations, and censoring from 0.6.0.</span></footer>
+</body>
+</html>

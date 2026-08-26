@@ -24,8 +24,8 @@ and supplies:
   wall-clock timing;
 * benchmark-oriented total and per-callback wall-clock limits;
 * opt-in private daemon-worker execution for callbacks that may not return;
-* QUADPACK, finite tanh-sinh, infinite exp-sinh/sinh-sinh, or automatic
-  fallback selection.
+* QUADPACK, finite CQUAD, finite tanh-sinh, infinite exp-sinh/sinh-sinh, or
+  automatic fallback selection.
 
 Cancellation and caller-thread time limits are cooperative: a per-callback limit
 is observed only after that direct callback returns. `ISOLATED_DAEMON` execution
@@ -45,6 +45,17 @@ exp-sinh for a semi-infinite interval, and sinh-sinh for the whole line. Because
 double callback cannot resolve points beyond the nearest representable number,
 the tanh-sinh result uses a conservative square-root-machine-epsilon error floor
 when transformed points round onto an endpoint.
+
+`CQUAD` is a finite-interval, doubly adaptive Clenshaw-Curtis implementation.
+Each active interval uses nested polynomial interpolants of degrees 4, 8, 16,
+and 32. It raises the polynomial degree before bisecting, and always processes
+the interval with the largest estimated error. The estimate uses the ordinary
+L2 difference between successive interpolants plus a floating-point roundoff
+floor. CQUAD is a robust alternative for difficult finite integrands;
+QUADPACK usually spends fewer evaluations on smooth problems, while tanh-sinh
+remains the better first choice for endpoint singularities. CQUAD deliberately
+rejects infinite bounds. `AUTO` tries QUADPACK first, then CQUAD for a finite
+interval, and finally the applicable double-exponential rule.
 
 ## Kernel analysis
 

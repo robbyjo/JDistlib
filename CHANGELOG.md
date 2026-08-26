@@ -1,6 +1,13 @@
 What's new:
 
 Version 0.7.1 (development):
+* Added a pure-Java finite-interval CQUAD integration method with nested
+  degree-4/8/16/32 Clenshaw-Curtis interpolants, L2 error estimates,
+  degree-before-bisection refinement, largest-error-first interval selection,
+  hardened callback handling, and CQUAD fallback in `AUTO`.
+* Added a general monotone-transform factory and a prominent beginner tutorial
+  for mixtures, truncation, censoring, affine changes, and Jacobian-aware
+  transformations, backed by a compiled example.
 * Added weighted Benjamini–Hochberg adjustment for positive prespecified
   hypothesis weights, including scale-invariant normalization, natural-log
   inputs, and rejection helpers.

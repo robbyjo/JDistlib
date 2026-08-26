@@ -27,6 +27,10 @@
 
 ## Recently completed
 
+* Added finite-interval CQUAD integration and incorporated it into the hardened
+  automatic fallback sequence.
+* Added the general monotone-transformation factory and a prominent beginner
+  composition tutorial with compiled examples.
 * Added prespecified-weight Benjamini–Hochberg adjustment and the adaptive
   Gavrilov–Benjamini–Sarkar step-down procedure for 0.7.1.
 * Added weighted Bonferroni, weighted Holm, and weighted BY; completed batch

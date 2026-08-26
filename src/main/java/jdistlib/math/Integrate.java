@@ -35,6 +35,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.Comparator;
+import java.util.PriorityQueue;
 
 /**
  * Adaptive numerical integration corresponding to R 4.6.1
@@ -237,20 +239,272 @@ public class Integrate {
 			return doubleExponential(guard, lower, upper, epsabs,
 					options.getRelativeTolerance(), options.getTanhSinhMaxLevels());
 		}
+		if (method == IntegrationOptions.Method.CQUAD) {
+			if (!Double.isFinite(lower) || !Double.isFinite(upper)) {
+				IntegrationResult invalid = new IntegrationResult();
+				invalid.ier = 6;
+				invalid.detail = "CQUAD requires finite bounds";
+				return invalid;
+			}
+			return cquad(guard, lower, upper, epsabs,
+					options.getRelativeTolerance(), options.getSubdivisions());
+		}
 
 		IntegrationResult quadpack = integrate(guard, lower, upper, epsabs,
 				options.getRelativeTolerance(), options.getSubdivisions());
 		if (method != IntegrationOptions.Method.AUTO || quadpack.isSuccess()
 				|| guard.hasFailure()) return quadpack;
 
+		IntegrationResult cquad = null;
+		if (Double.isFinite(lower) && Double.isFinite(upper)) {
+			cquad = cquad(guard, lower, upper, epsabs,
+					options.getRelativeTolerance(), options.getSubdivisions());
+			if (cquad.isSuccess()) {
+				cquad.detail = "CQUAD fallback used after QUADPACK status "
+						+ quadpack.ier;
+				return cquad;
+			}
+			if (guard.hasFailure()) return cquad;
+		}
+
 		IntegrationResult alternative = doubleExponential(guard, lower, upper, epsabs,
 				options.getRelativeTolerance(), options.getTanhSinhMaxLevels());
 		if (alternative.isSuccess()) {
-			alternative.detail = "double-exponential fallback used after QUADPACK status "
-					+ quadpack.ier;
+			alternative.detail = "double-exponential fallback used after QUADPACK"
+					+ (cquad == null ? "" : " and CQUAD") + " failures";
 			return alternative;
 		}
-		return alternative.abserr < quadpack.abserr ? alternative : quadpack;
+		IntegrationResult best = betterEstimate(alternative, quadpack);
+		return cquad == null ? best : betterEstimate(cquad, best);
+	}
+
+	private static IntegrationResult betterEstimate(IntegrationResult first,
+			IntegrationResult second) {
+		if (!Double.isFinite(first.abserr)) return second;
+		if (!Double.isFinite(second.abserr)) return first;
+		return first.abserr < second.abserr ? first : second;
+	}
+
+	/**
+	 * Doubly-adaptive finite-interval Clenshaw-Curtis integration inspired by
+	 * Gonnet's CQUAD algorithm. Each interval is p-refined through nested rules
+	 * of degree 4, 8, 16, and 32 before h-refinement by bisection.
+	 */
+	private static IntegrationResult cquad(EvaluationGuard f, double lower,
+			double upper, double epsabs, double epsrel, int maxIntervals) {
+		IntegrationResult result = new IntegrationResult();
+		result.f = f;
+		result.abserr = DBL_MAX;
+		if (!(lower < upper) || !Double.isFinite(lower)
+				|| !Double.isFinite(upper)) {
+			if (lower == upper) {
+				result.abserr = 0.0;
+				return result;
+			}
+			result.ier = 6;
+			return result;
+		}
+
+		PriorityQueue<CquadInterval> intervals =
+				new PriorityQueue<CquadInterval>(11,
+						new Comparator<CquadInterval>() {
+			@Override public int compare(CquadInterval first,
+					CquadInterval second) {
+				return Double.compare(second.error, first.error);
+			}
+		});
+		CquadInterval root = CquadInterval.initial(f, lower, upper);
+		if (root == null) {
+			result.ier = 3;
+			result.detail = "CQUAD could not construct its initial interpolant";
+			return result;
+		}
+		intervals.add(root);
+
+		while (true) {
+			double integral = cquadIntegral(intervals);
+			double error = cquadError(intervals);
+			result.result = integral;
+			result.abserr = error;
+			result.last = intervals.size();
+			double target = max(epsabs, epsrel * abs(integral));
+			if (error <= target) return result;
+			CquadInterval worst = intervals.poll();
+			if (worst == null) {
+				result.ier = 3;
+				result.detail = "CQUAD lost its active interval";
+				return result;
+			}
+			if (worst.level < CquadInterval.MAX_LEVEL) {
+				if (!worst.refine(f)) {
+					result.ier = 3;
+					result.detail = "CQUAD refinement produced a non-finite interpolant";
+					return result;
+				}
+				intervals.add(worst);
+				continue;
+			}
+
+			if (intervals.size() + 2 > maxIntervals) {
+				intervals.add(worst);
+				result.result = cquadIntegral(intervals);
+				result.abserr = cquadError(intervals);
+				result.last = intervals.size();
+				result.ier = 1;
+				result.detail = "CQUAD interval workspace exhausted";
+				return result;
+			}
+			double midpoint = worst.lower * 0.5 + worst.upper * 0.5;
+			if (!(midpoint > worst.lower && midpoint < worst.upper)) {
+				intervals.add(worst);
+				result.ier = 2;
+				result.detail = "CQUAD interval cannot be bisected in double precision";
+				return result;
+			}
+			CquadInterval left = CquadInterval.initial(f, worst.lower, midpoint);
+			CquadInterval right = CquadInterval.initial(f, midpoint, worst.upper);
+			if (left == null || right == null) {
+				result.ier = 3;
+				result.detail = "CQUAD bisection produced a non-finite interpolant";
+				return result;
+			}
+			intervals.add(left);
+			intervals.add(right);
+		}
+	}
+
+	private static double cquadIntegral(PriorityQueue<CquadInterval> intervals) {
+		double sum = 0.0;
+		double correction = 0.0;
+		for (CquadInterval interval : intervals) {
+			double adjusted = interval.integral - correction;
+			double next = sum + adjusted;
+			correction = (next - sum) - adjusted;
+			sum = next;
+		}
+		return sum;
+	}
+
+	private static double cquadError(PriorityQueue<CquadInterval> intervals) {
+		double sum = 0.0;
+		for (CquadInterval interval : intervals) sum += interval.error;
+		return sum;
+	}
+
+	private static final class CquadInterval {
+		private static final int[] DEGREES = {4, 8, 16, 32};
+		private static final int MAX_LEVEL = DEGREES.length - 1;
+		private final double lower;
+		private final double upper;
+		private int level;
+		private double[] samples;
+		private double[] coefficients;
+		private double integral;
+		private double error;
+
+		private CquadInterval(double lower, double upper) {
+			this.lower = lower;
+			this.upper = upper;
+		}
+
+		static CquadInterval initial(EvaluationGuard f, double lower,
+				double upper) {
+			CquadInterval interval = new CquadInterval(lower, upper);
+			int degree = DEGREES[0];
+			interval.samples = new double[degree + 1];
+			for (int index = 0; index <= degree; index++) {
+				double x = interval.node(index, degree);
+				interval.samples[index] = f.eval(x);
+				if (!Double.isFinite(interval.samples[index])) return null;
+			}
+			interval.coefficients = coefficients(interval.samples);
+			interval.integral = interval.integral(interval.coefficients);
+			interval.error = Double.POSITIVE_INFINITY;
+			return interval.refine(f) ? interval : null;
+		}
+
+		boolean refine(EvaluationGuard f) {
+			if (level >= MAX_LEVEL) return true;
+			int oldDegree = DEGREES[level];
+			int newDegree = DEGREES[level + 1];
+			double[] refined = new double[newDegree + 1];
+			for (int index = 0; index <= oldDegree; index++)
+				refined[2 * index] = samples[index];
+			for (int index = 1; index < newDegree; index += 2) {
+				refined[index] = f.eval(node(index, newDegree));
+				if (!Double.isFinite(refined[index])) return false;
+			}
+			double[] nextCoefficients = coefficients(refined);
+			double nextIntegral = integral(nextCoefficients);
+			if (!Double.isFinite(nextIntegral)) return false;
+			double difference = interpolantDifference(coefficients,
+					nextCoefficients);
+			double maximum = 0.0;
+			for (double sample : refined) maximum = max(maximum, abs(sample));
+			double scale = abs(nextIntegral) + (upper - lower) * maximum;
+			double floor = 50.0 * DBL_EPSILON * scale;
+			error = max(difference, floor);
+			level++;
+			samples = refined;
+			coefficients = nextCoefficients;
+			integral = nextIntegral;
+			return Double.isFinite(error);
+		}
+
+		private double node(int index, int degree) {
+			double midpoint = lower * 0.5 + upper * 0.5;
+			double halfWidth = upper * 0.5 - lower * 0.5;
+			return midpoint + halfWidth * Math.cos(Math.PI * index / degree);
+		}
+
+		private double integral(double[] values) {
+			double normalized = 0.0;
+			for (int order = 0; order < values.length; order += 2)
+				normalized += values[order] * chebyshevIntegral(order);
+			return (upper * 0.5 - lower * 0.5) * normalized;
+		}
+
+		private double interpolantDifference(double[] coarse,
+				double[] fine) {
+			double[] difference = fine.clone();
+			for (int i = 0; i < coarse.length; i++) difference[i] -= coarse[i];
+			double squaredNorm = 0.0;
+			for (int i = 0; i < difference.length; i++) {
+				for (int j = 0; j < difference.length; j++) {
+					squaredNorm += difference[i] * difference[j]
+							* chebyshevProductIntegral(i, j);
+				}
+			}
+			squaredNorm = max(0.0, squaredNorm);
+			double halfWidth = upper * 0.5 - lower * 0.5;
+			return halfWidth * Math.sqrt(2.0 * squaredNorm);
+		}
+
+		private static double[] coefficients(double[] samples) {
+			int degree = samples.length - 1;
+			double[] result = new double[degree + 1];
+			for (int order = 0; order <= degree; order++) {
+				double sum = 0.5 * samples[0]
+						+ 0.5 * samples[degree] * (order % 2 == 0 ? 1.0 : -1.0);
+				for (int index = 1; index < degree; index++)
+					sum += samples[index] * Math.cos(
+							Math.PI * order * index / degree);
+				result[order] = 2.0 * sum / degree;
+			}
+			result[0] *= 0.5;
+			result[degree] *= 0.5;
+			return result;
+		}
+
+		private static double chebyshevIntegral(int order) {
+			return order % 2 == 0 ? 2.0 / (1.0 - order * (double) order)
+					: 0.0;
+		}
+
+		private static double chebyshevProductIntegral(int first, int second) {
+			return 0.5 * (chebyshevIntegral(abs(first - second))
+					+ chebyshevIntegral(first + second));
+		}
 	}
 
 	private static IntegrationResult doubleExponential(UnivariateFunction f,

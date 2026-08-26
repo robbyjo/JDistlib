@@ -241,6 +241,9 @@ CensoredDistribution observed =
     Distributions.censor(shifted, 10.0, 20.0);</code></pre>
       <p>At a censoring bound, <code>density</code> returns atom probability rather
         than an ordinary continuous density, matching the mixed-support API.</p>
+      <p>For a complete beginner walkthrough of mixtures, truncation, censoring,
+        affine changes of units, and general monotone transformations, see
+        <a href="composition-tutorial.html">Compose and transform distributions</a>.</p>
 
       <h3>Inspect summaries and the selected sampler</h3>
       <pre><code>double mode = custom.mode();

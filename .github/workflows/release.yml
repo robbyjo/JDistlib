@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and publish
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,8 +18,22 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="${REQUESTED_TAG:-$GITHUB_REF_NAME}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release tag: $TAG" >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
       - name: Check out source
         uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.release.outputs.tag }}
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
@@ -22,8 +42,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
       - name: Build and test release artifacts
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           ./gradlew clean build --no-daemon -PreleaseVersion="$VERSION"
           test -f "build/libs/jdistlib-$VERSION.jar"
           unzip -p "build/libs/jdistlib-$VERSION.jar" META-INF/MANIFEST.MF |
@@ -34,9 +55,19 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME" build/libs/*
-          --title "JDistlib ${GITHUB_REF_NAME#v}"
-          --notes-file RELEASE_NOTES.md
-          --verify-tag
-          --latest
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "JDistlib $VERSION" \
+              --notes-file RELEASE_NOTES.md \
+              --latest
+          else
+            gh release create "$TAG" \
+              --title "JDistlib $VERSION" \
+              --notes-file RELEASE_NOTES.md \
+              --verify-tag \
+              --latest
+          fi
+          gh release upload "$TAG" build/libs/* --clobber

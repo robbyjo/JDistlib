@@ -1,4 +1,9 @@
-# JDistlib 0.7.0
+# JDistlib 0.7.1 (development)
+
+JDistlib 0.7.1 is under development. Completed changes will be summarized here
+before release.
+
+## Previous release: JDistlib 0.7.0
 
 JDistlib 0.7.0 adds a composable copula framework while preserving
 Java 8-compatible bytecode, explicit per-stream random state, and the

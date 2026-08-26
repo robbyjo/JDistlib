@@ -28,9 +28,10 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.7.0 is the current stable release. It adds copula composition, vines,
-dependence fitting and selection, expanded distribution tests, and
-multiple-testing/FDR support. The R `src/nmath`
+Version 0.7.0 is the current stable release. Version 0.7.1 is now under
+development. Version 0.7.0 added copula composition, vines, dependence fitting
+and selection, expanded distribution tests, and multiple-testing/FDR support.
+The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible

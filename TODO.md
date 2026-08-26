@@ -1,5 +1,15 @@
 # JDistlib to-do
 
+## Version 0.7.1 candidates
+
+* Round out `MultipleTesting` convenience overloads for declared family sizes
+  and log-domain decision helpers; evaluate prespecified-weight BH and the
+  Gavrilov–Benjamini–Sarkar adaptive step-down procedure.
+* Expand independent reference validation for mixed and vine copulas,
+  especially boundary-heavy likelihoods and fitted-model diagnostics.
+* Incorporate feedback from the 0.7.0 APIs while preserving Java 8 bytecode,
+  deterministic seeded behavior, and backward compatibility.
+
 ## Unscheduled
 
 * Add exact lower-orthant CDFs and rectangle probabilities for the multinomial,

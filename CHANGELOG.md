@@ -1,5 +1,9 @@
 What's new:
 
+Version 0.7.1 (development):
+* Development has started. Candidate work is tracked in `TODO.md` and will be
+  promoted here as it is completed.
+
 Version 0.7.0 (August 26, 2026):
 * Added the stateless `jdistlib.disttest.MultipleTesting` API for Bonferroni,
   Holm, Hochberg, Hommel, Šidák, Holm–Šidák, Benjamini–Hochberg, and

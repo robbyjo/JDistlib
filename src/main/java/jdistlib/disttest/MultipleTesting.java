@@ -10,6 +10,8 @@ package jdistlib.disttest;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
 
 import jdistlib.math.VectorMath;
 import jdistlib.math.spline.SmoothSpline;
@@ -132,6 +134,38 @@ public final class MultipleTesting {
 		public double getCriticalValue() { return criticalValue; }
 	}
 
+	/** Result of the two-level Benjamini-Bogomolov grouped procedure. */
+	public static final class GroupedFdrResult {
+		private final boolean[] rejected;
+		private final int[] groupLabels;
+		private final double[] groupPValues;
+		private final boolean[] selectedGroups;
+		private final double withinGroupLevel;
+
+		private GroupedFdrResult(boolean[] rejected, int[] groupLabels,
+				double[] groupPValues, boolean[] selectedGroups,
+				double withinGroupLevel) {
+			this.rejected = rejected;
+			this.groupLabels = groupLabels;
+			this.groupPValues = groupPValues;
+			this.selectedGroups = selectedGroups;
+			this.withinGroupLevel = withinGroupLevel;
+		}
+
+		/** Returns hypothesis-level rejection flags in input order. */
+		public boolean[] getRejected() { return rejected.clone(); }
+		/** Returns the sorted group labels corresponding to the group arrays. */
+		public int[] getGroupLabels() { return groupLabels.clone(); }
+		/** Returns one Simes p-value per group. */
+		public double[] getGroupPValues() { return groupPValues.clone(); }
+		/** Returns group-selection flags in {@link #getGroupLabels()} order. */
+		public boolean[] getSelectedGroups() { return selectedGroups.clone(); }
+		/** Returns the number of selected groups. */
+		public int getSelectedGroupCount() { return countTrue(selectedGroups); }
+		/** Returns the BH level used inside every selected group. */
+		public double getWithinGroupLevel() { return withinGroupLevel; }
+	}
+
 	/** Supported p-value adjustment procedures. */
 	public enum Method {
 		/** No adjustment. */
@@ -249,6 +283,56 @@ public final class MultipleTesting {
 				Method.BENJAMINI_HOCHBERG, validated.values.length);
 	}
 
+	/**
+	 * Computes weighted Benjamini-Yekutieli adjusted p-values.
+	 *
+	 * <p>This is weighted BH with the harmonic family-size correction and
+	 * therefore retains FDR control under arbitrary dependence. Weight
+	 * requirements and normalization are identical to weighted BH.</p>
+	 */
+	public static double[] adjustWeightedBenjaminiYekutieli(
+			double[] pValues, double[] weights) {
+		return adjustWeighted(pValues, weights,
+				Method.BENJAMINI_YEKUTIELI);
+	}
+
+	/** Weighted BY adjustment for natural-log p-values. */
+	public static double[] adjustLogWeightedBenjaminiYekutieli(
+			double[] logPValues, double[] weights) {
+		return adjustLogWeighted(logPValues, weights,
+				Method.BENJAMINI_YEKUTIELI);
+	}
+
+	/** Computes weighted Bonferroni adjusted p-values. */
+	public static double[] adjustWeightedBonferroni(
+			double[] pValues, double[] weights) {
+		return adjustWeighted(pValues, weights, Method.BONFERRONI);
+	}
+
+	/** Weighted Bonferroni adjustment for natural-log p-values. */
+	public static double[] adjustLogWeightedBonferroni(
+			double[] logPValues, double[] weights) {
+		return adjustLogWeighted(logPValues, weights, Method.BONFERRONI);
+	}
+
+	/**
+	 * Computes weighted Holm adjusted p-values.
+	 *
+	 * <p>Hypotheses are ordered by {@code p[i] / weight[i]}. At each step the
+	 * multiplier is the sum of weights still under consideration. This strongly
+	 * controls FWER and reduces exactly to ordinary Holm for equal weights.</p>
+	 */
+	public static double[] adjustWeightedHolm(
+			double[] pValues, double[] weights) {
+		return adjustWeightedHolm(validatePValues(pValues), weights, false);
+	}
+
+	/** Weighted Holm adjustment for natural-log p-values. */
+	public static double[] adjustLogWeightedHolm(
+			double[] logPValues, double[] weights) {
+		return adjustWeightedHolm(validateLogPValues(logPValues), weights, true);
+	}
+
 	/** Returns weighted-BH rejection flags at the requested FDR level. */
 	public static boolean[] rejectWeightedBenjaminiHochberg(
 			double[] pValues, double[] weights, double level) {
@@ -268,11 +352,61 @@ public final class MultipleTesting {
 		return rejectAdjusted(adjusted, logLevel);
 	}
 
+	/** Returns weighted-BY rejection flags. */
+	public static boolean[] rejectWeightedBenjaminiYekutieli(
+			double[] pValues, double[] weights, double level) {
+		validateLevel(level);
+		return rejectAdjusted(adjustWeightedBenjaminiYekutieli(pValues, weights),
+				level);
+	}
+
+	/** Returns weighted-Bonferroni rejection flags. */
+	public static boolean[] rejectWeightedBonferroni(
+			double[] pValues, double[] weights, double level) {
+		validateLevel(level);
+		return rejectAdjusted(adjustWeightedBonferroni(pValues, weights), level);
+	}
+
+	/** Returns weighted-Holm rejection flags. */
+	public static boolean[] rejectWeightedHolm(
+			double[] pValues, double[] weights, double level) {
+		validateLevel(level);
+		return rejectAdjusted(adjustWeightedHolm(pValues, weights), level);
+	}
+
+	/** Returns log-scale weighted-BY rejection flags. */
+	public static boolean[] rejectLogWeightedBenjaminiYekutieli(
+			double[] logPValues, double[] weights, double level) {
+		return rejectLogWeighted(adjustLogWeightedBenjaminiYekutieli(
+				logPValues, weights), level);
+	}
+
+	/** Returns log-scale weighted-Bonferroni rejection flags. */
+	public static boolean[] rejectLogWeightedBonferroni(
+			double[] logPValues, double[] weights, double level) {
+		return rejectLogWeighted(adjustLogWeightedBonferroni(logPValues,
+				weights), level);
+	}
+
+	/** Returns log-scale weighted-Holm rejection flags. */
+	public static boolean[] rejectLogWeightedHolm(
+			double[] logPValues, double[] weights, double level) {
+		return rejectLogWeighted(adjustLogWeightedHolm(logPValues, weights),
+				level);
+	}
+
 	/** Returns rejection flags for natural-log p-values. */
 	public static boolean[] rejectLog(double[] logPValues, double level,
 			Method method) {
+		return rejectLog(logPValues, level, method,
+				validateLogPValues(logPValues).values.length);
+	}
+
+	/** Returns log-p rejection flags for a declared total family size. */
+	public static boolean[] rejectLog(double[] logPValues, double level,
+			Method method, int numberOfTests) {
 		validateLevel(level);
-		double[] adjusted = adjustLog(logPValues, method);
+		double[] adjusted = adjustLog(logPValues, method, numberOfTests);
 		double logLevel = level == 0.0 ? Double.NEGATIVE_INFINITY
 				: Math.log(level);
 		boolean[] rejected = new boolean[logPValues.length];
@@ -372,8 +506,15 @@ public final class MultipleTesting {
 
 	/** Returns one rejection flag per input, with missing values marked false. */
 	public static boolean[] reject(double[] pValues, double level, Method method) {
+		return reject(pValues, level, method,
+				validatePValues(pValues).values.length);
+	}
+
+	/** Returns rejection flags for a declared total family size. */
+	public static boolean[] reject(double[] pValues, double level, Method method,
+			int numberOfTests) {
 		validateLevel(level);
-		double[] adjusted = adjust(pValues, method);
+		double[] adjusted = adjust(pValues, method, numberOfTests);
 		boolean[] rejected = new boolean[pValues.length];
 		for (int i = 0; i < adjusted.length; i++) {
 			rejected[i] = !Double.isNaN(adjusted[i]) && adjusted[i] <= level;
@@ -390,14 +531,39 @@ public final class MultipleTesting {
 		return count;
 	}
 
+	/** Returns the rejection count for a declared total family size. */
+	public static int countRejected(double[] pValues, double level,
+			Method method, int numberOfTests) {
+		return countTrue(reject(pValues, level, method, numberOfTests));
+	}
+
+	/** Returns the rejection count for natural-log p-values. */
+	public static int countRejectedLog(double[] logPValues, double level,
+			Method method) {
+		return countTrue(rejectLog(logPValues, level, method));
+	}
+
+	/** Returns the log-p rejection count for a declared total family size. */
+	public static int countRejectedLog(double[] logPValues, double level,
+			Method method, int numberOfTests) {
+		return countTrue(rejectLog(logPValues, level, method, numberOfTests));
+	}
+
 	/**
 	 * Returns the largest observed raw p-value rejected at the requested level.
 	 *
 	 * @return the raw cutoff, or {@code NaN} when no hypothesis is rejected
 	 */
 	public static double threshold(double[] pValues, double level, Method method) {
+		return threshold(pValues, level, method,
+				validatePValues(pValues).values.length);
+	}
+
+	/** Returns the raw rejection threshold for a declared total family size. */
+	public static double threshold(double[] pValues, double level, Method method,
+			int numberOfTests) {
 		validateLevel(level);
-		double[] adjusted = adjust(pValues, method);
+		double[] adjusted = adjust(pValues, method, numberOfTests);
 		double threshold = Double.NaN;
 		for (int i = 0; i < pValues.length; i++) {
 			if (!Double.isNaN(adjusted[i]) && adjusted[i] <= level
@@ -406,6 +572,98 @@ public final class MultipleTesting {
 			}
 		}
 		return threshold;
+	}
+
+	/** Returns the largest rejected natural-log p-value, or {@code NaN}. */
+	public static double thresholdLog(double[] logPValues, double level,
+			Method method) {
+		return thresholdLog(logPValues, level, method,
+				validateLogPValues(logPValues).values.length);
+	}
+
+	/** Returns the log rejection threshold for a declared total family size. */
+	public static double thresholdLog(double[] logPValues, double level,
+			Method method, int numberOfTests) {
+		boolean[] rejected = rejectLog(logPValues, level, method, numberOfTests);
+		double threshold = Double.NaN;
+		for (int i = 0; i < logPValues.length; i++) {
+			if (rejected[i] && (Double.isNaN(threshold)
+					|| logPValues[i] > threshold)) threshold = logPValues[i];
+		}
+		return threshold;
+	}
+
+	/**
+	 * Selects groups with BH on Simes p-values and tests selected groups with
+	 * selection-adjusted BH.
+	 *
+	 * <p>Group labels may be any integers and need not be contiguous. All
+	 * p-values must be observed. If {@code R} of {@code G} groups are selected,
+	 * each selected group is tested at {@code withinGroupLevel * R / G}. The
+	 * guarantee concerns the expected average FDR over selected families under
+	 * the assumptions of Benjamini and Bogomolov (2014), rather than pooled FDR
+	 * across every hypothesis.</p>
+	 *
+	 * @see <a href="https://doi.org/10.1111/rssb.12028">Benjamini and
+	 * Bogomolov (2014)</a>
+	 */
+	public static GroupedFdrResult selectiveGroupedBenjaminiHochberg(
+			double[] pValues, int[] groups, double groupLevel,
+			double withinGroupLevel) {
+		validateLevel(groupLevel);
+		validateLevel(withinGroupLevel);
+		ValidatedPValues validated = validatePValues(pValues);
+		if (validated.values.length != pValues.length)
+			throw new IllegalArgumentException(
+					"grouped testing does not accept missing p-values");
+		if (groups == null || groups.length != pValues.length)
+			throw new IllegalArgumentException(
+					"groups must have the same length as the p-values");
+		TreeMap<Integer, Integer> counts = new TreeMap<Integer, Integer>();
+		for (int group : groups) counts.put(group,
+				counts.containsKey(group) ? counts.get(group) + 1 : 1);
+		int groupCount = counts.size();
+		int[] labels = new int[groupCount];
+		double[] groupP = new double[groupCount];
+		int next = 0;
+		for (Map.Entry<Integer, Integer> entry : counts.entrySet()) {
+			labels[next] = entry.getKey();
+			double[] family = new double[entry.getValue()];
+			int position = 0;
+			for (int i = 0; i < groups.length; i++)
+				if (groups[i] == entry.getKey()) family[position++] = pValues[i];
+			Arrays.sort(family);
+			double simes = 1.0;
+			for (int rank = 0; rank < family.length; rank++)
+				simes = Math.min(simes,
+						family.length * family[rank] / (rank + 1.0));
+			groupP[next++] = probability(simes);
+		}
+		boolean[] selected = reject(groupP, groupLevel,
+				Method.BENJAMINI_HOCHBERG);
+		int selectedCount = countTrue(selected);
+		double familyLevel = groupCount == 0 ? 0.0
+				: withinGroupLevel * selectedCount / groupCount;
+		boolean[] rejected = new boolean[pValues.length];
+		for (int groupIndex = 0; groupIndex < labels.length; groupIndex++) {
+			if (!selected[groupIndex]) continue;
+			int size = counts.get(labels[groupIndex]);
+			double[] family = new double[size];
+			int[] indices = new int[size];
+			int position = 0;
+			for (int i = 0; i < groups.length; i++) {
+				if (groups[i] == labels[groupIndex]) {
+					family[position] = pValues[i];
+					indices[position++] = i;
+				}
+			}
+			boolean[] familyRejected = reject(family, familyLevel,
+					Method.BENJAMINI_HOCHBERG);
+			for (int i = 0; i < size; i++)
+				rejected[indices[i]] = familyRejected[i];
+		}
+		return new GroupedFdrResult(rejected, labels, groupP, selected,
+				familyLevel);
 	}
 
 	/**
@@ -728,9 +986,57 @@ public final class MultipleTesting {
 		return rejected;
 	}
 
-	private static ValidatedPValues weightedLogPValues(
-			ValidatedPValues validated, double[] weights,
-			boolean valuesAreLogs) {
+	private static boolean[] rejectLogWeighted(double[] adjusted,
+			double level) {
+		validateLevel(level);
+		double logLevel = level == 0.0 ? Double.NEGATIVE_INFINITY
+				: Math.log(level);
+		return rejectAdjusted(adjusted, logLevel);
+	}
+
+	private static double[] adjustWeighted(double[] pValues, double[] weights,
+			Method method) {
+		ValidatedPValues validated = validatePValues(pValues);
+		double[] logAdjusted = adjustLog(weightedLogPValues(validated, weights,
+				false), method, validated.values.length);
+		double[] result = missingResult(pValues.length);
+		for (int i = 0; i < result.length; i++)
+			if (!Double.isNaN(logAdjusted[i])) result[i] = Math.exp(logAdjusted[i]);
+		return result;
+	}
+
+	private static double[] adjustLogWeighted(double[] logPValues,
+			double[] weights, Method method) {
+		ValidatedPValues validated = validateLogPValues(logPValues);
+		return adjustLog(weightedLogPValues(validated, weights, true), method,
+				validated.values.length);
+	}
+
+	private static double[] adjustWeightedHolm(ValidatedPValues validated,
+			double[] weights, boolean valuesAreLogs) {
+		double[] normalized = normalizedWeights(validated, weights);
+		ValidatedPValues weighted = weightedLogPValues(validated, weights,
+				valuesAreLogs);
+		SortedPValues sorted = sort(weighted);
+		double[] result = missingResult(validated.originalLength);
+		if (sorted.values.length == 0) return result;
+		double remainingWeight = validated.values.length;
+		double last = Double.NEGATIVE_INFINITY;
+		for (int rank = 0; rank < sorted.values.length; rank++) {
+			double candidate = sorted.values[rank] + Math.log(remainingWeight);
+			last = Math.max(last, candidate);
+			setSortedLog(result, sorted, rank, last);
+			remainingWeight -= normalized[sorted.originalIndices[rank]];
+		}
+		if (!valuesAreLogs) {
+			for (int i = 0; i < result.length; i++)
+				if (!Double.isNaN(result[i])) result[i] = Math.exp(result[i]);
+		}
+		return result;
+	}
+
+	private static double[] normalizedWeights(ValidatedPValues validated,
+			double[] weights) {
 		if (weights == null || weights.length != validated.originalLength)
 			throw new IllegalArgumentException(
 					"weights must have the same length as the p-values");
@@ -739,17 +1045,27 @@ public final class MultipleTesting {
 				throw new IllegalArgumentException(
 						"weights must be finite and strictly positive");
 		}
-		if (validated.values.length == 0)
-			return new ValidatedPValues(validated.originalLength,
-					new double[0], new int[0]);
+		double[] normalized = new double[weights.length];
+		if (validated.values.length == 0) return normalized;
 		double maximum = 0.0;
 		for (int index : validated.originalIndices)
 			maximum = Math.max(maximum, weights[index]);
 		double scaledSum = 0.0;
 		for (int index : validated.originalIndices)
 			scaledSum += weights[index] / maximum;
-		double logMeanWeight = Math.log(maximum) + Math.log(scaledSum)
-				- Math.log(validated.values.length);
+		double scaledMean = scaledSum / validated.values.length;
+		for (int index : validated.originalIndices)
+			normalized[index] = (weights[index] / maximum) / scaledMean;
+		return normalized;
+	}
+
+	private static ValidatedPValues weightedLogPValues(
+			ValidatedPValues validated, double[] weights,
+			boolean valuesAreLogs) {
+		double[] normalized = normalizedWeights(validated, weights);
+		if (validated.values.length == 0)
+			return new ValidatedPValues(validated.originalLength,
+					new double[0], new int[0]);
 		double[] values = new double[validated.values.length];
 		for (int i = 0; i < values.length; i++) {
 			double logPValue = valuesAreLogs ? validated.values[i]
@@ -757,7 +1073,7 @@ public final class MultipleTesting {
 							? Double.NEGATIVE_INFINITY
 							: Math.log(validated.values[i]);
 			double logNormalizedWeight = Math.log(
-					weights[validated.originalIndices[i]]) - logMeanWeight;
+					normalized[validated.originalIndices[i]]);
 			values[i] = logPValue - logNormalizedWeight;
 		}
 		return new ValidatedPValues(validated.originalLength, values,

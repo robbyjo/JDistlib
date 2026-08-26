@@ -17,6 +17,9 @@ Use the smallest API that expresses the distribution you have.
 | Discrete or mixed marginals joined by a copula | `CopulaMarginal` declarations and `MixedCopulaDistribution` |
 | Flexible multivariate dependence or family fitting | `CVineCopula`/`DVineCopula`, `CopulaFitter`, or `CopulaSelector` |
 | Adjust many p-values or calculate Storey q-values | `jdistlib.disttest.MultipleTesting` |
+| Test prespecified groups of hypotheses | `MultipleTesting.selectiveGroupedBenjaminiHochberg` |
+| Test hypotheses arriving sequentially | `jdistlib.disttest.online.LordPlusPlus` or `Saffron` |
+| Exploit known finite discrete null CDFs | `jdistlib.disttest.DiscreteFdr` |
 | A finite, semi-infinite, or whole-line integral | `Integrate.integrate` with `IntegrationOptions` when defaults are insufficient |
 | A multivariate normal/t/Cauchy/log-normal rectangle probability | The law's `probability` method and `MultivariateProbabilityResult` |
 
@@ -72,10 +75,12 @@ directly on natural-log p-values, and `testRightCensored` conservatively handles
 a recorded lower tail when both the censoring limit and full family size are
 known.
 
-Version 0.7.1 adds `adjustWeightedBenjaminiHochberg`, with automatic
-mean-one normalization of positive prespecified weights and a log-domain
-variant, plus `gavrilovBenjaminiSarkar` for adaptive step-down FDR decisions
-under independence.
+Version 0.7.1 adds weighted BH, BY, Bonferroni, and Holm with automatic
+mean-one normalization of positive prespecified weights and log-domain
+variants, plus `gavrilovBenjaminiSarkar` for adaptive step-down FDR decisions
+under independence. It also adds Benjamini–Bogomolov two-level grouped testing,
+separate stateful LORD++ and SAFFRON controllers for online streams, and proven
+DBH step-up/down procedures for independent heterogeneous discrete p-values.
 
 `qValues` implements Storey q-values with a smoothing-spline π₀ estimate by
 default. Callers can instead provide π₀ directly or use the quantile estimator.

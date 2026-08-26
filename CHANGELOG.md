@@ -6,6 +6,19 @@ Version 0.7.1 (development):
   inputs, and rejection helpers.
 * Added the level-dependent Gavrilov–Benjamini–Sarkar adaptive step-down FDR
   procedure with declared-family-size support and an immutable decision result.
+* Added weighted Bonferroni and weighted Holm FWER control plus weighted BY for
+  arbitrary dependence, with scale-invariant prespecified weights and direct
+  natural-log variants.
+* Completed declared-family-size and log-domain rejection, count, and threshold
+  helpers for the standard batch methods.
+* Added two-level Benjamini–Bogomolov grouped testing with explicit Simes group
+  selection and selection-adjusted within-family BH results.
+* Added separate stateful LORD++ and SAFFRON online-FDR controllers with
+  auditable finite gamma spending sequences, immutable per-test decisions, and
+  resettable synchronized state.
+* Added DBH step-up and step-down procedures for independent heterogeneous
+  discrete p-values, backed by explicit finite null support/CDF objects and
+  level-dependent critical-value results.
 
 Version 0.7.0 (August 26, 2026):
 * Added the stateless `jdistlib.disttest.MultipleTesting` API for Bonferroni,

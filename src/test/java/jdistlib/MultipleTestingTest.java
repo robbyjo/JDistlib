@@ -23,6 +23,7 @@ import jdistlib.disttest.MultipleTesting.AdaptiveFdrResult;
 import jdistlib.disttest.MultipleTesting.CensoredTestResult;
 import jdistlib.disttest.MultipleTesting.Method;
 import jdistlib.disttest.MultipleTesting.StepDownFdrResult;
+import jdistlib.disttest.MultipleTesting.GroupedFdrResult;
 
 public class MultipleTestingTest {
 	private static final double[] P = {0.01, 0.04, 0.03, 0.002, 0.5,
@@ -179,6 +180,64 @@ public class MultipleTestingTest {
 				new double[] {-1000.0, -800.0}, new double[] {1.5, 0.5});
 		assertTrue(Double.isFinite(extreme[0]));
 		assertTrue(extreme[0] < -900.0);
+	}
+
+	@Test
+	public void weightedFwerAndArbitraryDependenceFdrMatchHandCalculations() {
+		double[] pValues = {0.01, 0.04, 0.03, 0.002, 0.50};
+		double[] weights = {2.0, 1.0, 0.5, 0.5, 1.0};
+		assertArrayEquals(new double[] {0.025, 0.20, 0.30, 0.02, 1.0},
+				MultipleTesting.adjustWeightedBonferroni(pValues, weights), 1e-15);
+		assertArrayEquals(new double[] {0.0225, 0.10, 0.10, 0.02, 0.50},
+				MultipleTesting.adjustWeightedHolm(pValues, weights), 1e-15);
+		double harmonic = 1.0 + 0.5 + 1.0 / 3.0 + 0.25 + 0.2;
+		assertArrayEquals(new double[] {0.0125 * harmonic,
+				(1.0 / 15.0) * harmonic, 0.075 * harmonic,
+				0.0125 * harmonic, 1.0},
+				MultipleTesting.adjustWeightedBenjaminiYekutieli(
+						pValues, weights), 1e-15);
+		assertArrayEquals(MultipleTesting.adjust(pValues, Method.HOLM),
+				MultipleTesting.adjustWeightedHolm(pValues,
+						new double[] {1, 1, 1, 1, 1}), 1e-15);
+		assertArrayEquals(MultipleTesting.adjust(pValues,
+				Method.BENJAMINI_YEKUTIELI),
+				MultipleTesting.adjustWeightedBenjaminiYekutieli(pValues,
+						new double[] {1, 1, 1, 1, 1}), 1e-15);
+	}
+
+	@Test
+	public void explicitFamilySizeAndLogDecisionHelpersAreSymmetric() {
+		double[] pValues = {0.009, 0.04};
+		assertArrayEquals(new boolean[] {true, false},
+				MultipleTesting.reject(pValues, 0.05, Method.HOLM, 5));
+		assertEquals(1, MultipleTesting.countRejected(pValues, 0.05,
+				Method.HOLM, 5));
+		assertEquals(0.009, MultipleTesting.threshold(pValues, 0.05,
+				Method.HOLM, 5), 0.0);
+		double[] logs = {Math.log(0.009), Math.log(0.04)};
+		assertArrayEquals(new boolean[] {true, false},
+				MultipleTesting.rejectLog(logs, 0.05, Method.HOLM, 5));
+		assertEquals(1, MultipleTesting.countRejectedLog(logs, 0.05,
+				Method.HOLM, 5));
+		assertEquals(Math.log(0.009), MultipleTesting.thresholdLog(logs,
+				0.05, Method.HOLM, 5), 0.0);
+	}
+
+	@Test
+	public void groupedProcedureSelectsBySimesAndAdjustsWithinFamilyLevel() {
+		double[] pValues = {0.001, 0.02, 0.01, 0.90, 0.80, 0.90};
+		int[] groups = {10, 10, 20, 20, 30, 30};
+		GroupedFdrResult result = MultipleTesting
+				.selectiveGroupedBenjaminiHochberg(pValues, groups, 0.05, 0.05);
+		assertArrayEquals(new int[] {10, 20, 30}, result.getGroupLabels());
+		assertArrayEquals(new double[] {0.002, 0.02, 0.90},
+				result.getGroupPValues(), 1e-15);
+		assertArrayEquals(new boolean[] {true, true, false},
+				result.getSelectedGroups());
+		assertEquals(2, result.getSelectedGroupCount());
+		assertEquals(0.05 * 2.0 / 3.0, result.getWithinGroupLevel(), 1e-15);
+		assertArrayEquals(new boolean[] {true, true, true, false, false, false},
+				result.getRejected());
 	}
 
 	@Test

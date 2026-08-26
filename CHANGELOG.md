@@ -1,6 +1,6 @@
 What's new:
 
-Version 0.7.1 (development):
+Version 0.7.1 (August 26, 2026):
 * Added a pure-Java finite-interval CQUAD integration method with nested
   degree-4/8/16/32 Clenshaw-Curtis interpolants, L2 error estimates,
   degree-before-bisection refinement, largest-error-first interval selection,

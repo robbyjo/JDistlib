@@ -28,10 +28,12 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.7.0 is the current stable release. Version 0.7.1 is now under
-development. Version 0.7.0 added copula composition, vines, dependence fitting
-and selection, expanded distribution tests, and multiple-testing/FDR support.
-The R `src/nmath`
+Version 0.7.1 is the current stable release. It expands multiple-testing support
+with weighted, grouped, online, and discrete procedures; adds finite-interval
+CQUAD integration; and adds a general monotone-transformation factory with a
+beginner composition tutorial. Version 0.7.0 introduced copula composition,
+vines, dependence fitting and selection, expanded distribution tests, and the
+multiple-testing/FDR API. The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
@@ -42,7 +44,7 @@ and tested.
 
 The [latest GitHub release](https://github.com/robbyjo/JDistlib/releases/latest)
 contains the Java library, source archive, JavaDoc archive, and SHA-256
-checksums. Version 0.7.0 produces Java 8-compatible bytecode.
+checksums. Version 0.7.1 produces Java 8-compatible bytecode.
 
 ## Building
 

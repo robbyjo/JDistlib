@@ -1,6 +1,6 @@
 # JDistlib to-do
 
-## Version 0.7.1 candidates
+## Future candidates
 
 * Expand independent reference validation for mixed and vine copulas,
   especially boundary-heavy likelihoods and fitted-model diagnostics.

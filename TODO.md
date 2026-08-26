@@ -7,6 +7,73 @@
 * Incorporate feedback from the 0.7.0 APIs while preserving Java 8 bytecode,
   deterministic seeded behavior, and backward compatibility.
 
+## 0.8.0: Bayesian modeling and inference
+
+* Define a stable model intermediate representation and programmatic Java
+  builder for unnormalized joint log densities, prior and likelihood factors,
+  observed data, latent parameters, and factor-dependency metadata. Keep this
+  inference contract separate from normalized scalar `GenericDistribution`
+  objects while reusing JDistlib distributions as model factors.
+* Support unconstrained sampling through positive, bounded, ordered, simplex,
+  and other common parameter transforms, including correct log-Jacobian terms
+  and reusable transformed-state buffers.
+* Provide immutable chain and warmup results with explicit `RandomEngine`
+  streams, reproducible independent chains, retained log densities, sampler
+  statistics, warnings, cancellation, checkpointing, and restart support.
+* Implement a composable sampler foundation with random-walk and component-wise
+  Metropolis, Gibbs updates, slice sampling, and adaptive-rejection updates for
+  eligible log-concave full conditionals.
+* Implement production HMC and NUTS, including multinomial trajectory selection,
+  dual-averaging step-size warmup, diagonal and dense mass-matrix adaptation,
+  maximum-tree-depth controls, and blocked updates for mixed discrete/continuous
+  models.
+* Define differentiable log-density APIs with caller-supplied and analytic
+  gradients, gradient validation, and a practical automatic-differentiation
+  path. Permit clearly diagnosed finite differences as a limited fallback, not
+  as the default for NUTS.
+* Supply rank-normalized split R-hat, bulk and tail effective sample sizes,
+  Monte Carlo standard errors, acceptance and energy diagnostics, divergences,
+  maximum-tree-depth saturation, and cross-chain convergence summaries.
+* Expose chart-neutral trace, rank, autocorrelation, energy, pair-plot, and model
+  graph data. Add optional lightweight plotting/export adapters without making
+  the headless inference core depend on a UI toolkit.
+* Optimize only behind the common model and sampler contracts: cache unaffected
+  factors from dependency metadata, vectorize likelihood factors, reuse
+  allocation-free evaluation buffers, run chains in parallel while preserving
+  deterministic per-chain streams, and benchmark scalar, vectorized, gradient,
+  warmup, and sampling throughput.
+* Add independent reference models and statistical regression gates covering
+  conjugate posteriors, constrained parameters, hierarchical models,
+  multimodality, funnels, heavy tails, discrete latent variables, gradients,
+  diagnostics, reproducibility, and failure reporting.
+* Document the Java modeling API, sampler selection, reparameterization,
+  convergence assessment, diagnostics, and common pathologies through compiled
+  end-to-end examples.
+
+## 0.8.x: Modeling language and stabilized ecosystem
+
+* Design a Stan-inspired JDistlib modeling language that lowers into the same
+  model intermediate representation as the Java builder. Do not claim Stan
+  compatibility unless its syntax and semantics are independently verified.
+* Implement a lexer, source-located parser and AST, type and dimension checking,
+  data and parameter validation, constraint lowering, vectorization and
+  broadcasting rules, and actionable compile-time diagnostics.
+* Add data, transformed-data, parameter, transformed-parameter, model, and
+  generated-quantity blocks incrementally, with explicit versioning for the
+  supported language subset.
+* Provide ahead-of-time Java source/class generation, compilation caching, safe
+  class loading, model metadata, and a documented Gradle/CLI workflow; retain an
+  interpreter or reference evaluator for correctness comparisons.
+* Expand model-graph inspection, diagnostic visualization integrations, result
+  interchange, and notebook/headless workflows on top of the chart-neutral
+  data contracts introduced in 0.8.0.
+* Harden and then freeze the public modeling, inference, diagnostics, generated
+  model, serialization, and reproducibility contracts, with migration tests and
+  compatibility guidance for every 0.8.x change.
+* Broaden language, sampler, automatic-differentiation, and code-generation
+  optimization only when reference evaluation, gradients, posterior summaries,
+  diagnostics, and seeded chains remain equivalent within documented bounds.
+
 ## Unscheduled
 
 * Add exact lower-orthant CDFs and rectangle probabilities for the multinomial,

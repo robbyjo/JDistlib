@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A beginner-friendly tutorial for probability distributions in JDistlib.">
+  <title>Using distributions — JDistlib beginner tutorial</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="distributions.html">Distributions</a><a href="custom-distributions.html">Custom distributions</a><a href="copula-tutorial.html">Copulas 0.7.0+</a><a href="api/">JavaDoc</a></nav></header>
+  <main class="guide">
+    <section class="guide-hero">
+      <p class="eyebrow">Beginner tutorial · built-in distributions</p>
+      <h1>Answer four questions with one distribution</h1>
+      <p class="lede">A density describes local plausibility, a CDF answers
+        “at most?”, a quantile finds a cutoff, and a random method simulates what
+        could happen. JDistlib uses these four operations consistently.</p>
+    </section>
+    <nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#mental-model">D/P/Q/R</a><a href="#first-code">First code</a><a href="#tails">Tails and logs</a><a href="#simulation">Simulation</a><a href="#mistakes">Common mistakes</a></nav>
+    <section class="guide-section" id="mental-model">
+      <p class="eyebrow">The mental model</p><h2>D, P, Q, and R</h2>
+      <ul class="lesson-steps">
+        <li><strong>D · density</strong><span>Density for continuous data; exact probability mass for discrete data.</span></li>
+        <li><strong>P · cumulative</strong><span>The probability that an observation is at or below a cutoff.</span></li>
+        <li><strong>Q · quantile</strong><span>The cutoff associated with a cumulative probability, such as the 95th percentile.</span></li>
+        <li><strong>R · random</strong><span>A simulated observation from the distribution, using a random stream.</span></li>
+      </ul>
+      <p>In Java these are named <code>density</code>, <code>cumulative</code>,
+        <code>quantile</code>, and <code>random</code>. They mirror R's d/p/q/r convention.</p>
+    </section>
+    <section class="guide-section" id="first-code">
+      <p class="eyebrow">First code</p><h2>A standard-normal probability and cutoff</h2>
+      <p>Import the distribution class, then state the value, parameters, lower-tail
+        choice, and whether the probability is logarithmic.</p>
+      <pre><code>import jdistlib.Normal;
+
+double probability = Normal.cumulative(
+    1.96, 0.0, 1.0, true, false);
+double cutoff = Normal.quantile(
+    0.975, 0.0, 1.0, true, false);
+
+// probability and cutoff are both about 0.975 and 1.96.</code></pre>
+      <p>An instance remembers its parameters and is convenient when you reuse a law:</p>
+      <pre><code>Normal measurement = new Normal(100.0, 15.0);
+double below130 = measurement.cumulative(130.0, true, false);
+double[] densities = measurement.density(
+    new double[] {85.0, 100.0, 115.0});</code></pre>
+    </section>
+    <section class="guide-section" id="tails">
+      <p class="eyebrow">Two switches</p><h2>Lower tail and logarithmic probability</h2>
+      <div class="guide-columns">
+        <article><h3><code>lowerTail</code></h3><p><code>true</code> asks for
+          P(X ≤ x); <code>false</code> asks for P(X &gt; x). Use the upper-tail
+          calculation directly for rare exceedances.</p></article>
+        <article><h3><code>logP</code></h3><p><code>true</code> returns the logarithm of
+          a probability. This avoids underflow and is useful when likelihoods multiply
+          many small probabilities.</p></article>
+      </div>
+      <pre><code>double failureRisk = Normal.cumulative(
+    180.0, 100.0, 15.0, false, false);
+double logFailureRisk = Normal.cumulative(
+    180.0, 100.0, 15.0, false, true);</code></pre>
+    </section>
+    <section class="guide-section" id="simulation">
+      <p class="eyebrow">Reproducible simulation</p><h2>Own the random stream</h2>
+      <p>Give each independent task its own <code>RandomEngine</code>. A fixed seed makes
+        a tutorial, test, or analysis repeatable.</p>
+      <pre><code>import jdistlib.Normal;
+import jdistlib.rng.MersenneTwister;
+import jdistlib.rng.RandomEngine;
+
+RandomEngine random = new MersenneTwister(20260826L);
+double[] simulated = Normal.random(
+    1_000, 100.0, 15.0, random);</code></pre>
+      <p>Do not share one mutable random engine between threads. Give each worker a
+        separate, explicitly seeded stream.</p>
+    </section>
+    <section class="guide-section" id="mistakes">
+      <p class="eyebrow">Avoid surprises</p><h2>Three common mistakes</h2>
+      <div class="guide-columns">
+        <article><h3>Density is not interval probability</h3><p>For a continuous law,
+          use <code>cumulative(b)-cumulative(a)</code> for P(a &lt; X ≤ b). A density
+          value can exceed one.</p></article>
+        <article><h3>Check the parameterization</h3><p>Scale, rate, shape, and degrees
+          of freedom are not interchangeable. Confirm them in the
+          <a href="distributions.html">catalog</a>.</p></article>
+        <article><h3>Discrete density means mass</h3><p>For a binomial or Poisson law,
+          <code>density(k,...)</code> is the exact probability of k.</p></article>
+        <article><h3>Estimate, then test carefully</h3><p>A goodness-of-fit reference
+          distribution should normally be fully specified. If parameters came from the
+          same data, account for that estimation in the resampling procedure.</p></article>
+      </div>
+    </section>
+    <section class="guide-section guide-next"><p class="eyebrow">Next</p><h2>Work through a complete analysis</h2><p>Continue with the <a href="distribution-vignette.html">response-time vignette</a>, browse the <a href="distributions.html">full catalog</a>, or build a <a href="custom-distributions.html#beginner-path">custom distribution</a>.</p></section>
+  </main>
+  <footer><span>JDistlib beginner tutorial.</span><span>Built-in distribution APIs.</span></footer>
+</body>
+</html>

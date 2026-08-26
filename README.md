@@ -28,8 +28,9 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.6.1 is the current stable release. The next development milestone is
-the planned 0.7.0 copula framework. The R `src/nmath`
+Version 0.6.1 is the current stable release. Version 0.7.0 is the current
+development line and adds the copula composition, vine, fitting, and selection
+framework. The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
@@ -40,7 +41,7 @@ and tested.
 
 The [latest GitHub release](https://github.com/robbyjo/JDistlib/releases/latest)
 contains the Java library, source archive, JavaDoc archive, and SHA-256
-checksums. Version 0.6.1 produces Java 8-compatible bytecode.
+checksums. Version 0.7.0 produces Java 8-compatible bytecode.
 
 ## Building
 
@@ -65,6 +66,21 @@ lists every available scalar, multivariate, matrix, and exact-statistic law with
 its parameterization, defining formula, and density/mass, CDF, quantile, random,
 and auxiliary method coverage. The [API selection guide](docs/API_GUIDE.md)
 provides a short path from a use case to the appropriate API.
+
+### Start learning
+
+The website now puts beginner material first:
+
+* [Using distributions](https://robbyjo.github.io/JDistlib/getting-started.html) —
+  density/mass, CDF, quantile, tails, and reproducible simulation.
+* [Response-time vignette](https://robbyjo.github.io/JDistlib/distribution-vignette.html) —
+  an applied univariate analysis with goodness-of-fit checks.
+* [Building a custom distribution](https://robbyjo.github.io/JDistlib/custom-distributions.html#beginner-path)
+  and the [sensor-error vignette](https://robbyjo.github.io/JDistlib/custom-distribution-vignette.html)
+  (JDistlib 0.6.0+).
+* [Using copulas](https://robbyjo.github.io/JDistlib/copula-tutorial.html) and the
+  [mixed-claims vignette](https://robbyjo.github.io/JDistlib/copula-vignette.html)
+  (**copula features require JDistlib 0.7.0+**).
 
 ## Using the distribution APIs
 
@@ -99,6 +115,38 @@ if (!region.isSuccess()) {
 The error field is a replication-based stopping indicator, not a rigorous
 confidence bound. See the [multivariate probability contract](docs/MULTIVARIATE_PROBABILITIES.md)
 for statuses, reproducibility, scaling, and difficult cases.
+
+## Copulas and composed joint distributions
+
+> **Version requirement:** the copula APIs in this section are available only
+> in JDistlib 0.7.0 and later.
+
+The `Copula` interface separates marginal laws from dependence. Implementations
+cover independence, Gaussian, Student-t, Clayton, Gumbel, and Frank copulas.
+Every family provides a CDF, density and log-density on the open unit cube,
+explicit-stream and seeded sampling, and pairwise Kendall's tau. Gaussian and
+Student-t copulas accept positive-definite correlation matrices; the
+Archimedean families provide parameter-from-tau factories.
+
+```java
+Copula copula = GaussianCopula.fromKendallsTau(
+    new double[][] {{1.0, 0.45}, {0.45, 1.0}});
+CopulaDistribution joint = new CopulaDistribution(
+    copula, new Normal(10.0, 2.0), new Exponential(3.0));
+
+double logDensity = joint.logDensity(new double[] {11.0, 2.0});
+double[] draw = joint.random(20260826L);
+```
+
+`CopulaDistribution` requires continuous marginals. Exact unit-cube boundary points can
+have singular or path-dependent density limits; `diagnose` classifies them
+before evaluation. `MixedCopulaDistribution` adds declared continuous and
+discrete marginals, exact CDF rectangle differences for masses, and typed
+numerical results for mixed-measure derivatives. `CVineCopula` and
+`DVineCopula` assemble simplified vines from `PairCopula` objects, while
+`CopulaFitter`, `CopulaSelector`, and `VineFitter` provide rank or
+distributional transforms, dependence estimation, and AIC/BIC family
+selection. See the [copula guide](docs/COPULAS.md) for the full contract.
 
 ## Numerical integration
 
@@ -366,6 +414,12 @@ Corrected BTPE sampling is the binomial default. To reproduce the historical R
 `DistributionTest` Wilcoxon helpers default to R-devel's seven significant
 digits and provide overloads for explicit `digitsRank` and `digitsZap` values;
 pass positive infinity to disable either operation.
+
+Version 0.7.0 also adds general Anderson-Darling and Cramer-von Mises
+goodness-of-fit tests with reproducible parametric-bootstrap or permutation
+p-values, plus Pearson chi-square tests for categorical fit and contingency
+table independence. The one-sample resampling defaults assume the reference
+distribution was fully specified independently of the tested sample.
 
 ## Upstream and license
 

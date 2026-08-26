@@ -51,11 +51,13 @@ shared mutable caches.
 | `MultivariateNormal`, `MultivariateStudentT`, `MultivariateCauchy`, `MultivariateLogNormal` | [`mvtnorm`](https://cran.r-project.org/package=mvtnorm), Genz conditional transformation, task-view definitions | 1.4-2 / task view 2026-05-07 | GPL-2 | Cholesky density/generation, randomized rectangle probabilities with error estimates, independent quadrature, exact orthants, equicoordinate/radial quantiles |
 | `MultivariateLaplace`, `MultivariatePowerExponential` | [`LaplacesDemon`](https://cran.r-project.org/package=LaplacesDemon), task-view definitions | 16.1.6 / task view 2026-05-07 | MIT | Normal-mixture and radial-gamma constructions, Bessel density, Gaussian/Laplace reductions and power-exponential radial quantiles |
 | `Wishart` | R `stats::rWishart`, Bartlett decomposition and standard matrix density | R 4.6.1 / AS 53 | GPL-2-or-later | Scaled-chi-square reduction, density/log-density agreement, exact seeded Bartlett reduction, matrix means and support validation |
+| Core copulas, `MixedCopulaDistribution`, `CVineCopula`, `DVineCopula`, fitting and selection | Standard elliptical and Archimedean definitions, Marshall-Olkin frailty and simplified pair-copula constructions | Standard definitions | GPL-2.0-or-later implementation | Closed-form and rectangle-difference likelihoods, mixed derivative error checks, unit margins, density normalization, tau conversion, seeded simulation, parameter recovery, and AIC/BIC selection |
 
 The numerical reference checks are in `AdditionalDistributionsTest`,
 `ContributedPackageDistributionsTest`, `BacklogDistributionsTest`,
 `TaskViewAdditionalDistributionsTest`,
-`MultivariateDistributionsTest`, and `MultivariateProbabilityTest`.
+`MultivariateDistributionsTest`, `MultivariateProbabilityTest`, `CopulaTest`,
+and `CopulaExpansionTest`.
 The source packages are used as references; the public Java APIs follow
 JDistlib naming conventions. Vector-valued laws are intentionally static vector
 APIs rather than `GenericDistribution` instances, matching the absence of a
@@ -135,7 +137,7 @@ one, Wald is `InvNormal`, and several Pareto/Lomax forms are covered by
 
 ## Not yet implemented
 
-The following screened entries are not part of JDistlib 0.6.1. Deferred rows
+The following screened entries are not part of JDistlib 0.7.0. Deferred rows
 remain candidates for a future release after the named shared API or numerical
 contract is designed. Not-selected rows lack a single reusable distribution
 contract or would conceal a construction already better expressed explicitly.

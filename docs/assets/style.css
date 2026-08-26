@@ -46,7 +46,7 @@ footer {
   text-decoration: none;
 }
 
-nav { display: flex; gap: 28px; }
+nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px 24px; }
 nav a { color: var(--muted); text-decoration: none; font-size: .94rem; }
 nav a:hover { color: var(--blue); }
 
@@ -399,6 +399,72 @@ footer {
 .troubleshooting-table th:nth-child(2) { width: 31%; }
 .guide-next { border-bottom: 0; }
 
+/* Learning hub and tutorial/vignette pages. */
+.learning-intro { max-width: 780px; }
+.learning-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: 42px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.learning-card { min-height: 250px; padding: 30px; background: var(--panel); }
+.learning-card h3 { font-size: 1.18rem; }
+.learning-card p { color: var(--muted); }
+.card-kicker {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--accent);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.lesson-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin: 32px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: lesson;
+}
+.lesson-steps li {
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  counter-increment: lesson;
+}
+.lesson-steps li::before {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--accent);
+  content: "0" counter(lesson);
+  font-weight: 800;
+}
+.lesson-steps strong { display: block; margin-bottom: 6px; }
+.lesson-steps span { color: var(--muted); font-size: .9rem; }
+.version-note {
+  margin: 28px 0;
+  padding: 20px 24px;
+  color: var(--blue-dark);
+  background: #dce9f2;
+  border: 1px solid #bfd2e0;
+  border-left: 4px solid var(--blue);
+}
+.result-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin: 28px 0;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.result-strip div { padding: 20px; background: var(--panel); }
+.result-strip strong, .result-strip span { display: block; }
+.result-strip span { color: var(--muted); font-size: .86rem; }
+
 .distribution-table td:nth-child(3) mjx-container { margin: 0 !important; }
 
 @media (max-width: 760px) {
@@ -413,7 +479,8 @@ footer {
   .split, .status { gap: 32px; }
   .status .text-link { grid-column: 1; }
   .reference-key, .reference-notes { grid-template-columns: 1fr; gap: 28px; }
-  .guide-example, .guide-columns, .policy-grid { grid-template-columns: 1fr; }
+  .guide-example, .guide-columns, .policy-grid, .learning-grid,
+  .lesson-steps, .result-strip { grid-template-columns: 1fr; }
   .catalog-heading { align-items: stretch; flex-direction: column; }
   .distribution-table { min-width: 850px; }
   footer { flex-direction: column; }

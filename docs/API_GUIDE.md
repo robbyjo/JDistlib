@@ -1,5 +1,10 @@
 # Choosing a JDistLib API
 
+New to JDistlib? Start with the website's
+[learning center](https://robbyjo.github.io/JDistlib/learn.html). It links a
+beginner distribution tutorial and vignette, a custom-distribution tutorial and
+vignette, and copula material clearly marked for JDistlib 0.7.0 and later.
+
 Use the smallest API that expresses the distribution you have.
 
 | Need | API to start with |
@@ -8,6 +13,9 @@ Use the smallest API that expresses the distribution you have.
 | Repeated scalar calculations with fixed parameters | A distribution instance such as `new Normal(mean, standardDeviation)` |
 | A nonnegative formula that must be normalized | `NumericalContinuousDistribution.builder()` or `NumericalDiscreteDistribution.builder()` |
 | A mixture, truncation, censoring, or monotone transformation | The named factories in `Distributions` |
+| Continuous marginals joined by a dependence model | A `Copula` implementation and `CopulaDistribution` |
+| Discrete or mixed marginals joined by a copula | `CopulaMarginal` declarations and `MixedCopulaDistribution` |
+| Flexible multivariate dependence or family fitting | `CVineCopula`/`DVineCopula`, `CopulaFitter`, or `CopulaSelector` |
 | A finite, semi-infinite, or whole-line integral | `Integrate.integrate` with `IntegrationOptions` when defaults are insufficient |
 | A multivariate normal/t/Cauchy/log-normal rectangle probability | The law's `probability` method and `MultivariateProbabilityResult` |
 
@@ -27,4 +35,24 @@ the same promise as convergence. Builder diagnostics identify observed risks,
 not a proof that an arbitrary caller-supplied formula is a probability law.
 
 See `NUMERICAL_DISTRIBUTIONS.md` for integration and custom-law guarantees and
-`MULTIVARIATE_PROBABILITIES.md` for randomized rectangle probabilities.
+`MULTIVARIATE_PROBABILITIES.md` for randomized rectangle probabilities. See
+`COPULAS.md` for dependence families and continuous-marginal composition.
+
+## Distribution tests
+
+`jdistlib.disttest.DistributionTest` includes classical location, scale, rank,
+count, and Kolmogorov-Smirnov procedures. In 0.7.0 it also provides:
+
+- `cramer_von_mises_test(sample, distribution)` and
+  `anderson_darling_test(sample, distribution)` for a fully specified continuous
+  reference law, with deterministic parametric-bootstrap p-values and overloads
+  accepting the resampling count and `RandomEngine`;
+- `cramer_von_mises_test(first, second)` with a deterministic permutation
+  p-value and a caller-controlled overload;
+- `chi_square_goodness_of_fit_test` for categorical counts and
+  `chi_square_independence_test` for contingency tables.
+
+Each test returns the statistic followed by its p-value. Chi-square methods also
+return degrees of freedom. If reference parameters were estimated from the same
+sample, the default fully-specified-law bootstrap is not sufficient: refit inside
+each replicate or use a model-specific correction.

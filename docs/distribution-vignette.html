@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="A JDistlib vignette for analyzing service response times with a log-normal distribution."><title>Response-time planning — JDistlib vignette</title><link rel="stylesheet" href="assets/style.css"></head>
+<body>
+  <header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="getting-started.html">Distribution tutorial</a><a href="distributions.html">Distributions</a><a href="api/">JavaDoc</a></nav></header>
+  <main class="guide">
+    <section class="guide-hero"><p class="eyebrow">Applied vignette · built-in distributions</p><h1>Plan a response-time service level</h1><p class="lede">Suppose response time in seconds is log-normal with log-scale mean 1.6 and standard deviation 0.45. We will translate that model into operational questions, simulation, and an honest goodness-of-fit check.</p></section>
+    <nav class="guide-toc" aria-label="On this page"><strong>Analysis</strong><a href="#model">Model</a><a href="#questions">Questions</a><a href="#simulate">Simulate</a><a href="#check">Check fit</a><a href="#interpret">Interpret</a></nav>
+    <section class="guide-section" id="model"><p class="eyebrow">1 · State the model</p><h2>Keep units and parameters explicit</h2><p><code>LogNormal(meanlog, sdlog)</code> describes the natural logarithm of response time. The parameters are not the ordinary mean and standard deviation in seconds.</p><pre><code>import jdistlib.LogNormal;
+
+LogNormal responseTime = new LogNormal(1.6, 0.45);</code></pre></section>
+    <section class="guide-section" id="questions"><p class="eyebrow">2 · Ask operational questions</p><h2>Probability, service target, and percentile</h2><pre><code>// Fraction expected to finish within 8 seconds.
+double withinEight = responseTime.cumulative(8.0, true, false);
+
+// Fraction expected to exceed 10 seconds.
+double overTen = responseTime.cumulative(10.0, false, false);
+
+// Response-time target that covers 95% of requests.
+double p95 = responseTime.quantile(0.95, true, false);</code></pre><div class="result-strip"><div><strong>P(X ≤ 8)</strong><span>service-level attainment</span></div><div><strong>P(X &gt; 10)</strong><span>slow-request risk</span></div><div><strong>Q(0.95)</strong><span>95th-percentile target</span></div></div></section>
+    <section class="guide-section" id="simulate"><p class="eyebrow">3 · Explore variability</p><h2>Simulate with a reproducible stream</h2><pre><code>import jdistlib.rng.MersenneTwister;
+
+MersenneTwister random = new MersenneTwister(20260826L);
+double[] scenarios = LogNormal.random(
+    10_000, 1.6, 0.45, random);
+
+int slow = 0;
+for (double seconds : scenarios) {
+    if (seconds &gt; 10.0) slow++;
+}
+double simulatedSlowRate = slow / (double) scenarios.length;</code></pre><p>The simulated rate should be close to the analytical upper-tail probability, but not identical. That sampling variation is the point of the exercise.</p></section>
+    <section class="guide-section" id="check"><p class="eyebrow">4 · Check the model</p><h2>Compare observations with the full CDF</h2><p>JDistlib 0.7.0 adds general Anderson–Darling and Cramér–von Mises checks to <code>jdistlib.disttest.DistributionTest</code>. Their default p-values use a deterministic 999-replicate parametric bootstrap.</p><pre><code>import jdistlib.disttest.DistributionTest;
+
+double[] observedSeconds = {
+    3.8, 4.2, 4.7, 5.1, 5.6, 6.0, 6.8, 7.4, 8.5, 9.7
+};
+double[] ad = DistributionTest.anderson_darling_test(
+    observedSeconds, responseTime);
+double statistic = ad[0];
+double bootstrapPValue = ad[1];</code></pre><aside class="callout caution"><strong>Important:</strong> this test treats <code>meanlog=1.6</code> and <code>sdlog=0.45</code> as fixed before seeing these observations. If you estimate them from the same sample, refit the model inside every bootstrap replicate or use a correction designed for that fitted model.</aside></section>
+    <section class="guide-section" id="interpret"><p class="eyebrow">5 · Interpret, do not automate judgment</p><h2>A p-value is one diagnostic</h2><p>A small value is evidence that the fully specified model misses some aspect of the observed distribution. A large value does not prove the model is true, especially with a short sample. Inspect percentiles, tail behavior, data quality, and operational consequences alongside the test.</p><p>For categorical counts and tables, the same class now provides <code>chi_square_goodness_of_fit_test</code> and <code>chi_square_independence_test</code>. For two numeric samples, use the seeded two-sample <code>cramer_von_mises_test</code>.</p></section>
+    <section class="guide-section guide-next"><p class="eyebrow">Next</p><h2>Adapt the pattern</h2><p>Choose another model from the <a href="distributions.html">distribution catalog</a>, revisit the <a href="getting-started.html">beginner tutorial</a>, or define a domain-specific law in the <a href="custom-distribution-vignette.html">custom-distribution vignette</a>.</p></section>
+  </main>
+  <footer><span>JDistlib applied vignette.</span><span>Response-time planning with a log-normal law.</span></footer>
+</body>
+</html>

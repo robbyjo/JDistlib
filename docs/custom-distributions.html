@@ -18,8 +18,10 @@
   <header class="site-header">
     <a class="brand" href="./">JDistlib</a>
     <nav aria-label="Primary navigation">
+      <a href="learn.html">Learn</a>
       <a aria-current="page" href="custom-distributions.html">Custom distributions</a>
       <a href="distributions.html">Distributions</a>
+      <a href="copula-tutorial.html">Copulas 0.7.0+</a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib">Source</a>
     </nav>
@@ -38,6 +40,7 @@
 
     <nav class="guide-toc" aria-label="On this page">
       <strong>On this page</strong>
+      <a href="#beginner-path">Beginner path</a>
       <a href="#quick-start">Quick start</a>
       <a href="#model">How normalization works</a>
       <a href="#workflow">Builders and composition</a>
@@ -46,6 +49,40 @@
       <a href="#diagnostics">Diagnostics</a>
       <a href="#troubleshooting">Troubleshooting</a>
     </nav>
+
+    <section class="guide-section" id="beginner-path">
+      <p class="eyebrow">Beginner path</p>
+      <h2>Your formula does not need to be normalized</h2>
+      <p>Start with a shape you want and the values it is allowed to take. For a
+        continuous distribution, the shape is a nonnegative <em>kernel</em>. For a
+        discrete distribution, it is a nonnegative weight for each outcome. JDistlib
+        finds the missing constant that makes the total probability equal one.</p>
+      <ul class="lesson-steps">
+        <li><strong>Write the shape</strong><span>It may omit any positive constant that is shared by every value.</span></li>
+        <li><strong>Declare the support</strong><span>Give the smallest and largest possible value, or the exact integer outcomes.</span></li>
+        <li><strong>Build and inspect</strong><span>Construction normalizes the formula; diagnostics help catch numerical trouble.</span></li>
+      </ul>
+      <h3>Your first continuous law</h3>
+      <p>The kernel <code>x * (1 - x)</code> is nonnegative between zero and one and
+        zero at both endpoints. The result is a smooth, symmetric distribution on
+        that interval:</p>
+      <pre><code>NumericalContinuousDistribution first =
+    NumericalContinuousDistribution.builder()
+        .kernel(x -&gt; x * (1.0 - x))
+        .support(0.0, 1.0)
+        .diagnosticPreset(DiagnosticPreset.STANDARD)
+        .build();
+
+double middleDensity = first.density(0.5, false);
+double belowQuarter = first.cumulative(0.25, true, false);
+double p90 = first.quantile(0.90, true, false);</code></pre>
+      <aside class="callout"><strong>A good first check:</strong> write down why the
+        formula cannot be negative and why its total area or mass is finite. Numerical
+        diagnostics support that reasoning; they cannot replace it.</aside>
+      <p>Ready for an applied walkthrough? The
+        <a href="custom-distribution-vignette.html">bounded sensor-error vignette</a>
+        builds, validates, samples, and tests a custom law from start to finish.</p>
+    </section>
 
     <section class="guide-section" id="quick-start">
       <p class="eyebrow">Start here</p>
@@ -473,7 +510,9 @@ System.out.println(fourth.isStable());</code></pre>
       <h2>Go deeper</h2>
       <p>Browse the <a href="api/">JavaDoc</a> for every overload, the
         <a href="distributions.html">distribution catalog</a> for built-in laws, and
-        the <a href="https://github.com/robbyjo/JDistlib/blob/master/docs/NUMERICAL_DISTRIBUTIONS.md">numerical design notes</a>
+        the <a href="custom-distribution-vignette.html">beginner vignette</a> for a
+        complete applied example. Read the
+        <a href="https://github.com/robbyjo/JDistlib/blob/master/docs/NUMERICAL_DISTRIBUTIONS.md">numerical design notes</a>
         for implementation limitations and accuracy guidance.</p>
     </section>
   </main>

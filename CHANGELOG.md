@@ -1,5 +1,33 @@
 What's new:
 
+Version 0.7.0 (development):
+* Added a prominent website learning center with beginner tutorials for built-in
+  and custom distributions, applied distribution and custom-law vignettes, and
+  a copula tutorial plus mixed-marginal vignette clearly labeled as requiring
+  JDistlib 0.7.0 or later.
+* Expanded `jdistlib.disttest.DistributionTest` with general one-sample
+  Cramer-von Mises and Anderson-Darling tests using reproducible parametric
+  bootstrap p-values, a two-sample Cramer-von Mises permutation test, and
+  Pearson chi-square goodness-of-fit and independence tests.
+* Added an immutable `Copula` interface and independence, Gaussian, Student-t,
+  Clayton, Gumbel, and Frank implementations. The families provide CDF,
+  density/log-density, explicit-engine and seed-convenience sampling, strict
+  parameter or correlation validation, and pairwise Kendall's-tau conversion.
+* Added `CopulaDistribution` for continuous-marginal joint CDFs, Jacobian-aware
+  densities, and sampling through marginal quantiles, plus explicit unit-cube
+  boundary diagnostics. Numerical tests cover closed forms, density
+  normalization, uniform margins, deterministic streams, and empirical tau.
+* Extended composition to discrete and mixed marginals with explicit CDF-jump
+  declarations, exact rectangle differences, numerical mixed derivatives,
+  evaluation budgets, error comparisons, and typed result statuses.
+* Added reusable pair-copula conditional CDF/inversion operations plus
+  simplified C-vine and D-vine density, sampling, probability-estimate, and
+  sequential fitting APIs.
+* Added average-rank and mixed distributional transforms, Kendall and
+  likelihood family fitting, correlation regularization, Student-t degrees-of-
+  freedom estimation, and automatic AIC/BIC selection across all core families
+  and within vine trees.
+
 Version 0.6.1 (August 26, 2026):
 * Closed the contributed-distribution screened backlog with complete D/P/Q/R
   APIs for generalized F, beta-negative-binomial, negative hypergeometric,

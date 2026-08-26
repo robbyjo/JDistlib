@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Beginner tutorials and applied vignettes for JDistlib distributions, custom distributions, and copulas.">
+  <title>Learn JDistlib — tutorials and vignettes</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">JDistlib</a>
+    <nav aria-label="Primary navigation">
+      <a aria-current="page" href="learn.html">Learn</a>
+      <a href="distributions.html">Distributions</a>
+      <a href="custom-distributions.html">Custom distributions</a>
+      <a href="copula-tutorial.html">Copulas 0.7.0+</a>
+      <a href="api/">JavaDoc</a>
+      <a href="https://github.com/robbyjo/JDistlib">Source</a>
+    </nav>
+  </header>
+  <main class="guide">
+    <section class="guide-hero">
+      <p class="eyebrow">Learning center</p>
+      <h1>Learn probability modeling by doing</h1>
+      <p class="lede">Begin with a single distribution, graduate to a law built from
+        your own formula, then model dependence with copulas. Each tutorial has a
+        companion vignette that works through an applied question.</p>
+    </section>
+    <section class="guide-section">
+      <p class="eyebrow">Choose a path</p>
+      <h2>Three levels, no prerequisites beyond Java</h2>
+      <div class="learning-grid">
+        <article class="learning-card"><span class="card-kicker">1 · Beginner</span><h3>Built-in distributions</h3><p>Understand D/P/Q/R and answer probability questions with familiar laws.</p><a class="card-link" href="getting-started.html">Tutorial →</a><br><a class="card-link" href="distribution-vignette.html">Response-time vignette →</a></article>
+        <article class="learning-card"><span class="card-kicker">2 · Builder · 0.6.0+</span><h3>Custom distributions</h3><p>Convert a nonnegative kernel or set of weights into a complete numerical distribution.</p><a class="card-link" href="custom-distributions.html#beginner-path">Tutorial →</a><br><a class="card-link" href="custom-distribution-vignette.html">Sensor-error vignette →</a></article>
+        <article class="learning-card"><span class="card-kicker">3 · Joint models · 0.7.0+</span><h3>Copulas and dependence</h3><p>Keep marginal behavior separate from dependence, including mixed and vine models.</p><a class="card-link" href="copula-tutorial.html">Tutorial →</a><br><a class="card-link" href="copula-vignette.html">Claims vignette →</a></article>
+      </div>
+      <aside class="version-note"><strong>Version note:</strong> copula APIs and both
+        copula learning pages require JDistlib 0.7.0 or later. Custom numerical
+        distributions require 0.6.0 or later.</aside>
+    </section>
+    <section class="guide-section guide-next">
+      <p class="eyebrow">Keep nearby</p>
+      <h2>References for the details</h2>
+      <p>The <a href="distributions.html">distribution catalog</a> answers “which law
+        and parameterization?”, while the <a href="api/">JavaDoc</a> lists every
+        overload. The tutorials deliberately focus on the small set beginners need.</p>
+    </section>
+  </main>
+  <footer><span>JDistlib learning center.</span><span>Tutorials and applied vignettes.</span></footer>
+</body>
+</html>

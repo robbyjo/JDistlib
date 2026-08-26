@@ -34,6 +34,8 @@ import jdistlib.Wilcoxon;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.math.approx.ApproximationFunction;
+import jdistlib.rng.MersenneTwister;
+import jdistlib.rng.RandomEngine;
 
 import static java.lang.Math.*;
 import static jdistlib.math.Constants.M_1_SQRT_2PI;
@@ -49,6 +51,8 @@ import static jdistlib.util.Utilities.*;
  */
 public class DistributionTest {
 	private static final double DEFAULT_WILCOX_DIGITS = 7.0;
+	private static final long GOODNESS_OF_FIT_SEED = 0x4a44697374476f66L;
+	private static final int DEFAULT_BOOTSTRAP_REPLICATES = 999;
 	// Needed for dip test
 	private static final double[][] qDiptab = {
 		{0.125,0.125,0.125,0.125,0.125,0.125,0.125,0.125,0.125,0.125,0.132559548782689,0.157497369040235,0.187401878807559,0.20726978858736,0.223755804629222,0.231796258864192,0.237263743826779,0.241992892688593,0.244369839049632,0.245966625504691,0.247439597233262,0.248230659656638,0.248754269146416,0.249302039974259,0.249459652323225,0.24974836247845},
@@ -1084,12 +1088,316 @@ public class DistributionTest {
 	}
 
 	/**
+	 * One-sample Cramer-von Mises statistic against a fully specified continuous
+	 * reference distribution.
+	 *
+	 * @param sample observations
+	 * @param distribution fully specified continuous reference law
+	 * @return the Cramer-von Mises W-squared statistic
+	 */
+	public static final double cramer_von_mises_statistic(double[] sample,
+			GenericDistribution distribution) {
+		validate_goodness_of_fit_input(sample, distribution);
+		double[] sorted = sample.clone();
+		Arrays.sort(sorted);
+		double statistic = 1.0 / (12.0 * sorted.length);
+		for (int i = 0; i < sorted.length; i++) {
+			double probability = checked_cdf(distribution, sorted[i]);
+			double difference = probability - (2.0 * i + 1.0)
+					/ (2.0 * sorted.length);
+			statistic += difference * difference;
+		}
+		return statistic;
+	}
+
+	/**
+	 * One-sample Cramer-von Mises test using a deterministic parametric bootstrap.
+	 *
+	 * @param sample observations
+	 * @param distribution fully specified continuous reference law
+	 * @return two elements: statistic and bootstrap p-value
+	 */
+	public static final double[] cramer_von_mises_test(double[] sample,
+			GenericDistribution distribution) {
+		return cramer_von_mises_test(sample, distribution,
+				DEFAULT_BOOTSTRAP_REPLICATES,
+				new MersenneTwister(GOODNESS_OF_FIT_SEED));
+	}
+
+	/**
+	 * One-sample Cramer-von Mises test with caller-controlled bootstrap sampling.
+	 *
+	 * @param sample observations
+	 * @param distribution fully specified continuous reference law
+	 * @param replicates positive number of parametric bootstrap samples
+	 * @param random caller-owned random stream
+	 * @return two elements: statistic and bootstrap p-value
+	 */
+	public static final double[] cramer_von_mises_test(double[] sample,
+			GenericDistribution distribution, int replicates, RandomEngine random) {
+		double observed = cramer_von_mises_statistic(sample, distribution);
+		return bootstrap_goodness_of_fit(observed, sample.length, distribution,
+				replicates, random, false);
+	}
+
+	/**
+	 * One-sample Anderson-Darling statistic against a fully specified continuous
+	 * reference distribution.
+	 *
+	 * @param sample observations
+	 * @param distribution fully specified continuous reference law
+	 * @return the Anderson-Darling A-squared statistic
+	 */
+	public static final double anderson_darling_statistic(double[] sample,
+			GenericDistribution distribution) {
+		validate_goodness_of_fit_input(sample, distribution);
+		double[] sorted = sample.clone();
+		Arrays.sort(sorted);
+		double sum = 0.0;
+		int n = sorted.length;
+		for (int i = 0; i < n; i++) {
+			double lower = open_probability(checked_cdf(distribution, sorted[i]));
+			double upper = open_probability(checked_cdf(distribution,
+					sorted[n - i - 1]));
+			sum += (2.0 * i + 1.0) * (log(lower) + log1p(-upper));
+		}
+		return -n - sum / n;
+	}
+
+	/**
+	 * One-sample Anderson-Darling test using a deterministic parametric bootstrap.
+	 *
+	 * @param sample observations
+	 * @param distribution fully specified continuous reference law
+	 * @return two elements: statistic and bootstrap p-value
+	 */
+	public static final double[] anderson_darling_test(double[] sample,
+			GenericDistribution distribution) {
+		return anderson_darling_test(sample, distribution,
+				DEFAULT_BOOTSTRAP_REPLICATES,
+				new MersenneTwister(GOODNESS_OF_FIT_SEED));
+	}
+
+	/**
+	 * One-sample Anderson-Darling test with caller-controlled bootstrap sampling.
+	 *
+	 * @param sample observations
+	 * @param distribution fully specified continuous reference law
+	 * @param replicates positive number of parametric bootstrap samples
+	 * @param random caller-owned random stream
+	 * @return two elements: statistic and bootstrap p-value
+	 */
+	public static final double[] anderson_darling_test(double[] sample,
+			GenericDistribution distribution, int replicates, RandomEngine random) {
+		double observed = anderson_darling_statistic(sample, distribution);
+		return bootstrap_goodness_of_fit(observed, sample.length, distribution,
+				replicates, random, true);
+	}
+
+	/**
+	 * Two-sample Cramer-von Mises test using a deterministic permutation p-value.
+	 *
+	 * @param first first sample
+	 * @param second second sample
+	 * @return two elements: statistic and permutation p-value
+	 */
+	public static final double[] cramer_von_mises_test(double[] first,
+			double[] second) {
+		return cramer_von_mises_test(first, second, DEFAULT_BOOTSTRAP_REPLICATES,
+				new MersenneTwister(GOODNESS_OF_FIT_SEED));
+	}
+
+	/**
+	 * Two-sample Cramer-von Mises test with caller-controlled permutations.
+	 *
+	 * @param first first sample
+	 * @param second second sample
+	 * @param permutations positive number of label permutations
+	 * @param random caller-owned random stream
+	 * @return two elements: statistic and permutation p-value
+	 */
+	public static final double[] cramer_von_mises_test(double[] first,
+			double[] second, int permutations, RandomEngine random) {
+		validate_finite_sample(first, 1, "first sample");
+		validate_finite_sample(second, 1, "second sample");
+		validate_resampling(permutations, random);
+		double observed = cramer_vonmises_statistic(first, second);
+		double[] pooled = c(first, second);
+		int exceedances = 0;
+		for (int replicate = 0; replicate < permutations; replicate++) {
+			shuffle(pooled, random);
+			double[] permutedFirst = Arrays.copyOfRange(pooled, 0, first.length);
+			double[] permutedSecond = Arrays.copyOfRange(pooled, first.length,
+					pooled.length);
+			if (cramer_vonmises_statistic(permutedFirst, permutedSecond)
+					>= observed) exceedances++;
+		}
+		return new double[] {observed,
+				(exceedances + 1.0) / (permutations + 1.0)};
+	}
+
+	/**
+	 * Pearson chi-square goodness-of-fit test for categorical counts.
+	 *
+	 * @param observed nonnegative observed counts
+	 * @param probabilities strictly positive category probabilities or weights
+	 * @param estimatedParameters number of parameters estimated from these counts
+	 * @return statistic, upper-tail p-value, and degrees of freedom
+	 */
+	public static final double[] chi_square_goodness_of_fit_test(long[] observed,
+			double[] probabilities, int estimatedParameters) {
+		if (observed == null || probabilities == null
+				|| observed.length != probabilities.length || observed.length < 2
+				|| estimatedParameters < 0)
+			throw new IllegalArgumentException("invalid categorical goodness-of-fit input");
+		long total = 0;
+		double probabilitySum = 0.0;
+		for (int i = 0; i < observed.length; i++) {
+			if (observed[i] < 0 || !(probabilities[i] > 0.0)
+					|| !Double.isFinite(probabilities[i]))
+				throw new IllegalArgumentException("counts must be nonnegative and weights positive");
+			if (observed[i] > Long.MAX_VALUE - total)
+				throw new IllegalArgumentException("categorical total is too large");
+			total += observed[i];
+			probabilitySum += probabilities[i];
+		}
+		int degreesOfFreedom = observed.length - 1 - estimatedParameters;
+		if (total == 0 || degreesOfFreedom < 1 || !Double.isFinite(probabilitySum))
+			throw new IllegalArgumentException("total count and degrees of freedom must be positive");
+		double statistic = 0.0;
+		for (int i = 0; i < observed.length; i++) {
+			double expected = total * probabilities[i] / probabilitySum;
+			double difference = observed[i] - expected;
+			statistic += difference * difference / expected;
+		}
+		return new double[] {statistic,
+				ChiSquare.cumulative(statistic, degreesOfFreedom, false, false),
+				degreesOfFreedom};
+	}
+
+	/**
+	 * Pearson chi-square test of independence for a contingency table.
+	 *
+	 * @param counts rectangular table with at least two rows and columns
+	 * @return statistic, upper-tail p-value, and degrees of freedom
+	 */
+	public static final double[] chi_square_independence_test(long[][] counts) {
+		if (counts == null || counts.length < 2 || counts[0] == null
+				|| counts[0].length < 2)
+			throw new IllegalArgumentException("contingency table must be at least 2 by 2");
+		int columns = counts[0].length;
+		long[] rowSums = new long[counts.length];
+		long[] columnSums = new long[columns];
+		long total = 0;
+		for (int row = 0; row < counts.length; row++) {
+			if (counts[row] == null || counts[row].length != columns)
+				throw new IllegalArgumentException("contingency table must be rectangular");
+			for (int column = 0; column < columns; column++) {
+				if (counts[row][column] < 0)
+					throw new IllegalArgumentException("contingency counts must be nonnegative");
+				long count = counts[row][column];
+				if (count > Long.MAX_VALUE - rowSums[row]
+						|| count > Long.MAX_VALUE - columnSums[column]
+						|| count > Long.MAX_VALUE - total)
+					throw new IllegalArgumentException("contingency total is too large");
+				rowSums[row] += count;
+				columnSums[column] += count;
+				total += count;
+			}
+		}
+		if (total == 0) throw new IllegalArgumentException("contingency total must be positive");
+		for (long sum : rowSums) if (sum == 0)
+			throw new IllegalArgumentException("contingency rows must have positive totals");
+		for (long sum : columnSums) if (sum == 0)
+			throw new IllegalArgumentException("contingency columns must have positive totals");
+		double statistic = 0.0;
+		for (int row = 0; row < counts.length; row++) {
+			for (int column = 0; column < columns; column++) {
+				double expected = (double) rowSums[row] * columnSums[column] / total;
+				double difference = counts[row][column] - expected;
+				statistic += difference * difference / expected;
+			}
+		}
+		int degreesOfFreedom = (counts.length - 1) * (columns - 1);
+		return new double[] {statistic,
+				ChiSquare.cumulative(statistic, degreesOfFreedom, false, false),
+				degreesOfFreedom};
+	}
+
+	private static double[] bootstrap_goodness_of_fit(double observed, int size,
+			GenericDistribution distribution, int replicates, RandomEngine random,
+			boolean andersonDarling) {
+		validate_resampling(replicates, random);
+		int exceedances = 0;
+		double[] generated = new double[size];
+		for (int replicate = 0; replicate < replicates; replicate++) {
+			for (int i = 0; i < size; i++) {
+				double probability;
+				do probability = random.nextDouble();
+				while (!(probability > 0.0 && probability < 1.0));
+				generated[i] = distribution.quantile(probability, true, false);
+			}
+			double statistic = andersonDarling
+					? anderson_darling_statistic(generated, distribution)
+					: cramer_von_mises_statistic(generated, distribution);
+			if (statistic >= observed) exceedances++;
+		}
+		return new double[] {observed,
+				(exceedances + 1.0) / (replicates + 1.0)};
+	}
+
+	private static void validate_goodness_of_fit_input(double[] sample,
+			GenericDistribution distribution) {
+		if (distribution == null)
+			throw new IllegalArgumentException("reference distribution must not be null");
+		validate_finite_sample(sample, 2, "sample");
+	}
+
+	private static void validate_finite_sample(double[] sample, int minimum,
+			String name) {
+		if (sample == null || sample.length < minimum)
+			throw new IllegalArgumentException(name + " is too small");
+		for (double value : sample) if (!Double.isFinite(value))
+			throw new IllegalArgumentException(name + " must contain finite values");
+	}
+
+	private static void validate_resampling(int replicates, RandomEngine random) {
+		if (replicates < 1 || random == null)
+			throw new IllegalArgumentException("resampling count must be positive and random non-null");
+	}
+
+	private static double checked_cdf(GenericDistribution distribution,
+			double value) {
+		double probability = distribution.cumulative(value, true, false);
+		if (!Double.isFinite(probability) || probability < 0.0 || probability > 1.0)
+			throw new IllegalArgumentException("reference CDF returned an invalid probability");
+		return probability;
+	}
+
+	private static double open_probability(double probability) {
+		if (probability <= 0.0) return Math.nextUp(0.0);
+		if (probability >= 1.0) return Math.nextDown(1.0);
+		return probability;
+	}
+
+	private static void shuffle(double[] values, RandomEngine random) {
+		for (int i = values.length - 1; i > 0; i--) {
+			int other = random.nextInt(i + 1);
+			double temporary = values[i];
+			values[i] = values[other];
+			values[other] = temporary;
+		}
+	}
+
+	/**
 	 * Two-sample Cramer-Von Mises test
 	 * @param X
 	 * @param Y
 	 * @return statistic
 	 */
-	static final double cramer_vonmises_statistic(double[] X, double[] Y) {
+	public static final double cramer_vonmises_statistic(double[] X, double[] Y) {
+		validate_finite_sample(X, 1, "first sample");
+		validate_finite_sample(Y, 1, "second sample");
 		int
 			nX = X.length,
 			nY = Y.length,
@@ -1107,7 +1415,8 @@ public class DistributionTest {
 			val = rank[i] - rankY[i - nX];
 			sumY += val * val;
 		}
-		val = (nX * sumX + nY * sumY) / (nXY * nXPY) - (4*nXY - 1) / (6 * nXPY); // T statistic
+		val = (nX * sumX + nY * sumY) / (nXY * (double) nXPY)
+				- (4.0 * nXY - 1.0) / (6.0 * nXPY); // T statistic
 
 		/*
 		int gcd = jdistlib.math.MathFunctions.gcd(nX, nY);

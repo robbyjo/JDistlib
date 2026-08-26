@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="A JDistlib 0.7.0+ vignette for mixed continuous and discrete copula modeling and automatic family selection."><title>Mixed claims model (0.7.0+) — JDistlib copula vignette</title><link rel="stylesheet" href="assets/style.css"></head>
+<body>
+  <header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="copula-tutorial.html">Copula tutorial 0.7.0+</a><a href="distributions.html">Distributions</a><a href="api/">JavaDoc</a></nav></header>
+  <main class="guide">
+    <section class="guide-hero"><p class="eyebrow">Applied vignette · copulas · JDistlib 0.7.0+</p><h1>Model claim severity and occurrence together</h1><p class="lede">Claim severity is continuous while occurrence is binary. A mixed copula model preserves both margins and adds dependence without pretending the binary outcome has a density.</p><span class="version-pill">Copula feature · available from 0.7.0</span></section>
+    <aside class="version-note"><strong>Version requirement:</strong> this entire vignette requires JDistlib 0.7.0 or later.</aside>
+    <nav class="guide-toc" aria-label="On this page"><strong>Workflow</strong><a href="#question">Question</a><a href="#compose">Compose</a><a href="#evaluate">Evaluate</a><a href="#select">Select</a><a href="#interpret">Interpret</a></nav>
+    <section class="guide-section" id="question"><p class="eyebrow">1 · Separate the questions</p><h2>Specify margins before dependence</h2><p>Assume a standardized continuous severity score is approximately normal and an indicator records whether a second claim occurs, with probability 0.35. These marginal assumptions should be checked independently. We then ask whether larger severity and repeat occurrence tend to coincide.</p></section>
+    <section class="guide-section" id="compose"><p class="eyebrow">2 · Build a candidate · 0.7.0+</p><h2>Declare continuous and discrete coordinates</h2><pre><code>import jdistlib.Binomial;
+import jdistlib.ClaytonCopula;
+import jdistlib.CopulaMarginal;
+import jdistlib.MixedCopulaDistribution;
+import jdistlib.Normal;
+
+CopulaMarginal[] margins = {
+    CopulaMarginal.continuous(new Normal()),
+    CopulaMarginal.discrete(new Binomial(1, 0.35))
+};
+
+MixedCopulaDistribution candidate =
+    new MixedCopulaDistribution(
+        new ClaytonCopula(2, 1.2), margins);</code></pre><p>Clayton is a scientific hypothesis: it emphasizes association in the lower tail. It is not a neutral default, so we will compare it with other families.</p></section>
+    <section class="guide-section" id="evaluate"><p class="eyebrow">3 · Evaluate and simulate · 0.7.0+</p><h2>Use the correct mixed measure</h2><pre><code>CopulaMeasureResult value = candidate.measure(
+    new double[] {0.3, 1.0});
+if (!value.isSuccess()) {
+    throw new ArithmeticException(value.message());
+}
+double logMeasure = value.logValue;
+
+double[][] simulated = candidate.random(500, 20260826L);</code></pre><p>At <code>{0.3, 1.0}</code>, the result is density in the severity coordinate and mass at occurrence = 1. Simulation is often the clearest way to turn the fitted joint law into downstream risk summaries.</p></section>
+    <section class="guide-section" id="select"><p class="eyebrow">4 · Fit competing families · 0.7.0+</p><h2>Automatic selection narrows, but does not end, the analysis</h2><pre><code>CopulaSelectionResult result = CopulaSelector.selectMixed(
+    observedRows,
+    margins,
+    null,
+    new CopulaFitOptions(),
+    CopulaSelectionCriterion.BIC,
+    CopulaFamily.INDEPENDENCE,
+    CopulaFamily.GAUSSIAN,
+    CopulaFamily.CLAYTON,
+    CopulaFamily.FRANK);
+
+CopulaFitResult fitted = result.getSelected();
+System.out.println(fitted.getFamily());
+System.out.println(fitted.getLogLikelihood());</code></pre><p>The mixed transform uses the marginal jump intervals rather than assigning arbitrary continuous ranks to a binary variable. BIC penalizes additional parameters, but it cannot determine whether the supplied margins or candidate family set are scientifically suitable.</p></section>
+    <section class="guide-section" id="interpret"><p class="eyebrow">5 · Report the model honestly</p><h2>Include what the data cannot identify</h2><div class="guide-columns"><article><h3>Report candidates</h3><p>List every family considered, the criterion, sample size, selected parameters, and runners-up.</p></article><article><h3>Inspect sensitivity</h3><p>Repeat the comparison under credible marginal models and with alternative distributional-transform handling.</p></article><article><h3>Respect discreteness</h3><p>A binary margin provides limited information about copula shape. Close scores may signal practical non-identifiability.</p></article><article><h3>Validate consequences</h3><p>Compare simulated joint tail summaries with held-out or domain benchmarks, not only in-sample likelihood.</p></article></div><aside class="callout caution"><strong>Causal warning:</strong> dependence is not causation. The selected copula describes association under the fitted margins and candidate set.</aside></section>
+    <section class="guide-section guide-next"><p class="eyebrow">Next · 0.7.0+</p><h2>Expand dimensions only when needed</h2><p>For three or more outcomes, the <a href="copula-tutorial.html#vines">vine overview</a> and the <a href="https://github.com/robbyjo/JDistlib/blob/master/docs/COPULAS.md">complete copula guide</a> explain C-vines, D-vines, sequential fitting, and numerical probability estimates.</p></section>
+  </main>
+  <footer><span>JDistlib applied copula vignette.</span><span>Copula APIs require JDistlib 0.7.0+.</span></footer>
+</body>
+</html>

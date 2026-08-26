@@ -1,33 +1,48 @@
-# JDistlib 0.6.1
+# JDistlib 0.7.0
 
-JDistlib 0.6.1 completes the screened distribution backlog and incorporates the
-practical scalar additions identified in the CRAN Probability Distributions
-Task View audit. It preserves Java 8-compatible bytecode, explicit per-stream
-random state, and the GPL-2.0-or-later license.
+JDistlib 0.7.0 adds a composable copula framework while preserving
+Java 8-compatible bytecode, explicit per-stream random state, and the
+GPL-2.0-or-later license.
+
+The project website now prominently features a beginner learning center with
+tutorials for built-in and custom distributions and applied vignettes for both.
+A separate copula tutorial and mixed-marginal vignette are visibly labeled as
+requiring JDistlib 0.7.0 or later.
+
+`jdistlib.disttest.DistributionTest` adds general Anderson-Darling and
+Cramer-von Mises goodness-of-fit procedures with reproducible resampling, plus
+Pearson categorical goodness-of-fit and contingency-table independence tests.
 
 Highlights:
 
-- adds complete density/mass, cumulative, quantile, and random-generation APIs
-  for generalized F, beta-negative-binomial, negative hypergeometric, discrete
-  Weibull, Skellam, half-Cauchy, half-t, slash, Tukey lambda, Feller-Pareto, and
-  phase-type distributions;
-- adds asymmetric Laplace, exponentially modified Gaussian, Huber,
-  discrete-Laplace, and logit-normal distributions from the broader CRAN
-  task-view audit;
-- corrects the historical beta-prime transformation, density Jacobian, support
-  handling, tail stability, and instance truncation behavior;
-- expands the distribution catalog and provenance ledger, including explicit
-  dispositions for compound-count, periodic, discretized, compositional, and
-  infrastructure-heavy families that were not selected for this release; and
-- cleans legacy JavaDoc markup throughout the numerical and statistical APIs so
-  the documentation build completes without warnings.
+- introduces the immutable `Copula` interface with independence, Gaussian,
+  Student-t, Clayton, Gumbel, and Frank families;
+- provides CDF, density and log-density evaluation, explicit-engine and seeded
+  sampling, strict parameter/correlation validation, and pairwise Kendall's-tau
+  reporting and conversions;
+- adds `CopulaDistribution`, which composes a copula with continuous
+  `GenericDistribution` marginals for joint CDFs, Jacobian-aware densities, and
+  sampling through marginal quantiles;
+- adds atom-aware discrete and mixed composition with explicit CDF left limits,
+  rectangle-difference masses, numerical mixed likelihoods, evaluation budgets,
+  and typed accuracy/status results;
+- adds simplified C-vine and D-vine construction and fitting, reusable pair
+  conditional CDFs and inverses, and Monte Carlo CDF results with uncertainty;
+- adds pseudo-observations and mixed distributional transforms, Kendall or
+  likelihood fitting, and automatic AIC/BIC family selection for ordinary and
+  vine copulas;
+- classifies interior, exact-boundary, and invalid unit-cube inputs with
+  `CopulaDiagnostics`, avoiding misleading density values where limits can be
+  singular or path-dependent; and
+- documents family domains, marginal-measure declarations, approximation
+  boundaries, random-stream ownership, and selection semantics.
 
-The release adds focused regression coverage for the backlog and task-view
-families, including boundary behavior, tail conventions, quantile inversion,
-and deterministic random-stream checks. The full Gradle check and JavaDoc gates
-pass cleanly.
+Regression coverage checks closed forms, uniform-margin identities, numerical
+density normalization, correlation and scalar-parameter rejection, deterministic
+streams, empirical Kendall's tau, discrete mass normalization, mixed
+likelihoods, generated-data parameter recovery, and sequential vine fitting.
 
 Release assets include the binary library, sources, JavaDoc, and SHA-256
-checksums. See `CHANGELOG.md` for the detailed change list,
-`DISTRIBUTIONS.md` for sources and audit dispositions, and `PUBLISHING.md` for
-the separate Maven Central maintainer step.
+checksums. See `CHANGELOG.md` for the detailed change list, `docs/COPULAS.md` for
+the usage contract, and `PUBLISHING.md` for the separate Maven Central
+maintainer step.

@@ -1,15 +1,5 @@
 # JDistlib to-do
 
-## Planned for 0.7.0
-
-* Add a continuous-marginal copula framework based on a common `Copula`
-  interface and a composed joint distribution. Begin with independence,
-  Gaussian, Student-t, Clayton, Gumbel, and Frank copulas, including log-density,
-  seeded sampling, parameter/correlation validation, boundary diagnostics, and
-  Kendall's-tau conversions. Defer discrete/mixed marginals, vine copulas,
-  dependence fitting, and automatic family selection until the core API is
-  established.
-
 ## Unscheduled
 
 * Add exact lower-orthant CDFs and rectangle probabilities for the multinomial,
@@ -30,6 +20,18 @@
 
 ## Recently completed
 
+* Added a prominent beginner learning center with distribution and custom-law
+  tutorials, applied vignettes, and clearly versioned 0.7.0+ copula learning
+  paths; tutorial companion code is compiled by `check`.
+* Expanded `jdistlib.disttest.DistributionTest` with reproducible general
+  Anderson-Darling, one- and two-sample Cramer-von Mises, and Pearson
+  chi-square goodness-of-fit and independence tests.
+* Added the complete 0.7.0 copula framework with independence,
+  Gaussian, Student-t, Clayton, Gumbel, and Frank families, joint-distribution
+  composition, log densities, explicit-stream and seeded sampling, parameter
+  validation, boundary diagnostics, Kendall's-tau conversions, atom-aware
+  discrete/mixed likelihoods, simplified C-vines and D-vines, dependence
+  fitting, and AIC/BIC family and pair-family selection.
 * Audited and dispositioned all historical SourceForge tickets, with focused
   regression gates replacing obsolete R Bugzilla monitoring links.
 * Finalized multivariate probability statuses, error semantics, reproducibility

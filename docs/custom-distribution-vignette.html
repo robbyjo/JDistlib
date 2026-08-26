@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="A beginner-friendly JDistlib vignette for building and validating a custom bounded sensor-error distribution."><title>Bounded sensor error — custom-distribution vignette</title><link rel="stylesheet" href="assets/style.css"><script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script></head>
+<body>
+  <header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="getting-started.html">Distribution tutorial</a><a href="custom-distributions.html">Custom distributions</a><a href="api/">JavaDoc</a></nav></header>
+  <main class="guide">
+    <section class="guide-hero"><p class="eyebrow">Applied vignette · custom distributions · 0.6.0+</p><h1>Build a bounded sensor-error law</h1><p class="lede">A sensor reports errors only between −2 and 2 units. Small errors are common and large errors taper exponentially. That domain statement is enough to build a reusable probability distribution.</p><span class="version-pill">Available from 0.6.0</span></section>
+    <nav class="guide-toc" aria-label="On this page"><strong>Build</strong><a href="#shape">Choose shape</a><a href="#construct">Construct</a><a href="#use">Use</a><a href="#validate">Validate</a><a href="#limits">Limitations</a></nav>
+    <section class="guide-section" id="shape"><p class="eyebrow">1 · Translate the story</p><h2>Use a kernel, not a finished density</h2><p>Let the unnormalized shape be <code>exp(-abs(error) / 0.55)</code> on [−2, 2]. It is nonnegative, symmetric, bounded, and has finite area. We deliberately omit its normalizing constant.</p><div class="formula-panel">\[g(x)=e^{-|x|/0.55}\,\mathbf 1_{[-2,2]}(x),\qquad f(x)=g(x)\big/\int_{-2}^{2}g(t)\,dt.\]</div></section>
+    <section class="guide-section" id="construct"><p class="eyebrow">2 · Construct once</p><h2>Declare the formula and support</h2><pre><code>import jdistlib.DiagnosticPreset;
+import jdistlib.NumericalContinuousDistribution;
+
+NumericalContinuousDistribution error =
+    NumericalContinuousDistribution.builder()
+        .kernel(x -&gt; Math.exp(-Math.abs(x) / 0.55))
+        .support(-2.0, 2.0)
+        .singularities(0.0)
+        .diagnosticPreset(DiagnosticPreset.THOROUGH)
+        .build();
+
+double normalizer = error.getNormalizationConstant();</code></pre><p>The point at zero is not mathematically singular, but declaring it as an integration breakpoint tells the numerical routine where the derivative changes abruptly.</p></section>
+    <section class="guide-section" id="use"><p class="eyebrow">3 · Ask domain questions</p><h2>The custom law now has the familiar API</h2><pre><code>// Probability of meeting a ±0.5-unit accuracy requirement.
+double withinTolerance =
+    error.cumulative(0.5, true, false)
+  - error.cumulative(-0.5, true, false);
+
+// Central interval containing 95% of modeled errors.
+ProbabilityInterval central = error.probabilityInterval(0.95);
+
+// Repeatable simulation for a test or report.
+error.setRandomEngine(new MersenneTwister(20260826L));
+double[] simulatedErrors = error.random(1_000);</code></pre></section>
+    <section class="guide-section" id="validate"><p class="eyebrow">4 · Inspect and test</p><h2>Use structural and data checks together</h2><pre><code>DistributionAnalysis report = error.analyzeDistribution();
+if (report.hasErrors()) {
+    System.err.println(report);
+}
+
+double[] observedErrors = {
+    -0.82, -0.31, -0.12, -0.03, 0.04, 0.15, 0.37, 0.73
+};
+double[] cvm = DistributionTest.cramer_von_mises_test(
+    observedErrors, error, 1_999, new MersenneTwister(7L));</code></pre><p>The construction report checks numerical behavior of the formula. The Cramér–von Mises test asks whether observations are compatible with this fully specified distribution. They answer different questions, so keep both.</p><aside class="callout caution"><strong>Do not tune and test on the same data without adjustment.</strong> If 0.55 or the support was selected from <code>observedErrors</code>, refit those choices inside every bootstrap replicate or validate on held-out data.</aside></section>
+    <section class="guide-section" id="limits"><p class="eyebrow">5 · Know what was assumed</p><h2>The support is a scientific claim</h2><p>This model assigns exactly zero probability outside [−2, 2]. That is appropriate only if the physical or recording process truly enforces those bounds. If extreme errors are merely rare, use infinite support and justify the tail shape instead.</p></section>
+    <section class="guide-section guide-next"><p class="eyebrow">Next</p><h2>Go from example to production</h2><p>Read the full <a href="custom-distributions.html">custom-distribution guide</a> for log-kernels, discrete weights, mixtures, transforms, sampling strategies, and troubleshooting.</p></section>
+  </main>
+  <footer><span>JDistlib applied vignette.</span><span>Custom distributions require 0.6.0+.</span></footer>
+</body>
+</html>

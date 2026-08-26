@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="A beginner-friendly JDistlib 0.7.0+ tutorial for copulas, joint distributions, mixed marginals, fitting, and family selection."><title>Using copulas (0.7.0+) — JDistlib tutorial</title><link rel="stylesheet" href="assets/style.css"></head>
+<body>
+  <header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="getting-started.html">Distributions</a><a href="custom-distributions.html">Custom distributions</a><a aria-current="page" href="copula-tutorial.html">Copulas 0.7.0+</a><a href="api/">JavaDoc</a></nav></header>
+  <main class="guide">
+    <section class="guide-hero"><p class="eyebrow">Beginner tutorial · copulas · JDistlib 0.7.0+</p><h1>Keep each outcome simple; model their dependence separately</h1><p class="lede">A copula joins marginal distributions through uniform probabilities. Change a margin without rewriting the dependence model, or compare dependence families without changing the margins.</p><span class="version-pill">Copula feature · available from 0.7.0</span></section>
+    <aside class="version-note"><strong>Version requirement:</strong> everything on this page uses the copula API introduced in JDistlib 0.7.0. It is not available in 0.6.x or earlier.</aside>
+    <nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#idea">The idea</a><a href="#continuous">Continuous example</a><a href="#mixed">Discrete/mixed</a><a href="#fit">Fit and select</a><a href="#vines">Vines</a><a href="#checks">Checks</a></nav>
+    <section class="guide-section" id="idea"><p class="eyebrow">The idea</p><h2>Margins answer “what”; the copula answers “together how?”</h2><ul class="lesson-steps"><li><strong>Choose each margin</strong><span>For example, normal cost and exponential delay.</span></li><li><strong>Choose dependence</strong><span>Independence, Gaussian, Student-t, Clayton, Gumbel, or Frank.</span></li><li><strong>Compose the joint law</strong><span>Evaluate joint probabilities or density and generate dependent observations.</span></li></ul><p>Correlation alone does not describe tail co-movement or asymmetric dependence. Copula families make those choices explicit.</p></section>
+    <section class="guide-section" id="continuous"><p class="eyebrow">First model · 0.7.0+</p><h2>Join two continuous margins</h2><pre><code>import jdistlib.Copula;
+import jdistlib.CopulaDistribution;
+import jdistlib.Exponential;
+import jdistlib.GaussianCopula;
+import jdistlib.Normal;
+
+Copula dependence = GaussianCopula.fromKendallsTau(
+    new double[][] {{1.0, 0.45}, {0.45, 1.0}});
+
+CopulaDistribution joint = new CopulaDistribution(
+    dependence,
+    new Normal(10.0, 2.0),
+    new Exponential(3.0));
+
+double jointCdf = joint.cumulative(new double[] {11.0, 2.0});
+double logDensity = joint.logDensity(new double[] {11.0, 2.0});
+double[] repeatableDraw = joint.random(20260826L);</code></pre><p>The matrix passed to <code>fromKendallsTau</code> expresses rank dependence. JDistlib converts it to a valid Gaussian-copula correlation representation and rejects invalid inputs.</p></section>
+    <section class="guide-section" id="mixed"><p class="eyebrow">Discrete and mixed margins · 0.7.0+</p><h2>Declare which coordinates have jumps</h2><p>A usual copula density times marginal densities is valid only when every margin is continuous. For counts or categories, use <code>MixedCopulaDistribution</code>; it computes exact CDF rectangle differences for discrete coordinates.</p><pre><code>MixedCopulaDistribution mixed = new MixedCopulaDistribution(
+    new ClaytonCopula(2, 1.2),
+    CopulaMarginal.continuous(new Normal()),
+    CopulaMarginal.discrete(new Binomial(1, 0.35)));
+
+CopulaMeasureResult at = mixed.measure(
+    new double[] {0.3, 1.0});
+if (!at.isSuccess()) {
+    throw new ArithmeticException(at.message());
+}</code></pre><p><code>measure</code> returns a density with respect to continuous coordinates and probability mass with respect to discrete ones, plus a status and error information when numerical differentiation is needed.</p></section>
+    <section class="guide-section" id="fit"><p class="eyebrow">Dependence fitting · 0.7.0+</p><h2>Let criteria compare plausible families</h2><pre><code>double[][] observations = mixed.random(250, 20260826L);
+
+CopulaSelectionResult choice = CopulaSelector.selectMixed(
+    observations,
+    new CopulaMarginal[] {
+        CopulaMarginal.continuous(new Normal()),
+        CopulaMarginal.discrete(new Binomial(1, 0.35))
+    },
+    null,
+    new CopulaFitOptions(),
+    CopulaSelectionCriterion.BIC,
+    CopulaFamily.INDEPENDENCE,
+    CopulaFamily.GAUSSIAN,
+    CopulaFamily.CLAYTON,
+    CopulaFamily.FRANK);
+
+CopulaFamily selected = choice.getSelected().getFamily();</code></pre><p>Selection ranks only the candidates you provide. Treat AIC or BIC as comparative evidence, then inspect diagnostics and whether each family's tail behavior makes sense for the domain.</p></section>
+    <section class="guide-section" id="vines"><p class="eyebrow">More than two dimensions · 0.7.0+</p><h2>Use vines for pair-by-pair structure</h2><p><code>CVineCopula</code> and <code>DVineCopula</code> assemble simplified vines from <code>PairCopula</code> objects. <code>VineFitter</code> estimates sequential trees and can select pair families. A C-vine emphasizes hub variables; a D-vine emphasizes an ordering or chain. Start with an interpretable ordering and remember that the simplified-vine assumption keeps conditional copula parameters constant.</p><p>For a first three-dimensional model, read the complete <a href="https://github.com/robbyjo/JDistlib/blob/master/docs/COPULAS.md">copula contract</a> alongside the JavaDoc.</p></section>
+    <section class="guide-section" id="checks"><p class="eyebrow">Before trusting a result</p><h2>Diagnose boundaries, margins, and identifiability</h2><div class="guide-columns"><article><h3>Unit-cube boundaries</h3><p>Copula densities are defined on the open unit cube. Use <code>diagnose</code> before interpreting boundary values.</p></article><article><h3>Marginal fit matters</h3><p>A copula cannot repair a poor marginal model. Check every margin first.</p></article><article><h3>Discrete data carry less information</h3><p>Coarse discrete margins can make the underlying copula weakly identifiable. Report uncertainty and compare families.</p></article><article><h3>Own random streams</h3><p>Use explicit engines or seed overloads for reproducibility and do not share a mutable engine across threads.</p></article></div></section>
+    <section class="guide-section guide-next"><p class="eyebrow">Next · still 0.7.0+</p><h2>Follow a mixed-marginal analysis</h2><p>The <a href="copula-vignette.html">insurance-claims vignette</a> puts composition, simulation, family selection, and interpretation into one workflow.</p></section>
+  </main>
+  <footer><span>JDistlib copula tutorial.</span><span>Copula APIs require JDistlib 0.7.0+.</span></footer>
+</body>
+</html>

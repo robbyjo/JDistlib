@@ -18,8 +18,10 @@
   <header class="site-header">
     <a class="brand" href="./">JDistlib</a>
     <nav aria-label="Primary navigation">
-      <a href="custom-distributions.html">Custom distributions</a>
+      <a href="learn.html">Learn</a>
       <a aria-current="page" href="distributions.html">Distributions</a>
+      <a href="custom-distributions.html">Custom distributions</a>
+      <a href="copula-tutorial.html">Copulas 0.7.0+</a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
       <a href="https://github.com/robbyjo/JDistlib">Source</a>
@@ -31,13 +33,14 @@
     <section class="reference-hero">
       <p class="eyebrow">Formula &amp; API reference</p>
       <h1>Distributions in JDistlib</h1>
-      <p class="lede">Every public probability-law class in the main and extreme-value
-        packages, with its parameterization, defining density or mass, and the operations
-        that are actually implemented.</p>
+      <p class="lede">Every public probability-law and copula class in the main and
+        extreme-value packages, with its parameterization, defining density or mass,
+        and the operations that are actually implemented.</p>
       <div class="reference-summary" aria-label="Reference summary">
-        <span><strong>103</strong> documented classes</span>
+        <span><strong>112</strong> documented classes</span>
         <span><strong>90</strong> scalar laws with full D/P/Q/R</span>
         <span><strong>13</strong> vector or matrix laws</span>
+        <span><strong>9</strong> copula and joint-law classes</span>
       </div>
     </section>
 
@@ -199,6 +202,27 @@
             <tr><td><a href="api/jdistlib/MultivariatePowerExponential.html"><code>MultivariatePowerExponential</code></a></td><td>x∈ℝᵏ; location μ, scatter Σ, shape β</td><td>\(f(\mathbf x)=C(k,\beta)|\Sigma|^{-1/2}\exp\!\left[-\dfrac{q(\mathbf x)^\beta}{2}\right]\)</td><td class="methods">D––R <span title="radial quantile">Q*</span></td></tr>
             <tr><td><a href="api/jdistlib/MultivariateStudentT.html"><code>MultivariateStudentT</code></a></td><td>x∈ℝᵏ; location μ, scale Σ, df ν</td><td>\(f(\mathbf x)=\dfrac{\Gamma((\nu+k)/2)}{\Gamma(\nu/2)(\nu\pi)^{k/2}|\Sigma|^{1/2}}\left[1+\dfrac{q(\mathbf x)}{\nu}\right]^{-(\nu+k)/2}\)</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
             <tr><td><a href="api/jdistlib/Wishart.html"><code>Wishart</code></a></td><td>positive-definite k×k matrix; df ν, scale Σ or Cholesky L</td><td>\(f(X)=\dfrac{|X|^{(\nu-k-1)/2}e^{-\operatorname{tr}(\Sigma^{-1}X)/2}}{2^{\nu k/2}|\Sigma|^{\nu/2}\Gamma_k(\nu/2)}\)</td><td class="methods">D––R</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="catalog-section" id="copulas">Copulas</h3>
+      <p class="section-note">Copulas operate on the unit hypercube. JDistlib 0.7.0+
+        composes them with continuous marginals through <code>CopulaDistribution</code>
+        and discrete or mixed marginals through <code>MixedCopulaDistribution</code>.</p>
+      <div class="table-wrap">
+        <table class="distribution-table">
+          <thead><tr><th>Copula</th><th>Parameters</th><th>Defining formula or construction</th><th>API</th></tr></thead>
+          <tbody>
+            <tr><td><a href="api/jdistlib/IndependenceCopula.html"><code>IndependenceCopula</code></a></td><td>dimension d≥1</td><td>\(C(\mathbf u)=\prod_i u_i\)</td><td class="methods">DP–R τ</td></tr>
+            <tr><td><a href="api/jdistlib/GaussianCopula.html"><code>GaussianCopula</code></a></td><td>positive-definite correlation R</td><td>\(C(\mathbf u)=\Phi_R(\Phi^{-1}(u_1),\ldots,\Phi^{-1}(u_d))\)</td><td class="methods">DP–R τ</td></tr>
+            <tr><td><a href="api/jdistlib/StudentTCopula.html"><code>StudentTCopula</code></a></td><td>positive-definite correlation R, df ν&gt;0</td><td>\(C(\mathbf u)=T_{R,\nu}(T_\nu^{-1}(u_1),\ldots,T_\nu^{-1}(u_d))\)</td><td class="methods">DP–R τ</td></tr>
+            <tr><td><a href="api/jdistlib/ClaytonCopula.html"><code>ClaytonCopula</code></a></td><td>θ≥0</td><td>\(C(\mathbf u)=[\sum_i u_i^{-\theta}-d+1]^{-1/\theta}\)</td><td class="methods">DP–R τ</td></tr>
+            <tr><td><a href="api/jdistlib/GumbelCopula.html"><code>GumbelCopula</code></a></td><td>θ≥1</td><td>\(C(\mathbf u)=\exp\{-[\sum_i(-\log u_i)^\theta]^{1/\theta}\}\)</td><td class="methods">DP–R τ</td></tr>
+            <tr><td><a href="api/jdistlib/FrankCopula.html"><code>FrankCopula</code></a></td><td>finite θ; θ&lt;0 only when d=2</td><td>Frank Archimedean generator with logarithmic-series frailty</td><td class="methods">DP–R τ</td></tr>
+            <tr><td><a href="api/jdistlib/CVineCopula.html"><code>CVineCopula</code></a></td><td>triangular simplified C-vine pair array</td><td>Root-ordered conditional pair-copula product</td><td class="methods">D P* – R fit</td></tr>
+            <tr><td><a href="api/jdistlib/DVineCopula.html"><code>DVineCopula</code></a></td><td>triangular simplified D-vine pair array</td><td>Path-ordered conditional pair-copula product</td><td class="methods">D P* – R fit</td></tr>
+            <tr><td><a href="api/jdistlib/MixedCopulaDistribution.html"><code>MixedCopulaDistribution</code></a></td><td>declared continuous/discrete marginals</td><td>Copula CDF jump rectangles and mixed partial derivatives</td><td class="methods">D/P – R status</td></tr>
           </tbody>
         </table>
       </div>

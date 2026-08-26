@@ -1,6 +1,15 @@
 What's new:
 
 Version 0.7.0 (development):
+* Added the stateless `jdistlib.disttest.MultipleTesting` API for Bonferroni,
+  Holm, Hochberg, Hommel, Šidák, Holm–Šidák, Benjamini–Hochberg, and
+  Benjamini–Yekutieli adjusted p-values, decision thresholds, and Storey
+  q-values with smoothing-spline, quantile, or caller-supplied true-null
+  proportions. Missing `NaN` positions are preserved and explicit larger test
+  families are supported.
+* Added level-dependent two-stage BKY FDR testing, direct natural-log p-value
+  adjustment, and conservative right-censored-family handling with explicit
+  exactness reporting.
 * Added a prominent website learning center with beginner tutorials for built-in
   and custom distributions, applied distribution and custom-law vignettes, and
   a copula tutorial plus mixed-marginal vignette clearly labeled as requiring

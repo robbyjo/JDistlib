@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="A beginner-friendly JDistlib 0.7.0+ guide to multiple-testing correction, FDR control, and Storey q-values."><title>Multiple testing and FDR (0.7.0+) — JDistlib</title><link rel="stylesheet" href="assets/style.css"></head>
+<body>
+  <header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="getting-started.html">Distributions</a><a aria-current="page" href="multiple-testing.html">Multiple testing 0.7.0+</a><a href="copula-tutorial.html">Copulas 0.7.0+</a><a href="api/">JavaDoc</a></nav></header>
+  <main class="guide">
+    <section class="guide-hero"><p class="eyebrow">Beginner guide · multiple testing · JDistlib 0.7.0+</p><h1>Turn a collection of p-values into defensible discoveries</h1><p class="lede">When many hypotheses are tested, unadjusted p-values create more opportunities for false positives. <code>MultipleTesting</code> provides one static API for family-wise error control, false-discovery-rate control, and Storey q-values.</p><span class="version-pill">Available from 0.7.0</span></section>
+    <nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#first">First adjustment</a><a href="#choose">Choose a method</a><a href="#decisions">Make decisions</a><a href="#bky">Adaptive BKY</a><a href="#logp">Log p-values</a><a href="#censored">Censored p-values</a><a href="#qvalues">Q-values</a><a href="#missing">Missing values</a></nav>
+    <section class="guide-section" id="first"><p class="eyebrow">Start here</p><h2>Adjust once, keep the original order</h2><pre><code>import jdistlib.disttest.MultipleTesting;
+import jdistlib.disttest.MultipleTesting.Method;
+
+double[] p = {0.01, 0.04, 0.03, 0.002, 0.50};
+double[] adjusted = MultipleTesting.adjust(
+    p, Method.BENJAMINI_HOCHBERG);
+
+// adjusted: 0.025, 0.05, 0.05, 0.01, 0.50</code></pre><p>Each adjusted value belongs to the hypothesis at the same array position. The input is never sorted or mutated.</p><aside class="callout"><strong>Adjusted p-value is the precise term.</strong> BH-adjusted values are often informally called “FDRs,” but an adjusted p-value is the smallest control level at which that hypothesis would be rejected. Storey's q-values additionally estimate the proportion of true null hypotheses.</aside></section>
+    <section class="guide-section" id="choose"><p class="eyebrow">Choose deliberately</p><h2>The method encodes the error target and assumptions</h2><div class="table-wrap"><table class="troubleshooting-table"><thead><tr><th>Methods</th><th>Controls</th><th>When it fits</th></tr></thead><tbody><tr><td><code>HOLM</code>, <code>BONFERRONI</code></td><td>Family-wise error rate</td><td>Valid under arbitrary dependence. Holm normally dominates plain Bonferroni.</td></tr><tr><td><code>HOCHBERG</code>, <code>HOMMEL</code></td><td>Family-wise error rate</td><td>More power under independence or suitable positive dependence.</td></tr><tr><td><code>SIDAK</code>, <code>HOLM_SIDAK</code></td><td>Family-wise error rate</td><td>Use when independence of tests is defensible.</td></tr><tr><td><code>BENJAMINI_HOCHBERG</code></td><td>False discovery rate</td><td>Common exploratory choice under independence or positive dependence.</td></tr><tr><td><code>BENJAMINI_YEKUTIELI</code></td><td>False discovery rate</td><td>Valid under arbitrary dependence, but more conservative.</td></tr><tr><td><code>NONE</code></td><td>Nothing</td><td>Explicit pass-through for configurable pipelines.</td></tr></tbody></table></div><p>If the hypothesis family contained tests whose p-values were not supplied, use <code>adjust(p, method, totalNumberOfTests)</code>. The default counts only non-missing values.</p></section>
+    <section class="guide-section" id="decisions"><p class="eyebrow">Decision helpers</p><h2>Ask for flags, a count, or the raw cutoff</h2><pre><code>boolean[] rejected = MultipleTesting.reject(
+    p, 0.05, Method.BENJAMINI_HOCHBERG);
+int count = MultipleTesting.countRejected(
+    p, 0.05, Method.BENJAMINI_HOCHBERG);
+double rawCutoff = MultipleTesting.threshold(
+    p, 0.05, Method.BENJAMINI_HOCHBERG);</code></pre><p><code>threshold</code> returns the largest observed raw p-value among the rejected hypotheses, or <code>NaN</code> when none is rejected. Reporting the adjusted values is usually more informative than reporting only this cutoff.</p></section>
+    <section class="guide-section" id="bky"><p class="eyebrow">Adaptive FDR</p><h2>Use two-stage BKY when its assumptions fit</h2><pre><code>MultipleTesting.AdaptiveFdrResult bky =
+    MultipleTesting.benjaminiKriegerYekutieli(p, 0.05);
+
+boolean[] rejected = bky.getRejected();
+int firstStage = bky.getStageOneRejections();
+int estimatedNulls = bky.getEstimatedTrueNulls();
+double finalBhLevel = bky.getFinalLevel();</code></pre><p>BKY first runs BH at <code>q / (1 + q)</code>, estimates the number of true nulls as <code>m - r1</code>, and runs BH again at the resulting adaptive level. It can improve power, but its proven FDR guarantee is for independent test statistics.</p><aside class="callout"><strong>Why BKY is not in <code>Method</code>.</strong> Its null estimate and final answer depend on the requested level. There is no single level-independent adjusted-p vector, so the API returns a result that makes the chosen level and both stages visible.</aside></section>
+    <section class="guide-section" id="logp"><p class="eyebrow">Numerical range</p><h2>Keep extremely small probabilities in log space</h2><pre><code>double[] logP = {-1000.0, -720.0, Math.log(0.03)};
+double[] logAdjusted = MultipleTesting.adjustLog(
+    logP, Method.BENJAMINI_HOCHBERG);
+boolean[] rejected = MultipleTesting.rejectLog(
+    logP, 0.05, Method.BENJAMINI_HOCHBERG);</code></pre><p><code>adjustLog</code> accepts natural logarithms, including negative infinity for an exact zero, and returns natural-log adjusted p-values. The calculations stay in the log domain, including Šidák and Hommel, so values such as <code>exp(-1000)</code> never have to underflow to zero.</p></section>
+    <section class="guide-section" id="censored"><p class="eyebrow">Incomplete recording</p><h2>Right-censored p-values need a known family size</h2><p>Suppose a pipeline records only p-values at or below 0.05. This is not the same as ordinary missing data: every omitted value is known to be greater than 0.05. Supply both that limit and the total number of tests.</p><pre><code>double[] recorded = {0.001, 0.004, 0.01, 0.03};
+MultipleTesting.CensoredTestResult result =
+    MultipleTesting.testRightCensored(
+        recorded, 0.05, 10_000, 0.05,
+        Method.BENJAMINI_HOCHBERG);
+
+double[] conservativeAdjusted = result.getAdjustedPValues();
+boolean exactAtThisLevel = result.areDecisionsExact();</code></pre><p>The implementation completes the unrecorded tail with p=1. The returned adjusted values are therefore conservative. Decision flags are exact when the censoring limit is at least the method's largest possible rejection boundary—for BH at level q, for example, when the limit is at least q. Otherwise, reported discoveries remain valid but more discoveries may be unknowable from the retained data.</p><aside class="callout caution"><strong>If the total test count is unknown, multiplicity is unidentified.</strong> Do not adjust only the retained values as if they were the full family. Recover the original family size or report that valid family-wide correction cannot be reconstructed. Storey π₀ estimation also needs the full upper tail; use uncensored data for q-values unless a censoring-aware model is explicitly justified.</aside></section>
+    <section class="guide-section" id="qvalues"><p class="eyebrow">Storey q-values</p><h2>Estimate how many hypotheses are truly null</h2><pre><code>// Estimate from the complete study-wide collection of p-values.
+double pi0 = MultipleTesting.estimateNullProportion(studyPValues);
+double[] q = MultipleTesting.qValues(studyPValues, pi0);
+
+// Robust alternative inherited from the QGeneric workflow.
+double quantilePi0 =
+    MultipleTesting.estimateNullProportionQuantile(
+        studyPValues, 0.10);
+double[] quantileQ = MultipleTesting.qValues(
+    studyPValues, quantilePi0);</code></pre><p>The default lambda grid runs from 0.05 through 0.95. Advanced callers can supply the grid and smoothing degrees of freedom, or call <code>qValues(p, pi0)</code> when π₀ comes from an external analysis. Setting π₀ to one gives the Benjamini–Hochberg adjusted values. A zero estimate is rejected with guidance to inspect the p-value distribution or choose a suitable lambda grid.</p><aside class="callout caution"><strong>π₀ is an estimate.</strong> Q-values can gain power when the estimate is credible, but their behavior depends on the p-value distribution and tuning choices. Estimate it from the complete hypothesis family and inspect sensitivity rather than treating the default as automatic truth.</aside></section>
+    <section class="guide-section" id="missing"><p class="eyebrow">Input contract</p><h2>Use NaN for missing p-values</h2><p><code>NaN</code> is preserved at the same position and excluded from the default test count. Every other input must be finite and between zero and one. This replaces QGeneric's private undefined-value sentinel and prevents silent ordering errors.</p><p>The implementation also corrects the legacy Šidák direction: adjusted values use <code>1 - (1 - p)^m</code>, evaluated through stable logarithmic functions for very small probabilities.</p></section>
+    <section class="guide-section guide-next"><p class="eyebrow">Reference</p><h2>Use the complete example</h2><p>The <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/MultipleTestingExamples.java">compiled example</a> covers adjustment, decisions, adaptive BKY, log p-values, censoring, π₀ estimation, and q-values. See the <a href="api/jdistlib/disttest/MultipleTesting.html">JavaDoc</a> for every overload.</p><p>The standard adjustment contract follows <a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/p.adjust.html">R's <code>p.adjust</code> documentation</a>. BKY follows <a href="https://doi.org/10.1093/biomet/93.3.491">Benjamini, Krieger, and Yekutieli (2006)</a>. The default π₀ grid and smoothing degrees of freedom follow the <a href="https://bioconductor.org/packages/release/bioc/manuals/qvalue/man/qvalue.pdf">Bioconductor qvalue manual</a>.</p></section>
+  </main>
+  <footer><span>JDistlib multiple-testing guide.</span><span>Available from JDistlib 0.7.0.</span></footer>
+</body>
+</html>

@@ -20,6 +20,11 @@
 
 ## Recently completed
 
+* Consolidated the QGeneric FDR plugins into the stateless 0.7.0
+  `MultipleTesting` API, adding standard p-value adjustments, Storey q-values,
+  missing-value preservation, family-size overrides, and decision helpers.
+* Expanded multiple testing with adaptive two-stage BKY, log-p input, and
+  conservative right-censored-family results.
 * Added a prominent beginner learning center with distribution and custom-law
   tutorials, applied vignettes, and clearly versioned 0.7.0+ copula learning
   paths; tutorial companion code is compiled by `check`.

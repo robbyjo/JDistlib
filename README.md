@@ -75,6 +75,9 @@ The website now puts beginner material first:
   density/mass, CDF, quantile, tails, and reproducible simulation.
 * [Response-time vignette](https://robbyjo.github.io/JDistlib/distribution-vignette.html) —
   an applied univariate analysis with goodness-of-fit checks.
+* [Multiple testing and FDR](https://robbyjo.github.io/JDistlib/multiple-testing.html) —
+  adjusted and log p-values, adaptive BKY, censored families, rejection
+  thresholds, and Storey q-values (JDistlib 0.7.0+).
 * [Building a custom distribution](https://robbyjo.github.io/JDistlib/custom-distributions.html#beginner-path)
   and the [sensor-error vignette](https://robbyjo.github.io/JDistlib/custom-distribution-vignette.html)
   (JDistlib 0.6.0+).
@@ -147,6 +150,32 @@ numerical results for mixed-measure derivatives. `CVineCopula` and
 `CopulaFitter`, `CopulaSelector`, and `VineFitter` provide rank or
 distributional transforms, dependence estimation, and AIC/BIC family
 selection. See the [copula guide](docs/COPULAS.md) for the full contract.
+
+## Multiple testing and false discovery rates
+
+JDistlib 0.7.0 adds a stateless `MultipleTesting` facade in
+`jdistlib.disttest`. It provides Bonferroni, Holm, Hochberg, Hommel, Šidák,
+Holm–Šidák, Benjamini–Hochberg, and Benjamini–Yekutieli adjusted p-values,
+along with rejection flags, counts, and raw p-value thresholds. `NaN` is treated
+as missing and preserved in place.
+
+```java
+double[] adjusted = MultipleTesting.adjust(
+    pValues, MultipleTesting.Method.BENJAMINI_HOCHBERG);
+boolean[] rejected = MultipleTesting.reject(
+    pValues, 0.05, MultipleTesting.Method.BENJAMINI_HOCHBERG);
+```
+
+Adaptive two-stage BKY is available through
+`benjaminiKriegerYekutieli(pValues, level)`. Extremely small probabilities can
+remain in natural-log form with `adjustLog`, and `testRightCensored` supports a
+known p-value recording limit when the original family size is also known.
+
+Storey q-values can use the default smoothing-spline estimate of π₀, the
+quantile estimator inherited from QGeneric, or a caller-supplied π₀. Setting π₀
+to one reproduces Benjamini–Hochberg adjusted values. See the
+[multiple-testing guide](docs/multiple-testing.html) for assumptions and the
+complete API.
 
 ## Numerical integration
 

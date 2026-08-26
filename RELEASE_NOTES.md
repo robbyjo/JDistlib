@@ -13,6 +13,15 @@ requiring JDistlib 0.7.0 or later.
 Cramer-von Mises goodness-of-fit procedures with reproducible resampling, plus
 Pearson categorical goodness-of-fit and contingency-table independence tests.
 
+The adjacent `jdistlib.disttest.MultipleTesting` facade complements generated
+p-values with standard FWER and FDR adjustments, decision helpers, and Storey
+q-values. It replaces the older QGeneric plugin hierarchy with one stateless
+API, uses `NaN` for missing values, and corrects the legacy Šidák exponent
+direction.
+It also provides two-stage Benjamini–Krieger–Yekutieli testing, fully
+log-domain adjustment for underflow-scale p-values, and explicit handling of
+right-censored families when the censoring limit and total test count are known.
+
 Highlights:
 
 - introduces the immutable `Copula` interface with independence, Gaussian,

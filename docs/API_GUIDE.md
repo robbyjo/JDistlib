@@ -16,6 +16,7 @@ Use the smallest API that expresses the distribution you have.
 | Continuous marginals joined by a dependence model | A `Copula` implementation and `CopulaDistribution` |
 | Discrete or mixed marginals joined by a copula | `CopulaMarginal` declarations and `MixedCopulaDistribution` |
 | Flexible multivariate dependence or family fitting | `CVineCopula`/`DVineCopula`, `CopulaFitter`, or `CopulaSelector` |
+| Adjust many p-values or calculate Storey q-values | `jdistlib.disttest.MultipleTesting` |
 | A finite, semi-infinite, or whole-line integral | `Integrate.integrate` with `IntegrationOptions` when defaults are insufficient |
 | A multivariate normal/t/Cauchy/log-normal rectangle probability | The law's `probability` method and `MultivariateProbabilityResult` |
 
@@ -56,3 +57,22 @@ Each test returns the statistic followed by its p-value. Chi-square methods also
 return degrees of freedom. If reference parameters were estimated from the same
 sample, the default fully-specified-law bootstrap is not sufficient: refit inside
 each replicate or use a model-specific correction.
+
+## Multiple testing and FDR
+
+Version 0.7.0 adds the stateless `jdistlib.disttest.MultipleTesting` facade.
+`adjust(pValues, method)` covers pass-through, Bonferroni, Holm, Hochberg,
+Hommel, Šidák, Holm–Šidák, Benjamini–Hochberg, and Benjamini–Yekutieli
+procedures while preserving input order and missing `NaN` positions. `reject`,
+`countRejected`, and `threshold` turn adjusted values into decisions.
+
+`benjaminiKriegerYekutieli(pValues, level)` exposes the adaptive two-stage BKY
+procedure as a level-dependent result. `adjustLog` performs every adjustment
+directly on natural-log p-values, and `testRightCensored` conservatively handles
+a recorded lower tail when both the censoring limit and full family size are
+known.
+
+`qValues` implements Storey q-values with a smoothing-spline π₀ estimate by
+default. Callers can instead provide π₀ directly or use the quantile estimator.
+See the [multiple-testing guide](https://robbyjo.github.io/JDistlib/multiple-testing.html)
+for assumptions and examples.

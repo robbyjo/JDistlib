@@ -108,23 +108,40 @@ screen. Its beta transformation, Jacobian, unbounded support, instance methods,
 and generator are now covered by regression tests; the earlier implementation
 incorrectly used a bounded transformation and truncated instance inputs.
 
-## Completed screen and dispositions
+## Completed task-view coverage
 
 The [CRAN Probability Distributions Task View](https://cran.r-project.org/view=Distributions)
-was reviewed through version 2026-08-21. The former candidate queue has been
-closed as follows. An implementation row means that JDistlib now provides the
-complete meaningful probability API. A disposition row records why a family is
-not silently represented by a partial or arbitrarily parameterized class.
+was reviewed through version 2026-08-21. The table below contains only families
+implemented in JDistlib or already covered by a general composition or
+transformation API. An implementation row means that JDistlib provides the
+complete meaningful probability API.
 
-| Screened group | Disposition | Notes |
+| Screened group | Coverage | Notes |
 | --- | --- | --- |
 | Generalized F | Implemented as `GeneralizedF` | Direct smaller-tail beta evaluation avoids the underflow cases recorded by `flexsurv`. |
 | Beta-negative-binomial, negative hypergeometric, discrete Weibull, Skellam | Implemented | Complete D/P/Q/R APIs include operations missing from some reference packages. |
 | Half-Cauchy, half-t, slash, Tukey lambda | Implemented | Slash and Tukey lambda quantiles/CDFs complete reference APIs that expose only a subset. |
 | Feller-Pareto and phase-type | Implemented | `PhaseType` preserves the optional atom at zero and uses call-local matrix workspaces. |
 | Huber, asymmetric Laplace, exponentially modified Gaussian | Implemented | These distinct scalar laws have complete logged-tail D/P/Q/R APIs; the EMG quantile replaces the reference package's unconstrained optimizer with monotone inversion. |
+| Discrete Laplace and logit-normal | Implemented as `DiscreteLaplace` and `LogitNormal` | The discrete-Laplace API supports a translated integer lattice; logit-normal uses stable normal/logit transformations. |
 | Truncated and zero-inflated families | Covered by composition | `TruncatedContinuousDistribution`, `ModifiedCount`, and the named count laws provide reusable semantics without a class per base family. |
 | Mixture distributions | Covered by composition | `MixtureDistribution` is the immutable normalized scalar mixture API; specialist aliases would be duplicates. |
+| Inverse chi-squared and shifted/truncated aliases | Covered by transformation/composition | `InvGamma`, location-scale transformations, and truncation wrappers supply these laws without duplicate numerical code. |
+
+Fixed parameterizations and aliases remain represented by an existing law
+rather than a duplicate class. For example, Bernoulli is `Binomial` with size
+one, Wald is `InvNormal`, and several Pareto/Lomax forms are covered by
+`evd.GeneralizedPareto` after parameter conversion.
+
+## Not yet implemented
+
+The following screened entries are not part of JDistlib 0.6.1. Deferred rows
+remain candidates for a future release after the named shared API or numerical
+contract is designed. Not-selected rows lack a single reusable distribution
+contract or would conceal a construction already better expressed explicitly.
+
+| Screened group | Status | Reason |
+| --- | --- | --- |
 | Variance-gamma, normal-inverse-Gaussian, generalized hyperbolic | Deferred as one design unit | These nested parameterizations need a shared financial-family contract, exponentially scaled Bessel-density audit, and numerical-CDF error contract. Adding any one package convention alone would make later compatibility worse. |
 | Multivariate inverted beta, Burr, F, Lomax/Pareto and Cook-Johnson uniform | Not selected | `NonNorMvtDist` assigns distribution-specific meanings to multivariate CDF and quantile operations; those do not establish a reusable JDistlib vector contract. |
 | Bivariate geometric/logarithmic/negative-binomial and Poisson-lognormal | Not selected | The task view lists inequivalent dependence constructions. No unqualified class name can choose one without silently fixing a model. |
@@ -134,17 +151,3 @@ not silently represented by a partial or arbitrarily parameterized class.
 | Delaporte and Pólya-Aeppli | Deferred to compound-count design | Both are useful, but robust extreme-tail CDF/quantile recurrences should share one compound-count contract rather than two isolated summation loops. |
 | Circular and directional laws | Deferred to a periodic-support API | Von Mises and wrapped laws need modulo-equivalent observations, interval conventions, and circular quantiles defined consistently. |
 | Discrete gamma and discrete normal | Not selected under those names | The listed `extraDistr` laws are floor-discretizations with density-only reference implementations; unqualified names would hide that construction. |
-| Inverse chi-squared and shifted/truncated aliases | Covered by transformation/composition | `InvGamma`, location-scale transformations, and truncation wrappers already supply these laws without duplicate numerical code. |
-
-The 2026-08-21 task-view review also selected `DiscreteLaplace`,
-`LogitNormal`, `AsymmetricLaplace`, `ExponentiallyModifiedGaussian`, and
-`Huber`, distinct complete scalar laws with broad modeling use. The
-discrete-Laplace API supports a translated integer lattice rather than silently
-restricting the location to zero. Fixed parameterizations and aliases remain
-excluded under the policy above; package lists were not treated as a requirement
-to duplicate every spelling of an existing law.
-
-Aliases and exact special cases are intentionally not separate classes. For
-example, Bernoulli is `Binomial` with size one, Wald is `InvNormal`, and several
-Pareto/Lomax forms are covered by `evd.GeneralizedPareto` after parameter
-conversion.

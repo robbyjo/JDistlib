@@ -1,6 +1,6 @@
 What's new:
 
-Version 0.7.2 (development):
+Version 0.7.2 (August 26, 2026):
 * Added checked-in 90-digit Decimal reference corpora for boundary-heavy mixed
   Clayton measures and simplified C-/D-vine log densities, with a standalone
   generator derived independently from the Java implementation.

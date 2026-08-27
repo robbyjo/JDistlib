@@ -1,48 +1,42 @@
-# JDistlib 0.7.2 (development)
+# JDistlib 0.7.2
 
-JDistlib 0.7.2 development begins with independent high-precision validation
-for boundary-heavy mixed and simplified-vine likelihoods. It adds auditable
-row-level likelihood diagnostics, fitted-vine information criteria, analytic
-conditionals for every built-in pair family, and additive deterministic or
-explicit-seed mixed fitting conveniences while retaining the 0.7.0 API and
-Java 8 bytecode.
+JDistlib 0.7.2 hardens the copula framework introduced in 0.7.0. It expands
+independent validation for mixed and simplified-vine likelihoods, adds
+auditable fitted-model diagnostics, and incorporates API feedback through
+additive conveniences while preserving the existing public API, deterministic
+seeded behavior, and Java 8 bytecode.
 
-## Previous release: JDistlib 0.7.1
+Validation and numerical improvements include:
 
-JDistlib 0.7.1 expands multiple-testing and numerical-integration support while
-preserving Java 8-compatible bytecode, deterministic seeded behavior, and the
-GPL-2.0-or-later license.
+- checked-in 90-digit Decimal reference corpora for central, rare-event, and
+  boundary-heavy Clayton mixed measures and three-dimensional C-/D-vine log
+  densities, with an implementation-independent generator;
+- analytic conditional CDFs for Clayton, Gumbel, and Frank pair copulas, direct
+  analytic inverses for Clayton and Frank, and the existing numerical fallback
+  for custom copulas; and
+- a scaled/log-domain Clayton conditional calculation that remains stable near
+  unit-cube boundaries.
 
-Multiple-testing additions include:
+API and diagnostic improvements include:
 
-- prespecified-weight Benjamini–Hochberg, Benjamini–Yekutieli, Bonferroni, and
-  Holm procedures with scale-invariant mean-one weight normalization;
-- direct natural-log variants and completed family-size, rejection-count, and
-  threshold helpers for batch methods;
-- the adaptive Gavrilov–Benjamini–Sarkar step-down FDR procedure for independent
-  tests;
-- two-level Benjamini–Bogomolov testing for explicitly grouped families;
-- separate stateful LORD++ and SAFFRON controllers for hypotheses arriving over
-  time; and
-- DBH step-up and step-down procedures for independent heterogeneous discrete
-  p-values with explicit null support and CDF declarations.
+- row-level `CopulaLikelihoodDiagnostics`, including individual log-density
+  contributions, boundary distances, summary statistics, and the first
+  non-finite observation;
+- `CopulaLogLikelihoodResult`, which retains mixed-measure contributions,
+  numerical warnings, CDF evaluation cost, maximum reported error, and the
+  first failing row;
+- fitted pair and vine diagnostics, observation counts, and vine AIC/BIC;
+- deterministic midpoint and explicit-seed overloads for mixed fitting,
+  selection, and vine fitting; and
+- defensive marginal-array access and conventional getters on existing result
+  objects without removing their original fields or methods.
 
-Numerical and modeling additions include:
-
-- a pure-Java finite-interval CQUAD integration strategy with nested
-  Clenshaw–Curtis interpolants, degree and interval refinement, largest-error
-  prioritization, hardened callback handling, and automatic fallback after
-  QUADPACK; and
-- `Distributions.transform`, a concise factory for differentiable monotone
-  transformations, accompanied by a prominent beginner tutorial and compiled
-  examples covering mixtures, truncation, censoring, affine changes, nonlinear
-  transformations, and Jacobians.
-
-The documentation site includes updated multiple-testing guidance and the new
-composition tutorial. Regression coverage includes weighted and adaptive
-decisions, grouped and online procedures, discrete null distributions, CQUAD
-smooth and difficult integrands, callback budgets, breakpoints, and general
-transformation identities.
+The beginner copula tutorial, complete copula guide, compiled examples, API
+guide, website, changelog, and TODO ledger describe the additions. Regression
+coverage includes independent mixed/vine references, boundary conditionals,
+diagnostic aggregation, fitted-model information criteria, defensive copies,
+and exact equivalence between seed overloads and caller-owned
+`MersenneTwister` streams.
 
 Release assets include the binary library, sources, JavaDoc, and SHA-256
 checksums. See `CHANGELOG.md` for the detailed change list and `PUBLISHING.md`

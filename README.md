@@ -28,10 +28,10 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.7.1 is the current stable release. Version 0.7.2 is under development
-with independent boundary-heavy mixed/vine reference validation, fitted-model
-diagnostics, analytic built-in pair conditionals, and additive fitting
-conveniences. Version 0.7.1 expanded multiple testing, added CQUAD integration,
+Version 0.7.2 is the current stable release. It adds independent boundary-heavy
+mixed/vine reference validation, fitted-model diagnostics, analytic built-in
+pair conditionals, and additive fitting conveniences while retaining the 0.7.0
+copula API. Version 0.7.1 expanded multiple testing, added CQUAD integration,
 and introduced general monotone-transformation composition. The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and

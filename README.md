@@ -28,10 +28,12 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.8.1 is the current release. It corrects five R Bugzilla-derived
-numerical and test-method edge cases while preserving the Bayesian model
-composition, reproducible MCMC, diagnostics, graph exports, and versioned
-Stan-inspired modeling-language toolchain introduced in 0.8.0. Version 0.7.x
+Version 0.8.2 is the current release. It expands the Stan-inspired language
+with scoped scalar locals, control flow, stable scalar math, more than thirty
+probability families and RNGs, file-backed data examples, and complete
+in-memory/cached/ahead-of-time compilation guidance. It retains the 0.8.1
+numerical corrections and the Bayesian model composition, reproducible MCMC,
+diagnostics, and graph exports introduced in 0.8.0. Version 0.7.x
 introduced copula composition, dependence fitting,
 multiple-testing/FDR, CQUAD integration, and distribution composition. The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
@@ -40,10 +42,9 @@ file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
 and tested.
 
-The development branch builds as 0.8.2-SNAPSHOT. It adds file-backed MCMC
-examples, explicit script compilation tutorials, a Stan-user migration guide,
-model-block scalar locals and control flow, expanded differentiable scalar
-math, and more than thirty scalar probability families. Larger Stan language
+The 0.8.2 executable catalog contains fifty model scripts, including focused
+examples for the new robust, logit, overdispersed-count, lifetime, circular,
+reaction-time, control-flow, and stable-mixture features. Larger Stan language
 and runtime features remain in the unscheduled roadmap.
 
 The planned [0.9.0 finance and options roadmap](docs/FINANCE_ROADMAP.md) covers
@@ -53,10 +54,10 @@ arbitrage-constrained option-implied and posterior-predictive distributions.
 
 ## Download
 
-The [JDistlib 0.8.1 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.1)
+The [JDistlib 0.8.2 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.2)
 contains the Java library, source archive, JavaDoc archive, and SHA-256
 checksums. It produces Java 8-compatible bytecode. Download the
-[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.1/jdistlib-0.8.1.jar).
+[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.2/jdistlib-0.8.2.jar).
 
 ## Building
 
@@ -117,7 +118,7 @@ The website now puts beginner material first:
   [diagnostics vignette](docs/inference-diagnostics-vignette.html) — the full
   0.8.0 learning path, including fifteen executable reference models.
 * [Browse all examples](https://robbyjo.github.io/JDistlib/examples.html) —
-  forty-one validated Stan-inspired scripts plus compilable Java workflows for
+  fifty validated Stan-inspired scripts plus compilable Java workflows for
   copulas, mixtures, transformations, FDR, custom distributions, MCMC, and
   numerical integration.
 

@@ -1,0 +1,7 @@
+data { real angle; }
+parameters { real mean_direction; real<lower=0> concentration; }
+model {
+  mean_direction ~ normal(0,2); concentration ~ lognormal(0,1);
+  angle ~ von_mises(mean_direction,concentration);
+}
+generated quantities { real angle_rep = von_mises_rng(mean_direction,concentration); }

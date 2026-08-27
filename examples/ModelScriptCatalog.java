@@ -96,6 +96,18 @@ public final class ModelScriptCatalog {
 			result.put("group_b", new double[] {0.7, 1.0, 1.2}); break;
 		case "41": vectorData(result, new double[] {-0.42, -0.15, 0.03, 0.18,
 				0.31, 0.44, 0.57, 0.66}); break;
+		case "42": vectorData(result, new double[] {-0.3, 0.1, 0.2, 0.4, 6.0}); break;
+		case "43": put(result, "x", 1.25); put(result, "y", 1); break;
+		case "44": put(result, "n", 20); put(result, "y", 8); break;
+		case "45": put(result, "x", 0.75); put(result, "y", 5); break;
+		case "46": vectorData(result, new double[] {-0.4, 0.2, 0.5, 4.5});
+			put(result, "cutoff", 2); break;
+		case "47": put(result, "y", 4.5); break;
+		case "48": put(result, "N", 4);
+			result.put("lifetime", new double[] {0.7, 1.1, 1.8, 2.4}); break;
+		case "49": put(result, "angle", 0.6); break;
+		case "50": put(result, "N", 4);
+			result.put("reaction_time", new double[] {0.8, 1.1, 1.6, 2.0}); break;
 		default: throw new IllegalArgumentException("no representative data for " + name);
 		}
 		return result;

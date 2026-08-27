@@ -1,0 +1,11 @@
+data { int<lower=1> n; int<lower=0> y; }
+parameters { real<lower=0,upper=1> p; real<lower=0> concentration; }
+transformed parameters {
+  real alpha = p*concentration;
+  real beta_shape = (1-p)*concentration;
+}
+model {
+  p ~ beta(2,2); concentration ~ lognormal(2,1);
+  y ~ beta_binomial(n,alpha,beta_shape);
+}
+generated quantities { int y_rep = beta_binomial_rng(n,alpha,beta_shape); }

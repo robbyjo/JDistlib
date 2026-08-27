@@ -1,0 +1,9 @@
+data { int<lower=1> N; vector[N] reaction_time; }
+parameters { real location; real<lower=0> sigma; real<lower=0> exponential_rate; }
+model {
+  location ~ normal(0,2); sigma ~ lognormal(0,0.5); exponential_rate ~ gamma(2,1);
+  reaction_time ~ exp_mod_normal(location,sigma,exponential_rate);
+}
+generated quantities {
+  real reaction_time_rep = exp_mod_normal_rng(location,sigma,exponential_rate);
+}

@@ -1,0 +1,7 @@
+data { int<lower=1> N; vector[N] lifetime; }
+parameters { real<lower=0> shape; real<lower=0> scale; }
+model {
+  shape ~ lognormal(0,0.5); scale ~ lognormal(1,0.5);
+  lifetime ~ weibull(shape,scale);
+}
+generated quantities { real lifetime_rep = weibull_rng(shape,scale); }

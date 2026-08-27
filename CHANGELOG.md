@@ -1,6 +1,6 @@
 What's new:
 
-Unreleased 0.8.2:
+Version 0.8.2 (August 27, 2026):
 * Expanded the Stan-inspired model language with initialized scoped scalar
   locals, assignment operators, comparisons and boolean expressions,
   `if`/`else`, integer-range `for`, guarded `while`, and Stan's vertical-bar
@@ -15,6 +15,11 @@ Unreleased 0.8.2:
   comparison, a control-flow model script, focused execution/gradient tests,
   complete in-memory/cache/CLI compilation instructions, and a migration guide
   for Stan users.
+* Expanded the executable catalog to fifty validated model scripts, including
+  robust Student-t, logit regression, beta-binomial, negative-binomial log-link,
+  scoped control flow, stable log-space mixtures, Weibull, von Mises, and
+  exponentially modified normal examples; added a Java comparison of all three
+  compilation paths.
 * Moved arrays and richer indexing, matrices and linear algebra, user-defined
   functions/overloads, general broadcasting, further constrained transforms,
   reverse-mode autodiff, and ODE/DAE/algebraic solvers to the unscheduled

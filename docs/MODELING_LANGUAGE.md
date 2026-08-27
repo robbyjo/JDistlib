@@ -155,8 +155,8 @@ sample the model. A complete Windows command-line workflow is:
 
 ```text
 gradlew.bat jar
-java -cp build\libs\jdistlib-0.8.2-SNAPSHOT.jar jdistlib.inference.lang.ModelScriptCli examples\models\41-normal-csv-mean.jdm com.example.NormalCsvMean build\generated\com\example\NormalCsvMean.java
-javac -cp build\libs\jdistlib-0.8.2-SNAPSHOT.jar -d build\generated-classes build\generated\com\example\NormalCsvMean.java
+java -cp build\libs\jdistlib-0.8.2.jar jdistlib.inference.lang.ModelScriptCli examples\models\41-normal-csv-mean.jdm com.example.NormalCsvMean build\generated\com\example\NormalCsvMean.java
+javac -cp build\libs\jdistlib-0.8.2.jar -d build\generated-classes build\generated\com\example\NormalCsvMean.java
 ```
 
 Instantiate `com.example.NormalCsvMean` as a `GeneratedModelFactory` and call
@@ -170,9 +170,11 @@ parameterization changes require a new language version.
 
 ## Example catalog and build gate
 
-`examples/models` contains forty-one standalone `.jdm` programs spanning every
+`examples/models` contains fifty standalone `.jdm` programs spanning every
 supported declaration, constraint, transformed block, distribution, RNG,
-vectorization/indexing form, and manual-target pattern. Run:
+vectorization/indexing form, and manual-target pattern. Models 42–50 are focused
+0.8.2 examples for the expanded distributions, scalar math, locals, and control
+flow. Run:
 
 ```text
 ./gradlew validateModelScripts

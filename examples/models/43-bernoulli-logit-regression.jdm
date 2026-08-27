@@ -1,0 +1,5 @@
+data { real x; int<lower=0,upper=1> y; }
+parameters { real alpha; real beta; }
+transformed parameters { real eta = alpha + beta*x; }
+model { alpha ~ normal(0,2); beta ~ normal(0,1); y ~ bernoulli_logit(eta); }
+generated quantities { int y_rep = bernoulli_logit_rng(eta); }

@@ -1,0 +1,16 @@
+data { int<lower=1> N; vector[N] y; real<lower=0> cutoff; }
+parameters { real mu; real<lower=0> sigma; }
+model {
+  mu ~ normal(0,5); sigma ~ lognormal(0,1);
+  real total = 0;
+  int n = 1;
+  while (n <= N) {
+    real residual = abs(y[n]-mu);
+    if (residual > cutoff)
+      total += student_t_lpdf(y[n] | 4,mu,2*sigma);
+    else
+      total += normal_lpdf(y[n] | mu,sigma);
+    n += 1;
+  }
+  target += total;
+}

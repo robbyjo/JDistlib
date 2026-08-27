@@ -1,4 +1,44 @@
-# JDistlib 0.8.1
+# JDistlib 0.8.2
+
+JDistlib 0.8.2 expands the versioned Stan-inspired model-script frontend and
+its executable learning path while preserving the numerical corrections from
+0.8.1 and the complete 0.8.0 inference API.
+
+Model blocks now support initialized scoped scalar locals, compound assignment,
+comparisons and boolean expressions, `if`/`else`, integer-range `for`, guarded
+`while`, and Stan's vertical-bar probability-function separator. The
+differentiable scalar function catalog now covers stable log-space transforms,
+normal-CDF helpers, special functions, and common elementary functions. More
+than thirty scalar probability families and corresponding generated-quantity
+RNGs are available, including Student-t, lognormal, logistic, Gumbel,
+skew-normal, exponentially modified normal, von Mises, inverse-gamma,
+inverse-chi-square variants, Weibull, Fréchet, Rayleigh, beta-binomial,
+negative-binomial variants, geometric, and Pareto variants.
+
+The release adds a checked CSV dataset and an executable comparison that feeds
+the same observations to Java-built and scripted models. The tutorials now show
+in-memory compilation, SHA-256 keyed JDK compilation caches, generated Java
+source, direct CLI use, sampling, generated quantities, and a dedicated path
+for Stan users with an explicit compatibility boundary.
+
+The catalog contains fifty semantically validated `.jdm` programs. Nine focused
+0.8.2 models demonstrate robust Student-t location, Bernoulli-logit regression,
+beta-binomial overdispersion, a negative-binomial log link, scoped piecewise
+control flow, stable contamination mixtures, Weibull lifetimes, von Mises
+directions, and exponentially modified reaction times. A new Java companion
+compares the in-memory, cached-JDK, and generated-source compilation paths.
+Every release build compiles all Java examples and checks every script's finite
+initial density, analytic gradient, and generated quantities.
+
+The script language remains a documented Stan-inspired subset rather than a
+claim that arbitrary Stan source is accepted. Arrays, matrices, full
+vectorization, user-defined functions, further transforms, reverse-mode
+autodiff, and differential/algebraic solvers remain roadmap work.
+
+Release assets include the binary library, sources, JavaDoc, and SHA-256
+checksums. Produced classes remain Java 8 bytecode.
+
+## Previous release: JDistlib 0.8.1
 
 JDistlib 0.8.1 is a focused correctness release following the 0.8.0 inference
 release. It addresses five reports found by cross-checking R Bugzilla against

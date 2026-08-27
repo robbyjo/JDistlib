@@ -1,0 +1,9 @@
+data { real y; }
+parameters { real mu; real<lower=0,upper=1> contamination; }
+model {
+  real clean_log_density = normal_lpdf(y | mu,1);
+  real outlier_log_density = normal_lpdf(y | mu,5);
+  mu ~ normal(0,5);
+  contamination ~ beta(1,9);
+  target += log_mix(contamination,outlier_log_density,clean_log_density);
+}

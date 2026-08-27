@@ -2,10 +2,10 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Beginner tutorial for Bayesian models, NUTS sampling, diagnostics, and posterior graphs in JDistlib 0.8.0.">
 <title>JDistlib inference tutorial</title><link rel="stylesheet" href="assets/style.css"></head>
-<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a aria-current="page" href="inference-tutorial.html">Inference 0.8.0</a><a href="inference-guide.html">Inference guide</a><a href="modeling-language-tutorial.html">Model scripts</a><a href="api/">JavaDoc</a><a href="https://github.com/robbyjo/JDistlib">Source</a></nav></header>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a aria-current="page" href="inference-tutorial.html">Inference 0.8.0</a><a href="inference-guide.html">Inference guide</a><a href="modeling-language-tutorial.html">Model scripts</a><a href="stan-users.html">For Stan users</a><a href="api/">JavaDoc</a><a href="https://github.com/robbyjo/JDistlib">Source</a></nav></header>
 <main class="guide">
 <section class="guide-hero"><p class="eyebrow">Beginner tutorial · 0.8.0</p><h1>Fit a posterior, then prove the fit is usable</h1><p class="lede">Build a beta-binomial model, run four reproducible NUTS chains, inspect modern diagnostics, and export plots without a desktop UI.</p><span class="version-pill">Available in JDistlib 0.8.0</span></section>
-<nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#model">1 Model</a><a href="#sample">2 Sample</a><a href="#diagnose">3 Diagnose</a><a href="#graph">4 Graph</a><a href="#interpret">5 Interpret</a></nav>
+<nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#model">1 Model</a><a href="#data">2 Ingest data</a><a href="#sample">3 Sample</a><a href="#diagnose">4 Diagnose</a><a href="#graph">5 Graph</a><a href="#interpret">6 Interpret</a></nav>
 <section class="guide-section" id="model"><p class="eyebrow">Step 1</p><h2>Name data, constraints, and factors</h2><p>A coin was tossed ten times and produced seven successes. A beta(2,2) prior is weakly centered at one half; the binomial likelihood supplies the evidence. JDistlib samples an unconstrained coordinate while exposing <code>theta</code> on (0,1), including the transform Jacobian automatically.</p>
 <pre><code>BayesianModel model = new ModelBuilder()
     .data("trials", 10)
@@ -23,7 +23,18 @@ GradientCheckResult check = Gradients.check(
     model, model.initialState(), 1e-5, 1e-5);
 if (!check.passed()) throw new IllegalStateException(check.message());</code></pre>
 <aside class="callout"><strong>Sampler coordinates:</strong> initial states and raw chain columns are unconstrained. Convert a draw with <code>model.state(draw).scalar("theta")</code>.</aside></section>
-<section class="guide-section" id="sample"><p class="eyebrow">Step 2</p><h2>Run independently initialized chains</h2><pre><code>SamplingOptions options = SamplingOptions.builder()
+<section class="guide-section" id="data"><p class="eyebrow">Step 2 · file-backed data</p><h2>Convert application data to primitive arrays</h2><p>JDistlib does not prescribe CSV, JSON, database, or dataframe dependencies. Read the source with your application's preferred library, validate missing values, and bind the resulting array:</p><pre><code>double[] y = McmcDataIngestionExamples.readNumericColumn(
+    Paths.get("examples/data/normal-observations.csv"), "y");
+
+BayesianModel dataModel = new ModelBuilder()
+    .data("y", y)
+    .parameter("mu", Constraints.real(), 0.0)
+    .factor("prior", new String[] {"mu"},
+        ModelFactors.normalPrior("mu", 0, 10))
+    .factor("likelihood", new String[] {"y", "mu"},
+        ModelFactors.normalObservations("y", "mu", 1))
+    .build();</code></pre><p>The complete <a href="modeling-language-tutorial.html">data and model-script tutorial</a> feeds this same CSV into both <code>ModelBuilder</code> and a compiled <code>.jdm</code> file.</p></section>
+<section class="guide-section" id="sample"><p class="eyebrow">Step 3</p><h2>Run independently initialized chains</h2><pre><code>SamplingOptions options = SamplingOptions.builder()
     .warmupIterations(500)
     .sampleIterations(1000)
     .targetAcceptance(0.85)
@@ -34,7 +45,7 @@ double[][] initial = {{-1.0}, {-0.25}, {0.25}, {1.0}};
 ChainResult[] chains = Chains.parallel(
     new NoUTurnSampler(), model, initial,
     options, 20260826L, 4);</code></pre><p>The base seed deterministically creates independent streams. Results do not depend on worker scheduling. Warmup adapts step size and the mass matrix; retained draws start after adaptation.</p></section>
-<section class="guide-section" id="diagnose"><p class="eyebrow">Step 3</p><h2>Read diagnostics as a group</h2><pre><code>McmcDiagnosticReport report = McmcDiagnostics.analyze(
+<section class="guide-section" id="diagnose"><p class="eyebrow">Step 4</p><h2>Read diagnostics as a group</h2><pre><code>McmcDiagnosticReport report = McmcDiagnostics.analyze(
     new String[] {"theta_free"}, chains);
 
 ParameterDiagnostics theta = report.parameter("theta_free");
@@ -43,7 +54,7 @@ System.out.println(theta.bulkEffectiveSampleSize());
 System.out.println(theta.tailEffectiveSampleSize());
 System.out.println(report.sampler().divergences());</code></pre>
 <div class="guide-columns"><article><h3>Minimum healthy screen</h3><p>R-hat below 1.01, bulk and tail ESS above 100, zero divergences, no tree-depth saturation, and E-BFMI above 0.3.</p></article><article><h3>Not a proof</h3><p>Also check that posterior implications are scientifically plausible and that chains explore every relevant mode.</p></article></div></section>
-<section class="guide-section" id="graph"><p class="eyebrow">Step 4</p><h2>Export reviewable graphs and a report</h2><pre><code>ChartSpec trace = DiagnosticGraphs.trace("theta_free", 0, chains);
+<section class="guide-section" id="graph"><p class="eyebrow">Step 5</p><h2>Export reviewable graphs and a report</h2><pre><code>ChartSpec trace = DiagnosticGraphs.trace("theta_free", 0, chains);
 ChartSpec ranks = DiagnosticGraphs.ranks("theta_free", 0, 20, chains);
 ChartSpec acf = DiagnosticGraphs.autocorrelation(
     "theta_free", 0, 40, chains);
@@ -54,7 +65,7 @@ String csv = ChainExport.toCsv(new String[] {"theta_free"}, chains);
 String html = InferenceHtmlReport.render(
     "Coin posterior", report, model.graph(),
     trace, ranks, acf, energy);</code></pre><p><code>ChartSpec</code> is renderer-neutral: JSON and CSV feed another plotting library, SVG is directly publishable, and the HTML report is self-contained.</p></section>
-<section class="guide-section" id="interpret"><p class="eyebrow">Step 5</p><h2>Summarize on the scientific scale</h2><pre><code>double mean = 0.0;
+<section class="guide-section" id="interpret"><p class="eyebrow">Step 6</p><h2>Summarize on the scientific scale</h2><pre><code>double mean = 0.0;
 for (int draw = 0; draw &lt; chains[0].size(); draw++) {
   mean += model.state(chains[0].sample(draw)).scalar("theta");
 }

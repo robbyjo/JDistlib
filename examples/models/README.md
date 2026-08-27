@@ -5,8 +5,10 @@ Stan-inspired examples, not claims of Stan source compatibility.
 
 The catalog covers constrained scalar and vector parameters, simplexes,
 ordered vectors, transformed data and parameters, vectorized and indexed
-likelihoods, custom `target +=` terms, regression links, non-centered effects,
-and every supported generated-quantity RNG. `./gradlew check` compiles every
+likelihoods, scalar locals, `if`/`else`, `for`, guarded `while`, custom
+`target +=` terms, regression links, non-centered effects, and representative
+generated-quantity RNGs. Model 41 is paired with a checked-in CSV and fits the
+same posterior through Java and script frontends. `./gradlew check` compiles every
 script with representative data through `examples.ModelScriptCatalog`, so a
 syntax or semantic regression fails the build.
 
@@ -20,4 +22,6 @@ ChainResult chain = new NoUTurnSampler().sample(
 ```
 
 See `docs/model-script-examples.html` for a browsable description of every
-model and `docs/MODELING_LANGUAGE.md` for the exact supported surface.
+model, `docs/modeling-language-tutorial.html` for data ingestion and compilation,
+`docs/stan-users.html` for migration guidance, and `docs/MODELING_LANGUAGE.md`
+for the exact supported surface.

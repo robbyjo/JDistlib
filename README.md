@@ -40,6 +40,17 @@ file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
 and tested.
 
+The development branch builds as 0.8.2-SNAPSHOT. It adds file-backed MCMC
+examples, explicit script compilation tutorials, a Stan-user migration guide,
+model-block scalar locals and control flow, expanded differentiable scalar
+math, and more than thirty scalar probability families. Larger Stan language
+and runtime features remain in the unscheduled roadmap.
+
+The planned [0.9.0 finance and options roadmap](docs/FINANCE_ROADMAP.md) covers
+tail-risk and payoff functionals, transform-domain and heavy-tailed families,
+aggregation, tail-sensitive dependence, distribution/EVT fitting, and
+arbitrage-constrained option-implied and posterior-predictive distributions.
+
 ## Download
 
 The [JDistlib 0.8.1 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.1)
@@ -96,12 +107,17 @@ The website now puts beginner material first:
   samplers, diagnostics, graphing, and reproducibility (JDistlib 0.8.0+).
 * [Modeling language](docs/MODELING_LANGUAGE.md) — the versioned,
   Stan-inspired script frontend and ahead-of-time Java workflow.
+* [Data ingestion and script compilation](docs/modeling-language-tutorial.html) —
+  read CSV data, fit the same model through Java or a `.jdm` script, and choose
+  in-memory, cached, or ahead-of-time compilation.
+* [JDistlib for Stan users](docs/stan-users.html) — concept mapping, model
+  migration, data binding, sampling, output, and compatibility boundaries.
 * [Inference tutorial](docs/inference-tutorial.html), [complete guide](docs/inference-guide.html),
   [worked vignette](docs/inference-vignette.html), and
   [diagnostics vignette](docs/inference-diagnostics-vignette.html) — the full
   0.8.0 learning path, including fifteen executable reference models.
 * [Browse all examples](https://robbyjo.github.io/JDistlib/examples.html) —
-  forty validated Stan-inspired scripts plus compilable Java workflows for
+  forty-one validated Stan-inspired scripts plus compilable Java workflows for
   copulas, mixtures, transformations, FDR, custom distributions, MCMC, and
   numerical integration.
 
@@ -180,7 +196,10 @@ full contract and independent high-precision reference cases.
 The `jdistlib.inference` package composes observed data, constrained parameters,
 priors, and likelihood factors into an unnormalized multivariate target.
 Programmatic Java models and the Stan-inspired 0.8 script language lower into
-the same model representation. HMC and multinomial NUTS use analytic or
+the same model representation. Scripts support scalar locals, comparisons,
+boolean expressions, `if`/`else`, integer-range `for`, guarded `while`, a broad
+Stan scalar-math surface, and more than thirty scalar probability families.
+HMC and multinomial NUTS use analytic or
 forward-mode gradients, dual-averaging warmup, and diagonal or dense metric
 adaptation; Metropolis, slice, Gibbs, adaptive-rejection, and mixed block updates
 cover targets without a single continuous gradient.
@@ -190,7 +209,10 @@ rank-normalized split/folded R-hat, bulk/tail ESS, MCSE, divergences, tree-depth
 saturation, and E-BFMI. Trace, rank, autocorrelation, energy, pair, and model
 graphs export to JSON, CSV, SVG, HTML, or Graphviz without a UI dependency. See
 the [inference guide](docs/INFERENCE.md), [language guide](docs/MODELING_LANGUAGE.md),
-and [compatibility contract](docs/INFERENCE_COMPATIBILITY.md).
+[Stan-user guide](docs/stan-users.html), and
+[compatibility contract](docs/INFERENCE_COMPATIBILITY.md). The complete
+[CSV ingestion example](examples/McmcDataIngestionExamples.java) feeds the same
+observations into both the Java builder and script compiler.
 
 ## Multiple testing and false discovery rates
 

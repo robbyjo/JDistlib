@@ -94,6 +94,8 @@ public final class ModelScriptCatalog {
 		case "37": result.put("y", new double[] {-1, 0, 1}); break;
 		case "40": result.put("group_a", new double[] {-0.2, 0.1, 0.0});
 			result.put("group_b", new double[] {0.7, 1.0, 1.2}); break;
+		case "41": vectorData(result, new double[] {-0.42, -0.15, 0.03, 0.18,
+				0.31, 0.44, 0.57, 0.66}); break;
 		default: throw new IllegalArgumentException("no representative data for " + name);
 		}
 		return result;

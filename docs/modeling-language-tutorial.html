@@ -1,45 +1,100 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Tutorial for JDistlib's versioned Stan-inspired modeling script language."><title>JDistlib model script tutorial</title><link rel="stylesheet" href="assets/style.css"></head>
-<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="modeling-language-tutorial.html">Model scripts</a><a href="api/">JavaDoc</a></nav></header>
-<main class="guide"><section class="guide-hero"><p class="eyebrow">Stan-inspired scripts · language 0.8</p><h1>Write a model as text, run it as Java</h1><p class="lede">Compile a vectorized normal location/scale model, validate its gradient, sample it with NUTS, and generate posterior predictions.</p><span class="version-pill">Inspired by Stan; not Stan-compatible</span></section>
-<section class="guide-section"><p class="eyebrow">Example</p><h2>A second complete script</h2><pre><code>data {
-  int&lt;lower=1&gt; N;
-  vector[N] y;
-}
-parameters {
-  real mu;
-  real&lt;lower=0&gt; sigma;
-}
-model {
-  mu ~ normal(0, 10);
-  sigma ~ exponential(1);
-  y ~ normal(mu, sigma);
-}
-generated quantities {
-  real y_rep = normal_rng(mu, sigma);
-}</code></pre><p>The vector sampling statement expands over every observation. Positive <code>sigma</code> is transformed to unconstrained space and its Jacobian is included automatically.</p></section>
-<section class="guide-section"><p class="eyebrow">Compile</p><h2>Data maps directly to Java arrays</h2><pre><code>Map&lt;String, double[]&gt; data = new LinkedHashMap&lt;&gt;();
-data.put("N", new double[] {5});
-data.put("y", new double[] {-.2, .1, .4, 0, .3});
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Read a dataset, compile a JDistlib Stan-inspired model script, run NUTS, and compare the Java builder workflow.">
+<title>JDistlib model script and data tutorial</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="modeling-language-tutorial.html">Model scripts</a><a href="stan-users.html">For Stan users</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide">
+<section class="guide-hero"><p class="eyebrow">Data to posterior · language 0.8</p><h1>Read a dataset, compile a model, and run it</h1><p class="lede">Fit the same normal-mean posterior from a CSV file through the Java builder and a Stan-inspired <code>.jdm</code> script, then choose among in-memory, cached, and ahead-of-time compilation.</p><span class="version-pill">Inspired by Stan; documented subset</span></section>
+<nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#data">1 Read data</a><a href="#script">2 Compile a script</a><a href="#java">3 Build in Java</a><a href="#sample">4 Sample</a><a href="#deployment">5 Compilation choices</a><a href="#language">6 Language features</a></nav>
 
-CompiledModelScript script = ModelScript.compile(source, data);
-BayesianModel model = script.model();
-GradientCheckResult check = Gradients.check(
-    model, model.initialState(), 1e-5, 1e-5);</code></pre><p>The compiler reports line and column diagnostics, validates data types, lengths and bounds, and constructs the same intermediate model as the Java builder. Input data is defensively copied.</p></section>
-<section class="guide-section"><p class="eyebrow">Sample and generate</p><h2>Use every inference tool unchanged</h2><pre><code>ChainResult chain = new NoUTurnSampler().sample(
-    model, model.initialState(), options,
-    new MersenneTwister(2026));
+<section class="guide-section" id="data"><p class="eyebrow">Step 1</p><h2>Read an observed column from CSV</h2><p>The checked-in <code>examples/data/normal-observations.csv</code> begins with a <code>y</code> header followed by one numeric observation per row. The executable companion provides a small reader:</p>
+<pre><code>Path csv = Paths.get("examples/data/normal-observations.csv");
+double[] y = McmcDataIngestionExamples.readNumericColumn(csv, "y");</code></pre>
+<p>That reader is dependency-free and rejects missing or nonnumeric cells. It is not a general RFC-style CSV parser: use a dedicated CSV library for quoted delimiters and then pass the resulting primitive arrays to JDistlib.</p></section>
 
-Map&lt;String, double[]&gt; prediction = script.generate(
-    chain.sample(0), new MersenneTwister(2027));</code></pre><p>Diagnostics, graphing, exports, checkpoints, and parallel chains operate on the compiled model without language-specific adapters.</p></section>
-<section class="guide-section"><p class="eyebrow">Another pattern</p><h2>Gamma–Poisson count-rate model</h2><pre><code>data { int y; }
-parameters { real&lt;lower=0&gt; lambda; }
-model {
-  lambda ~ gamma(2, 1);
-  y ~ poisson(lambda);
-}
-generated quantities {
-  int y_rep = poisson_rng(lambda);
-}</code></pre><p>Script gamma uses shape/rate, matching Stan. JDistlib converts to the scale convention used by its underlying random generator. Both examples are compiled by every <code>check</code> build in <code>examples/ModelScriptExamples.java</code>.</p></section>
-<section class="guide-section"><p class="eyebrow">Deployment</p><h2>Generate or cache an isolated Java wrapper</h2><pre><code>ModelScriptCli model.jdm com.example.GeneratedModel \
-  build/generated/GeneratedModel.java</code></pre><p><code>ModelSourceGenerator</code> emits a wrapper implementing <code>GeneratedModelFactory</code>. <code>ModelCompilationCache</code> hashes exact source with SHA-256, compiles under a caller-selected cache root, and returns a closeable isolated class loader.</p><aside class="callout caution"><strong>Scope:</strong> language 0.8 intentionally omits loops, functions, ODEs, matrices, and Stan’s full distribution library. Consult <a href="MODELING_LANGUAGE.md">the supported-surface reference</a>; never assume arbitrary Stan source is accepted.</aside></section>
-<section class="guide-section guide-next"><p class="eyebrow">Next</p><h2>Move between text and Java by model complexity</h2><p>Use scripts for concise supported models and generated quantities. Use <code>ModelBuilder</code> or a direct <code>DifferentiableLogDensity</code> for custom likelihoods, complex gradients, or mixed algorithms. Both routes preserve the same sampler and diagnostic contracts.</p></section></main><footer><span>JDistlib model script tutorial.</span><span>Language version 0.8.</span></footer></body></html>
+<section class="guide-section" id="script"><p class="eyebrow">Step 2 · script frontend</p><h2>Load and compile a <code>.jdm</code> file with data</h2><pre><code>Path modelFile = Paths.get(
+    "examples/models/41-normal-csv-mean.jdm");
+String source = new String(
+    Files.readAllBytes(modelFile), StandardCharsets.UTF_8);
+
+Map&lt;String, double[]&gt; data =
+    new LinkedHashMap&lt;String, double[]&gt;();
+data.put("N", new double[] {y.length});
+data.put("y", y);
+
+CompiledModelScript compiled =
+    ModelScript.compile(source, data);
+BayesianModel scriptedModel = compiled.model();</code></pre>
+<p><code>ModelScript.compile</code> parses the source, validates names, dimensions, integer values and bounds, binds a defensive copy of the supplied data, lowers the program to a <code>BayesianModel</code>, and creates the generated-quantities evaluator. Scalars use one-element arrays because the data boundary has one uniform Java type.</p>
+<aside class="callout"><strong>This is compilation:</strong> no shell command is required for the normal in-memory workflow. The returned model is immediately ready for gradient checks and sampling.</aside></section>
+
+<section class="guide-section" id="java"><p class="eyebrow">Step 3 · Java frontend</p><h2>Feed the same array to <code>ModelBuilder</code></h2><pre><code>BayesianModel javaModel = new ModelBuilder()
+    .data("y", y)
+    .parameter("mu", Constraints.real(), 0.0)
+    .factor("mu prior", new String[] {"mu"},
+        ModelFactors.normalPrior("mu", 0.0, 10.0))
+    .factor("observations", new String[] {"y", "mu"},
+        ModelFactors.normalObservations("y", "mu", 1.0))
+    .build();</code></pre>
+<p>The Java and script routes produce the same model abstraction. Use Java for custom likelihood code or APIs outside the script subset; use scripts when a compact textual model is easier to review or deploy.</p></section>
+
+<section class="guide-section" id="sample"><p class="eyebrow">Step 4</p><h2>Check the gradient and run four NUTS chains</h2><pre><code>GradientCheckResult check = Gradients.check(
+    scriptedModel, scriptedModel.initialState(), 1e-5, 1e-5);
+if (!check.passed()) throw new IllegalStateException(check.message());
+
+SamplingOptions options = SamplingOptions.builder()
+    .warmupIterations(500)
+    .sampleIterations(1000)
+    .targetAcceptance(0.85)
+    .build();
+
+double[][] initial = {{-1}, {-0.25}, {0.25}, {1}};
+ChainResult[] chains = Chains.parallel(
+    new NoUTurnSampler(), scriptedModel, initial,
+    options, 2026082701L, 4);
+
+McmcDiagnosticReport report = McmcDiagnostics.analyze(
+    new String[] {"mu"}, chains);</code></pre>
+<p>Diagnostics, graphs, checkpoints, and exports do not care which frontend created the model. Generate a posterior prediction with <code>compiled.generate(draw, random)</code>.</p></section>
+
+<section class="guide-section" id="deployment"><p class="eyebrow">Step 5</p><h2>Choose one of three compilation modes</h2>
+<div class="guide-columns"><article><h3>In-memory reference compiler</h3><pre><code>CompiledModelScript model =
+    ModelScript.compile(source, data);</code></pre><p>Portable and usually sufficient.</p></article><article><h3>JDK-backed cache</h3><pre><code>try (LoadedGeneratedModel loaded =
+    ModelCompilationCache.compile(source,
+        Paths.get("build/model-cache"))) {
+  CompiledModelScript model =
+      loaded.factory().compile(data);
+}</code></pre><p>Generates, invokes <code>javac</code>, hashes, caches, and loads an isolated wrapper. A JDK is required.</p></article></div>
+<h3>Ahead-of-time command line</h3><pre><code>gradlew.bat jar
+
+java -cp build\libs\jdistlib-0.8.2-SNAPSHOT.jar ^
+  jdistlib.inference.lang.ModelScriptCli ^
+  examples\models\41-normal-csv-mean.jdm ^
+  com.example.NormalCsvMean ^
+  build\generated\com\example\NormalCsvMean.java
+
+javac -cp build\libs\jdistlib-0.8.2-SNAPSHOT.jar ^
+  -d build\generated-classes ^
+  build\generated\com\example\NormalCsvMean.java</code></pre>
+<p><code>ModelScriptCli</code> validates the script and writes a Java class implementing <code>GeneratedModelFactory</code>. It does not invoke <code>javac</code>, bind data, or sample. Instantiate <code>com.example.NormalCsvMean</code> and call <code>compile(data)</code> after placing the library and generated classes on the runtime classpath.</p></section>
+
+<section class="guide-section" id="language"><p class="eyebrow">Language additions</p><h2>Use scalar locals and control flow where expansion is clearer</h2><pre><code>model {
+  real total = 0;
+  for (n in 1:N) {
+    if (y[n] &gt;= 0)
+      total += normal_lpdf(y[n] | mu, 1);
+    else
+      total += normal_lpdf(y[n] | mu, 2);
+  }
+  int pass = 0;
+  while (pass &lt; 2) {
+    total += 0;
+    pass += 1;
+  }
+  target += total;
+}</code></pre>
+<p>The model block supports initialized scalar locals, scoped blocks, assignments, comparisons and boolean expressions, <code>if</code>/<code>else</code>, integer-range <code>for</code>, and guarded <code>while</code>. The language also provides a broad scalar math catalog and more than thirty scalar probability families. Consult the <a href="MODELING_LANGUAGE.md">supported-surface reference</a> before porting a model.</p>
+<aside class="callout caution"><strong>Compatibility:</strong> arrays, matrices, general broadcasting, user-defined functions, additional constrained types, reverse-mode autodiff, and differential/algebraic solvers remain unscheduled. Valid arbitrary Stan source is not promised.</aside></section>
+
+<section class="guide-section guide-next"><p class="eyebrow">Complete examples</p><h2>Run the code instead of copying fragments</h2><p>See <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/McmcDataIngestionExamples.java"><code>McmcDataIngestionExamples.java</code></a>, the <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/data/normal-observations.csv">sample CSV</a>, and <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/models/41-normal-csv-mean.jdm">model 41</a>. If you already know Stan, continue with the <a href="stan-users.html">Stan-to-JDistlib guide</a>.</p></section>
+</main><footer><span>JDistlib data and model-script tutorial.</span><span>CSV, Java builder, script compiler, NUTS.</span></footer></body></html>

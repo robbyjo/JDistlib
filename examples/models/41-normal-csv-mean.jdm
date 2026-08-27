@@ -1,0 +1,7 @@
+data { int<lower=1> N; vector[N] y; }
+parameters { real mu; }
+model {
+  mu ~ normal(0, 10);
+  for (n in 1:N) y[n] ~ normal(mu, 1);
+}
+generated quantities { real y_rep = normal_rng(mu, 1); }

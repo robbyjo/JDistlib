@@ -24,6 +24,14 @@ BayesianModel model = new ModelBuilder()
     .build();
 ```
 
+Observed values can come from CSV, JSON, a database, or any application object;
+the host application converts them to primitive arrays before calling
+`ModelBuilder.data` or `ModelScript.compile`. The executable
+`examples/McmcDataIngestionExamples.java` reads
+`examples/data/normal-observations.csv` and fits the same posterior through
+both frontends. `docs/modeling-language-tutorial.html` shows all three script
+compilation modes, and `docs/stan-users.html` maps the workflow from Stan.
+
 Built-in constraints cover real and positive scalars/vectors, finite bounded
 scalars, ordered vectors, and simplexes. `DifferentiableModelFactor` adds
 derivatives in constrained coordinates; the model pulls them through each

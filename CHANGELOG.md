@@ -1,5 +1,25 @@
 What's new:
 
+Unreleased 0.8.2:
+* Expanded the Stan-inspired model language with initialized scoped scalar
+  locals, assignment operators, comparisons and boolean expressions,
+  `if`/`else`, integer-range `for`, guarded `while`, and Stan's vertical-bar
+  probability-function syntax.
+* Added a broad differentiable scalar-math catalog and more than thirty scalar
+  probability families and RNGs, including logit count models, Student-t,
+  lognormal, double-exponential, logistic, Gumbel, skew-normal,
+  exponentially-modified normal, von Mises, inverse-gamma,
+  inverse/scale inverse chi-square, Weibull, Fréchet, Rayleigh, beta-binomial,
+  negative-binomial variants, geometric, and Pareto variants.
+* Added a checked CSV dataset, an executable Java-builder/script ingestion
+  comparison, a control-flow model script, focused execution/gradient tests,
+  complete in-memory/cache/CLI compilation instructions, and a migration guide
+  for Stan users.
+* Moved arrays and richer indexing, matrices and linear algebra, user-defined
+  functions/overloads, general broadcasting, further constrained transforms,
+  reverse-mode autodiff, and ODE/DAE/algebraic solvers to the unscheduled
+  roadmap.
+
 Version 0.8.1 (August 27, 2026):
 * Corrected the tied-sample Mood and Ansari-Bradley asymptotic moments to use
   R's PR#19013 exchangeable-score formulas, including one-sided Ansari tails.

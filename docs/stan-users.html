@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Migration guide for Stan users adopting JDistlib models, data binding, NUTS, diagnostics, and the Stan-inspired script subset.">
+<title>JDistlib for Stan users</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="modeling-language-tutorial.html">Model scripts</a><a aria-current="page" href="stan-users.html">For Stan users</a><a href="inference-guide.html">Inference guide</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide">
+<section class="guide-hero"><p class="eyebrow">Migration guide · language 0.8</p><h1>Bring Stan modeling habits to a Java-native workflow</h1><p class="lede">Keep familiar blocks, constraints, sampling statements, target increments, generated quantities, scalar math, and probability names while learning where JDistlib deliberately differs.</p><span class="version-pill">Stan-inspired subset, not a drop-in Stan implementation</span></section>
+<nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#map">Concept map</a><a href="#port">Port a model</a><a href="#data">Bind data</a><a href="#run">Compile and sample</a><a href="#results">Results</a><a href="#limits">Compatibility limits</a></nav>
+
+<section class="guide-section" id="map"><p class="eyebrow">Mental model</p><h2>Translate services, not just syntax</h2><div class="table-wrap"><table class="troubleshooting-table"><thead><tr><th>Stan or CmdStan</th><th>JDistlib</th><th>Important difference</th></tr></thead><tbody>
+<tr><td><code>.stan</code> program</td><td><code>.jdm</code> script</td><td>Only the documented scalar-oriented subset is accepted.</td></tr>
+<tr><td>JSON/R dump input</td><td><code>Map&lt;String,double[]&gt;</code></td><td>The host application owns file parsing and missing-data policy.</td></tr>
+<tr><td><code>stanc</code></td><td><code>ModelScript.compile</code></td><td>In-memory parsing/lowering returns a Java <code>BayesianModel</code>.</td></tr>
+<tr><td>Compiled model executable</td><td><code>ModelCompilationCache</code> or <code>ModelScriptCli</code></td><td>The CLI emits a Java wrapper; it is not a sampler executable.</td></tr>
+<tr><td>CmdStan <code>sample</code></td><td><code>NoUTurnSampler</code> and <code>Chains.parallel</code></td><td>Options and warmup implementation are JDistlib APIs, not CmdStan flags.</td></tr>
+<tr><td>Stan CSV draws</td><td><code>ChainResult</code>, <code>ChainExport</code></td><td>Raw chain states use unconstrained coordinates.</td></tr>
+<tr><td>Stan diagnostics</td><td><code>McmcDiagnostics</code>, <code>DiagnosticGraphs</code></td><td>Inspect the documented metrics rather than expecting byte-for-byte parity.</td></tr>
+<tr><td>Generated quantities</td><td><code>CompiledModelScript.generate</code></td><td>Call it explicitly for each retained state that needs generated output.</td></tr>
+</tbody></table></div></section>
+
+<section class="guide-section" id="port"><p class="eyebrow">Porting example</p><h2>A scalar/vector model often needs only small edits</h2><pre><code>data {
+  int&lt;lower=1&gt; N;
+  vector[N] y;
+}
+parameters {
+  real mu;
+}
+model {
+  mu ~ normal(0, 10);
+  for (n in 1:N)
+    y[n] ~ normal(mu, 1);
+}
+generated quantities {
+  real y_rep = normal_rng(mu, 1);
+}</code></pre>
+<p>This model uses familiar one-based indexing, an integer-range loop, sampling statements, and generated quantities. Probability calls accept Stan's vertical-bar notation, for example <code>normal_lpdf(y[n] | mu, 1)</code>. Gamma scripts use Stan's shape/rate parameterization even though the underlying JDistlib RNG API uses scale.</p></section>
+
+<section class="guide-section" id="data"><p class="eyebrow">Host data</p><h2>Replace a Stan data file with typed Java arrays</h2><pre><code>double[] y = McmcDataIngestionExamples.readNumericColumn(
+    Paths.get("examples/data/normal-observations.csv"), "y");
+
+Map&lt;String, double[]&gt; data =
+    new LinkedHashMap&lt;String, double[]&gt;();
+data.put("N", new double[] {y.length});
+data.put("y", y);</code></pre>
+<p>Integers currently cross the uniform data boundary as exactly integral doubles. Compilation validates integer declarations, bounds, and declared vector lengths. The data is defensively copied. Database, Parquet, JSON, CSV, and application objects can all be used as upstream sources as long as the adapter produces the required arrays.</p></section>
+
+<section class="guide-section" id="run"><p class="eyebrow">Compile and sample</p><h2>Replace interface commands with Java calls</h2><pre><code>String source = new String(
+    Files.readAllBytes(Paths.get("model.jdm")),
+    StandardCharsets.UTF_8);
+CompiledModelScript compiled = ModelScript.compile(source, data);
+BayesianModel model = compiled.model();
+
+SamplingOptions options = SamplingOptions.builder()
+    .warmupIterations(1000)
+    .sampleIterations(1000)
+    .targetAcceptance(0.85)
+    .build();
+
+ChainResult[] chains = Chains.parallel(
+    new NoUTurnSampler(), model, initialStates,
+    options, 12345L, 4);</code></pre>
+<p>Initial states and retained <code>ChainResult</code> columns are unconstrained sampler coordinates. Recover named constrained values with <code>model.state(draw).scalar(name)</code> or <code>vector(name)</code>. Always run <code>Gradients.check</code> for a new or translated model before trusting HMC/NUTS output.</p></section>
+
+<section class="guide-section" id="results"><p class="eyebrow">Posterior review</p><h2>Make convergence and geometry explicit</h2><pre><code>McmcDiagnosticReport report = McmcDiagnostics.analyze(
+    parameterNames, chains);
+ChartSpec trace = DiagnosticGraphs.trace("mu", 0, chains);
+ChartSpec ranks = DiagnosticGraphs.ranks("mu", 0, 20, chains);
+String html = InferenceHtmlReport.render(
+    "Posterior review", report, model.graph(), trace, ranks);</code></pre>
+<p>Review rank-normalized split/folded R-hat, bulk/tail ESS, MCSE, divergences, tree-depth saturation, and E-BFMI together. JDistlib provides comparable concepts, but it does not claim exact Stan transition, warmup, or diagnostic parity.</p></section>
+
+<section class="guide-section" id="limits"><p class="eyebrow">Compatibility boundary</p><h2>Know what must remain in Stan or move to Java</h2><div class="guide-columns"><article><h3>Available now</h3><p>Core blocks, scalar and vector declarations, common constraints, one-based indexing, scalar locals, <code>if</code>/<code>else</code>, <code>for</code>, guarded <code>while</code>, target increments, a broad scalar math surface, more than thirty scalar distributions, generated quantities, and RNGs.</p></article><article><h3>Unscheduled</h3><p>General arrays and slicing, matrices and linear algebra, user-defined functions and overload resolution, full vectorization/broadcasting, remaining constrained types and Jacobians, reverse-mode autodiff, ODE/DAE and algebraic solvers.</p></article></div>
+<p>Multivariate, categorical, ordinal, and other container-dependent probability families wait on the corresponding type-system work. For an unsupported model, either express its log density directly with Java's <code>DifferentiableLogDensity</code>/<code>ModelBuilder</code>, or continue running the model through Stan. Do not silently rewrite a model when the parameterization or Jacobian cannot be preserved.</p>
+<aside class="callout caution"><strong>No 100% compatibility claim:</strong> JDistlib has its own parser, forward-mode evaluator, model IR, constraints, NUTS implementation, warmup, and output contracts. Similar syntax does not imply identical numerical execution.</aside></section>
+
+<section class="guide-section guide-next"><p class="eyebrow">Next</p><h2>Use the verified migration path</h2><p>Start with the <a href="modeling-language-tutorial.html">CSV and compilation tutorial</a>, inspect the exact <a href="MODELING_LANGUAGE.md">supported-language reference</a>, browse <a href="model-script-examples.html">forty-one checked scripts</a>, and use the <a href="inference-guide.html">inference guide</a> before interpreting a production posterior.</p></section>
+</main><footer><span>JDistlib for Stan users.</span><span>Translate models with an explicit compatibility boundary.</span></footer></body></html>

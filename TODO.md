@@ -2,6 +2,29 @@
 
 ## Unscheduled
 
+* Add general arrays and richer indexing, including multidimensional arrays,
+  slices, range indexes, indexed assignment, arrays of vectors, and arrays of
+  matrices to the Stan-inspired modeling language.
+* Add `row_vector` and `matrix` types plus dimension-aware linear algebra,
+  decompositions, efficient matrix probability kernels, and corresponding
+  compile-time shape diagnostics.
+* Add user-defined functions, lexical function scope, recursion policy,
+  overload resolution, data-qualified arguments, and Stan probability-function
+  suffix rules.
+* Add Stan-style vectorization and broadcasting across scalars, vectors,
+  arrays, and matrices with an explicit, tested compatibility matrix.
+* Add the remaining constrained parameter types and exact transforms/Jacobians,
+  including unit vectors, positive ordered vectors, covariance/correlation
+  matrices, and their Cholesky factors.
+* Design and implement a scalable reverse-mode automatic-differentiation
+  engine or generated-gradient backend, with an arena/tape lifecycle suitable
+  for repeated HMC evaluations and benchmarks against the forward-mode engine.
+* Add ODE and DAE integrators, algebraic solvers, sensitivity propagation,
+  tolerances and work limits, plus modeling-language higher-order function
+  bindings. These numerical subsystems require separate validation corpora.
+* Add the specialized Wiener first-passage distribution to the script
+  probability catalog after selecting and validating a stable density and RNG
+  implementation across small-time and extreme-parameter regimes.
 * Add exact lower-orthant CDFs and rectangle probabilities for the multinomial,
   Dirichlet-multinomial, and multivariate hypergeometric distributions, using a
   shared sequential-conditional dynamic-programming framework.
@@ -20,6 +43,18 @@
 
 ## Recently completed
 
+* Expanded the Stan-inspired language with scoped scalar local variables,
+  assignment operators, comparisons and boolean expressions, `if`/`else`,
+  integer-range `for`, guarded `while`, and Stan's `|` probability-function
+  separator.
+* Added a broad differentiable Stan scalar-math surface and expanded scalar
+  probability/RNG support to more than thirty families, including logit count models,
+  Student-t, lognormal, double-exponential, logistic, Gumbel, skew-normal,
+  inverse-gamma/chi-square, Weibull, Fréchet, Rayleigh, beta-binomial, negative
+  binomial, geometric, Pareto, and related parameterizations.
+* Added executable CSV-to-MCMC examples for both the Java builder and compiled
+  script frontends, complete script compilation instructions, and a migration
+  tutorial for Stan users with an explicit compatibility boundary.
 * Corrected the five 0.8.1 R Bugzilla findings: tied Mood/Ansari moments,
   negative half-integer Bessel connections, noncentral-t density cancellation,
   affine-stable Fligner ranking, and infinite/extreme-size negative binomial

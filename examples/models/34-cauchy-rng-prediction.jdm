@@ -1,0 +1,4 @@
+data { real y; }
+parameters { real location; }
+model { location ~ normal(0,5); y ~ cauchy(location,1); }
+generated quantities { real prediction = cauchy_rng(location,1); }

@@ -1,0 +1,4 @@
+data { real y; }
+parameters { real<lower=0> shape; }
+model { shape ~ gamma(2,1); y ~ gamma(shape,1); }
+generated quantities { real prediction = gamma_rng(shape,1); }

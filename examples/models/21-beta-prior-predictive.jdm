@@ -1,0 +1,3 @@
+parameters { real<lower=0,upper=1> probability; }
+model { probability ~ beta(2,5); }
+generated quantities { int outcome = bernoulli_rng(probability); }

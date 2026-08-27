@@ -1,0 +1,5 @@
+data { real x; int y; }
+parameters { real alpha; real beta; }
+transformed parameters { real lambda = exp(alpha + beta * x); }
+model { alpha ~ normal(0,2); beta ~ normal(0,2); y ~ poisson(lambda); }
+generated quantities { int y_rep = poisson_rng(lambda); }

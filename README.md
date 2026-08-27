@@ -28,7 +28,7 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.8.0 is the current development release. It adds named Bayesian model
+Version 0.8.0 is the current release. It adds named Bayesian model
 composition, constraint transforms, reproducible multi-chain MCMC, Metropolis,
 slice, Gibbs, HMC and adaptive NUTS samplers, modern convergence diagnostics,
 headless graph/report exports, and a versioned Stan-inspired modeling-language
@@ -40,15 +40,12 @@ file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
 and tested.
 
-## Download and development builds
+## Download
 
-The latest published stable artifact remains the
-[JDistlib 0.7.2 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.7.2), which
+The [JDistlib 0.8.0 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.0)
 contains the Java library, source archive, JavaDoc archive, and SHA-256
 checksums. It produces Java 8-compatible bytecode. Download the
-[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.7.2/jdistlib-0.7.2.jar).
-The unreleased 0.8.0 inference API is built from `master` with `./gradlew build`;
-it is deliberately not presented as a published binary release yet.
+[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.0/jdistlib-0.8.0.jar).
 
 ## Building
 
@@ -58,6 +55,7 @@ compatible.
 ```text
 ./gradlew test
 ./gradlew build
+./gradlew validateModelScripts
 ```
 
 On Windows, use `gradlew.bat` instead.
@@ -102,6 +100,10 @@ The website now puts beginner material first:
   [worked vignette](docs/inference-vignette.html), and
   [diagnostics vignette](docs/inference-diagnostics-vignette.html) — the full
   0.8.0 learning path, including fifteen executable reference models.
+* [Browse all examples](https://robbyjo.github.io/JDistlib/examples.html) —
+  forty validated Stan-inspired scripts plus compilable Java workflows for
+  copulas, mixtures, transformations, FDR, custom distributions, MCMC, and
+  numerical integration.
 
 ## Using the distribution APIs
 

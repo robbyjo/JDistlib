@@ -1,0 +1,3 @@
+parameters { real<lower=0> rate; }
+model { rate ~ gamma(3,2); }
+generated quantities { int count = poisson_rng(rate); }

@@ -1,0 +1,2 @@
+parameters { simplex[4] weight; }
+model { target += 2*log(weight[1]) + 2*log(weight[2]) + 2*log(weight[3]) + 2*log(weight[4]); }

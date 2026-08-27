@@ -1,0 +1,4 @@
+data { real x; int y; }
+parameters { real alpha; real beta; }
+transformed parameters { real probability = inv_logit(alpha + beta * x); }
+model { alpha ~ normal(0,2); beta ~ normal(0,2); y ~ bernoulli(probability); }

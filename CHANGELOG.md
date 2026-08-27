@@ -1,6 +1,6 @@
 What's new:
 
-Version 0.8.0 (development):
+Version 0.8.0 (August 27, 2026):
 * Added a named Bayesian model IR and Java builder with observed data, latent
   parameters, dependency-aware factors, real/positive/bounded/ordered/simplex
   transforms, log-Jacobians, analytic factor gradients, forward-mode script
@@ -30,6 +30,15 @@ Version 0.8.0 (development):
   chain-local model evaluators, reusable random-walk and covariance buffers,
   allocation-free metric dot/update operations, immutable-data fast paths, and
   scalar chain accessors used by diagnostics, graphing, and export.
+* Added forty standalone Stan-inspired `.jdm` models covering the complete
+  language 0.8 surface. A packaged-JAR build gate now compiles every script
+  with representative data, verifies finite initial density and analytic
+  gradients, and executes generated quantities.
+* Added feature-focused Java integration examples for continuous and mixed
+  copulas, mixtures, affine/nonlinear transforms, truncation/censoring, batch,
+  weighted, grouped and online FDR, custom continuous/discrete laws, numerical
+  integration, and programmatic/scripted MCMC. Added a browsable website index
+  linking the complete verified catalog.
 
 Version 0.7.2 (August 26, 2026):
 * Added checked-in 90-digit Decimal reference corpora for boundary-heavy mixed

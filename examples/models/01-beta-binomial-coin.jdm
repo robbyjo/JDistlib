@@ -1,0 +1,4 @@
+data { int<lower=0> n; int<lower=0> y; }
+parameters { real<lower=0, upper=1> theta; }
+model { theta ~ beta(2, 2); y ~ binomial(n, theta); }
+generated quantities { int y_rep = binomial_rng(n, theta); }

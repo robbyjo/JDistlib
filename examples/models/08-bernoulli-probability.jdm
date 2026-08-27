@@ -1,0 +1,4 @@
+data { int y; }
+parameters { real<lower=0,upper=1> probability; }
+model { probability ~ beta(2,2); y ~ bernoulli(probability); }
+generated quantities { int y_rep = bernoulli_rng(probability); }

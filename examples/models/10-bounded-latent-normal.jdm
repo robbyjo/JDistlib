@@ -1,0 +1,3 @@
+data { real y; }
+parameters { real<lower=-2,upper=2> latent; }
+model { latent ~ uniform(-2,2); y ~ normal(latent,0.5); }

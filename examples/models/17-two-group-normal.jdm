@@ -1,0 +1,4 @@
+data { int N1; int N2; vector[N1] y1; vector[N2] y2; }
+parameters { real mu1; real mu2; real<lower=0> sigma; }
+model { mu1 ~ normal(0,5); mu2 ~ normal(0,5); sigma ~ exponential(1); y1 ~ normal(mu1,sigma); y2 ~ normal(mu2,sigma); }
+generated quantities { real difference = mu2 - mu1; }

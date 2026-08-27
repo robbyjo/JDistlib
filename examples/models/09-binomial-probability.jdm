@@ -1,0 +1,3 @@
+data { int n; int y; }
+parameters { real<lower=0,upper=1> probability; }
+model { probability ~ beta(3,3); y ~ binomial(n,probability); }

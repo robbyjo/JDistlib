@@ -34,6 +34,12 @@ named executable models. Sampling and post-processing also reuse chain-local
 model buffers, Metropolis proposals, covariance scratch storage, and
 allocation-free chain/metric read paths.
 
+The release also ships forty standalone Stan-inspired `.jdm` examples and a
+semantic catalog validator run by every `check` build. Feature-focused Java
+examples cover copulas, mixtures, transformations, FDR, custom laws, numerical
+integration, and both programmatic and scripted MCMC. The website’s **Browse
+examples** center links every catalog and source file.
+
 ## Previous release: JDistlib 0.7.2
 
 JDistlib 0.7.2 hardens the copula framework introduced in 0.7.0. It expands

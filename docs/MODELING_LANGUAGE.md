@@ -100,3 +100,19 @@ semantic oracle for generated wrappers.
 Language additions within 0.8.x are additive and versioned. Existing accepted
 programs retain their meaning; incompatible syntax or distribution
 parameterization changes require a new language version.
+
+## Example catalog and build gate
+
+`examples/models` contains forty standalone `.jdm` programs spanning every
+supported declaration, constraint, transformed block, distribution, RNG,
+vectorization/indexing form, and manual-target pattern. Run:
+
+```text
+./gradlew validateModelScripts
+```
+
+The validator compiles every script with representative data, checks its
+analytic gradient against central finite differences, requires finite initial
+density, and evaluates generated quantities. `check` depends on this task, so
+the catalog is part of the release gate. Browse annotated links at
+`docs/model-script-examples.html`.

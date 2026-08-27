@@ -1,0 +1,4 @@
+data { real y; real offset; }
+transformed data { real centered = y - offset; }
+parameters { real effect; }
+model { effect ~ normal(0,2); centered ~ normal(effect,1); }

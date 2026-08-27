@@ -1,0 +1,4 @@
+data { real y1; real y2; real se1; real se2; }
+parameters { real mu; real<lower=0> tau; real z1; real z2; }
+transformed parameters { real theta1 = mu + tau*z1; real theta2 = mu + tau*z2; }
+model { mu ~ normal(0,5); tau ~ exponential(1); z1 ~ normal(0,1); z2 ~ normal(0,1); y1 ~ normal(theta1,se1); y2 ~ normal(theta2,se2); }

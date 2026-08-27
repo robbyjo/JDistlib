@@ -1,0 +1,3 @@
+data { int n_a; int y_a; int n_b; int y_b; }
+parameters { real<lower=0,upper=1> p_a; real<lower=0,upper=1> p_b; }
+model { p_a ~ beta(1,1); p_b ~ beta(1,1); y_a ~ binomial(n_a,p_a); y_b ~ binomial(n_b,p_b); }

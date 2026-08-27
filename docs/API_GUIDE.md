@@ -60,6 +60,9 @@ See `NUMERICAL_DISTRIBUTIONS.md` for integration and custom-law guarantees and
 Bayesian modeling, MCMC, diagnostics, graphing, scripting, and schema guarantees.
 For a guided sequence, start at `inference-tutorial.html`, continue with
 `inference-guide.html`, and use `inference-examples.html` as a tested catalog.
+The website's `examples.html` index links forty validated model scripts and
+feature-focused Java integrations for copulas, composition, FDR, custom laws,
+numerical integration, and MCMC.
 
 ## Distribution tests
 

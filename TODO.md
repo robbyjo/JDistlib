@@ -54,6 +54,12 @@
   allocation-free metric operations, zero-copy immutable observation reads for
   built-in factors, and scalar chain access during diagnostics, plotting, and
   export.
+* Added forty validated Stan-inspired script examples plus a semantic Gradle
+  gate that supplies representative data, compiles and gradient-checks each
+  model, verifies finite initial density, and exercises generated quantities.
+* Added a browsable executable-example center and compilable integration
+  workflows for copulas, mixtures, transformations, FDR, custom distributions,
+  numerical integration, and Java/script MCMC; linked it from the main website.
 * Expanded mixed/vine copula validation with independent high-precision
   boundary-heavy likelihood references and row-level fitted-model diagnostics.
 * Incorporated 0.7.0 API feedback through additive result getters, auditable

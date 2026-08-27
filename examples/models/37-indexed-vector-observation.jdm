@@ -1,0 +1,3 @@
+data { vector[3] y; }
+parameters { real mu; }
+model { mu ~ normal(0,5); y[1] ~ normal(mu,1); y[2] ~ normal(mu,1); y[3] ~ normal(mu,1); }

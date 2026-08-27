@@ -1,0 +1,4 @@
+data { real y; }
+parameters { real mu; }
+model { mu ~ normal(0, 5); y ~ normal(mu, 1); }
+generated quantities { real y_rep = normal_rng(mu, 1); }

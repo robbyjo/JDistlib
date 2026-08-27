@@ -1,0 +1,4 @@
+data { real y; real se; }
+parameters { real mu; real<lower=0> scale; real z; }
+transformed parameters { real theta = mu + scale * z; }
+model { mu ~ normal(0,5); scale ~ exponential(1); z ~ normal(0,1); y ~ normal(theta,se); }

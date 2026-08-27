@@ -1,0 +1,4 @@
+data { int<lower=1> N; vector[N] y; }
+parameters { real<lower=0> rate; }
+model { rate ~ gamma(2,1); y ~ exponential(rate); }
+generated quantities { real wait_rep = exponential_rng(rate); }

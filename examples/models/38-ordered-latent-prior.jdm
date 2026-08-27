@@ -1,0 +1,2 @@
+parameters { ordered[4] cutpoint; }
+model { cutpoint ~ normal(0,3); }

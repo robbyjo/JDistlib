@@ -1,0 +1,4 @@
+data { int<lower=1> N; vector[N] y; }
+parameters { real location; }
+model { location ~ normal(0,10); y ~ cauchy(location,1); }
+generated quantities { real y_rep = cauchy_rng(location,1); }

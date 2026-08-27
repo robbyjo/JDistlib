@@ -1,0 +1,4 @@
+data { int y; }
+parameters { real<lower=0,upper=1> p; }
+model { p ~ beta(1,1); y ~ bernoulli(p); }
+generated quantities { int prediction = bernoulli_rng(p); }

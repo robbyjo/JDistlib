@@ -1,0 +1,4 @@
+data { real y; }
+parameters { real baseline; real change; }
+transformed parameters { real endpoint = baseline + change; }
+model { baseline ~ normal(0,5); change ~ normal(0,2); y ~ normal(endpoint,1); }

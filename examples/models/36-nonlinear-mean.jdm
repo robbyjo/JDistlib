@@ -1,0 +1,4 @@
+data { real x; real y; }
+parameters { real amplitude; real rate; }
+transformed parameters { real mean = amplitude * exp(rate*x); }
+model { amplitude ~ normal(0,2); rate ~ normal(0,1); y ~ normal(mean,1); }

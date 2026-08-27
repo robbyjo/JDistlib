@@ -1,0 +1,4 @@
+data { int N; vector[N] y; }
+parameters { real mu; real<lower=0> sigma; }
+transformed parameters { real precision = 1 / (sigma * sigma); }
+model { mu ~ normal(0,5); sigma ~ exponential(1); y ~ normal(mu,1 / sqrt(precision)); }

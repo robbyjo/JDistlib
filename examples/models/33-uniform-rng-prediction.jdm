@@ -1,0 +1,4 @@
+data { real y; }
+parameters { real<lower=-2,upper=2> center; }
+model { center ~ uniform(-2,2); y ~ normal(center,1); }
+generated quantities { real reference = uniform_rng(-2,2); }

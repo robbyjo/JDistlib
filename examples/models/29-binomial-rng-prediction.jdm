@@ -1,0 +1,4 @@
+data { int n; int y; }
+parameters { real<lower=0,upper=1> p; }
+model { p ~ beta(2,2); y ~ binomial(n,p); }
+generated quantities { int prediction = binomial_rng(n,p); }

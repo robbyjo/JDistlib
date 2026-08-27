@@ -1,0 +1,4 @@
+data { real x1; real x2; int y1; int y2; }
+parameters { real alpha; real beta; }
+transformed parameters { real p1 = inv_logit(alpha + beta*x1); real p2 = inv_logit(alpha + beta*x2); }
+model { alpha ~ normal(0,2); beta ~ normal(0,2); y1 ~ bernoulli(p1); y2 ~ bernoulli(p2); }

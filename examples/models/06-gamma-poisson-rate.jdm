@@ -1,0 +1,4 @@
+data { int<lower=0> y; }
+parameters { real<lower=0> lambda; }
+model { lambda ~ gamma(2,1); y ~ poisson(lambda); }
+generated quantities { int y_rep = poisson_rng(lambda); }

@@ -1,0 +1,4 @@
+data { vector[3] group_a; vector[3] group_b; }
+parameters { real grand_mean; real difference; real<lower=0> sigma; }
+transformed parameters { real mean_a = grand_mean - difference/2; real mean_b = grand_mean + difference/2; }
+model { grand_mean ~ normal(0,5); difference ~ normal(0,2); sigma ~ exponential(1); group_a ~ normal(mean_a,sigma); group_b ~ normal(mean_b,sigma); }

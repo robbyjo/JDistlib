@@ -77,8 +77,16 @@ def compileDocumentationExamples = tasks.register('compileDocumentationExamples'
     destinationDirectory = layout.buildDirectory.dir('documentation-examples')
 }
 
-tasks.named('check') {
+def validateModelScripts = tasks.register('validateModelScripts', JavaExec) {
     dependsOn compileDocumentationExamples
+    classpath = files(tasks.named('jar').flatMap { it.archiveFile },
+        compileDocumentationExamples.flatMap { it.destinationDirectory })
+    mainClass = 'examples.ModelScriptCatalog'
+    args file('examples/models').absolutePath
+}
+
+tasks.named('check') {
+    dependsOn compileDocumentationExamples, validateModelScripts
 }
 
 test {

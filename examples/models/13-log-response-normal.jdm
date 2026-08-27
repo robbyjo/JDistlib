@@ -1,0 +1,4 @@
+data { int N; vector[N] log_y; }
+parameters { real mean_log; real<lower=0> sd_log; }
+model { mean_log ~ normal(0,5); sd_log ~ exponential(1); log_y ~ normal(mean_log,sd_log); }
+generated quantities { real log_y_rep = normal_rng(mean_log,sd_log); }

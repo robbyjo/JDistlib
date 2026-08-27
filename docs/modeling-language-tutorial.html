@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Tutorial for JDistlib's versioned Stan-inspired modeling script language."><title>JDistlib model script tutorial</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="modeling-language-tutorial.html">Model scripts</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide"><section class="guide-hero"><p class="eyebrow">Stan-inspired scripts · language 0.8</p><h1>Write a model as text, run it as Java</h1><p class="lede">Compile a vectorized normal location/scale model, validate its gradient, sample it with NUTS, and generate posterior predictions.</p><span class="version-pill">Inspired by Stan; not Stan-compatible</span></section>
+<section class="guide-section"><p class="eyebrow">Example</p><h2>A second complete script</h2><pre><code>data {
+  int&lt;lower=1&gt; N;
+  vector[N] y;
+}
+parameters {
+  real mu;
+  real&lt;lower=0&gt; sigma;
+}
+model {
+  mu ~ normal(0, 10);
+  sigma ~ exponential(1);
+  y ~ normal(mu, sigma);
+}
+generated quantities {
+  real y_rep = normal_rng(mu, sigma);
+}</code></pre><p>The vector sampling statement expands over every observation. Positive <code>sigma</code> is transformed to unconstrained space and its Jacobian is included automatically.</p></section>
+<section class="guide-section"><p class="eyebrow">Compile</p><h2>Data maps directly to Java arrays</h2><pre><code>Map&lt;String, double[]&gt; data = new LinkedHashMap&lt;&gt;();
+data.put("N", new double[] {5});
+data.put("y", new double[] {-.2, .1, .4, 0, .3});
+
+CompiledModelScript script = ModelScript.compile(source, data);
+BayesianModel model = script.model();
+GradientCheckResult check = Gradients.check(
+    model, model.initialState(), 1e-5, 1e-5);</code></pre><p>The compiler reports line and column diagnostics, validates data types, lengths and bounds, and constructs the same intermediate model as the Java builder. Input data is defensively copied.</p></section>
+<section class="guide-section"><p class="eyebrow">Sample and generate</p><h2>Use every inference tool unchanged</h2><pre><code>ChainResult chain = new NoUTurnSampler().sample(
+    model, model.initialState(), options,
+    new MersenneTwister(2026));
+
+Map&lt;String, double[]&gt; prediction = script.generate(
+    chain.sample(0), new MersenneTwister(2027));</code></pre><p>Diagnostics, graphing, exports, checkpoints, and parallel chains operate on the compiled model without language-specific adapters.</p></section>
+<section class="guide-section"><p class="eyebrow">Another pattern</p><h2>Gamma–Poisson count-rate model</h2><pre><code>data { int y; }
+parameters { real&lt;lower=0&gt; lambda; }
+model {
+  lambda ~ gamma(2, 1);
+  y ~ poisson(lambda);
+}
+generated quantities {
+  int y_rep = poisson_rng(lambda);
+}</code></pre><p>Script gamma uses shape/rate, matching Stan. JDistlib converts to the scale convention used by its underlying random generator. Both examples are compiled by every <code>check</code> build in <code>examples/ModelScriptExamples.java</code>.</p></section>
+<section class="guide-section"><p class="eyebrow">Deployment</p><h2>Generate or cache an isolated Java wrapper</h2><pre><code>ModelScriptCli model.jdm com.example.GeneratedModel \
+  build/generated/GeneratedModel.java</code></pre><p><code>ModelSourceGenerator</code> emits a wrapper implementing <code>GeneratedModelFactory</code>. <code>ModelCompilationCache</code> hashes exact source with SHA-256, compiles under a caller-selected cache root, and returns a closeable isolated class loader.</p><aside class="callout caution"><strong>Scope:</strong> language 0.8 intentionally omits loops, functions, ODEs, matrices, and Stan’s full distribution library. Consult <a href="MODELING_LANGUAGE.md">the supported-surface reference</a>; never assume arbitrary Stan source is accepted.</aside></section>
+<section class="guide-section guide-next"><p class="eyebrow">Next</p><h2>Move between text and Java by model complexity</h2><p>Use scripts for concise supported models and generated quantities. Use <code>ModelBuilder</code> or a direct <code>DifferentiableLogDensity</code> for custom likelihoods, complex gradients, or mixed algorithms. Both routes preserve the same sampler and diagnostic contracts.</p></section></main><footer><span>JDistlib model script tutorial.</span><span>Language version 0.8.</span></footer></body></html>

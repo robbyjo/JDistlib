@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Beginner tutorials and applied vignettes for JDistlib distributions, custom distributions, and copulas.">
+  <meta name="description" content="Beginner tutorials and applied vignettes for JDistlib distributions, custom distributions, copulas, and Bayesian inference.">
   <title>Learn JDistlib — tutorials and vignettes</title>
   <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -16,6 +16,7 @@
       <a href="custom-distributions.html">Custom distributions</a>
       <a href="multiple-testing.html">Multiple testing 0.7.0+</a>
       <a href="copula-tutorial.html">Copulas 0.7.0+</a>
+      <a href="inference-tutorial.html">Inference 0.8.0+</a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib">Source</a>
     </nav>
@@ -24,22 +25,33 @@
     <section class="guide-hero">
       <p class="eyebrow">Learning center</p>
       <h1>Learn probability modeling by doing</h1>
-      <p class="lede">Begin with a single distribution, graduate to a law built from
-        your own formula, then model dependence with copulas. Each tutorial has a
-        companion vignette that works through an applied question.</p>
+      <p class="lede">Begin with a single distribution, graduate to composition and
+        dependence, then fit Bayesian models with MCMC. Tutorials teach the API;
+        companion vignettes work through decisions and computational review.</p>
     </section>
     <section class="guide-section">
       <p class="eyebrow">Choose a path</p>
-      <h2>Four levels, no prerequisites beyond Java</h2>
+      <h2>Five levels, no prerequisites beyond Java</h2>
       <div class="learning-grid">
         <article class="learning-card"><span class="card-kicker">1 · Beginner</span><h3>Built-in distributions</h3><p>Understand D/P/Q/R and answer probability questions with familiar laws.</p><a class="card-link" href="getting-started.html">Tutorial →</a><br><a class="card-link" href="distribution-vignette.html">Response-time vignette →</a></article>
         <article class="learning-card"><span class="card-kicker">2 · Composition · 0.6.0+</span><h3>Compose and transform</h3><p>Mix populations, restrict support, represent measurement limits, change units, and apply a Jacobian correctly.</p><a class="card-link" href="composition-tutorial.html">Tutorial →</a></article>
         <article class="learning-card"><span class="card-kicker">3 · Builder · 0.6.0+</span><h3>Custom distributions</h3><p>Convert a nonnegative kernel or set of weights into a complete numerical distribution.</p><a class="card-link" href="custom-distributions.html#beginner-path">Tutorial →</a><br><a class="card-link" href="custom-distribution-vignette.html">Sensor-error vignette →</a></article>
         <article class="learning-card"><span class="card-kicker">4 · Joint models · 0.7.0+</span><h3>Copulas and dependence</h3><p>Keep marginal behavior separate from dependence, including mixed and vine models.</p><a class="card-link" href="copula-tutorial.html">Tutorial →</a><br><a class="card-link" href="copula-vignette.html">Claims vignette →</a></article>
+        <article class="learning-card"><span class="card-kicker">5 · Inference · 0.8.0+</span><h3>Bayesian models and MCMC</h3><p>Build or script a posterior, sample parallel chains, diagnose computation, and export plots and reports.</p><a class="card-link" href="inference-tutorial.html">Tutorial →</a><br><a class="card-link" href="inference-vignette.html">Posterior vignette →</a><br><a class="card-link" href="inference-diagnostics-vignette.html">Diagnostics vignette →</a></article>
       </div>
       <aside class="version-note"><strong>Version note:</strong> copula APIs and both
         copula learning pages require JDistlib 0.7.0 or later. Custom numerical
-        distributions require 0.6.0 or later.</aside>
+        distributions require 0.6.0 or later. The inference learning path is
+        for the unreleased 0.8.0 development API.</aside>
+    </section>
+    <section class="guide-section">
+      <p class="eyebrow">Inference reference · 0.8.0+</p>
+      <h2>Go deeper after the first posterior</h2>
+      <p>The <a href="inference-guide.html">complete inference guide</a> covers
+        sampler selection, warmup, R-hat, ESS, MCSE, divergences, E-BFMI,
+        graphing, performance, checkpoints, and failure handling. Continue with
+        the <a href="modeling-language-tutorial.html">model-script tutorial</a>
+        or browse <a href="inference-examples.html">fifteen executable models</a>.</p>
     </section>
     <section class="guide-section">
       <p class="eyebrow">After hypothesis tests · 0.7.0+</p>

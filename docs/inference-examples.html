@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Fifteen executable Bayesian and MCMC examples for JDistlib 0.8.0."><title>15 JDistlib inference examples</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="inference-examples.html">15 examples</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide"><section class="guide-hero"><p class="eyebrow">Executable catalog · 0.8.0</p><h1>Fifteen models that double as tests</h1><p class="lede">Every example below is a named JUnit test. Together they exercise scripts, transforms, analytic gradients, NUTS, dense metrics, Metropolis, Gibbs, generated quantities, and difficult geometry.</p><span class="version-pill">See BayesianShowcaseTest.java</span></section>
+<section class="guide-section"><p class="eyebrow">Conjugate and introductory</p><h2>Start with models that have reference answers</h2><div class="learning-grid">
+<article class="learning-card"><span class="card-kicker">01 · Script</span><h3>Beta–binomial coin toss</h3><p>Bounded probability, beta prior, binomial likelihood, predictive RNG, and an exact beta(9,5) posterior.</p></article>
+<article class="learning-card"><span class="card-kicker">02 · Builder</span><h3>Normal mean</h3><p>Known observation variance, analytic factors, gradient checking, and a short NUTS run.</p></article>
+<article class="learning-card"><span class="card-kicker">03 · Script</span><h3>Normal location and scale</h3><p>Vectorized data, a positive scale transform, exponential prior, and predictive normal draw.</p></article>
+<article class="learning-card"><span class="card-kicker">04 · Script</span><h3>Gamma–Poisson rate</h3><p>Positive count rate, shape/rate gamma prior, Poisson likelihood, and count generation.</p></article>
+<article class="learning-card"><span class="card-kicker">15 · Script</span><h3>Bayesian A/B test</h3><p>Two beta-binomial arms, two bounded parameters, gradient validation, and NUTS.</p></article>
+</div></section>
+<section class="guide-section"><p class="eyebrow">Regression and hierarchy</p><h2>Write direct targets when the supported script subset is too small</h2><div class="learning-grid">
+<article class="learning-card"><span class="card-kicker">05 · Analytic gradient</span><h3>Linear regression</h3><p>Intercept and slope with Gaussian priors and likelihood.</p></article>
+<article class="learning-card"><span class="card-kicker">06 · Analytic gradient</span><h3>Logistic regression</h3><p>Stable log1p-exp likelihood and Bernoulli residual gradient.</p></article>
+<article class="learning-card"><span class="card-kicker">07 · Non-centered</span><h3>Eight schools</h3><p>Location, log scale, standardized effects, and a complete hierarchical gradient.</p></article>
+<article class="learning-card"><span class="card-kicker">11 · Robust</span><h3>Cauchy location</h3><p>A vectorized Cauchy likelihood limits the influence of one large outlier.</p></article>
+</div></section>
+<section class="guide-section"><p class="eyebrow">Geometry and multimodality</p><h2>Exercise the warnings, not only the happy path</h2><div class="learning-grid">
+<article class="learning-card"><span class="card-kicker">08 · Funnel</span><h3>Neal’s funnel</h3><p>Changing conditional scale tests analytic gradients and NUTS behavior.</p></article>
+<article class="learning-card"><span class="card-kicker">09 · Curvature</span><h3>Rosenbrock banana</h3><p>A narrow curved ridge validates a nontrivial two-dimensional gradient.</p></article>
+<article class="learning-card"><span class="card-kicker">10 · Modes</span><h3>Gaussian mixture</h3><p>Stable log-sum-exp and random-walk Metropolis demonstrate a multimodal target.</p></article>
+<article class="learning-card"><span class="card-kicker">14 · Metric</span><h3>Correlated Gaussian</h3><p>A 0.9 correlation exercises dense mass-matrix adaptation.</p></article>
+</div></section>
+<section class="guide-section"><p class="eyebrow">Constraints and mixed state</p><h2>Use the sampler that matches the state space</h2><div class="learning-grid">
+<article class="learning-card"><span class="card-kicker">12 · Simplex</span><h3>Dirichlet–multinomial</h3><p>Stick-breaking transform, Jacobian, three-category likelihood, and gradient check.</p></article>
+<article class="learning-card"><span class="card-kicker">13 · Gibbs</span><h3>Poisson change point</h3><p>An exact discrete split update alternates with a Metropolis block for two log rates.</p></article>
+</div></section>
+<section class="guide-section"><p class="eyebrow">Reusable pattern</p><h2>Each test follows the same compact discipline</h2><pre><code>DifferentiableLogDensity target = (state, gradient) -&gt; {
+  // Return log density and replace every gradient coordinate.
+};
+
+assertTrue(Gradients.check(target, initial, 1e-5, 1e-5).passed());
+ChainResult chain = new NoUTurnSampler().sample(
+    target, initial, options, new MersenneTwister(seed));
+assertEquals(ChainResult.Status.SUCCESS, chain.status());</code></pre><p>Read the complete implementations in <a href="https://github.com/robbyjo/JDistlib/blob/master/src/test/java/jdistlib/BayesianShowcaseTest.java">BayesianShowcaseTest.java</a>. The shorter <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/InferenceExamples.java">InferenceExamples.java</a> is compiled against the packaged JAR by every <code>check</code> build.</p></section>
+<section class="guide-section guide-next"><p class="eyebrow">Choose a next step</p><h2>Turn examples into a reviewed analysis</h2><p>Use the <a href="inference-tutorial.html">beginner tutorial</a> for the end-to-end sequence, the <a href="inference-diagnostics-vignette.html">diagnostics vignette</a> for failure interpretation, and the <a href="modeling-language-tutorial.html">script tutorial</a> for text models.</p></section></main><footer><span>JDistlib inference example catalog.</span><span>Fifteen tested models.</span></footer></body></html>

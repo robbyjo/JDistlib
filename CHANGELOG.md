@@ -1,5 +1,36 @@
 What's new:
 
+Version 0.8.0 (development):
+* Added a named Bayesian model IR and Java builder with observed data, latent
+  parameters, dependency-aware factors, real/positive/bounded/ordered/simplex
+  transforms, log-Jacobians, analytic factor gradients, forward-mode script
+  differentiation, gradient checks, reusable evaluators, and factor caching.
+* Added random-walk/component Metropolis, stepping-out slice, composable Gibbs
+  and adaptive-rejection conditionals, fixed HMC, and multinomial NUTS with
+  dual-averaging step sizes, diagonal/dense metrics, mixed-variable blocks,
+  cancellation, state-and-stream checkpoints, and deterministic parallel chains.
+* Added rank-normalized split/folded R-hat, bulk/tail ESS, MCSE, divergences,
+  tree-depth saturation, E-BFMI, immutable chain/warmup results, and versioned
+  JSON/CSV interchange.
+* Added chart-neutral trace, rank, ACF, energy and pair datasets; standalone
+  SVG, JSON and CSV adapters; Graphviz/JSON model graphs; and self-contained
+  HTML diagnostic reports without a desktop UI dependency.
+* Added the versioned Stan-inspired 0.8 language with source diagnostics,
+  declaration/data validation, transformed blocks, vectorized sampling,
+  generated quantities/RNGs, ahead-of-time Java wrappers, SHA-256 compilation
+  caching, isolated class loading, and a CLI workflow.
+* Added conjugate and sampler reference regressions, constraint/gradient,
+  mixed-state, checkpoint, reproducibility, export and code-generation tests,
+  compiled examples, a smoke benchmark, and compatibility documentation.
+* Added a complete inference tutorial/guide, posterior and diagnostics
+  vignettes, a second script walkthrough, and fifteen named executable Bayesian
+  examples spanning conjugacy, regression, hierarchy, difficult geometry,
+  multimodality, simplex constraints, mixed-state Gibbs, and dense metrics.
+* Reduced sampling and reporting allocation pressure with automatic
+  chain-local model evaluators, reusable random-walk and covariance buffers,
+  allocation-free metric dot/update operations, immutable-data fast paths, and
+  scalar chain accessors used by diagnostics, graphing, and export.
+
 Version 0.7.2 (August 26, 2026):
 * Added checked-in 90-digit Decimal reference corpora for boundary-heavy mixed
   Clayton measures and simplified C-/D-vine log densities, with a standalone

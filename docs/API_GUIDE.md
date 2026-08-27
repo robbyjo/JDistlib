@@ -3,7 +3,8 @@
 New to JDistlib? Start with the website's
 [learning center](https://robbyjo.github.io/JDistlib/learn.html). It links a
 beginner distribution tutorial and vignette, a custom-distribution tutorial and
-vignette, and copula material clearly marked for JDistlib 0.7.0 and later.
+vignette, copula material clearly marked for JDistlib 0.7.0 and later, and an
+0.8.0 inference path with tutorials, worked vignettes, and executable examples.
 The [composition tutorial](composition-tutorial.html) shows how the scalar
 factories fit together and how to define a general monotone transformation.
 
@@ -25,6 +26,12 @@ Use the smallest API that expresses the distribution you have.
 | Exploit known finite discrete null CDFs | `jdistlib.disttest.DiscreteFdr` |
 | A finite, semi-infinite, or whole-line integral | `Integrate.integrate` with `IntegrationOptions` when defaults are insufficient |
 | A multivariate normal/t/Cauchy/log-normal rectangle probability | The law's `probability` method and `MultivariateProbabilityResult` |
+| A programmatic Bayesian posterior | `jdistlib.inference.ModelBuilder` and `BayesianModel` |
+| A differentiable continuous posterior | `NoUTurnSampler` with multiple explicit-seed chains |
+| A posterior without gradients or with discrete variables | Metropolis, `SliceSampler`, or composable `GibbsSampler` blocks |
+| MCMC convergence and sampler health | `McmcDiagnostics` and `McmcDiagnosticReport` |
+| Trace, rank, ACF, energy, pair, or model graphs | `DiagnosticGraphs`, `ModelGraphExport`, and `InferenceHtmlReport` |
+| A Stan-inspired model script or generated Java wrapper | `jdistlib.inference.lang.ModelScript` or `ModelSourceGenerator` |
 
 Scalar static methods follow R conventions. `lowerTail=true` requests the lower
 tail, and `logP=true` returns a logarithm. Prefer log probabilities for extreme
@@ -48,7 +55,11 @@ overload without a random engine for a deterministic midpoint transform, a
 
 See `NUMERICAL_DISTRIBUTIONS.md` for integration and custom-law guarantees and
 `MULTIVARIATE_PROBABILITIES.md` for randomized rectangle probabilities. See
-`COPULAS.md` for dependence families and continuous-marginal composition.
+`COPULAS.md` for dependence families and continuous-marginal composition. See
+`INFERENCE.md`, `MODELING_LANGUAGE.md`, and `INFERENCE_COMPATIBILITY.md` for
+Bayesian modeling, MCMC, diagnostics, graphing, scripting, and schema guarantees.
+For a guided sequence, start at `inference-tutorial.html`, continue with
+`inference-guide.html`, and use `inference-examples.html` as a tested catalog.
 
 ## Distribution tests
 

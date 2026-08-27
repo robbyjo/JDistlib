@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="JDistlib MCMC diagnostics vignette using Neal's funnel and a non-centered hierarchical model."><title>JDistlib diagnostics vignette</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="inference-diagnostics-vignette.html">Diagnostics vignette</a><a href="inference-examples.html">15 examples</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide"><section class="guide-hero"><p class="eyebrow">Diagnostics vignette · 0.8.0</p><h1>When a chain runs but the geometry says no</h1><p class="lede">Neal’s funnel shows why successful return status is not enough, and why a parameterization change usually beats tuning harder.</p><span class="version-pill">Unreleased 0.8.0 development API</span></section>
+<section class="guide-section"><p class="eyebrow">The geometry</p><h2>A wide mouth narrows into a difficult neck</h2><p>Let y be normal with standard deviation 3 and x conditional on y be normal with variance exp(y). Negative y compresses x into a narrow neck while positive y permits a wide range. One Euclidean step size must traverse both regions.</p><pre><code>DifferentiableLogDensity funnel = (state, gradient) -&gt; {
+  double y = state[0], x = state[1];
+  double inverseVariance = Math.exp(-y);
+  gradient[0] = -y / 9.0 - 0.5
+      + 0.5 * x * x * inverseVariance;
+  gradient[1] = -x * inverseVariance;
+  return -0.5 * y * y / 9.0 - 0.5 * y
+      - 0.5 * x * x * inverseVariance;
+};</code></pre></section>
+<section class="guide-section"><p class="eyebrow">Review</p><h2>Connect symptoms to evidence</h2><div class="learning-grid"><article class="learning-card"><span class="card-kicker">Pairs</span><h3>See the neck</h3><p>A y-versus-x scatter reveals the changing scale and where divergent transitions accumulate.</p></article><article class="learning-card"><span class="card-kicker">Trace and rank</span><h3>See unequal exploration</h3><p>Chains may spend different proportions of time in the neck and mouth.</p></article><article class="learning-card"><span class="card-kicker">Energy</span><h3>See poor transitions</h3><p>Low E-BFMI indicates that momentum refreshes do not move effectively across energy levels.</p></article></div><pre><code>McmcDiagnosticReport report = McmcDiagnostics.analyze(
+    new String[] {"y", "x"}, chains);
+ChartSpec pairs = DiagnosticGraphs.pairs("y", 0, "x", 1, chains);
+ChartSpec energy = DiagnosticGraphs.energy(30, chains);
+String review = InferenceHtmlReport.render(
+    "Funnel review", report, null, pairs, energy);</code></pre></section>
+<section class="guide-section"><p class="eyebrow">Response order</p><h2>Fix meaning and geometry before tuning</h2><ol class="lesson-steps"><li><strong>Verify the target</strong><span>Check gradients, initial density, units, constraints, and prior implications.</span></li><li><strong>Reparameterize</strong><span>For hierarchical models, sample standardized latent effects and reconstruct their scale.</span></li><li><strong>Then tune</strong><span>A higher target acceptance may reduce residual integration error after geometry improves.</span></li></ol><aside class="callout caution"><strong>Do not erase evidence:</strong> raising maximum tree depth can hide saturation counts while making runs slower. It does not straighten a funnel.</aside></section>
+<section class="guide-section"><p class="eyebrow">Eight schools</p><h2>Use a non-centered hierarchy</h2><pre><code>// Sample mu, logTau, and standard-normal z[j].
+double tau = Math.exp(logTau);
+double thetaJ = mu + tau * z[j];</code></pre><p>This formulation decouples latent effects from a weakly identified group scale. The named eight-schools implementation in <a href="inference-examples.html">the example catalog</a> includes the complete analytic gradient, and its test compares that gradient with finite differences.</p></section>
+<section class="guide-section guide-next"><p class="eyebrow">Decision</p><h2>Accept a fit only after the second run improves the evidence</h2><p>Compare divergence counts, maximum depth, minimum E-BFMI, R-hat, bulk/tail ESS, and the same plots after reparameterization. Treat improvement as evidence; do not declare victory solely because one warning disappeared.</p></section></main><footer><span>JDistlib diagnostics vignette.</span><span>Geometry before tuning.</span></footer></body></html>

@@ -28,23 +28,27 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.7.2 is the current stable release. It adds independent boundary-heavy
-mixed/vine reference validation, fitted-model diagnostics, analytic built-in
-pair conditionals, and additive fitting conveniences while retaining the 0.7.0
-copula API. Version 0.7.1 expanded multiple testing, added CQUAD integration,
-and introduced general monotone-transformation composition. The R `src/nmath`
+Version 0.8.0 is the current development release. It adds named Bayesian model
+composition, constraint transforms, reproducible multi-chain MCMC, Metropolis,
+slice, Gibbs, HMC and adaptive NUTS samplers, modern convergence diagnostics,
+headless graph/report exports, and a versioned Stan-inspired modeling-language
+toolchain. Version 0.7.x introduced copula composition, dependence fitting,
+multiple-testing/FDR, CQUAD integration, and distribution composition. The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
 [NMATH_AUDIT.md](NMATH_AUDIT.md) records the source disposition and reproducible
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
 and tested.
 
-## Download
+## Download and development builds
 
-The [JDistlib 0.7.2 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.7.2)
+The latest published stable artifact remains the
+[JDistlib 0.7.2 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.7.2), which
 contains the Java library, source archive, JavaDoc archive, and SHA-256
-checksums. Version 0.7.2 produces Java 8-compatible bytecode. Download the
+checksums. It produces Java 8-compatible bytecode. Download the
 [binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.7.2/jdistlib-0.7.2.jar).
+The unreleased 0.8.0 inference API is built from `master` with `./gradlew build`;
+it is deliberately not presented as a published binary release yet.
 
 ## Building
 
@@ -90,6 +94,14 @@ The website now puts beginner material first:
 * [Using copulas](https://robbyjo.github.io/JDistlib/copula-tutorial.html) and the
   [mixed-claims vignette](https://robbyjo.github.io/JDistlib/copula-vignette.html)
   (**copula features require JDistlib 0.7.0+**).
+* [Bayesian modeling and MCMC](docs/INFERENCE.md) — model composition,
+  samplers, diagnostics, graphing, and reproducibility (JDistlib 0.8.0+).
+* [Modeling language](docs/MODELING_LANGUAGE.md) — the versioned,
+  Stan-inspired script frontend and ahead-of-time Java workflow.
+* [Inference tutorial](docs/inference-tutorial.html), [complete guide](docs/inference-guide.html),
+  [worked vignette](docs/inference-vignette.html), and
+  [diagnostics vignette](docs/inference-diagnostics-vignette.html) — the full
+  0.8.0 learning path, including fifteen executable reference models.
 
 ## Using the distribution APIs
 
@@ -160,6 +172,23 @@ selection. The additive 0.7.2 API exposes row-level
 `logLikelihoodResult`, vine AIC/BIC, and explicit seed overloads; all 0.7.0
 entry points remain available. See the [copula guide](docs/COPULAS.md) for the
 full contract and independent high-precision reference cases.
+
+## Bayesian modeling, MCMC, and diagnostics
+
+The `jdistlib.inference` package composes observed data, constrained parameters,
+priors, and likelihood factors into an unnormalized multivariate target.
+Programmatic Java models and the Stan-inspired 0.8 script language lower into
+the same model representation. HMC and multinomial NUTS use analytic or
+forward-mode gradients, dual-averaging warmup, and diagonal or dense metric
+adaptation; Metropolis, slice, Gibbs, adaptive-rejection, and mixed block updates
+cover targets without a single continuous gradient.
+
+Multiple explicitly seeded chains produce immutable results. Diagnostics include
+rank-normalized split/folded R-hat, bulk/tail ESS, MCSE, divergences, tree-depth
+saturation, and E-BFMI. Trace, rank, autocorrelation, energy, pair, and model
+graphs export to JSON, CSV, SVG, HTML, or Graphviz without a UI dependency. See
+the [inference guide](docs/INFERENCE.md), [language guide](docs/MODELING_LANGUAGE.md),
+and [compatibility contract](docs/INFERENCE_COMPATIBILITY.md).
 
 ## Multiple testing and false discovery rates
 

@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Worked JDistlib Bayesian vignette: estimate a treatment response and make posterior-predictive decisions."><title>JDistlib posterior vignette</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="inference-vignette.html">Posterior vignette</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide"><section class="guide-hero"><p class="eyebrow">Applied vignette · 0.8.0</p><h1>From treatment responses to a predictive decision</h1><p class="lede">A small binomial study illustrates prior choice, four-chain inference, posterior transformation, predictive simulation, and communication.</p><span class="version-pill">Unreleased 0.8.0 development API</span></section>
+<section class="guide-section"><p class="eyebrow">Question</p><h2>Is the response rate plausibly above 50%?</h2><p>Seven of ten participants responded. We use beta(2,2), a symmetric prior that places little weight at implausible extremes. The model is intentionally conjugate so its beta(9,5) posterior can validate the MCMC workflow.</p><pre><code>data { int n; int y; }
+parameters { real&lt;lower=0, upper=1&gt; theta; }
+model {
+  theta ~ beta(2, 2);
+  y ~ binomial(n, theta);
+}
+generated quantities {
+  int y_rep = binomial_rng(n, theta);
+}</code></pre></section>
+<section class="guide-section"><p class="eyebrow">Workflow</p><h2>Compile once, sample four streams</h2><pre><code>Map&lt;String, double[]&gt; data = new LinkedHashMap&lt;&gt;();
+data.put("n", new double[] {10});
+data.put("y", new double[] {7});
+CompiledModelScript script = ModelScript.compile(source, data);
+
+SamplingOptions options = SamplingOptions.builder()
+    .warmupIterations(500).sampleIterations(1000)
+    .targetAcceptance(0.85).build();
+ChainResult[] chains = Chains.parallel(new NoUTurnSampler(),
+    script.model(), new double[][] {{-1}, {-.25}, {.25}, {1}},
+    options, 41024L, 4);</code></pre><p>Before sampling, the production workflow also calls <code>Gradients.check</code>. After sampling, it rejects any failed chain and reviews diagnostics and plots before computing decisions.</p></section>
+<section class="guide-section"><p class="eyebrow">Posterior scale</p><h2>Transform each draw before answering the question</h2><pre><code>int aboveHalf = 0;
+double posteriorMean = 0.0;
+for (ChainResult chain : chains) {
+  for (int draw = 0; draw &lt; chain.size(); draw++) {
+    double theta = script.model().state(chain.sample(draw))
+        .scalar("theta");
+    posteriorMean += theta;
+    if (theta &gt; 0.5) aboveHalf++;
+  }
+}
+int total = chains.length * chains[0].size();
+posteriorMean /= total;
+double probabilityAboveHalf = aboveHalf / (double) total;</code></pre><div class="result-strip"><div><strong>9/14</strong><span>exact posterior mean</span></div><div><strong>Beta(9,5)</strong><span>analytic reference posterior</span></div><div><strong>P(theta &gt; .5)</strong><span>decision-facing posterior quantity</span></div></div></section>
+<section class="guide-section"><p class="eyebrow">Prediction</p><h2>Simulate a future cohort</h2><pre><code>Map&lt;String, double[]&gt; generated = script.generate(
+    chains[0].sample(0), new MersenneTwister(991));
+double futureResponses = generated.get("y_rep")[0];</code></pre><p>Repeat generation over posterior draws to obtain the posterior-predictive distribution for ten future participants. This includes uncertainty in the response probability; plugging only the posterior mean into a binomial would understate that uncertainty.</p></section>
+<section class="guide-section guide-next"><p class="eyebrow">Communication</p><h2>Report uncertainty and computational evidence together</h2><p>State the prior, likelihood, posterior interval, probability above the decision threshold, and predictive interval. Attach R-hat, bulk/tail ESS, divergences, and trace/rank plots. This example has an analytic reference; most real models do not, which makes the computational review indispensable.</p><p>See the <a href="inference-diagnostics-vignette.html">diagnostics vignette</a> for a deliberately difficult hierarchical geometry.</p></section></main><footer><span>JDistlib applied inference vignette.</span><span>Posterior estimation and prediction.</span></footer></body></html>

@@ -16,6 +16,7 @@
       <a href="custom-distributions.html">Custom distributions</a>
       <a href="multiple-testing.html">Multiple testing <span aria-label="version 0.7.0 and later">0.7.0+</span></a>
       <a href="copula-tutorial.html">Copulas <span aria-label="version 0.7.0 and later">0.7.0+</span></a>
+      <a href="inference-tutorial.html">Inference <span aria-label="version 0.8.0 and later">0.8.0+</span></a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
       <a href="https://github.com/robbyjo/JDistlib">Source</a>
@@ -38,14 +39,15 @@
       <h1>R-grade numerical methods,<br>designed for concurrent Java.</h1>
       <p class="lede">JDistlib is a Java translation of R's <code>src/nmath</code>,
         adapted to avoid process-global mutable caches and extended with distributions
-        beyond the R library. Version 0.7.2 is the current stable release.</p>
+        beyond the R library. Version 0.7.2 is the latest published stable release;
+        0.8.0 is the current development line for Bayesian modeling and MCMC.</p>
       <div class="actions">
         <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.7.2">Release notes &amp; checksums</a>
         <a class="button secondary" href="getting-started.html">Start the beginner tutorial</a>
         <a class="button secondary" href="learn.html">Explore all learning paths</a>
       </div>
       <ul class="facts" aria-label="Project facts">
-        <li><strong>0.7.2</strong><span>current release</span></li>
+        <li><strong>0.8.0</strong><span>development line</span></li>
         <li><strong>R 4.6.1</strong><span>sync target</span></li>
         <li><strong>Java 8+</strong><span>compatible bytecode</span></li>
         <li><strong>GPL-2.0+</strong><span>open source</span></li>
@@ -66,6 +68,9 @@
         <article class="learning-card"><span class="card-kicker">After hypothesis tests · expanded in 0.7.1</span><h3>Control multiple testing</h3><p>Use batch and weighted corrections, grouped families, online LORD++/SAFFRON streams, discrete DBH, adaptive methods, censoring, and Storey q-values.</p><a class="card-link" href="multiple-testing.html">Use multiple testing →</a></article>
         <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.7.0+</span><h3>Use a copula</h3><p>Combine marginal distributions with dependence, then simulate a joint outcome.</p><a class="card-link" href="copula-tutorial.html">Learn copulas →</a></article>
         <article class="learning-card"><span class="card-kicker">Applied vignette · 0.7.0+</span><h3>Fit mixed claim outcomes</h3><p>Join continuous severity and discrete occurrence, then compare dependence families.</p><a class="card-link" href="copula-vignette.html">Follow the copula analysis →</a></article>
+        <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.8.0+</span><h3>Fit a Bayesian model</h3><p>Build a constrained posterior, run reproducible NUTS chains, diagnose convergence, and export plots.</p><a class="card-link" href="inference-tutorial.html">Start inference →</a></article>
+        <article class="learning-card"><span class="card-kicker">Applied vignettes · 0.8.0+</span><h3>Review posterior computation</h3><p>Make a posterior-predictive decision, then investigate a funnel with trace, rank, pairs, and energy evidence.</p><a class="card-link" href="inference-vignette.html">Follow the analysis →</a></article>
+        <article class="learning-card"><span class="card-kicker">Executable catalog · 0.8.0+</span><h3>Study 15 tested models</h3><p>Conjugate models, regression, eight schools, mixture, simplex, change point, difficult geometry, and dense metrics.</p><a class="card-link" href="inference-examples.html">Browse examples →</a></article>
       </div>
     </section>
 
@@ -114,6 +119,13 @@
             and D-vines; and fit or select dependence families.</p>
           <a class="card-link" href="copula-tutorial.html">Start the 0.7.0+ copula tutorial →</a>
         </article>
+        <article>
+          <h3>Bayesian inference and MCMC</h3>
+          <p>Compose named constrained models or compile Stan-inspired scripts;
+            sample with Metropolis, slice, Gibbs, HMC, or NUTS; then export
+            modern diagnostics and headless graphs.</p>
+          <a class="card-link" href="inference-guide.html">Read the 0.8.0+ guide →</a>
+        </article>
       </div>
     </section>
 
@@ -138,10 +150,10 @@ double x = Normal.quantile(
         <p class="eyebrow">Release status</p>
         <h2 id="status-heading">The R 4.6.1 audit is complete</h2>
       </div>
-      <p>Version 0.7.2 is the current stable release. It expands boundary-heavy
-        mixed/vine reference validation, fitted-model diagnostics, analytic
-        pair conditionals, and additive fitting conveniences while retaining
-        the 0.7.0 copula API and Java 8 bytecode.</p>
+      <p>Version 0.7.2 remains the latest published stable release. The 0.8.0
+        development line adds the inference model IR, script frontend, modern
+        MCMC samplers, diagnostics, chart-neutral graphing, reports, and fifteen
+        executable reference models while retaining Java 8 bytecode.</p>
       <a class="text-link" href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">Read the synchronization ledger →</a>
     </section>
   </main>

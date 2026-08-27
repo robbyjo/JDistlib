@@ -1,4 +1,27 @@
-# JDistlib 0.8.0
+# JDistlib 0.8.1
+
+JDistlib 0.8.1 is a focused correctness release following the 0.8.0 inference
+release. It addresses five reports found by cross-checking R Bugzilla against
+JDistlib's numerical and `jdistlib.disttest` implementations:
+
+- tied Mood and Ansari-Bradley tests now use the corrected exchangeable-score
+  moments from R PR#19013, including the proper one-sided Ansari tails;
+- negative half-integer Bessel J and Y orders retain their connection-formula
+  terms instead of incorrectly returning zero;
+- noncentral-t densities use a direct log-domain hypergeometric representation
+  in the cancellation-prone central region identified by R PR#17519;
+- Fligner-Killeen tests round centered absolute deviations to seven significant
+  digits before ranking by default, with an overload accepting a caller-chosen
+  value and `Double.POSITIVE_INFINITY` preserving raw binary64 ranking; and
+- fixed-probability negative binomials have explicit infinite-size limits and
+  stable asymptotic behavior when finite size is near `Double.MAX_VALUE`.
+
+Regression coverage contains the original Bugzilla examples, corrected R
+reference values, affine-invariance checks, log/tail boundaries, and extreme
+finite-size sweeps. The complete project check, documentation examples, and 40
+model-script validations pass, and produced classes remain Java 8 bytecode.
+
+## Previous release: JDistlib 0.8.0
 
 JDistlib 0.8.0 introduces a separate Bayesian inference layer without changing
 the normalized distribution APIs. Named Java models and a versioned,

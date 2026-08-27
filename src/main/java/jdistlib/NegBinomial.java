@@ -28,6 +28,8 @@ import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
 public class NegBinomial extends GenericDistribution {
+	private static final double EXTREME_MEAN_THRESHOLD = 1e50;
+
 	public static final double density(double x, double size, double prob, boolean give_log) {
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(prob)) return x + size + prob;
 
@@ -41,12 +43,17 @@ public class NegBinomial extends GenericDistribution {
 		if (x < 0 || MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		//x = R_D_forceint(x);
 		x = rint(x);
+		if (prob == 1 || size == 0)
+			return x == 0 ? (give_log ? 0. : 1.)
+					: (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		/* With fixed prob < 1 the mass escapes to +Inf as size tends to
+		 * infinity.  Treat that limit explicitly instead of replacing Inf by
+		 * Double.MAX_VALUE and entering overflow-prone finite formulas. */
+		if (MathFunctions.isInfinite(size))
+			return give_log ? Double.NEGATIVE_INFINITY : 0.;
 		if (x == 0) {
-			if (size == 0) return give_log ? 0. : 1.;
 			return give_log ? size * log(prob) : pow(prob, size);
 		}
-		if (MathFunctions.isInfinite(size)) size = Double.MAX_VALUE;
-
 		if (x < 1e-10 * size) {
 			double xx2s = x < sqrt(Double.MAX_VALUE)
 				? scalb(x * (x - 1), -1) / size
@@ -54,6 +61,10 @@ public class NegBinomial extends GenericDistribution {
 			double ans = size * log(prob) + x * (log(size) + log1p(-prob))
 				- lgamma1p(x) + log1p(xx2s);
 			return give_log ? ans : exp(ans);
+		}
+		if (hasExtremeMean(size, prob)) {
+			double logDensity = extremeLogDensity(x, size, prob);
+			return give_log ? logDensity : exp(logDensity);
 		}
 		double p = give_log
 			? (x < size ? log1p(-x/(size+x)) : log(size/(size+x)))
@@ -106,16 +117,21 @@ public class NegBinomial extends GenericDistribution {
 
 	public static final double cumulative(double x, double size, double prob, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(prob)) return x + size + prob;
-		if(MathFunctions.isInfinite(size) || MathFunctions.isInfinite(prob)) return Double.NaN;
-		if (size <= 0 || prob <= 0 || prob > 1)	return Double.NaN;
+		if(MathFunctions.isInfinite(prob)) return Double.NaN;
+		if (size < 0 || prob <= 0 || prob > 1)	return Double.NaN;
 
 		/* limiting case: point mass at zero */
-		if (size == 0)
+		if (size == 0 || prob == 1)
 			return (x >= 0) ? (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.))
 				: (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		if (x < 0) return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
 		if (MathFunctions.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if (MathFunctions.isInfinite(size))
+			return lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.)
+					: (log_p ? 0. : 1.);
 		x = floor(x + 1e-7);
+		if (hasExtremeMean(size, prob))
+			return extremeCumulative(x, size, prob, lower_tail, log_p);
 		return Beta.cumulative(prob, size, x + 1, lower_tail, log_p);
 	}
 
@@ -199,10 +215,13 @@ public class NegBinomial extends GenericDistribution {
 			if(p == 1)
 				return lower_tail ? Double.POSITIVE_INFINITY : 0;
 		}
+		if (MathFunctions.isInfinite(size)) return Double.POSITIVE_INFINITY;
 
 		Q = 1.0 / prob;
 		P = (1.0 - prob) * Q;
 		mu = size * P;
+		if (hasExtremeMean(size, prob))
+			return Double.isFinite(mu) ? rint(mu) : Double.POSITIVE_INFINITY;
 		sigma = sqrt(size * P * Q);
 		gamma = (Q + P)/sigma;
 
@@ -240,11 +259,72 @@ public class NegBinomial extends GenericDistribution {
 	}
 
 	public static final double random(double size, double prob, RandomEngine random) {
-	    if(MathFunctions.isInfinite(prob) || Double.isNaN(size) || size <= 0 || prob <= 0 || prob > 1)
-	    	/* prob = 1 is ok, PR#1218 */
-	    	return Double.NaN;
-	    if (MathFunctions.isInfinite(size)) size = Double.MAX_VALUE / 2; // '/2' to prevent rgamma() returning Inf
-	    return (prob == 1) ? 0 : Poisson.random(Gamma.random(size, (1 - prob) / prob, random), random);
+		if(MathFunctions.isInfinite(prob) || Double.isNaN(size) || size <= 0 || prob <= 0 || prob > 1)
+			/* prob = 1 is ok, PR#1218 */
+			return Double.NaN;
+		if (prob == 1) return 0;
+		if (MathFunctions.isInfinite(size)) return Double.POSITIVE_INFINITY;
+		return Poisson.random(Gamma.random(size, (1 - prob) / prob, random), random);
+	}
+
+	private static boolean hasExtremeMean(double size, double prob) {
+		if (!Double.isFinite(size) || size <= EXTREME_MEAN_THRESHOLD
+				|| !(prob < 1.0)) return false;
+		double mean = size * ((1.0 - prob) / prob);
+		return !Double.isFinite(mean) || mean > EXTREME_MEAN_THRESHOLD;
+	}
+
+	private static double extremeLogDensity(double x, double size, double prob) {
+		double ratio = x / size;
+		double onePlusRatio = 1.0 + ratio;
+		double success = 1.0 / onePlusRatio;
+		double failure = ratio / onePlusRatio;
+		double divergence = size * onePlusRatio
+				* bernoulliDivergence(success, prob);
+		if (Double.isNaN(divergence)) return Double.NEGATIVE_INFINITY;
+		double logTotal = log(size) + log1p(ratio);
+		double logBinomial = -divergence - 0.5 * (M_LN_2PI
+				+ log(size) + log(x) - logTotal);
+		return -log1p(ratio) + logBinomial;
+	}
+
+	private static double bernoulliDivergence(double value, double target) {
+		double complement = 1.0 - value;
+		double targetComplement = 1.0 - target;
+		double difference = value - target;
+		if (abs(difference) <= 0.1 * min(target, targetComplement)) {
+			double first = difference / target;
+			double second = -difference / targetComplement;
+			return target * xlog1pxMinusX(first)
+					+ targetComplement * xlog1pxMinusX(second);
+		}
+		double result = value == 0.0 ? 0.0 : value * log(value / target);
+		if (complement != 0.0)
+			result += complement * log(complement / targetComplement);
+		return max(0.0, result);
+	}
+
+	private static double xlog1pxMinusX(double x) {
+		if (abs(x) > 1e-4) return (1.0 + x) * log1p(x) - x;
+		double sum = 0.0;
+		double power = x * x;
+		for (int order = 2; order <= 20; order++) {
+			double term = power / (order * (order - 1.0));
+			sum += order % 2 == 0 ? term : -term;
+			power *= x;
+			if (abs(term) <= DBL_EPSILON * abs(sum)) break;
+		}
+		return sum;
+	}
+
+	private static double extremeCumulative(double x, double size, double prob,
+			boolean lowerTail, boolean logP) {
+		double observedRatio = x / size;
+		double meanRatio = (1.0 - prob) / prob;
+		double lower = observedRatio < meanRatio ? 0.0
+				: observedRatio > meanRatio ? 1.0 : 0.5;
+		double probability = lowerTail ? lower : 1.0 - lower;
+		return logP ? log(probability) : probability;
 	}
 
 	public static final double random_mu(double size, double mu, RandomEngine random) {

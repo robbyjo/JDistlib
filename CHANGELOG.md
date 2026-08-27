@@ -1,5 +1,19 @@
 What's new:
 
+Version 0.8.1 (August 27, 2026):
+* Corrected the tied-sample Mood and Ansari-Bradley asymptotic moments to use
+  R's PR#19013 exchangeable-score formulas, including one-sided Ansari tails.
+* Corrected negative half-integer Bessel J/Y connection terms instead of
+  returning zero, while retaining the existing huge-order allocation guard.
+* Added a direct log-domain hypergeometric noncentral-t density path near the
+  mode, removing the CDF-subtraction spikes reported in R PR#17519.
+* Made Fligner-Killeen ranking stable under affine rescaling by default and
+  added a significant-digits overload with an explicit raw-ranking opt-out.
+* Added explicit fixed-probability negative-binomial limits for infinite size
+  and stable asymptotic density/CDF/quantile behavior near `Double.MAX_VALUE`.
+* Added focused R Bugzilla regressions, refreshed the historical Mood vector,
+  and retained Java 8-compatible bytecode and the complete 0.8.0 API.
+
 Version 0.8.0 (August 27, 2026):
 * Added a named Bayesian model IR and Java builder with observed data, latent
   parameters, dependency-aware factors, real/positive/bounded/ordered/simplex

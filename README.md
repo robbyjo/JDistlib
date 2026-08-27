@@ -28,11 +28,11 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.8.0 is the current release. It adds named Bayesian model
-composition, constraint transforms, reproducible multi-chain MCMC, Metropolis,
-slice, Gibbs, HMC and adaptive NUTS samplers, modern convergence diagnostics,
-headless graph/report exports, and a versioned Stan-inspired modeling-language
-toolchain. Version 0.7.x introduced copula composition, dependence fitting,
+Version 0.8.1 is the current release. It corrects five R Bugzilla-derived
+numerical and test-method edge cases while preserving the Bayesian model
+composition, reproducible MCMC, diagnostics, graph exports, and versioned
+Stan-inspired modeling-language toolchain introduced in 0.8.0. Version 0.7.x
+introduced copula composition, dependence fitting,
 multiple-testing/FDR, CQUAD integration, and distribution composition. The R `src/nmath`
 file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 [UPSTREAM.md](UPSTREAM.md) is the source-of-truth checklist and
@@ -42,10 +42,10 @@ and tested.
 
 ## Download
 
-The [JDistlib 0.8.0 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.0)
+The [JDistlib 0.8.1 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.1)
 contains the Java library, source archive, JavaDoc archive, and SHA-256
 checksums. It produces Java 8-compatible bytecode. Download the
-[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.0/jdistlib-0.8.0.jar).
+[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.1/jdistlib-0.8.1.jar).
 
 ## Building
 

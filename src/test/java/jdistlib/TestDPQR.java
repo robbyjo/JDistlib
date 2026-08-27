@@ -3019,7 +3019,7 @@ for(dist in PDQR) {
 		result = DistributionTest.mood_test(ramsay, jung_parekh);
 		System.out.println(result[0]);
 		System.out.println(result[1]);
-		success &= printBool(isEqual(1.0371275614960966, result[0]) && isEqual(0.2996764118570592, result[1]));
+		success &= printBool(isEqual(1.0199385335499391, result[0]) && isEqual(0.30775761297787607, result[1]));
 		double[] x = new double [] {1.83,  0.50,  1.62,  2.48, 1.68, 1.88, 1.55, 3.06, 1.30};
 		double[] y = new double [] {0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29};
 		System.out.println("One-sample Wilcoxon Test");

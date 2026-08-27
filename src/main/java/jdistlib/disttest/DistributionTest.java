@@ -447,10 +447,10 @@ public class DistributionTest {
 		double[] r = rank(c(x, y));
 		boolean has_ties = unique(r).length != r.length;
 		boolean large_xy = nx >= 50 || ny >= 50;
+		double[] scores = pmin(r, vmin(N + 1, r));
 		double h = 0;
-		r = pmin(r, vmin(N + 1, r));
 		for (int i = 0; i < nx; i++)
-			h += r[i];
+			h += scores[i];
 		if (force_exact || (!has_ties && !large_xy)) {
 			switch(kind) {
 				case TWO_SIDED:
@@ -468,17 +468,32 @@ public class DistributionTest {
 			}
 			throw new RuntimeException(); // Should never happen
 		}
-		// Has ties or large xy: Inexact match
-		sort(r);
-		double[][] rle = rle(r);
-		double denom = 16 * N * (N - 1), Np1Sq = N + 1, Np2 = (N+2);
-		Np1Sq *= Np1Sq;
-		double sigma = 16 * sum(vtimes(vtimes(rle[0], rle[0]), rle[1]));
-		sigma = N % 2 == 0 ? sqrt(nx * ny * (sigma - N*Np2*Np2) / denom)
-			: sqrt(nx * ny * (sigma*N - Np1Sq*Np1Sq) / (denom * N));
-		double z = N % 2 == 0 ? h - nx * Np2 / 4 : h - nx * Np1Sq / (4 * N);
-		double p = Normal.cumulative(z/sigma, 0, 1, true, false);
-		p = 2 * min(p, 1-p);
+		// Asymptotic match. With ties the observed mid-rank scores are the
+		// exchangeable scores; using the untied closed-form moments mixes two
+		// different tie conventions (R PR#19013).
+		double sigma;
+		double z;
+		if (has_ties) {
+			z = h - nx * mean(scores);
+			sigma = sqrt(nx * ny * var(scores) / N);
+		} else {
+			double Np1Sq = (N + 1) * (N + 1);
+			if (N % 2 == 0) {
+				z = h - nx * (N + 2) / 4;
+				sigma = sqrt(nx * ny * (N + 2) * (N - 2)
+						/ (48 * (N - 1)));
+			} else {
+				z = h - nx * Np1Sq / (4 * N);
+				sigma = sqrt(nx * ny * (N + 1) * (3 + N * N)
+						/ (48 * N * N));
+			}
+		}
+		double p = Normal.cumulative(z / sigma, 0, 1, true, false);
+		switch (kind) {
+			case TWO_SIDED: p = 2 * min(p, 1 - p); break;
+			case LOWER: p = 1 - p; break;
+			case GREATER: break;
+		}
 		return new double[] {h, p};
 	}
 
@@ -523,8 +538,11 @@ public class DistributionTest {
 			double[] p = vmin(colon(1., z.length), con);
 			p = cumsum(vsq(p));
 			double sum = 0;
+			int cumulativeTies = 0;
 			for (int i = 0; i < u.length; i++) {
-				double ti = t[i], NmtiSq = N - t[i], tsq = ti * ti;
+				double ti = t[i], tsq = ti * ti;
+				cumulativeTies += t[i];
+				double NmtiSq = N - 2 * cumulativeTies + ti;
 				NmtiSq *= NmtiSq;
 				sum += ti * (tsq - 1) * (tsq - 4 + 15 * NmtiSq);
 			}
@@ -934,6 +952,21 @@ public class DistributionTest {
 	 * @return an array of two elements: The first is the test statistic, the second is the p-value
 	 */
 	public static final double[] fligner_test(double[] x, int[] group) {
+		return fligner_test(x, group, DEFAULT_WILCOX_DIGITS);
+	}
+
+	/**
+	 * Fligner-Killeen test with a significant-digits control for ranking
+	 * centered absolute deviations. This prevents an affine rescaling from
+	 * manufacturing or destroying ties through binary floating-point roundoff.
+	 * Pass {@link Double#POSITIVE_INFINITY} to rank the raw deviations.
+	 * @param x observations
+	 * @param group group indices
+	 * @param digitsRank significant digits applied before ranking
+	 * @return an array containing the statistic and p-value
+	 */
+	public static final double[] fligner_test(double[] x, int[] group,
+			double digitsRank) {
 		int n = x.length;
 		if (n != group.length)
 			throw new RuntimeException();
@@ -960,7 +993,9 @@ public class DistributionTest {
 				dbl[j] -= med_group;
 			System.arraycopy(dbl, 0, new_x, i == 0 ? 0 : cumsum_n_group[i-1], ni);
 		}
-		new_x = rank(vabs(new_x));
+		new_x = vabs(new_x);
+		applySignificantDigits(new_x, digitsRank);
+		new_x = rank(new_x);
 		for (int i = 0; i < new_x.length; i++)
 			new_x[i] = Normal.quantile((1 + new_x[i] / (n + 1)) / 2.0, 0, 1, true, false);
 		double stat = 0;

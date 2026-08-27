@@ -20,6 +20,10 @@
 
 ## Recently completed
 
+* Corrected the five 0.8.1 R Bugzilla findings: tied Mood/Ansari moments,
+  negative half-integer Bessel connections, noncentral-t density cancellation,
+  affine-stable Fligner ranking, and infinite/extreme-size negative binomial
+  behavior, with focused references and Java 8 regression coverage.
 * Added the 0.8.0 Bayesian model IR and Java builder with observed data,
   constrained latent parameters, dependency-aware prior/likelihood factors,
   log-Jacobians, analytic gradients, forward-mode script differentiation,

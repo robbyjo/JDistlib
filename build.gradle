@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'net.sourceforge.jdistlib'
-def releaseLine = '0.8.0'
+def releaseLine = '0.8.1'
 def requestedReleaseVersion = providers.gradleProperty('releaseVersion').orNull
 if (requestedReleaseVersion != null && requestedReleaseVersion != releaseLine) {
     throw new GradleException("releaseVersion ${requestedReleaseVersion} does not match ${releaseLine}")

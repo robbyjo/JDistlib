@@ -34,6 +34,10 @@ import jdistlib.rng.RandomEngine;
 import jdistlib.util.Debug;
 
 public class NonCentralT extends GenericDistribution {
+	private static final double DIRECT_DENSITY_MAX_Z = 0.05;
+	private static final double DIRECT_DENSITY_MAX_DF = 1e5;
+	private static final double DIRECT_DENSITY_MAX_PRODUCT = 2.0;
+
 	private static double largeNoncentralityCumulative(final double t,
 			final double df, final double ncp, final boolean lowerTail) {
 		/* Condition on the standard-normal numerator Z.  For t > 0,
@@ -121,6 +125,15 @@ public class NonCentralT extends GenericDistribution {
 		if(MathFunctions.isInfinite(df) || df > 1e8)
 			return Normal.density(x, ncp, 1., give_log);
 
+		/* A direct hypergeometric representation avoids subtracting nearly
+		 * equal CDFs around the mode (R PR#17519).  Limit it to the rapidly
+		 * convergent region; the established CDF identity remains the fallback
+		 * for tails and large noncentralities. */
+		if (x != 0.0) {
+			double direct = directDensityLog(x, df, ncp);
+			if (Double.isFinite(direct)) return give_log ? direct : exp(direct);
+		}
+
 		/* Do calculations on log scale to stabilize */
 
 		/* Consider two cases: x ~= 0 or not */
@@ -136,6 +149,53 @@ public class NonCentralT extends GenericDistribution {
 		}
 
 		return (give_log ? u : exp(u));
+	}
+
+	private static double directDensityLog(double x, double df, double ncp) {
+		double product = ncp * x;
+		double xSquaredOverDf = x * x / df;
+		double z = product * product / (2 * (df + x * x));
+		if (!Double.isFinite(z) || !Double.isFinite(xSquaredOverDf)
+				|| z > DIRECT_DENSITY_MAX_Z
+				|| df > DIRECT_DENSITY_MAX_DF
+				|| abs(product) > DIRECT_DENSITY_MAX_PRODUCT)
+			return Double.NaN;
+
+		double firstHypergeometric = hypergeometric1F1(df / 2 + 1, 1.5, z);
+		double secondHypergeometric = hypergeometric1F1((df + 1) / 2, 0.5, z);
+		if (!(firstHypergeometric > 0.0) || !(secondHypergeometric > 0.0)
+				|| !Double.isFinite(firstHypergeometric)
+				|| !Double.isFinite(secondHypergeometric))
+			return Double.NaN;
+
+		double logL = -log(df) - log1p(xSquaredOverDf);
+		double logPrefactor = -df / 2 * log1p(xSquaredOverDf)
+				- ncp * ncp / 2;
+		double firstPart = lgammafn(df + 1) - df * M_LN2 - lgammafn(df / 2);
+		double logFirst = logPrefactor + firstPart
+				- lgammafn((df + 1) / 2) + M_LN2 / 2
+				+ log(abs(product)) + log(firstHypergeometric) + logL;
+		double logSecond = logPrefactor + firstPart
+				- lgammafn(df / 2 + 1) + log(secondHypergeometric) + logL / 2;
+		if (product > 0.0) return logspace_add(logFirst, logSecond);
+		if (logSecond <= logFirst) return Double.NaN;
+		return logspace_sub(logSecond, logFirst);
+	}
+
+	private static double hypergeometric1F1(double a, double b, double z) {
+		double sum = 1.0;
+		double correction = 0.0;
+		double term = 1.0;
+		for (int k = 1; k <= 10000; k++) {
+			term *= (a + k - 1) / (b + k - 1) * z / k;
+			if (!Double.isFinite(term)) return Double.NaN;
+			double adjusted = term - correction;
+			double next = sum + adjusted;
+			correction = (next - sum) - adjusted;
+			sum = next;
+			if (term <= 4 * DBL_EPSILON * sum) return sum;
+		}
+		return Double.NaN;
 	}
 
 	/*  Algorithm AS 243  Lenth,R.V. (1989). Appl. Statist., Vol.38, 185-189.

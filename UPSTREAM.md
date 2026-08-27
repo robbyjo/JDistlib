@@ -68,6 +68,20 @@ and are covered by upstream regression vectors in
 - [x] `stats::wilcox.test` revision 90068: `digits.rank` now defaults to 7 and
   the new `digits.zap` control defaults to the same value. JDistlib exposes
   both through overloads of `wilcoxon_test` and `mann_whitney_u_test`.
+- [x] `stats::mood.test` revision 89549 and `stats::ansari.test` revision
+  89645 (R PR#19013): tied samples use the corrected cumulative-tie variance
+  and exchangeable mid-rank score moments. JDistlib also applies those moments
+  consistently to its one-sided Ansari overloads.
+
+## R Bugzilla hardening in 0.8.1
+
+The 2026-08-27 open/accuracy sweep additionally produced focused JDistlib
+regressions for PR#15554 (negative half-integer Bessel connections), PR#17519
+(noncentral-t density cancellation), PR#18395 (Fligner tie stability), and the
+reopened PR#16727 (fixed-probability negative-binomial infinite/extreme size).
+These are tracked separately from the tagged `src/nmath` audit because several
+reports remain open upstream or concern `stats`-package R code rather than a
+tagged Nmath source change.
 
 ## Porting rules
 

@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Tutorial for Stan user-defined functions, forward declarations, overloads, data-qualified arguments, recursion, and probability suffix rules in JDistlib."><title>JDistlib Stan user functions</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="examples.html">Browse examples</a><a href="stan-containers-tutorial.html">Containers</a><a href="stan-users.html">For Stan users</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide"><section class="guide-hero"><p class="eyebrow">v0.8.3 tutorial · reusable model code</p><h1>Declare, overload, and call Stan functions</h1><p class="lede">Organize a model with typed functions, forward declarations, lexical locals, checked overloads, data-only arguments, probability suffixes, and guarded recursion.</p><span class="version-pill">Source-compatible function core</span></section>
+<nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#declare">Declarations</a><a href="#overload">Overloads</a><a href="#probability">Probability functions</a><a href="#recursion">Recursion</a><a href="#limits">Boundary</a></nav>
+<section class="guide-section" id="declare"><p class="eyebrow">Definition order</p><h2>Forward-declare before a later definition</h2><pre><code>functions {
+  real penalty(real x);
+  real penalty(real x) { return square(x); }
+}
+model { target += -0.1 * penalty(theta); }</code></pre><p>A declaration and definition must have the same return type, name, argument types, dimensions, and <code>data</code> qualifiers. Duplicate or unresolved declarations are compile errors.</p></section>
+<section class="guide-section" id="overload"><p class="eyebrow">Typed dispatch</p><h2>Use overloads without runtime guessing</h2><pre><code>functions {
+  real score(real x) { return square(x); }
+  real score(vector x) { return dot_product(x, x); }
+  vector predict(data matrix X, vector beta) { return X * beta; }
+}</code></pre><p>Overload selection uses declared container type and shape, with integer-to-real promotion where unambiguous. A <code>data</code>-qualified argument accepts values proven to originate only from data or transformed data; passing a parameter-dependent expression produces a no-matching-overload diagnostic.</p></section>
+<section class="guide-section" id="probability"><p class="eyebrow">Distribution syntax</p><h2>Follow Stan suffix and target rules</h2><pre><code>functions {
+  real robust_lpdf(real y, real mu) {
+    return student_t_lpdf(y | 5, mu, 1);
+  }
+  real shrink_lp(real x) {
+    target += normal_lpdf(x | 0, 2);
+    return 0;
+  }
+}
+model {
+  y ~ robust(mu);
+  target += shrink_lp(mu);
+}</code></pre><p><code>_lpdf</code> and <code>_lpmf</code> functions return <code>real</code> and expose sampling-statement shorthand. <code>_lp</code> functions may increment <code>target</code>. The vertical bar in probability calls is accepted.</p></section>
+<section class="guide-section" id="recursion"><p class="eyebrow">Finite work</p><h2>Recursion is supported with a guard</h2><pre><code>real polynomial_sum(real x, int degree) {
+  if (degree == 0) return 1;
+  return pow(x, degree) + polynomial_sum(x, degree - 1);
+}</code></pre><p>Calls have lexical local scope and may recurse, but JDistlib enforces a depth guard so malformed source cannot consume the Java stack indefinitely. Loops have analogous work guards.</p></section>
+<section class="guide-section guide-next" id="limits"><p class="eyebrow">Current boundary</p><h2>Know what still needs Java</h2><p>Higher-order functions, external functions, complex and tuple arguments, parallel reduce/map constructs, and direct script callbacks into numerical solvers are not yet source-compatible. Use typed Java callbacks for solver work and read the <a href="stan-solvers-tutorial.html">solver tutorial</a>. Examples 11, 14, 15, and 29 in the <a href="https://github.com/robbyjo/JDistlib/tree/master/examples/stan">checked Stan catalog</a> are runnable companions.</p></section></main>
+<footer><span>JDistlib v0.8.3 function tutorial.</span><span>Typed overloads and explicit effects.</span></footer></body></html>

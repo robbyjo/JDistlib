@@ -32,6 +32,8 @@ Use the smallest API that expresses the distribution you have.
 | MCMC convergence and sampler health | `McmcDiagnostics` and `McmcDiagnosticReport` |
 | Trace, rank, ACF, energy, pair, or model graphs | `DiagnosticGraphs`, `ModelGraphExport`, and `InferenceHtmlReport` |
 | A Stan-inspired model script or generated Java wrapper | `jdistlib.inference.lang.ModelScript` or `ModelSourceGenerator` |
+| Ordinary Stan syntax supported by the Java-native core | `ModelScript.compileStan` and `STAN_SOURCE_COMPATIBILITY.md` |
+| Allocation-conscious reverse gradients for an HMC/NUTS target | `jdistlib.inference.autodiff.ReverseModeLogDensity` and `ReverseTape` |
 
 Scalar static methods follow R conventions. `lowerTail=true` requests the lower
 tail, and `logP=true` returns a logarithm. Prefer log probabilities for extreme
@@ -60,7 +62,8 @@ See `NUMERICAL_DISTRIBUTIONS.md` for integration and custom-law guarantees and
 Bayesian modeling, MCMC, diagnostics, graphing, scripting, and schema guarantees.
 For a guided sequence, start at `inference-tutorial.html`, continue with
 `inference-guide.html`, and use `inference-examples.html` as a tested catalog.
-The website's `examples.html` index links fifty validated model scripts and
+The website's `examples.html` index links fifty JDistlib model scripts, thirty
+ordinary `.stan` compatibility fixtures, and
 feature-focused Java integrations for copulas, composition, FDR, custom laws,
 numerical integration, and MCMC.
 

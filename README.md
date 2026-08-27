@@ -28,7 +28,10 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.8.2 is the current release. It expands the Stan-inspired language
+Version 0.8.2 is the current stable release. The 0.8.3 development line adds
+Stan container literals and forward declarations, a broader shaped-container
+and linear-algebra library, Java-native algebraic/ODE/DAE solvers, and a much
+larger ordinary-Stan compatibility catalog. Version 0.8.2 expanded the language
 with scoped scalar locals, control flow, stable scalar math, more than thirty
 probability families and RNGs, file-backed data examples, and complete
 in-memory/cached/ahead-of-time compilation guidance. It retains the 0.8.1
@@ -42,10 +45,22 @@ file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
 and tested.
 
-The 0.8.2 executable catalog contains fifty model scripts, including focused
-examples for the new robust, logit, overdispersed-count, lifetime, circular,
-reaction-time, control-flow, and stable-mixture features. Larger Stan language
-and runtime features remain in the unscheduled roadmap.
+The executable catalog contains fifty JDistlib model scripts and thirty
+ordinary Stan fixtures, including focused
+examples for multidimensional indexing, matrix probability, container-valued
+functions, structured constraints, robust/logit/count/lifetime models, and
+control flow. Java-native algebraic, adaptive ODE, and index-1 DAE solvers are
+available under `jdistlib.inference.solver`; direct higher-order script bindings,
+complex/tuple values, sparse operations, and the remaining full-Stan library
+surface remain on the roadmap.
+
+The development branch also provides a Java-native
+[Stan source-compatibility core](docs/STAN_SOURCE_COMPATIBILITY.md). Ordinary
+`.stan` fixtures exercise arbitrary-rank arrays and slices, typed matrix
+algebra, container user functions, broadcasting, structured constraints, and
+transformed containers. JDistlib preserves the model meaning of supported
+source while intentionally retaining its own Java autodiff, RNG, samplers,
+diagnostics, floating-point behavior, and output formats.
 
 The planned [0.9.0 finance and options roadmap](docs/FINANCE_ROADMAP.md) covers
 tail-risk and payoff functionals, transform-domain and heavy-tailed families,
@@ -113,12 +128,24 @@ The website now puts beginner material first:
   in-memory, cached, or ahead-of-time compilation.
 * [JDistlib for Stan users](docs/stan-users.html) — concept mapping, model
   migration, data binding, sampling, output, and compatibility boundaries.
+* [Stan source compatibility](docs/STAN_SOURCE_COMPATIBILITY.md) — supported
+  ordinary Stan syntax, Java execution differences, conformance tests, and the
+  remaining boundary.
+* [Reverse-mode autodiff](docs/REVERSE_AUTODIFF.md) — reusable tape lifecycle,
+  sampler-facing API, and the forward-versus-reverse benchmark.
+* [Stan containers and matrices](docs/stan-containers-tutorial.html) — literals,
+  arrays of vectors/matrices, slicing, assignment, and matrix pipelines.
+* [Stan user functions](docs/stan-functions-tutorial.html) — forward declarations,
+  overloads, data-qualified arguments, recursion, and probability suffixes.
+* [Algebraic, ODE, and DAE solvers](docs/stan-solvers-tutorial.html) — Java-native
+  equation solving with tolerances, work guards, and migration guidance.
 * [Inference tutorial](docs/inference-tutorial.html), [complete guide](docs/inference-guide.html),
   [worked vignette](docs/inference-vignette.html), and
   [diagnostics vignette](docs/inference-diagnostics-vignette.html) — the full
   0.8.0 learning path, including fifteen executable reference models.
 * [Browse all examples](https://robbyjo.github.io/JDistlib/examples.html) —
-  fifty validated Stan-inspired scripts plus compilable Java workflows for
+  fifty JDistlib scripts, thirty ordinary `.stan` compatibility fixtures, and
+  compilable Java workflows for
   copulas, mixtures, transformations, FDR, custom distributions, MCMC, and
   numerical integration.
 
@@ -200,8 +227,9 @@ Programmatic Java models and the Stan-inspired 0.8 script language lower into
 the same model representation. Scripts support scalar locals, comparisons,
 boolean expressions, `if`/`else`, integer-range `for`, guarded `while`, a broad
 Stan scalar-math surface, and more than thirty scalar probability families.
-HMC and multinomial NUTS use analytic or
-forward-mode gradients, dual-averaging warmup, and diagonal or dense metric
+HMC and multinomial NUTS use analytic forward-mode gradients or Java-authored
+`ReverseModeLogDensity` targets backed by a reusable primitive tape,
+dual-averaging warmup, and diagonal or dense metric
 adaptation; Metropolis, slice, Gibbs, adaptive-rejection, and mixed block updates
 cover targets without a single continuous gradient.
 

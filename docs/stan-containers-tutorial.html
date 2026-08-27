@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Tutorial for Stan-compatible literals, multidimensional arrays, indexing, assignments, vectors, matrices, and linear algebra in JDistlib 0.8.3."><title>JDistlib Stan containers and matrices</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="examples.html">Browse examples</a><a href="modeling-language-tutorial.html">Model scripts</a><a href="stan-users.html">For Stan users</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide"><section class="guide-hero"><p class="eyebrow">v0.8.3 tutorial · shaped values</p><h1>Build, slice, and transform Stan containers</h1><p class="lede">Use ordinary Stan literals, arbitrary-rank arrays, arrays of vectors and matrices, indexed mutation, and dimension-aware matrix algorithms while retaining compile-time and binding-time shape diagnostics.</p><span class="version-pill">30 checked .stan fixtures</span></section>
+<nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#literals">Literals</a><a href="#arrays">Arrays and indexing</a><a href="#matrix">Matrix pipeline</a><a href="#diagnostics">Diagnostics</a><a href="#examples">Examples</a></nav>
+<section class="guide-section" id="literals"><p class="eyebrow">Start with values</p><h2>Literal delimiters preserve orientation</h2><pre><code>transformed data {
+  array[2,2] real grid = {{1,2},{3,4}};
+  vector[3] column = [1,2,3]';
+  row_vector[3] row = [4,5,6];
+  matrix[2,2] A = [[2,.5],[.5,3]];
+}</code></pre><p>Braces make arrays. A single bracket row makes a <code>row_vector</code>; transpose makes a <code>vector</code>. Equal-length nested bracket rows make a matrix. Ragged nested literals are rejected before sampling.</p></section>
+<section class="guide-section" id="arrays"><p class="eyebrow">One-based selection</p><h2>Slice and assign without losing base types</h2><pre><code>data { array[2,3] real x; }
+model {
+  array[2,3] real work = x;
+  work[1,2:3] = rep_array(theta, 2);
+  work[:,1] += theta;
+  target += sum(work);
+}</code></pre><p>Scalar, partial, range, all-index, and chained indexing use Stan's one-based convention. Arrays may contain vectors or matrices: <code>array[2] vector[3]</code> and <code>array[4] matrix[2,2]</code> retain their element orientation after slicing.</p></section>
+<section class="guide-section" id="matrix"><p class="eyebrow">Linear algebra</p><h2>Compose a checked matrix pipeline</h2><pre><code>matrix[3,2] X = [[1,0],[1,1],[1,2]];
+matrix[2,2] gram = crossprod(X);
+matrix[2,2] L = cholesky_decompose(gram);
+matrix[3,2] Q = qr_thin_Q(X);
+vector[3] fitted = X * beta;
+y ~ multi_normal(fitted, Sigma);</code></pre><p>The runtime distinguishes <code>vector</code>, <code>row_vector</code>, and <code>matrix</code>. Products follow orientation; <code>.*</code> and <code>./</code> remain explicit elementwise operations. Also available are inverse/determinant/log determinant, SPD solves, blocks/rows/columns, diagonal pre/post multiplication, quadratic forms, cross products, and covariance or Cholesky multivariate-normal kernels.</p></section>
+<section class="guide-section" id="diagnostics"><p class="eyebrow">Fail early</p><h2>Shape mismatches name both operands</h2><p>Compilation and data binding check dimensions, array rank, base type, matrix inner dimensions, square/SPD requirements, slice bounds, and assignment shape. Scalar broadcasting is allowed; vector-versus-row-vector elementwise arithmetic and differently shaped non-scalars are rejected. The exact compatibility matrix is in <a href="STAN_SOURCE_COMPATIBILITY.md">the source contract</a>.</p></section>
+<section class="guide-section guide-next" id="examples"><p class="eyebrow">Run verified source</p><h2>Continue with examples 13–28</h2><p>Browse <a href="https://github.com/robbyjo/JDistlib/tree/master/examples/stan">all thirty ordinary <code>.stan</code> fixtures</a>. In particular, examples 13, 17–28 cover literals, appends, slicing, matrix blocks, diagonal products, quadratic forms, cross products, softmax, arrays of vectors/matrices, indexed updates, decompositions, and matrix probability kernels.</p><pre><code>./gradlew validateModelScripts</code></pre></section></main>
+<footer><span>JDistlib v0.8.3 container tutorial.</span><span>Typed shapes, Java-native execution.</span></footer></body></html>

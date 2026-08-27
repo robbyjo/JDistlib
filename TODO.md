@@ -1,27 +1,58 @@
 # JDistlib to-do
 
+## Planned for 0.9.0: financial distributions and implied inference
+
+Version 0.9.0 is planned as a probability-first finance release. It will add
+the reusable distribution, numerical, fitting, and inference primitives in the
+[finance and options roadmap](docs/FINANCE_ROADMAP.md), including:
+
+* atom-aware tail risk and partial moments: value at risk, expected shortfall,
+  expectiles, lower/upper partial moments, downside deviation, and stop-loss or
+  option-payoff expectations, with explicit loss/return and tail conventions;
+* log characteristic and cumulant-generating function contracts, numerical
+  inversion, cumulants, and exponentially tilted distributions with
+  domain/existence diagnostics;
+* a shared generalized-hyperbolic family design covering generalized
+  hyperbolic, normal-inverse-Gaussian, and variance-gamma laws, followed by a
+  documented univariate alpha-stable parameterization and its normal, Cauchy,
+  and Levy reductions;
+* convolution, weighted independent sums, and compound-sum distributions with
+  exact discrete, Panjer, FFT, characteristic-function, and reproducible Monte
+  Carlo strategies where applicable, including explicit error and truncation
+  reports;
+* rotated/survival copulas, additional asymmetric pair families, analytical
+  and numerical tail-dependence measures, joint stress-region probabilities,
+  and tail-aware fitting and selection diagnostics;
+* general distribution fitting plus GEV/GPD and tail-index estimation, return
+  levels, threshold diagnostics, uncertainty estimates, censored/interval
+  likelihoods, and reusable calibration result contracts;
+* checked implied-volatility inversion and arbitrage-constrained option-curve
+  processing that can infer a normalized risk-neutral numerical distribution,
+  its CDF/density/quantiles/moments/tails, and reproducible samples;
+* distribution calibration to option observations, including weighted-tail and
+  option-price losses, bid/ask or noisy-observation likelihoods, Bayesian
+  inference, and posterior-predictive terminal-price, payoff, tail-risk, and
+  strike-interval distributions; and
+* transformation, product/ratio, conditional, extrema, and scenario helpers
+  needed to express those probability outputs without embedding market-data,
+  instrument-lifecycle, trading, backtesting, or portfolio-accounting systems
+  in JDistlib.
+
+The implementation order and acceptance contracts are recorded in
+`docs/FINANCE_ROADMAP.md`. Full instrument pricing, American exercise,
+volatility-surface lifecycle management, Greeks, market-data ingestion, and
+execution remain integration-library concerns rather than JDistlib 0.9.0 core
+features.
+
 ## Unscheduled
 
-* Add general arrays and richer indexing, including multidimensional arrays,
-  slices, range indexes, indexed assignment, arrays of vectors, and arrays of
-  matrices to the Stan-inspired modeling language.
-* Add `row_vector` and `matrix` types plus dimension-aware linear algebra,
-  decompositions, efficient matrix probability kernels, and corresponding
-  compile-time shape diagnostics.
-* Add user-defined functions, lexical function scope, recursion policy,
-  overload resolution, data-qualified arguments, and Stan probability-function
-  suffix rules.
-* Add Stan-style vectorization and broadcasting across scalars, vectors,
-  arrays, and matrices with an explicit, tested compatibility matrix.
-* Add the remaining constrained parameter types and exact transforms/Jacobians,
-  including unit vectors, positive ordered vectors, covariance/correlation
-  matrices, and their Cholesky factors.
-* Design and implement a scalable reverse-mode automatic-differentiation
-  engine or generated-gradient backend, with an arena/tape lifecycle suitable
-  for repeated HMC evaluations and benchmarks against the forward-mode engine.
-* Add ODE and DAE integrators, algebraic solvers, sensitivity propagation,
-  tolerances and work limits, plus modeling-language higher-order function
-  bindings. These numerical subsystems require separate validation corpora.
+* Add complex and tuple values, sparse matrix operations, higher-order/external
+  functions, and the remaining Stan standard-library overloads.
+* Lower compiled script expressions onto the reusable reverse-mode tape and add
+  specialized reverse kernels beyond the implemented matrix-normal path.
+* Add sensitivity propagation and modeling-language higher-order function
+  bindings for the Java-native algebraic/ODE/DAE solvers, plus stiff ODE and
+  higher-index DAE algorithms with separate validation corpora.
 * Add the specialized Wiener first-passage distribution to the script
   probability catalog after selecting and validating a stable density and RNG
   implementation across small-time and extreme-parameter regimes.
@@ -42,6 +73,38 @@
   implement the events that can be evaluated reliably.
 
 ## Recently completed
+
+* Added Stan array, vector, row-vector, and rectangular matrix literals; forward
+  user-function declarations; append/head/tail/segment/block/row/column helpers;
+  softmax/log-softmax, cumulative/sort/reverse transforms; diagonal, quadratic,
+  cross-product, and row/column dot-product matrix operations.
+* Added Java-native damped-Newton algebraic solving, adaptive Dormand-Prince
+  ODE integration, and implicit-Euler index-1 DAE integration with tolerances,
+  work guards, result diagnostics, examples, and analytic reference tests.
+* Expanded the checked ordinary `.stan` compatibility catalog from twelve to
+  thirty programs (eighty scripts total) and added v0.8.3 container, function,
+  solver, compatibility, and migration tutorials.
+
+* Added arbitrary-rank arrays and typed shaped values, slices/range/all indexes,
+  indexed assignment, arrays of vectors/matrices, orientation-aware linear
+  algebra, decompositions, SPD solves, multivariate-normal kernels, and binding-
+  time shape diagnostics.
+* Added container-valued user functions, lexical function scopes, guarded
+  recursion, overload resolution and integer promotion, `data` arguments,
+  probability suffixes, `_lp` effects, and an explicit tested broadcasting
+  compatibility matrix.
+* Added exact unit-vector, orthogonal sum-to-zero, covariance/correlation matrix,
+  and covariance/correlation Cholesky transforms and Jacobians, including arrays
+  of structured constraints.
+* Added a primitive-array reverse-mode AD tape with reset/mark/rewind lifecycle,
+  an HMC/NUTS-facing `ReverseModeLogDensity`, analytic verification, and a
+  forward-versus-reverse throughput benchmark.
+
+* Added a Java-native Stan source-compatibility core with explicit
+  `compileStan`/`validateStanSyntax` APIs, shaped arrays/matrices, typed
+  functions and algebra, general constraints/Jacobians, conditional/container
+  expressions, reductions and broadcasting, ordinary `.stan` fixtures, and a
+  documented Java-versus-Stan execution contract.
 
 * Expanded the Stan-inspired language with scoped scalar local variables,
   assignment operators, comparisons and boolean expressions, `if`/`else`,

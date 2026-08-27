@@ -24,22 +24,31 @@ import jdistlib.rng.MersenneTwister;
 public final class ModelScriptCatalog {
 	private ModelScriptCatalog() {}
 	public static void main(String[] arguments) throws IOException {
-		Path directory = Paths.get(arguments.length == 0 ? "examples/models" : arguments[0]);
 		List<Path> scripts = new ArrayList<Path>();
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory, "*.jdm")) {
-			for (Path path : stream) scripts.add(path);
+		List<Path> directories = new ArrayList<Path>();
+		if (arguments.length == 0) {
+			directories.add(Paths.get("examples/models"));
+			directories.add(Paths.get("examples/stan"));
+		} else {
+			for (String argument : arguments) directories.add(Paths.get(argument));
+		}
+		for (Path directory : directories) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory,
+					entry -> entry.toString().endsWith(".jdm") || entry.toString().endsWith(".stan"))) {
+				for (Path path : stream) scripts.add(path);
+			}
 		}
 		Collections.sort(scripts);
 		if (scripts.size() < 30)
 			throw new IllegalStateException("expected at least 30 model scripts, found " + scripts.size());
 		for (Path path : scripts) validate(path);
-		System.out.println("Validated " + scripts.size() + " Stan-inspired model scripts.");
+		System.out.println("Validated " + scripts.size() + " JDistlib/Stan model scripts.");
 	}
 
 	private static void validate(Path path) throws IOException {
 		String source = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-		CompiledModelScript compiled = ModelScript.compile(source,
-				data(path.getFileName().toString()));
+		CompiledModelScript compiled = path.toString().endsWith(".stan")
+				? ModelScript.compileStan(source, data(path)) : ModelScript.compile(source, data(path));
 		BayesianModel model = compiled.model();
 		GradientCheckResult gradient = Gradients.check(model, model.initialState(),
 				2e-5, 2e-5);
@@ -50,8 +59,35 @@ public final class ModelScriptCatalog {
 		compiled.generate(model.initialState(), new MersenneTwister(path.toString().hashCode()));
 	}
 
-	private static Map<String, double[]> data(String name) {
+	private static Map<String, double[]> data(Path path) {
 		Map<String, double[]> result = new LinkedHashMap<String, double[]>();
+		String name = path.getFileName().toString();
+		if (name.endsWith(".stan")) {
+			switch (name.substring(0, 2)) {
+			case "01": vectorData(result, new double[] {-0.3, 0.1, 0.4}); break;
+			case "02": result.put("x", new double[] {1, -1, 1, 1});
+				result.put("y", new double[] {-0.4, 0.7}); break;
+			case "03": put(result, "y", 0.4); break;
+			case "04": result.put("y", new double[] {-0.2, 0.1, 0.5}); break;
+			case "05": break;
+			case "06": result.put("x", new double[] {-1, 0, 1});
+				result.put("y", new double[] {-0.8, 0.1, 1.2}); break;
+			case "07": result.put("x", new double[] {10, 11, 12});
+				result.put("y", new double[] {-0.8, 0.1, 1.2}); break;
+			case "08": break;
+			case "09": result.put("x", new double[] {1, 2, 3, 4, 5, 6}); break;
+			case "10": result.put("X", new double[] {1, 0, 1, 1, 0, 1});
+				result.put("y", new double[] {0.2, -0.1, 0.5});
+				result.put("Sigma", new double[] {1.2, .2, .1, .2, 1.1, .15, .1, .15, .9}); break;
+			case "11": result.put("y", new double[] {0.2, -0.1, 0.4}); break;
+			case "12": break;
+			case "13": case "14": case "15": case "16": case "17": case "18":
+			case "19": case "20": case "21": case "22": case "23": case "24":
+			case "25": case "26": case "27": case "28": case "29": case "30": break;
+			default: throw new IllegalArgumentException("no representative data for " + name);
+			}
+			return result;
+		}
 		switch (name.substring(0, 2)) {
 		case "01": put(result, "n", 10); put(result, "y", 7); break;
 		case "02": put(result, "n_a", 100); put(result, "y_a", 12);

@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Tutorial for Java-native algebraic, ODE, and DAE solvers in JDistlib 0.8.3, including guidance for Stan model migrations."><title>JDistlib algebraic, ODE, and DAE solvers</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="examples.html">Browse examples</a><a href="stan-functions-tutorial.html">Functions</a><a href="stan-users.html">For Stan users</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide"><section class="guide-hero"><p class="eyebrow">v0.8.3 tutorial · numerical systems</p><h1>Solve algebraic equations, ODEs, and index-1 DAEs</h1><p class="lede">Move a Stan solver callback into a typed Java lambda, retain explicit parameters and data, choose tolerances and work limits, and feed the resulting trajectory into a JDistlib model.</p><span class="version-pill">Java-native callback API</span></section>
+<nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#algebraic">Algebraic</a><a href="#ode">ODE</a><a href="#dae">DAE</a><a href="#model">Use in a model</a><a href="#scope">Scope</a></nav>
+<section class="guide-section" id="algebraic"><p class="eyebrow">Root finding</p><h2>Solve F(x) = 0 with damped Newton steps</h2><pre><code>AlgebraicSolver.Result root = AlgebraicSolver.solve(
+    (x, parameters, data, residual) -&gt;
+        residual[0] = x[0] * x[0] - parameters[0],
+    new double[] {1}, new double[] {2}, null,
+    AlgebraicSolver.Options.defaults());
+double sqrtTwo = root.solution()[0];</code></pre><p>The dense solver estimates a Jacobian by scaled finite differences, uses pivoted elimination, and damps a Newton step until the residual decreases. Inspect <code>iterations()</code>, <code>evaluations()</code>, and <code>residualNorm()</code>; non-convergence, singular Jacobians, and non-finite residuals are explicit failures.</p></section>
+<section class="guide-section" id="ode"><p class="eyebrow">Non-stiff dynamics</p><h2>Integrate at requested observation times</h2><pre><code>double[][] states = OdeSolver.integrate(
+    (time, y, parameters, data, derivative) -&gt;
+        derivative[0] = -parameters[0] * y[0],
+    new double[] {1}, 0,
+    new double[] {.25, .5, 1},
+    new double[] {.8}, null,
+    OdeSolver.Options.defaults());</code></pre><p>The adaptive Dormand–Prince 5(4) integrator controls a scaled local error and lands exactly on each increasing output time. Configure relative/absolute tolerances, initial step, and maximum steps with <code>OdeSolver.Options</code>.</p></section>
+<section class="guide-section" id="dae"><p class="eyebrow">Residual dynamics</p><h2>Express an index-1 DAE as F(t,y,y') = 0</h2><pre><code>double[][] states = DaeSolver.integrate(
+    (time, y, derivative, parameters, data, residual) -&gt;
+        residual[0] = derivative[0] + parameters[0] * y[0],
+    new double[] {1}, 0, times,
+    new double[] {.8}, null,
+    AlgebraicSolver.Options.defaults());</code></pre><p>The DAE solver takes an implicit-Euler step at every requested time and solves that step's nonlinear residual with the algebraic solver. Closely spaced output times increase accuracy for smooth systems.</p></section>
+<section class="guide-section" id="model"><p class="eyebrow">Model integration</p><h2>Precompute data-only trajectories or write a Java factor</h2><p>If the system depends only on observed data, solve it first and bind the flattened trajectory through the script data map. If it depends on sampled parameters, call the solver from a Java-authored <code>ModelFactor</code>; gradient-based sampling then requires a matching differentiable factor or a sampler that does not require gradients. Direct Stan higher-order solver syntax and sensitivity autodiff are not yet accepted by <code>compileStan</code>.</p></section>
+<section class="guide-section guide-next" id="scope"><p class="eyebrow">Algorithmic boundary</p><h2>Choose the solver that matches the problem</h2><p>The v0.8.3 ODE method targets non-stiff systems; the DAE method targets modest index-1 systems. Stiff BDF/Rosenbrock integration, higher-index DAE reduction, event handling, and forward/adjoint sensitivities remain roadmap items. Run the complete companion at <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/StanSolverExamples.java"><code>StanSolverExamples.java</code></a>, and verify the solver tests with <code>./gradlew test --tests jdistlib.StanSolverTest</code>.</p></section></main>
+<footer><span>JDistlib v0.8.3 solver tutorial.</span><span>Explicit callbacks, tolerances, and work guards.</span></footer></body></html>

@@ -17,6 +17,53 @@ import jdistlib.inference.lang.ModelScript;
 import jdistlib.rng.MersenneTwister;
 
 public class ModelScriptLanguageTest {
+	@Test public void modernStanArraysMatricesAndGeneralBoundsExecute() {
+		String source = "data { int<lower=1> N; array[N] real y; matrix[2,2] design; } "
+				+ "parameters { vector<lower=-2,upper=3>[2] beta; real<upper=5> cap; "
+				+ "real<lower=-3> floor_value; real<offset=10,multiplier=2> shifted; } "
+				+ "model { y ~ normal(beta[1] + design[2,1]*beta[2],1); "
+				+ "cap ~ normal(0,3); floor_value ~ normal(0,3); shifted ~ normal(10,3); }";
+		Map<String, double[]> data = new LinkedHashMap<String, double[]>();
+		data.put("N", new double[] {3});
+		data.put("y", new double[] {-0.2, 0.1, 0.4});
+		data.put("design", new double[] {1, 2, 3, 4});
+		BayesianModel model = ModelScript.compile(source, data).model();
+		assertEquals(5, model.initialState().length);
+		assertTrue(Double.isFinite(model.logDensity(model.initialState())));
+		GradientCheckResult check = Gradients.check(model, model.initialState(), 3e-5, 3e-5);
+		assertTrue(check.message(), check.passed());
+	}
+
+	@Test public void distributionArgumentsBroadcastSymmetrically() {
+		String source = "data { array[3] real y; } parameters { vector[3] mu; } "
+				+ "model { mu ~ normal(0,2); y ~ normal(mu,1); "
+				+ "target += normal_lpdf(y | mu,1); }";
+		Map<String, double[]> data = new LinkedHashMap<String, double[]>();
+		data.put("y", new double[] {-0.4, 0.2, 0.7});
+		BayesianModel model = ModelScript.compile(source, data).model();
+		GradientCheckResult check = Gradients.check(model,
+				new double[] {-0.1, 0.1, 0.3}, 3e-6, 3e-6);
+		assertTrue(check.message(), check.passed());
+	}
+
+	@Test public void scalarUserFunctionsBranchesAndOverloadsExecute() {
+		String source = "functions { "
+				+ "real centered(real x, real mean) { real delta = x-mean; return delta; } "
+				+ "real penalty(real x) { if (x > 0) return square(x); else return square(x)/2; } "
+				+ "real magnitude(real x) { return x >= 0 ? x : -x; } "
+				+ "real select(real x) { return x; } int select(int x) { return x+10; } "
+				+ "} data { real y; } parameters { real mu; } model { "
+				+ "target += normal_lpdf(centered(y,mu) | 0,1); "
+				+ "target += -0.1*penalty(mu) + 0*magnitude(mu) + 0*select(1) + 0*select(mu); }";
+		Map<String, double[]> data = new LinkedHashMap<String, double[]>();
+		data.put("y", new double[] {0.4});
+		BayesianModel model = ModelScript.compile(source, data).model();
+		GradientCheckResult positive = Gradients.check(model, new double[] {0.2}, 3e-6, 3e-6);
+		GradientCheckResult negative = Gradients.check(model, new double[] {-0.2}, 3e-6, 3e-6);
+		assertTrue(positive.message(), positive.passed());
+		assertTrue(negative.message(), negative.passed());
+	}
+
 	@Test public void controlFlowLocalsAndStanProbabilitySeparatorExecute() {
 		String source = "data { int N; vector[N] y; } parameters { real mu; } "
 				+ "model { real total = 0; for (n in 1:N) { "

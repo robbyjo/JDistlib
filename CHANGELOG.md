@@ -1,5 +1,37 @@
 What's new:
 
+Unreleased:
+* Added Stan-compatible array/vector/row-vector/matrix literal expressions and
+  forward function declarations, plus append, slicing, sequence-transform,
+  diagonal, quadratic-form, cross-product, and matrix dot-product operations.
+* Added Java-native damped-Newton algebraic, adaptive Dormand-Prince ODE, and
+  implicit-Euler index-1 DAE solvers with explicit controls, work guards,
+  numerical tests, and a runnable migration example.
+* Expanded the ordinary `.stan` conformance suite from twelve to thirty models
+  and the combined semantic gate to eighty scripts; added focused v0.8.3
+  tutorials for containers/matrices, functions, and numerical solvers.
+* Completed the shaped Stan container core: arbitrary-rank arrays, partial/range/
+  all indexes, indexed assignments, arrays of vectors and matrices, typed
+  transpose and matrix products, Cholesky/inverse/determinant/SPD solves,
+  multivariate-normal kernels, and binding-time shape diagnostics.
+* Added container/array user functions, data-qualified arguments, guarded
+  recursion and overload resolution, probability-function suffix rules, `_lp`
+  target effects, and an explicit tested broadcasting compatibility matrix.
+* Added exact unit-vector, orthogonal sum-to-zero, covariance/correlation, and
+  Cholesky transforms/Jacobians plus repeated transforms for structured arrays.
+* Added the allocation-conscious `ReverseTape`, reusable
+  `ReverseModeLogDensity` sampler target, gradient/lifecycle tests, and a
+  forward-versus-reverse benchmark.
+* Added the Java-native Stan source-compatibility core and explicit
+  `compileStan`/`validateStanSyntax` entry points. The compiler now accepts
+  modern arrays, row vectors, matrices with scalar multi-indexing, general
+  bounds, offset/multiplier transforms, scalar user functions and overloads,
+  conditional and container expressions, reductions, symmetric probability
+  broadcasting, and initialized transformed containers.
+* Added ordinary `.stan` conformance fixtures to the semantic build gate and a
+  compatibility contract distinguishing source meaning from Java autodiff,
+  floating-point, RNG, sampler, and output behavior.
+
 Version 0.8.2 (August 27, 2026):
 * Expanded the Stan-inspired model language with initialized scoped scalar
   locals, assignment operators, comparisons and boolean expressions,
@@ -20,10 +52,8 @@ Version 0.8.2 (August 27, 2026):
   scoped control flow, stable log-space mixtures, Weibull, von Mises, and
   exponentially modified normal examples; added a Java comparison of all three
   compilation paths.
-* Moved arrays and richer indexing, matrices and linear algebra, user-defined
-  functions/overloads, general broadcasting, further constrained transforms,
-  reverse-mode autodiff, and ODE/DAE/algebraic solvers to the unscheduled
-  roadmap.
+* Moved ODE/DAE/algebraic solvers and the remaining full-Stan library surface to
+  the unscheduled roadmap.
 
 Version 0.8.1 (August 27, 2026):
 * Corrected the tied-sample Mood and Ansari-Bradley asymptotic moments to use

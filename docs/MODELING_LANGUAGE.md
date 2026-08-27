@@ -1,9 +1,12 @@
 # JDistlib modeling language 0.8
 
-The JDistlib language is **Stan-inspired**, not Stan-compatible. It lowers into
-the same `BayesianModel` intermediate representation as `ModelBuilder`, so the
-text and Java frontends share constraint, gradient, sampler, diagnostic, and
-graph behavior. `ModelScript.LANGUAGE_VERSION` identifies the supported subset.
+The JDistlib language has a **Stan source-compatible core with a Java-native
+runtime**. It lowers into the same `BayesianModel` intermediate representation
+as `ModelBuilder`, so the text and Java frontends share constraint, gradient,
+sampler, diagnostic, and graph behavior. `ModelScript.LANGUAGE_VERSION`
+identifies the JDistlib language and `ModelScript.STAN_SOURCE_COMPATIBILITY`
+identifies the portable Stan core. See `STAN_SOURCE_COMPATIBILITY.md` for the
+exact boundary and execution differences.
 
 ```stan
 data {
@@ -29,6 +32,12 @@ CompiledModelScript script = ModelScript.compile(source, data);
 ChainResult chain = new NoUTurnSampler().sample(
     script.model(), script.model().initialState(), options, random);
 Map<String, double[]> generated = script.generate(chain.sample(0), random);
+```
+
+For source intended to remain ordinary Stan syntax, use the explicit alias:
+
+```java
+CompiledModelScript script = ModelScript.compileStan(stanSource, data);
 ```
 
 For a file-backed workflow, read the script and dataset before binding the
@@ -82,13 +91,24 @@ and a gamma-Poisson count-rate model.
 
 - `data`, `transformed data`, `parameters`, `transformed parameters`, `model`,
   and `generated quantities` blocks;
-- scalar `real` and `int`, `vector[N]`, `ordered[N]`, and `simplex[N]`;
-- scalar lower, upper, and finite lower/upper parameter constraints;
-- one-based vector indexing;
+- scalar `real` and `int`, `vector`, `row_vector`, `matrix`, `ordered`,
+  `positive_ordered`, `sum_to_zero_vector`, `simplex`, and `unit_vector`;
+- arbitrary-rank arrays, including arrays of vectors and matrices, with
+  one-based scalar/partial/range/all indexing, slices, and indexed assignment;
+- rectangular array (`{...}`), vector (`[...]'`), row-vector (`[...]`), and
+  matrix (`[[...], [...]]`) literals with shape checking;
+- `cov_matrix`, `corr_matrix`, `cholesky_factor_cov`, and
+  `cholesky_factor_corr`, with exact Java-native transforms/Jacobians;
+- scalar/container lower, upper, finite lower/upper, offset/multiplier,
+  positive-ordered, and sum-to-zero parameter constraints;
+- type-checked matrix/vector products, transpose (`'` or `transpose`),
+  `cholesky_decompose`, thin QR (`qr_thin_Q`/`qr_thin_R`), `inverse`,
+  `determinant`, `log_determinant`,
+  `mdivide_left_spd`, and covariance/Cholesky `multi_normal` kernels;
 - `+`, `-`, `*`, `/`, exponentiation, comparisons, boolean expressions,
   parentheses, scalar-local assignment (`=`, `+=`, `-=`, `*=`, `/=`), sampling
   statements, and `target +=`;
-- initialized scalar `real` and `int` locals in the `model` block, scoped
+- scalar and container locals (initialized or uninitialized) in procedural blocks, scoped
   statement blocks, `if`/`else`, integer-range `for`, and guarded `while`;
 - Stan's `distribution_lpdf(y | ...)`/`distribution_lpmf(y | ...)` separator as
   well as comma-separated calls;
@@ -103,12 +123,58 @@ and a gamma-Poisson count-rate model.
   `bernoulli_logit`, `binomial`, `binomial_logit`, `beta_binomial`,
   `hypergeometric`, `neg_binomial`, `neg_binomial_2`, `neg_binomial_2_log`,
   `poisson`, `poisson_log`, `geometric`, and `discrete_range`;
-- corresponding `_lpdf`/`_lpmf` calls and generated-quantity `_rng` calls.
+- corresponding `_lpdf`/`_lpmf` calls and generated-quantity `_rng` calls;
+- scalar/container/array user functions and overloads, `data` arguments,
+  forward declarations, guarded recursion, Stan probability suffixes and `_lp` target effects,
+  `return`, conditional expressions,
+  initialized transformed containers, symmetric scalar/container probability
+  broadcasting, explicit `.*`/`./`, reductions, `dot_product`, shape queries,
+  conversions, repetition constructors, append/head/tail/segment functions,
+  block/row/column extraction, softmax/log-softmax, cumulative/sort/reverse
+  transforms, diagonal multiplication, quadratic forms, and cross products.
 
 Sampling a data vector with scalar distribution parameters is vectorized.
 Gamma follows Stan's shape/rate convention in scripts; JDistlib's underlying
-`Gamma.random` scale argument is converted internally. Expressions use
+`Gamma.random` scale argument is converted internally. Compiled scripts use
 forward-mode derivatives, including `lgamma` through the digamma function.
+Java-authored targets may instead use `ReverseModeLogDensity`, whose primitive
+arena/tape is reset and reused for every HMC or NUTS evaluation.
+
+### Indexing example
+
+```stan
+data {
+  array[2, 3] real x;
+  array[4] matrix[3, 2] design;
+}
+model {
+  array[2, 3] real work = x;
+  work[1, 2:3] = rep_array(0, 2);
+  work[:, 1] += 1;
+  target += sum(work) + sum(design[2, 1:3, 2]);
+}
+```
+
+### Matrix and user-function example
+
+```stan
+functions {
+  vector predict(data matrix X, vector beta) {
+    return X * beta;
+  }
+}
+data {
+  matrix[3, 2] X;
+  vector[3] y;
+  matrix[3, 3] Sigma;
+}
+parameters {
+  vector[2] beta;
+}
+model {
+  y ~ multi_normal(predict(X, beta), Sigma);
+}
+```
 
 ### Scalar function groups
 
@@ -122,8 +188,10 @@ forward-mode derivatives, including `lgamma` through the digamma function.
 | Stable transforms | `inv_logit`, `logit`, `log_inv_logit`, `log1m_inv_logit`, `log_inv_logit_diff`, `log_sum_exp`, `log_diff_exp`, `log_mix`, `multiply_log` |
 | Other scalar | `pow`, `fma`, `hypot`, `fmin`/`min`, `fmax`/`max`, `fdim`, `fmod`, `lbeta`, `binomial_coefficient_log`, rising/falling factorials, `step`, `int_step`, `sign`, and finite/NaN predicates |
 
-These are scalar overloads. Array, matrix, reduction, and broadcasting overloads
-are intentionally not implied by a shared Stan function name.
+These scalar kernels broadcast elementwise over vectors, row vectors, arrays,
+and matrices. Multi-argument calls accept scalars plus at most one typed shape;
+two non-scalars must have identical base type, array rank, and dimensions.
+Reductions and linear algebra retain their explicit signatures.
 
 Straight-line sampling and `target +=` statements remain separate dependency-
 aware model factors, preserving incremental factor-cache behavior. A model that
@@ -155,8 +223,8 @@ sample the model. A complete Windows command-line workflow is:
 
 ```text
 gradlew.bat jar
-java -cp build\libs\jdistlib-0.8.2.jar jdistlib.inference.lang.ModelScriptCli examples\models\41-normal-csv-mean.jdm com.example.NormalCsvMean build\generated\com\example\NormalCsvMean.java
-javac -cp build\libs\jdistlib-0.8.2.jar -d build\generated-classes build\generated\com\example\NormalCsvMean.java
+java -cp build\libs\jdistlib-0.8.3-SNAPSHOT.jar jdistlib.inference.lang.ModelScriptCli examples\models\41-normal-csv-mean.jdm com.example.NormalCsvMean build\generated\com\example\NormalCsvMean.java
+javac -cp build\libs\jdistlib-0.8.3-SNAPSHOT.jar -d build\generated-classes build\generated\com\example\NormalCsvMean.java
 ```
 
 Instantiate `com.example.NormalCsvMean` as a `GeneratedModelFactory` and call
@@ -174,7 +242,9 @@ parameterization changes require a new language version.
 supported declaration, constraint, transformed block, distribution, RNG,
 vectorization/indexing form, and manual-target pattern. Models 42–50 are focused
 0.8.2 examples for the expanded distributions, scalar math, locals, and control
-flow. Run:
+flow. `examples/stan` adds thirty ordinary `.stan` fixtures, including eighteen
+v0.8.3 examples for literals, forward declarations, container algorithms,
+matrix pipelines, and structured types. Run:
 
 ```text
 ./gradlew validateModelScripts

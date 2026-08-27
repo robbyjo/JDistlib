@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'net.sourceforge.jdistlib'
-def releaseLine = '0.8.2'
+def releaseLine = '0.8.3'
 def requestedReleaseVersion = providers.gradleProperty('releaseVersion').orNull
 if (requestedReleaseVersion != null && requestedReleaseVersion != releaseLine) {
     throw new GradleException("releaseVersion ${requestedReleaseVersion} does not match ${releaseLine}")
@@ -82,7 +82,7 @@ def validateModelScripts = tasks.register('validateModelScripts', JavaExec) {
     classpath = files(tasks.named('jar').flatMap { it.archiveFile },
         compileDocumentationExamples.flatMap { it.destinationDirectory })
     mainClass = 'examples.ModelScriptCatalog'
-    args file('examples/models').absolutePath
+    args file('examples/models').absolutePath, file('examples/stan').absolutePath
 }
 
 tasks.named('check') {

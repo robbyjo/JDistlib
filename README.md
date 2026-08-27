@@ -41,9 +41,10 @@ and tested.
 
 ## Download
 
-The [latest GitHub release](https://github.com/robbyjo/JDistlib/releases/latest)
+The [JDistlib 0.7.2 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.7.2)
 contains the Java library, source archive, JavaDoc archive, and SHA-256
-checksums. Version 0.7.1 produces Java 8-compatible bytecode.
+checksums. Version 0.7.2 produces Java 8-compatible bytecode. Download the
+[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.7.2/jdistlib-0.7.2.jar).
 
 ## Building
 

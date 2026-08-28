@@ -1,5 +1,14 @@
 What's new:
 
+Development after 0.9.0:
+* Completed the six additive finance follow-ups: tempered-stable and Meixner
+  laws, multivariate normal-mixture and elliptical families, exact/Panjer/FFT/
+  COS/saddlepoint aggregation, stable analytical tails and adaptive inversion,
+  smooth option-implied density recovery, advanced risk measures, path
+  functionals, and Lévy increment composition.
+* Added checked diagnostics, numerical and reduction regressions, a compiled
+  advanced-finance example, and expanded tutorial and distribution pages.
+
 Version 0.9.0 (August 28, 2026):
 * Completed the probability-first finance roadmap with atom-aware tail/payoff
   analysis, transform domains and Esscher tilts, generalized-hyperbolic/NIG,

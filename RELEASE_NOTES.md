@@ -2,7 +2,14 @@
 
 JDistlib 0.9.0 completes the probability-first finance and options roadmap
 without turning the library into a market-data, instrument-management, pricing,
-or execution system. The new `jdistlib.finance` package starts with explicit
+or execution system. The development surface after 0.9.0 also completes every
+additive finance follow-up recorded in `TODO.md`: tempered-stable and Meixner
+laws, multivariate financial families, accelerated checked aggregation,
+adaptive transforms and stable tail paths, smooth option-implied recovery,
+advanced risk measures, path functionals, and Lévy increment composition.
+`AdvancedFinanceExamples` demonstrates the combined workflow.
+
+The new `jdistlib.finance` package starts with explicit
 loss/return and upper/lower-tail conventions. It supplies atom-aware VaR and
 expected shortfall, partial moments, downside and shortfall measures, expectiles,
 stop-loss, call, and put expectations, including caller-owned VaR output arrays

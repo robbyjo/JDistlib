@@ -217,6 +217,32 @@ The 0.9.0 work is complete only when:
   rules, Java 8 bytecode compatible, and represented in the API guide, website,
   JavaDoc, and compilable examples.
 
+## Additive follow-ups completed after 0.9.0
+
+The six follow-ups originally recorded in `TODO.md` are complete. The finance
+package now also supplies:
+
+* CGMY/KoBoL, normal-tempered-stable, Meixner, positive tempered-stable, and GIG
+  laws with transform domains and checked adaptive inversion;
+* multivariate generalized-hyperbolic/NIG/variance-gamma normal mixtures plus
+  stable and NTS elliptical constructions, reproducible draws, and exact scalar
+  linear-combination reductions;
+* exact finite-discrete convolution, Panjer recursion, zero-padded FFT grids,
+  COS transform inversion, and Lugannani-Rice saddlepoint CDFs alongside the
+  existing seeded Monte Carlo fallback;
+* analytical normal, Cauchy, and Lévy stable reductions, stable tail
+  asymptotics, and caller-controlled Fourier truncation and error diagnostics;
+* optional nonnegative smooth option-implied density recovery that preserves
+  the forward and reports normalization, quote residual, bandwidth, and
+  differentiation uncertainty; and
+* spectral, distortion/Choquet, and entropic risk measures; exact iid running
+  extrema; seeded drawdown distributions; and generic time-scaled Lévy
+  increments.
+
+`FinanceFollowupTest` records numerical, transform, reduction, normalization,
+and reproducibility contracts. `AdvancedFinanceExamples` is the compiled entry
+point for the combined APIs.
+
 ## Boundary of the release
 
 Version 0.9.0 does not include market-data download, symbol or corporate-action

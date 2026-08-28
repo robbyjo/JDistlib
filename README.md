@@ -19,12 +19,14 @@ half-Cauchy/normal/t, inverse gamma, inverse normal, Lindley, logit-normal,
 Makeham, Kumaraswamy, Laplace, Levy, log-logistic, logarithmic,
 Maxwell/Maxwell-Boltzmann, multinomial, Nakagami, negative hypergeometric,
 phase-type, Poisson-binomial, Poisson-inverse-Gaussian, Delaporte, Polya-Aeppli,
-generalized-hyperbolic/NIG, variance-gamma, alpha-stable, Rice, sinh-arcsinh,
+generalized-hyperbolic/NIG, variance-gamma, alpha-stable, CGMY/KoBoL,
+normal-tempered-stable, Meixner, Rice, sinh-arcsinh,
 Skellam, skewed t, slash, triangular, Tukey lambda, Tweedie, Wishart, Zipf,
 Wiener first-passage, and the `jdistlib.evd` package. Vector APIs
 cover Dirichlet and Dirichlet-multinomial, multivariate hypergeometric,
 bivariate Poisson/logistic, and multivariate normal, Student t, Cauchy,
-lognormal, Laplace, and power-exponential laws. These are first-class JDistlib features
+lognormal, Laplace, power-exponential, and financial GH/NIG/VG/stable/NTS
+constructions. These are first-class JDistlib features
 and are not removed during upstream synchronization.
 
 ## Project status
@@ -89,6 +91,12 @@ distribution/EVT fitting, and arbitrage-constrained option-implied and
 posterior-predictive distributions. A separate
 [worked options analysis](docs/options-trading-worked-example.html) keeps
 risk-neutral and physical probabilities explicit.
+The development surface additionally completes the finance follow-ups with
+multivariate GH/NIG/VG/stable/NTS constructions, exact/Panjer/FFT/COS and
+saddlepoint aggregation, adaptive transform inversion, stable tail paths,
+smooth option-implied recovery, spectral/distortion/entropic risk, drawdown
+laws, and Lévy-process increment composition. See the compiled
+[`AdvancedFinanceExamples`](examples/AdvancedFinanceExamples.java).
 
 ## Download
 

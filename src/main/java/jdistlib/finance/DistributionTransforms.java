@@ -50,12 +50,42 @@ public final class DistributionTransforms {
 
 	/** Gil-Pelaez inversion of a characteristic function. */
 	public static NumericalEstimate cumulative(TransformDistribution distribution, double x) {
-		if (distribution == null || Double.isNaN(x)) throw new IllegalArgumentException("invalid input");
-		double coarse = invertCdf(distribution, x, PANELS / 2, 80.0);
-		double fine = invertCdf(distribution, x, PANELS, 120.0);
-		double value = Math.max(0.0, Math.min(1.0, fine));
-		return new NumericalEstimate(value, Math.abs(fine - coarse), Double.isFinite(fine),
-				PANELS + PANELS / 2, "gil-pelaez", Double.isFinite(fine) ? "" : "Fourier inversion failed");
+		return cumulativeAdaptive(distribution,x,FourierInversionOptions.defaults());
+	}
+
+	/** Adaptive Gil-Pelaez inversion with explicit truncation/work controls. */
+	public static NumericalEstimate cumulativeAdaptive(TransformDistribution distribution,double x,
+			FourierInversionOptions options){
+		return adaptive(distribution,x,options,false);
+	}
+
+	/** Adaptive Fourier density inversion with explicit truncation/work controls. */
+	public static NumericalEstimate densityAdaptive(TransformDistribution distribution,double x,
+			FourierInversionOptions options){
+		return adaptive(distribution,x,options,true);
+	}
+
+	/** Lugannani-Rice saddlepoint CDF using numerical derivatives of log M(t). */
+	public static NumericalEstimate saddlepointCumulative(TransformDistribution distribution,double x){
+		if(distribution==null||Double.isNaN(x))throw new IllegalArgumentException("invalid saddlepoint request");
+		TransformDomain domain=distribution.momentGeneratingDomain();double s=0.0;int work=0;
+		for(int iteration=0;iteration<60;iteration++){double h=1e-4*Math.max(1.0,Math.abs(s));
+			double km=realK(distribution,s-h),k0=realK(distribution,s),kp=realK(distribution,s+h);work+=3;
+			double first=(kp-km)/(2*h),second=(kp-2*k0+km)/(h*h);
+			if(!(second>0.0)||!Double.isFinite(first))return new NumericalEstimate(Double.NaN,Double.POSITIVE_INFINITY,false,work,"Lugannani-Rice","CGF derivatives are not finite/convex");
+			double next=s-(first-x)/second;double margin=1e-9;
+			if(Double.isFinite(domain.getLower()))next=Math.max(domain.getLower()+margin,next);
+			if(Double.isFinite(domain.getUpper()))next=Math.min(domain.getUpper()-margin,next);
+			if(Math.abs(next-s)<1e-10*Math.max(1.0,Math.abs(s))){s=next;break;}s=next;
+		}
+		double h=1e-4*Math.max(1.0,Math.abs(s));double km=realK(distribution,s-h),k0=realK(distribution,s),kp=realK(distribution,s+h);work+=3;
+		double second=(kp-2*k0+km)/(h*h),radicand=2.0*(s*x-k0);
+		if(s==0.0||!(second>0.0)||!(radicand>=0.0))return cumulativeAdaptive(distribution,x,FourierInversionOptions.defaults());
+		double w=Math.copySign(Math.sqrt(radicand),s),u=s*Math.sqrt(second);
+		double phi=Math.exp(-0.5*w*w)/Math.sqrt(2.0*Math.PI);
+		double value=jdistlib.Normal.cumulative(w,0,1,true,false)+phi*(1.0/w-1.0/u);
+		return new NumericalEstimate(Math.max(0.0,Math.min(1.0,value)),Math.abs(phi*(1.0/w-1.0/u))*1e-4,
+				Double.isFinite(value),work,"Lugannani-Rice","numerical CGF derivatives");
 	}
 
 	/** Constructs a normalized exponentially tilted continuous distribution. */
@@ -108,6 +138,34 @@ public final class DistributionTransforms {
 			sum += imaginary / t;
 		}
 		return 0.5 - width * sum / Math.PI;
+	}
+
+	private static NumericalEstimate adaptive(TransformDistribution distribution,double x,
+			FourierInversionOptions options,boolean density){
+		if(distribution==null||options==null||Double.isNaN(x))throw new IllegalArgumentException("invalid Fourier inversion request");
+		double frequency=options.getInitialFrequency(),previous=Double.NaN,value=Double.NaN,error=Double.POSITIVE_INFINITY;
+		int evaluations=0,refinement=0;
+		for(;refinement<options.getMaximumRefinements()&&frequency<=options.getMaximumFrequency();refinement++){
+			value=density?invertDensity(distribution,x,options.getPanels(),frequency):invertCdf(distribution,x,options.getPanels(),frequency);
+			evaluations+=options.getPanels();if(Double.isFinite(previous)){error=Math.abs(value-previous);
+				if(error<=options.getTolerance()*Math.max(1.0,Math.abs(value)))break;}
+			previous=value;frequency*=2.0;
+		}
+		boolean converged=Double.isFinite(value)&&Double.isFinite(error)&&error<=options.getTolerance()*Math.max(1.0,Math.abs(value));
+		if(!density)value=Math.max(0.0,Math.min(1.0,value));else value=Math.max(0.0,value);
+		return new NumericalEstimate(value,error,converged,evaluations,density?"adaptive-Fourier-density":"adaptive-Gil-Pelaez",
+				converged?"":"frequency truncation did not meet tolerance");
+	}
+
+	private static double invertDensity(TransformDistribution distribution,double x,int panels,double maximum){
+		double width=maximum/panels,sum=0.0;for(int i=0;i<panels;i++){double t=(i+0.5)*width;
+			Complex phi=distribution.logCharacteristic(t).exp();sum+=phi.real()*Math.cos(t*x)+phi.imaginary()*Math.sin(t*x);}
+		return width*sum/Math.PI;
+	}
+
+	private static double realK(TransformDistribution distribution,double argument){
+		if(!distribution.momentGeneratingDomain().contains(argument))return Double.POSITIVE_INFINITY;
+		Complex value=distribution.logMomentGenerating(argument);return Math.abs(value.imaginary())<1e-8?value.real():Double.NaN;
 	}
 
 	/** Result retaining the tilted law and its normalization diagnostics. */

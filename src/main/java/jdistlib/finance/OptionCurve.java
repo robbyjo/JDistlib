@@ -3,6 +3,8 @@ package jdistlib.finance;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import jdistlib.Normal;
+import jdistlib.NumericalContinuousDistribution;
 
 /** Arbitrage-repaired European option curve and its implied risk-neutral law. */
 public final class OptionCurve {
@@ -45,10 +47,23 @@ public final class OptionCurve {
 		double[] fitted=new double[m];for(int b=0;b<blocks;b++)for(int i=start[b];i<=end[b];i++)fitted[i]=slope[b];
 		for(int i=0;i<m;i++)c[i+1]=c[i]+fitted[i]*(k[i+1]-k[i]);}
 	private static double[] uniformWeights(int n){double[] w=new double[n];Arrays.fill(w,1.0);return w;}
+	private static NumericalContinuousDistribution smoothed(OptionImpliedDistribution atoms,double bandwidth,double targetMean){double[] locations=atoms.getAtomLocations(),masses=atoms.getAtomMasses();double rawMean=0.0;
+		for(int i=0;i<locations.length;i++){double z=locations[i]/bandwidth;double folded=bandwidth*Math.sqrt(2.0/Math.PI)*Math.exp(-0.5*z*z)
+				+locations[i]*(1.0-2.0*Normal.cumulative(-z,0,1,true,false));rawMean+=masses[i]*folded;}final double scaling=targetMean/rawMean;
+		return NumericalContinuousDistribution.builder().kernel(x->{if(x<0.0)return 0.0;double unscaled=x/scaling,sum=0.0;for(int i=0;i<locations.length;i++)sum+=masses[i]*(Normal.density(unscaled,locations[i],bandwidth,false)+Normal.density(unscaled,-locations[i],bandwidth,false));return sum/scaling;})
+				.support(0.0,Double.POSITIVE_INFINITY).withoutAnalysis().build();}
 	public double getForward(){return forward;}public double getDiscount(){return discount;}public double getMaturity(){return maturity;}
 	public double[] getStrikes(){return strikes.clone();}public double[] getUndiscountedCalls(){return calls.clone();}
 	public double[] getOriginalUndiscountedCalls(){return originalCalls.clone();}public Diagnostics getDiagnostics(){return diagnostics;}
 	public OptionImpliedDistribution getDistribution(){return distribution;}
+	/** Optional smooth nonnegative density with quote and bandwidth-sensitivity diagnostics. */
+	public SmoothOptionDistributionResult smoothDistribution(double bandwidth){
+		if(!(bandwidth>0.0)||!Double.isFinite(bandwidth))throw new IllegalArgumentException("positive finite bandwidth required");
+		NumericalContinuousDistribution smooth=smoothed(distribution,bandwidth,forward),half=smoothed(distribution,bandwidth/2.0,forward);
+		double maximumResidual=0.0,uncertainty=0.0;for(int i=0;i<strikes.length;i++){double reconstructed=FinancialRisk.callPayoff(smooth,strikes[i]).getValue();
+			maximumResidual=Math.max(maximumResidual,Math.abs(reconstructed-calls[i]));uncertainty=Math.max(uncertainty,Math.abs(smooth.cumulative(strikes[i])-half.cumulative(strikes[i])));}
+		double normalizationError=Math.abs(smooth.getNormalizationConstant()-1.0);
+		return new SmoothOptionDistributionResult(smooth,bandwidth,normalizationError,discount*maximumResidual,uncertainty);}
 	public double terminalProbability(double threshold,Tail tail){return distribution.cumulative(threshold,tail==Tail.LOWER,false);}
 	public double strikeIntervalProbability(double lower,double upper){return distribution.cumulative(upper,true,false)-distribution.cumulative(lower,true,false);}
 	public static final class Diagnostics{

@@ -44,30 +44,6 @@ volatility-surface lifecycle management, Greeks, market-data ingestion, and
 execution remain integration-library concerns rather than JDistlib 0.9.0 core
 features.
 
-## Finance follow-up candidates after 0.9.0
-
-These are possible additive follow-ups, not unfinished 0.9.0 release gates:
-
-* add tempered-stable return families such as CGMY/KoBoL and normal-tempered-
-  stable, plus Meixner, with the same transform-domain, explicit-stream, and
-  checked-inversion contracts as the 0.9.0 laws;
-* add multivariate generalized-hyperbolic/NIG/variance-gamma and stable or
-  tempered-stable elliptical constructions, including marginal and linear-
-  combination reductions;
-* accelerate independent aggregation with exact finite-discrete convolution,
-  Panjer recursion, controlled-grid FFT/COS inversion, and saddlepoint methods
-  while retaining the reproducible Monte Carlo fallback and typed error report;
-* add analytical stable special-case and tail-asymptotic paths, more scaled-
-  Bessel and transform reference tests, and adaptive Fourier truncation/error
-  selection for difficult heavy-tailed parameters;
-* offer an optional smooth risk-neutral density recovery path with explicit
-  regularization and differentiation uncertainty alongside the 0.9.0 atom-
-  aware piecewise-linear curve result; and
-* consider spectral/distortion and entropic risk measures, drawdown or running-
-  maximum distributions, and generic Levy-process increment composition where
-  they remain reusable probability APIs rather than portfolio or trading
-  systems.
-
 ## Source compatibility policy
 
 A BUGS/OpenBUGS/JAGS source-migration frontend remains demand-gated and is not
@@ -76,6 +52,14 @@ inference capabilities do not depend on adding one.
 
 ## Recently completed
 
+* Completed every post-0.9.0 finance follow-up: CGMY/KoBoL, normal-tempered-
+  stable, Meixner, and GIG laws; multivariate GH/NIG/VG, stable, and NTS normal-
+  mixture constructions with scalar projection; exact discrete, Panjer, FFT,
+  COS, saddlepoint, and adaptive-transform paths; analytical stable reductions
+  and tails; optional smooth option-implied recovery with regularization
+  diagnostics; spectral, distortion, and entropic risk; running extrema and
+  drawdown laws; and generic Lévy increment composition. Added focused tests,
+  a compiled advanced example, and finance tutorial/catalog coverage.
 * Completed the 0.9.0 probability-first finance surface: atom-aware tail and
   payoff functionals; log characteristic/MGF domains and Esscher tilting;
   generalized-hyperbolic/NIG, variance-gamma, and S1 stable laws; reproducible

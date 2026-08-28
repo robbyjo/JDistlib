@@ -2,6 +2,7 @@
 package jdistlib.finance;
 
 import jdistlib.Cauchy;
+import jdistlib.Levy;
 import jdistlib.Normal;
 import jdistlib.SupportedDistribution;
 import jdistlib.generic.GenericDistribution;
@@ -39,11 +40,17 @@ public final class StableDistribution extends GenericDistribution
 	public double getScale() { return scale; }
 	public double getLocation() { return location; }
 	public boolean momentExists(double order) { return order >= 0.0 && order < alpha; }
+	/** Leading right-tail probability for large positive distance from location. */
+	public double upperTailAsymptotic(double x) { return tailAsymptotic(x, beta); }
+	/** Leading left-tail probability for large positive distance from location. */
+	public double lowerTailAsymptotic(double x) { return tailAsymptotic(x, -beta); }
 
 	@Override public double density(double x, boolean log) {
 		double value;
 		if (alpha == 2.0) value = Normal.density(x, location, Math.sqrt(2.0) * scale, false);
 		else if (alpha == 1.0 && beta == 0.0) value = Cauchy.density(x, location, scale, false);
+		else if (alpha == 0.5 && beta == 1.0) value = x <= location ? 0.0 : Levy.density(x, location, scale, false);
+		else if (alpha == 0.5 && beta == -1.0) value = x >= location ? 0.0 : Levy.density(2.0 * location - x, location, scale, false);
 		else value = fourierDensity(x, 120.0, 16384);
 		return log ? Math.log(value) : value;
 	}
@@ -52,6 +59,8 @@ public final class StableDistribution extends GenericDistribution
 		double value;
 		if (alpha == 2.0) value = Normal.cumulative(x, location, Math.sqrt(2.0) * scale, true, false);
 		else if (alpha == 1.0 && beta == 0.0) value = Cauchy.cumulative(x, location, scale, true, false);
+		else if (alpha == 0.5 && beta == 1.0) value = x <= location ? 0.0 : Levy.cumulative(x, location, scale, true, false);
+		else if (alpha == 0.5 && beta == -1.0) value = x >= location ? 1.0 : Levy.cumulative(2.0 * location - x, location, scale, false, false);
 		else value = DistributionTransforms.cumulative(this, x).getValue();
 		if (!lowerTail) value = 1.0 - value;
 		return logP ? Math.log(value) : value;
@@ -62,6 +71,8 @@ public final class StableDistribution extends GenericDistribution
 		if (!lowerTail) probability = 1.0 - probability;
 		if (alpha == 2.0) return Normal.quantile(probability, location, Math.sqrt(2.0) * scale, true, false);
 		if (alpha == 1.0 && beta == 0.0) return Cauchy.quantile(probability, location, scale, true, false);
+		if (alpha == 0.5 && beta == 1.0) return Levy.quantile(probability, location, scale, true, false);
+		if (alpha == 0.5 && beta == -1.0) return 2.0 * location - Levy.quantile(probability, location, scale, false, false);
 		if (probability <= 0.0) return probability == 0.0 ? Double.NEGATIVE_INFINITY : Double.NaN;
 		if (probability >= 1.0) return probability == 1.0 ? Double.POSITIVE_INFINITY : Double.NaN;
 		double span = scale;
@@ -77,6 +88,10 @@ public final class StableDistribution extends GenericDistribution
 	}
 
 	@Override public double random() {
+		if(alpha==2.0)return Normal.random(location,Math.sqrt(2.0)*scale,random);
+		if(alpha==1.0&&beta==0.0)return Cauchy.random(location,scale,random);
+		if(alpha==0.5&&beta==1.0)return Levy.random(location,scale,random);
+		if(alpha==0.5&&beta==-1.0)return 2.0*location-Levy.random(location,scale,random);
 		double v = Math.PI * (random.nextDouble() - 0.5);
 		double w = -Math.log(Math.max(random.nextDouble(), Double.MIN_VALUE));
 		double sample;
@@ -131,4 +146,7 @@ public final class StableDistribution extends GenericDistribution
 		}
 		return Math.max(0.0, width * sum / Math.PI);
 	}
+	private double tailAsymptotic(double distance,double sideBeta){if(!(distance>0.0))throw new IllegalArgumentException("tail distance must be positive");
+		if(alpha==2.0)return 0.0;double constant=jdistlib.math.MathFunctions.gammafn(alpha)*Math.sin(Math.PI*alpha/2.0)/Math.PI;
+		return Math.max(0.0,constant*(1.0+sideBeta)*Math.pow(scale/distance,alpha));}
 }

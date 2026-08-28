@@ -1,5 +1,33 @@
 What's new:
 
+Version 0.8.4 (August 28, 2026):
+* Added the Java 8-compatible `jdistlib-vulkan` provider using LWJGL Vulkan and
+  shaderc. It discovers a compute queue with FP64 shader support and implements
+  unary vector math, AXPY, dot products, dense matrix multiplication, and
+  batched logistic likelihoods/gradients against the CPU reference contract.
+* Added deterministic FP64 shader implementations for exponential, logarithm,
+  `log1p`, logistic, and hyperbolic tangent operations because Vulkan's core
+  GLSL profile does not guarantee double-precision transcendental overloads.
+* Added real-device Vulkan parity tests and an explicit hardware smoke; the
+  release candidate passed on an NVIDIA GeForce RTX 2080 exposed through
+  Vulkan 1.4.
+* Added `jdistlib-all`, a standalone x86-64 JAR containing core JDistlib, all
+  three GPU providers, JTransforms, JCuda, JOCL, LWJGL Vulkan/shaderc, and the
+  Windows/Linux/macOS JNI resources needed by those bindings. CPU fallback
+  remains available when no compatible GPU runtime is installed.
+* Merged all compute service descriptors and added a classpath-isolated smoke
+  that exercises every detected backend using only the unified JAR.
+* Retained the small native-free core and modular CUDA/OpenCL/Vulkan artifacts
+  as signed Maven publications while making the all-in-one JAR the sole
+  recommended GitHub runtime download. Portable provider POMs leave platform-
+  specific JCuda/LWJGL native classifier selection to the consuming build.
+* Updated release automation, checksums, the prominent website download,
+  README, publishing guide, GPU guide, and release notes for the unified
+  distribution. All produced JDistlib classes remain Java 8 bytecode.
+* Fixed accelerator-module lint configuration under JDK 17 by disabling the
+  JDK-20-only `this-escape` category conditionally; restored the full CI matrix
+  and extended its Java 8 runtime smoke to the unified JAR.
+
 Version 0.8.3 (August 28, 2026):
 * Added full multi-path Pathfinder with retained L-BFGS curvature, ELBO
   selection, mixture scoring, PSIS/Pareto-k diagnostics, and systematic

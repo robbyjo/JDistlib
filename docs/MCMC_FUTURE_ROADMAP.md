@@ -8,7 +8,7 @@ JDistlib should keep NUTS as its conservative default. New methods must earn
 their place through independent reference checks, posterior accuracy, and
 ESS-per-gradient and ESS-per-second benchmarks—not novelty alone.
 
-## Implementation status (0.8.3)
+## Implementation status (0.8.4)
 
 The four recommended milestone items and the high-value QoL list below now have
 public APIs and regression tests: multi-path Pathfinder/PSIS, superchain execution

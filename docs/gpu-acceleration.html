@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="JDistlib 0.8.3 CUDA and OpenCL acceleration: automatic routing, strict selection, Java and command-line configuration, NUTS caveats, and measured performance.">
+  <meta name="description" content="JDistlib 0.8.4 CUDA, OpenCL, and Vulkan acceleration: unified installation, automatic routing, strict selection, Java and command-line configuration, and measured guidance.">
   <title>JDistlib GPU acceleration</title>
   <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -19,12 +19,19 @@
   </header>
   <main class="guide">
     <section class="guide-hero">
-      <p class="eyebrow">Optional acceleration · 0.8.3</p>
+      <p class="eyebrow">Optional acceleration · 0.8.4</p>
       <h1>Use the GPU where the workload earns it</h1>
-      <p class="lede">JDistlib can route large vector, dense-linear-algebra, and batched likelihood work through optional CUDA or OpenCL providers. Small operations stay on the deterministic CPU reference path by default.</p>
-      <span class="version-pill">CUDA and OpenCL are available in JDistlib 0.8.3</span>
+      <p class="lede">JDistlib can route large vector, dense-linear-algebra, and batched likelihood work through optional CUDA, OpenCL, or Vulkan providers. Small operations stay on the deterministic CPU reference path by default.</p>
+      <span class="version-pill">CUDA, OpenCL, and Vulkan are available in JDistlib 0.8.4</span>
     </section>
-    <nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#choices">Choices</a><a href="#java">Java</a><a href="#cli">Command line</a><a href="#nuts">NUTS</a><a href="#measurements">Measurements</a><a href="#requirements">Requirements</a></nav>
+    <nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#install">Install</a><a href="#choices">Choices</a><a href="#java">Java</a><a href="#cli">Command line</a><a href="#nuts">NUTS</a><a href="#measurements">Measurements</a><a href="#requirements">Requirements</a></nav>
+
+    <section class="guide-section" id="install">
+      <p class="eyebrow">One-file installation</p><h2>Download one JAR; let JDistlib detect the machine</h2>
+      <p>The recommended <code>jdistlib-all-0.8.4.jar</code> contains core JDistlib, all three providers, and their Java/JNI dependencies for Windows, Linux, and macOS x86-64. It runs on CPU when no compatible GPU runtime is present.</p>
+      <div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/releases/download/v0.8.4/jdistlib-all-0.8.4.jar">Download the all-in-one JAR ↓</a><a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.8.4">Verify SHA-256 checksum</a></div>
+      <aside class="callout"><strong>Dependency-managed alternative:</strong> Gradle/Maven applications can retain the small native-free core and add only <code>jdistlib-cuda</code>, <code>jdistlib-opencl</code>, or <code>jdistlib-vulkan</code>. The provider JARs are add-ons, not standalone JDistlib distributions.</aside>
+    </section>
 
     <section class="guide-section" id="choices">
       <p class="eyebrow">Selection contract</p><h2>Automatic is conservative; explicit choices are strict</h2>
@@ -35,7 +42,7 @@
           <tr><td><code>Compute.GPU</code></td><td>Require any supported GPU provider.</td><td>Fail immediately; never fall back.</td></tr>
           <tr><td><code>Compute.CUDA</code></td><td>Require CUDA specifically.</td><td>Fail immediately.</td></tr>
           <tr><td><code>Compute.OPENCL</code></td><td>Require OpenCL specifically.</td><td>Fail immediately.</td></tr>
-          <tr><td><code>Compute.VULKAN</code></td><td>Reserved provider identifier. JDistlib 0.8.3 does not ship a Vulkan provider.</td><td>Fail with an unavailable-backend error.</td></tr>
+          <tr><td><code>Compute.VULKAN</code></td><td>Require the LWJGL Vulkan FP64 compute provider.</td><td>Fail immediately.</td></tr>
         </tbody>
       </table></div>
       <p>The current automatic router uses conservative JVM-heap thresholds: 32,768 vector elements and approximately one million multiply/evaluation terms for matrix multiplication or logistic likelihood batches. These are implementation defaults, not performance promises. Prepared inputs remain resident on the selected device, which can make regular batched workflows profitable sooner.</p>
@@ -73,7 +80,7 @@ try (AcceleratedLogisticRegression target =
     double dot = compute.dot(x, y);
     double[][] product = compute.matrixMultiply(a, b);
 }</code></pre>
-      <p>The optional modules implement double-precision unary vector functions, AXPY, dot products, dense matrix multiplication, and prepared/batched logistic likelihoods and gradients. The core artifact remains native-free.</p>
+      <p>The optional modules implement double-precision unary vector functions, AXPY, dot products, dense matrix multiplication, and batched logistic likelihoods and gradients. The modular core artifact remains native-free.</p>
     </section>
 
     <section class="guide-section" id="cli">
@@ -104,7 +111,7 @@ device=NVIDIA GeForce RTX 2080 (sm_75), thresholded CPU fallback enabled</code><
       <div class="table-wrap"><table class="troubleshooting-table"><thead><tr><th>NUTS choice</th><th>Contract</th></tr></thead><tbody>
         <tr><td><code>ComputeNuts.OFF</code></td><td>Require CPU target evaluation.</td></tr>
         <tr><td><code>ComputeNuts.AUTO</code></td><td>Use the configured backend and automatic thresholds. This is the default.</td></tr>
-        <tr><td><code>ComputeNuts.FORCE</code></td><td>Require a CUDA, OpenCL, or future Vulkan-backed target and bypass automatic CPU thresholds.</td></tr>
+        <tr><td><code>ComputeNuts.FORCE</code></td><td>Require a CUDA, OpenCL, or Vulkan-backed target and bypass automatic CPU thresholds.</td></tr>
       </tbody></table></div>
       <aside class="callout caution"><strong>Forced NUTS may be slower.</strong> Ordinary NUTS evaluates one evolving state at a time. On modest models, dispatch and host/device synchronization can cost more than the GPU work. Forced mode reports a warning and exists for measurement, large resident likelihoods, and deployments where the user intentionally accepts that tradeoff.</aside>
       <p>The whole-NUTS GPU decision remains provisional until representative end-to-end effective-samples-per-second measurements include warmup, synchronization, divergences, and transfer costs.</p>
@@ -126,12 +133,13 @@ device=NVIDIA GeForce RTX 2080 (sm_75), thresholded CPU fallback enabled</code><
       <p class="eyebrow">Providers and reproducibility</p><h2>Optional artifacts keep core JDistlib portable</h2>
       <div class="guide-columns">
         <article><h3>CUDA</h3><p><code>jdistlib-cuda</code> uses JCuda Driver and JNvrtc. NVRTC compiles device code without <code>nvcc</code> or MSVC, but a compatible NVIDIA driver, NVRTC, and <code>nvrtc-builtins</code> are required.</p></article>
-        <article><h3>OpenCL</h3><p><code>jdistlib-opencl</code> uses JOCL and selects an OpenCL GPU with FP64 support. It provides the portable non-CUDA provider in 0.8.3.</p></article>
+        <article><h3>OpenCL</h3><p><code>jdistlib-opencl</code> uses JOCL and selects an OpenCL GPU with FP64 support.</p></article>
+        <article><h3>Vulkan</h3><p><code>jdistlib-vulkan</code> uses LWJGL Vulkan and shaderc, selects a compute queue with <code>shaderFloat64</code>, and compiles maintained GLSL kernels to cached SPIR-V pipelines at runtime. Version 0.8.4 uses portable host-visible storage rather than promising resident prepared inputs. It passed CPU-reference parity on the RTX 2080 release machine.</p></article>
       </div>
-      <p>Vulkan is not included in 0.8.3. The service-provider interface permits a future module, but it still needs a SPIR-V pipeline, device management, FP64 validation, and the same CPU-reference tests.</p>
-      <p>Caller-provided random streams remain deterministic. Parallel reductions can differ in their final floating-point bits across hardware and providers, so JDistlib does not promise bit-identical chains across CPU, CUDA, OpenCL, or future Vulkan devices. Use CPU for the cross-machine reference path; for accelerated reproduction, retain the backend/device manifest and use the same software and hardware configuration.</p>
+      <p>The unified JAR carries the x86-64 JNI bindings, but it cannot carry vendor drivers. CUDA still needs an NVIDIA driver plus NVRTC, OpenCL needs a vendor OpenCL implementation, and Vulkan needs a Vulkan loader/driver (MoltenVK is bundled through LWJGL on x86-64 macOS). On other architectures, use the modular artifacts so the dependency manager can select matching natives.</p>
+      <p>Caller-provided random streams remain deterministic. Parallel reductions can differ in their final floating-point bits across hardware and providers, so JDistlib does not promise bit-identical chains across CPU, CUDA, OpenCL, or Vulkan devices. Use CPU for the cross-machine reference path; for accelerated reproduction, retain the backend/device manifest and use the same software and hardware configuration.</p>
     </section>
   </main>
-  <footer><span>JDistlib GPU acceleration guide.</span><span>CUDA/OpenCL behavior for JDistlib 0.8.3.</span></footer>
+  <footer><span>JDistlib GPU acceleration guide.</span><span>CUDA/OpenCL/Vulkan behavior for JDistlib 0.8.4.</span></footer>
 </body>
 </html>

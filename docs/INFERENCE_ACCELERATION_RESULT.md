@@ -1,6 +1,6 @@
 # Inference acceleration and workflow result
 
-**Release status:** included in JDistlib 0.8.3
+**Release status:** CUDA/OpenCL workflow in 0.8.3; unified JAR and Vulkan in 0.8.4
 **Compatibility:** additive APIs, Java 8 bytecode, native-free core, deterministic
 CPU reference behavior
 
@@ -21,7 +21,7 @@ retaining the 0.8.0 sampler APIs.
 | Precision and diagnostics | Arbitrary-function and indicator ESS/MCSE, MCSE-driven continuation, factor cost/nonfinite/heap profiling, geometry advice, and policy-based health findings |
 | Reuse and restart | Fingerprinted warmup bundles and checksummed binary checkpoints with guarded RNG deserialization |
 | Large-output workflows | Compressed selected-column storage, memory-mapped draws, generated-quantity sinks, and operation without retaining every draw in heap |
-| Acceleration | A Java 8 `ComputeBackend` SPI, deterministic CPU implementation, optional JCuda/JNvrtc and JOCL providers, automatic detection, and safe fallback |
+| Acceleration | A Java 8 `ComputeBackend` SPI, deterministic CPU implementation, JCuda/JNvrtc, JOCL, and LWJGL Vulkan providers, automatic detection, safe fallback, and a standalone all-in-one distribution |
 
 The primary API map and compatibility rules are in
 [MCMC_MODERNIZATION.md](MCMC_MODERNIZATION.md). The design record, acceptance
@@ -30,28 +30,31 @@ gates, and experimental boundary are in
 
 ## Accelerator boundary
 
-Core JDistlib has no CUDA or OpenCL dependency. Optional `jdistlib-cuda` and
-`jdistlib-opencl` artifacts are discovered through Java's service-provider
+The modular core has no GPU dependency. Optional `jdistlib-cuda`,
+`jdistlib-opencl`, and `jdistlib-vulkan` artifacts are discovered through Java's service-provider
 mechanism. `-Djdistlib.compute.backend=auto|cpu|gpu|cuda|opencl|vulkan` controls
 selection and `-Djdistlib.compute.nuts=off|auto|force` controls NUTS offload;
 Java callers use `SamplingOptions.backend(Compute...)` and
 `nutsBackend(ComputeNuts...)`, while embedding command-line applications can use
-`--compute`, `--nuts-offload`, or `--gpu-nuts`. `AUTO` tries CUDA and OpenCL but
+`--compute`, `--nuts-offload`, or `--gpu-nuts`. `AUTO` tries CUDA, OpenCL, and Vulkan but
 keeps small operations on CPU through conservative profitability thresholds.
 Missing drivers, native libraries, compiler runtimes, or FP64 support fall back
 only in `AUTO`; explicit GPU/provider requests fail immediately.
 
-Both optional providers implement double-precision unary vector operations,
-AXPY, dot products, dense GEMM, and prepared batched logistic-regression log
-densities and gradients. Prepared inputs remain resident on the device, and the
-same batched target can be consumed by regular many-chain algorithms.
+All three providers implement double-precision unary vector operations,
+AXPY, dot products, dense GEMM, and batched logistic-regression log densities
+and gradients. CUDA and OpenCL keep prepared inputs resident; Vulkan 0.8.4
+caches compiled shaders and compute pipelines but uses portable host-visible
+storage for each evaluation. The same batched target can be consumed by regular many-chain algorithms.
 Backend selection is logged, and `RunManifest` retains the requested policy,
 concrete provider, device, and NUTS offload mode.
 
-Vulkan is not shipped. OpenCL supplies the portable non-CUDA path without
-adding a SPIR-V toolchain, descriptor/synchronization layer, and another FP64
-validation matrix. The provider interface leaves room for a future Vulkan
-module if a supported deployment needs it.
+The Vulkan provider uses LWJGL, shaderc, a compute queue with `shaderFloat64`,
+host-visible coherent storage, GLSL-to-SPIR-V compilation, descriptors,
+pipelines, command buffers, and fences. Deterministic FP64 shader routines
+replace transcendental overloads not guaranteed by Vulkan GLSL. The 0.8.4
+`jdistlib-all` artifact merges every provider and its x86-64 Java/JNI runtime;
+small modules remain available for dependency-managed applications.
 
 ## Measured CUDA result
 
@@ -96,7 +99,8 @@ decision record.
 
 The implementation was checked through:
 
-- the clean full Gradle verification suite, including core, CUDA, and OpenCL
+- the clean full Gradle verification suite, including core, CUDA, OpenCL, Vulkan,
+  and the standalone unified-JAR smoke
   tests;
 - CPU-reference comparisons for every accelerator primitive and the prepared
   batched likelihood;
@@ -113,6 +117,6 @@ device identity should be recorded with accelerated runs.
 
 ## Release status
 
-This result is released as **v0.8.3**. The changes are additive, preserve the
+This result is released through **v0.8.4**. The changes are additive, preserve the
 0.8 API, retain Java 8 bytecode, and keep native dependencies outside the core
 artifact.

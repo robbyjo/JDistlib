@@ -15,7 +15,7 @@ public enum Compute {
 	CUDA,
 	/** Require the optional OpenCL provider. */
 	OPENCL,
-	/** Reserve the optional Vulkan provider identifier; no provider ships in 0.8.3. */
+	/** Require the optional Vulkan compute provider. */
 	VULKAN;
 
 	/** Parses a case-insensitive command-line or system-property value. */

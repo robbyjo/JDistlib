@@ -5,28 +5,34 @@ version = rootProject.version
 
 repositories { mavenCentral() }
 
-base { archivesName = 'jdistlib-cuda' }
+base { archivesName = 'jdistlib-vulkan' }
 
 java {
     withSourcesJar()
     withJavadocJar()
 }
 
-def nativeOs = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win') ? 'windows' :
-    (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('linux') ? 'linux' : 'apple')
-def machine = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
-def nativeArch = (machine == 'amd64' || machine == 'x86_64') ? 'x86_64' :
-    ((machine == 'aarch64' || machine == 'arm64') ? 'aarch64' :
-    ((machine == 'ppc64' || machine == 'ppc64le') ? 'ppc_64' : machine))
-// JCuda 12.6 publishes native classifiers only for Windows and Linux x86-64.
-def supportedNative = (nativeOs == 'windows' || nativeOs == 'linux') && nativeArch == 'x86_64'
+def lwjglVersion = '3.3.6'
+def osName = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+def architecture = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
+def nativeClassifier = osName.contains('win')
+    ? (architecture.contains('aarch64') || architecture.contains('arm64')
+        ? 'natives-windows-arm64' : 'natives-windows')
+    : (osName.contains('mac') || osName.contains('darwin'))
+        ? (architecture.contains('aarch64') || architecture.contains('arm64')
+            ? 'natives-macos-arm64' : 'natives-macos')
+        : (architecture.contains('aarch64') || architecture.contains('arm64')
+            ? 'natives-linux-arm64' : 'natives-linux')
 
 dependencies {
     api project(':')
-    implementation('org.jcuda:jcuda:12.6.0') {
-        exclude group: 'org.jcuda', module: 'jcuda-natives'
-    }
-    if (supportedNative) runtimeOnly "org.jcuda:jcuda-natives:12.6.0:${nativeOs}-${nativeArch}"
+    implementation "org.lwjgl:lwjgl:${lwjglVersion}"
+    implementation "org.lwjgl:lwjgl-vulkan:${lwjglVersion}"
+    implementation "org.lwjgl:lwjgl-shaderc:${lwjglVersion}"
+    runtimeOnly "org.lwjgl:lwjgl:${lwjglVersion}:${nativeClassifier}"
+    runtimeOnly "org.lwjgl:lwjgl-shaderc:${lwjglVersion}:${nativeClassifier}"
+    if (nativeClassifier.startsWith('natives-macos'))
+        runtimeOnly "org.lwjgl:lwjgl-vulkan:${lwjglVersion}:${nativeClassifier}"
     testImplementation 'junit:junit:4.13.2'
 }
 
@@ -47,7 +53,7 @@ tasks.withType(Javadoc).configureEach {
 jar {
     manifest {
         attributes(
-            'Implementation-Title': 'JDistlib CUDA accelerator',
+            'Implementation-Title': 'JDistlib Vulkan accelerator',
             'Implementation-Version': project.version
         )
     }
@@ -55,25 +61,27 @@ jar {
 
 test { useJUnit() }
 
-tasks.register('cudaSmokeBenchmark', JavaExec) {
+tasks.register('vulkanSmoke', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'jdistlib.accelerator.cuda.CudaSmokeBenchmark'
+    mainClass = 'jdistlib.accelerator.vulkan.VulkanSmoke'
 }
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
-            artifactId = 'jdistlib-cuda'
+            artifactId = 'jdistlib-vulkan'
             pom {
-                name = 'JDistlib CUDA accelerator'
-                description = 'Optional JCuda/JNvrtc compute provider for JDistlib.'
+                name = 'JDistlib Vulkan accelerator'
+                description = 'Optional LWJGL Vulkan FP64 compute provider for JDistlib.'
                 url = 'https://robbyjo.github.io/JDistlib/'
                 licenses { license { name = 'GNU General Public License, version 2 or later'; url = 'https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'; distribution = 'repo' } }
                 developers { developer { id = 'robbyjo'; name = 'Roby Joehanes' } }
                 scm { connection = 'scm:git:https://github.com/robbyjo/JDistlib.git'; developerConnection = 'scm:git:ssh://git@github.com/robbyjo/JDistlib.git'; url = 'https://github.com/robbyjo/JDistlib' }
                 withXml {
+                    // Native classifiers are selected by the consuming platform,
+                    // not frozen to the maintainer machine that stages Central.
                     asNode().dependencies.dependency.findAll { it.classifier.size() > 0 }
                         .each { it.parent().remove(it) }
                 }

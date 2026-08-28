@@ -34,8 +34,8 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v6
-      - name: Build the Java 8-compatible library JAR
-        run: ./gradlew jar --no-daemon
+      - name: Build the Java 8-compatible core and unified JARs
+        run: ./gradlew jar :jdistlib-all:jar :jdistlib-all:compileAllJarSmoke --no-daemon
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -50,3 +50,8 @@ jobs:
             -d build/java8-smoke examples/Java8JarSmoke.java
           java -cp "$JAR:build/java8-smoke" \
             examples.Java8JarSmoke
+          ALL_JAR="$(find distribution/all/build/libs -maxdepth 1 -type f \
+            -name 'jdistlib-all-*.jar' -print -quit)"
+          test -n "$ALL_JAR"
+          java -cp "$ALL_JAR:distribution/all/build/all-jar-smoke" \
+            jdistlib.distribution.AllJarSmoke

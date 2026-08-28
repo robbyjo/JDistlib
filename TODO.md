@@ -67,6 +67,10 @@ features.
 
 ## Recently completed
 
+* Added the FP64 LWJGL Vulkan provider with runtime SPIR-V compilation and
+  CPU-reference parity tests, plus the self-contained `jdistlib-all` x86-64
+  distribution that merges core, CUDA, OpenCL, Vulkan, binding dependencies,
+  native resources, and provider discovery behind one recommended download.
 * Added full multi-path Pathfinder with PSIS, many-short-chain superchains and
   nested R-hat, coordinated ChEES/SNAPER adaptive static HMC, and auditable
   automatic adjusted-MCLMC tuning.

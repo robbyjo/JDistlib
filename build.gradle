@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'net.sourceforge.jdistlib'
-def releaseLine = '0.8.3'
+def releaseLine = '0.8.4'
 def requestedReleaseVersion = providers.gradleProperty('releaseVersion').orNull
 if (requestedReleaseVersion != null && requestedReleaseVersion != releaseLine) {
     throw new GradleException("releaseVersion ${requestedReleaseVersion} does not match ${releaseLine}")
@@ -87,7 +87,30 @@ def validateModelScripts = tasks.register('validateModelScripts', JavaExec) {
 
 tasks.named('check') {
     dependsOn compileDocumentationExamples, validateModelScripts,
-        ':jdistlib-cuda:check', ':jdistlib-opencl:check'
+        ':jdistlib-cuda:check', ':jdistlib-opencl:check', ':jdistlib-vulkan:check',
+        ':jdistlib-all:check', 'validateModularPoms'
+}
+
+tasks.register('validateModularPoms') {
+    group = 'verification'
+    description = 'Checks portable Maven coordinates and rejects maintainer-platform native classifiers.'
+    dependsOn 'generatePomFileForMavenJavaPublication',
+        ':jdistlib-cuda:generatePomFileForMavenJavaPublication',
+        ':jdistlib-opencl:generatePomFileForMavenJavaPublication',
+        ':jdistlib-vulkan:generatePomFileForMavenJavaPublication'
+    doLast {
+        def expected = [
+            'build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib</artifactId>',
+            'accelerators/cuda/build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib-cuda</artifactId>',
+            'accelerators/opencl/build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib-opencl</artifactId>',
+            'accelerators/vulkan/build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib-vulkan</artifactId>'
+        ]
+        expected.each { path, coordinate ->
+            String pom = file(path).getText('UTF-8')
+            if (!pom.contains(coordinate)) throw new GradleException("unexpected Maven coordinates in ${path}")
+            if (pom.contains('<classifier>')) throw new GradleException("platform classifier leaked into ${path}")
+        }
+    }
 }
 
 test {
@@ -107,6 +130,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
+            artifactId = 'jdistlib'
             pom {
                 name = 'JDistlib'
                 description = 'Thread-safe Java implementations of statistical distributions based on R src/nmath.'
@@ -153,13 +177,13 @@ signing {
     }
 }
 
-def centralPublication = tasks.named(
-    'publishMavenJavaPublicationToCentralStagingRepository')
-
 def centralChecksums = tasks.register('centralChecksums') {
     group = 'publishing'
     description = 'Creates Central Portal checksums for the locally staged publication.'
-    dependsOn centralPublication
+    dependsOn 'publishMavenJavaPublicationToCentralStagingRepository',
+        ':jdistlib-cuda:publishMavenJavaPublicationToCentralStagingRepository',
+        ':jdistlib-opencl:publishMavenJavaPublicationToCentralStagingRepository',
+        ':jdistlib-vulkan:publishMavenJavaPublicationToCentralStagingRepository'
     doLast {
         def stagingRoot = layout.buildDirectory.dir('central-staging').get().asFile
         fileTree(stagingRoot).matching {

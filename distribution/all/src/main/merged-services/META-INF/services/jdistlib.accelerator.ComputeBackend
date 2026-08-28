@@ -1,0 +1,3 @@
+jdistlib.accelerator.cuda.CudaComputeBackend
+jdistlib.accelerator.opencl.OpenClComputeBackend
+jdistlib.accelerator.vulkan.VulkanComputeBackend

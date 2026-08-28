@@ -28,7 +28,11 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.8.3 is the current stable release. It adds
+Version 0.8.4 is the current stable release. It adds a tested Vulkan FP64
+compute provider and a self-contained cross-platform x86-64 download that
+bundles core JDistlib, CUDA, OpenCL, Vulkan, and their Java/JNI runtime
+dependencies in one JAR. The modular artifacts remain available for dependency-
+managed builds. Version 0.8.3 added
 Stan complex and tuple values, sparse kernels, external and higher-order
 functions, reusable reverse-tape script execution, sensitivity-aware algebraic/
 ODE/DAE solvers, a stiff BDF path, holonomic index-3 DAE projection, and a much
@@ -77,11 +81,19 @@ arbitrage-constrained option-implied and posterior-predictive distributions.
 
 ## Download
 
-The [JDistlib 0.8.3 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.3)
-contains binary, source, and JavaDoc JARs for core JDistlib and its optional
-CUDA/OpenCL modules, with SHA-256 checksums. It produces Java 8-compatible
-bytecode. Download the
-[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.3/jdistlib-0.8.3.jar).
+The [JDistlib 0.8.4 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.4)
+provides one recommended, self-contained `jdistlib-all` JAR with SHA-256
+checksums. It contains core JDistlib, CUDA, OpenCL, Vulkan, and the required
+Java/JNI libraries for Windows, Linux, and macOS x86-64. It produces Java
+8-compatible bytecode. Download the
+[all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.4/jdistlib-all-0.8.4.jar).
+
+GPU vendor runtimes remain system components: CUDA requires a compatible
+NVIDIA driver and NVRTC, OpenCL requires an installed OpenCL implementation,
+and Vulkan requires a Vulkan driver. With none present, the same JAR uses the
+CPU backend. Gradle/Maven users who prefer small dependency-managed artifacts
+can use the core, `jdistlib-cuda`, `jdistlib-opencl`, or `jdistlib-vulkan`
+modules instead.
 
 ## Building
 
@@ -133,12 +145,13 @@ The website now puts beginner material first:
 * [Modern MCMC API](docs/MCMC_MODERNIZATION.md) — Stan-style warmup, exact
   checkpoints, metrics, adjusted MCLMC, additional samplers, initialization,
   streaming, diagnostics, and SBC.
-* [GPU acceleration and measured smoke](docs/gpu-acceleration.html) — optional
-  JCuda/NVRTC and JOCL backends, automatic CPU fallback, reproducible RTX 2080
-  likelihood numbers, and the still-provisional whole-NUTS decision.
+* [GPU acceleration and measured smoke](docs/gpu-acceleration.html) — CUDA,
+  OpenCL, and Vulkan backends, automatic CPU fallback, the unified download,
+  reproducible RTX 2080 likelihood numbers, and the still-provisional
+  whole-NUTS decision.
 * [Inference acceleration result](docs/INFERENCE_ACCELERATION_RESULT.md) — the
   consolidated feature inventory, validation record, benchmark interpretation,
-  compatibility boundary, and v0.8.3 release status.
+  compatibility boundary, and v0.8.4 packaging/provider status.
 * [Post-Stan MCMC roadmap](docs/MCMC_FUTURE_ROADMAP.md) — the design record for
   full Pathfinder, nested R-hat, adaptive static HMC, adjusted-MCLMC tuning,
   workflow QoL, and explicitly experimental algorithms.
@@ -278,22 +291,23 @@ adjusted-MCLMC step/decorrelation/mass-scale tuning, checksummed portable
 checkpoints, MCSE-driven continuation, factor profiling, safe warmup reuse,
 compressed selected-column draw storage, and machine-readable health advice.
 
-### Optional CUDA and OpenCL acceleration
+### Optional CUDA, OpenCL, and Vulkan acceleration
 
-Core JDistlib remains native-free. The `jdistlib-cuda` module uses JCuda/JNvrtc
-and the `jdistlib-opencl` module uses JOCL; both are discovered through
+The dependency-managed core remains native-free. The `jdistlib-cuda` module
+uses JCuda/JNvrtc, `jdistlib-opencl` uses JOCL, and `jdistlib-vulkan` uses LWJGL
+Vulkan plus shaderc; all are discovered through
 `ComputeBackend`, require FP64, and fall back to the deterministic CPU backend
 when absent under `Compute.AUTO`. Automatic routing keeps small heap-backed work
 on CPU and sends sufficiently large vector math, dense linear algebra, and
-prepared batched likelihood/gradient evaluation to CUDA or OpenCL. Java callers
+batched likelihood/gradient evaluation to CUDA, OpenCL, or Vulkan. Java callers
 select through `SamplingOptions.backend(Compute...)` and
 `nutsBackend(ComputeNuts...)`; embedding CLIs can accept `--compute`,
 `--nuts-offload`, or the strict `--gpu-nuts` alias. Explicit GPU/provider
 requests fail rather than silently falling back. See the
 [GPU acceleration webpage](docs/gpu-acceleration.html) for Java and command-line
 examples, measured guidance, logging/provenance, and the warning that forced
-NUTS target offload may be slower. Vulkan remains a recognized provider
-extension but is not shipped in 0.8.3.
+NUTS target offload may be slower. Direct-download users should use
+`jdistlib-all`; modular artifacts are intended for dependency-managed builds.
 
 ## Multiple testing and false discovery rates
 

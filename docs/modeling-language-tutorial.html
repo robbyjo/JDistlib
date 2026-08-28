@@ -68,13 +68,13 @@ McmcDiagnosticReport report = McmcDiagnostics.analyze(
 }</code></pre><p>Generates, invokes <code>javac</code>, hashes, caches, and loads an isolated wrapper. A JDK is required.</p></article></div>
 <h3>Ahead-of-time command line</h3><pre><code>gradlew.bat jar
 
-java -cp build\libs\jdistlib-0.8.3.jar ^
+java -cp build\libs\jdistlib-0.8.4.jar ^
   jdistlib.inference.lang.ModelScriptCli ^
   examples\models\41-normal-csv-mean.jdm ^
   com.example.NormalCsvMean ^
   build\generated\com\example\NormalCsvMean.java
 
-javac -cp build\libs\jdistlib-0.8.3.jar ^
+javac -cp build\libs\jdistlib-0.8.4.jar ^
   -d build\generated-classes ^
   build\generated\com\example\NormalCsvMean.java</code></pre>
 <p><code>ModelScriptCli</code> validates the script and writes a Java class implementing <code>GeneratedModelFactory</code>. It does not invoke <code>javac</code>, bind data, or sample. Instantiate <code>com.example.NormalCsvMean</code> and call <code>compile(data)</code> after placing the library and generated classes on the runtime classpath.</p></section>

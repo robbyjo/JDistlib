@@ -1,4 +1,4 @@
-plugins { id 'java-library' }
+plugins { id 'java-library'; id 'maven-publish'; id 'signing' }
 
 group = rootProject.group
 version = rootProject.version
@@ -21,7 +21,9 @@ dependencies {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 8
-    options.compilerArgs += ['-Xlint:all,-options,-this-escape', '-Werror']
+    def disabledLint = ['options']
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_20)) disabledLint += 'this-escape'
+    options.compilerArgs += ["-Xlint:all,-${disabledLint.join(',-')}", '-Werror']
 }
 
 tasks.withType(Javadoc).configureEach {
@@ -40,3 +42,30 @@ jar {
 }
 
 test { useJUnit() }
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'jdistlib-opencl'
+            pom {
+                name = 'JDistlib OpenCL accelerator'
+                description = 'Optional JOCL compute provider for JDistlib.'
+                url = 'https://robbyjo.github.io/JDistlib/'
+                licenses { license { name = 'GNU General Public License, version 2 or later'; url = 'https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'; distribution = 'repo' } }
+                developers { developer { id = 'robbyjo'; name = 'Roby Joehanes' } }
+                scm { connection = 'scm:git:https://github.com/robbyjo/JDistlib.git'; developerConnection = 'scm:git:ssh://git@github.com/robbyjo/JDistlib.git'; url = 'https://github.com/robbyjo/JDistlib' }
+            }
+        }
+    }
+    repositories { maven { name = 'centralStaging'; url = rootProject.layout.buildDirectory.dir('central-staging').get().asFile.toURI() } }
+}
+
+signing {
+    def signingKey = providers.gradleProperty('signingKey')
+    def signingPassword = providers.gradleProperty('signingPassword')
+    if (signingKey.isPresent()) {
+        useInMemoryPgpKeys(signingKey.get(), signingPassword.orNull)
+        sign publishing.publications.mavenJava
+    }
+}

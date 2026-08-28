@@ -31,26 +31,26 @@
       <div class="release-banner" aria-label="Latest stable release">
         <div>
           <span class="release-label">Latest stable release</span>
-          <strong>JDistlib 0.8.3</strong>
+          <strong>JDistlib 0.8.4</strong>
           <span class="release-meta">Java 8+ compatible bytecode</span>
         </div>
-        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/download/v0.8.3/jdistlib-0.8.3.jar">Download JDistlib 0.8.3 ↓</a>
+        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/download/v0.8.4/jdistlib-all-0.8.4.jar">Download JDistlib 0.8.4 — all in one ↓</a>
       </div>
       <p class="eyebrow">Probability distributions for Java</p>
       <h1>R-grade numerical methods,<br>designed for concurrent Java.</h1>
       <p class="lede">JDistlib is a Java translation of R's <code>src/nmath</code>,
         adapted to avoid process-global mutable caches and extended with distributions
-        beyond the R library. Version 0.8.3 is the current stable release,
-        expanding Stan source compatibility, differentiable numerical solvers,
-        modern inference workflows, diagnostics, and optional GPU acceleration.</p>
+        beyond the R library. Version 0.8.4 is the current stable release,
+        providing one self-contained JAR with CPU, CUDA, OpenCL, and Vulkan
+        support while retaining the modern inference and modeling APIs.</p>
       <div class="actions">
-        <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.8.3">Release notes &amp; checksums</a>
+        <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.8.4">Release notes &amp; checksum</a>
         <a class="button secondary" href="getting-started.html">Start the beginner tutorial</a>
         <a class="button secondary" href="learn.html">Explore all learning paths</a>
         <a class="button secondary" href="examples.html">Browse examples</a>
       </div>
       <ul class="facts" aria-label="Project facts">
-        <li><strong>0.8.3</strong><span>current release</span></li>
+        <li><strong>0.8.4</strong><span>current release</span></li>
         <li><strong>R 4.6.1</strong><span>sync target</span></li>
         <li><strong>Java 8+</strong><span>compatible bytecode</span></li>
         <li><strong>GPL-2.0+</strong><span>open source</span></li>
@@ -111,8 +111,8 @@
           <p>Use full multi-path Pathfinder, many short chains with nested R-hat,
             ChEES/SNAPER adaptive static HMC, automatically tuned adjusted MCLMC,
             precision goals, portable checkpoints, and actionable health reports.</p>
-          <a class="card-link" href="MCMC_MODERNIZATION.md">See the 0.8.3 API →</a>
-          <br><a class="card-link" href="gpu-acceleration.html">Read measured CUDA/OpenCL guidance →</a>
+          <a class="card-link" href="MCMC_MODERNIZATION.md">See the modern inference API →</a>
+          <br><a class="card-link" href="gpu-acceleration.html">Read CUDA/OpenCL/Vulkan guidance →</a>
           <br><a class="card-link" href="INFERENCE_ACCELERATION_RESULT.md">Review the consolidated development result →</a>
         </article>
       </div>
@@ -150,11 +150,10 @@ double x = Normal.quantile(
         <p class="eyebrow">Release status</p>
         <h2 id="status-heading">The R 4.6.1 audit is complete</h2>
       </div>
-      <p>Version 0.8.3 adds complex/tuple/sparse values, external and higher-order
-        functions, reverse-tape script lowering, sensitivities, stiff and
-        higher-index solvers, forty-one checked ordinary Stan fixtures, modern
-        many-chain inference, and optional CUDA/OpenCL acceleration while
-        preserving Java 8 bytecode.</p>
+      <p>Version 0.8.4 adds a tested FP64 Vulkan provider and a self-contained
+        CPU/CUDA/OpenCL/Vulkan download while preserving the complex/tuple/sparse
+        modeling, differentiable solver, modern many-chain inference, and Java 8
+        compatibility delivered in 0.8.3.</p>
       <a class="text-link" href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">Read the synchronization ledger →</a>
     </section>
   </main>

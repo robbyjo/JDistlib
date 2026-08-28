@@ -1,6 +1,6 @@
 # Modern MCMC API
 
-JDistlib 0.8.3 keeps the original `Sampler.sample(...)` entry
+JDistlib 0.8.4 keeps the original `Sampler.sample(...)` entry
 point and Java 8 bytecode while adding a composable, restartable inference layer.
 The consolidated [inference acceleration result](INFERENCE_ACCELERATION_RESULT.md)
 records the delivered surface, validation evidence, and measured GPU boundary.
@@ -25,7 +25,7 @@ records the delivered surface, validation evidence, and measured GPU boundary.
 | scale control | `DrawSink`, `storeDraws(false)`, `ProgressListener` | stream draws without retaining the chain and report/cancel progress |
 | diagnostics | `MonteCarloError`, `EvaluationCounter`, `Divergences`, `WarmupTrace` | MCSE for SD/quantiles, ESS per work/time, evaluation counts, divergence coordinates, and adaptation traces |
 | workflow QoL | `CheckpointIO`, `PrecisionContinuation`, `WarmupBundle`, `FactorProfiler`, `ChunkedDrawSink`, `MappedDrawStore`, `GeneratedQuantitySink`, `InferenceHealth`, `GeometryAdvisor` | portable restart, precision goals, safe warmup reuse, profiling, streaming/mapped output, generated quantities, and actionable health findings |
-| acceleration | `Compute`, `ComputeNuts`, `ComputeBackend`, optional `jdistlib-cuda` / `jdistlib-opencl` | thresholded AUTO routing, strict provider selection, forced-NUTS validation, device-resident batched likelihoods |
+| acceleration | `Compute`, `ComputeNuts`, `ComputeBackend`, modular CUDA/OpenCL/Vulkan providers, and `jdistlib-all` | thresholded AUTO routing, strict provider selection, forced-NUTS validation, batched likelihoods, and a unified direct download |
 | validation | `SimulationBasedCalibration` | deterministic SBC ranks for model/sampler test suites |
 
 The low-rank metric uses deterministic eigendirection extraction so seeded runs

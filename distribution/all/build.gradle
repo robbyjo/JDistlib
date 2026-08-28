@@ -1,0 +1,76 @@
+plugins { id 'java' }
+
+group = rootProject.group
+version = rootProject.version
+
+repositories { mavenCentral() }
+
+base { archivesName = 'jdistlib-all' }
+
+def lwjglVersion = '3.3.6'
+configurations { bundledNatives }
+
+dependencies {
+    implementation project(':')
+    implementation project(':jdistlib-cuda')
+    implementation project(':jdistlib-opencl')
+    implementation project(':jdistlib-vulkan')
+
+    // One direct-download JAR covers the x86-64 desktop/server platforms used by
+    // the current CUDA distribution. JOCL already carries its own platform matrix.
+    bundledNatives 'org.jcuda:jcuda-natives:12.6.0:windows-x86_64'
+    bundledNatives 'org.jcuda:jcuda-natives:12.6.0:linux-x86_64'
+    bundledNatives "org.lwjgl:lwjgl:${lwjglVersion}:natives-windows"
+    bundledNatives "org.lwjgl:lwjgl:${lwjglVersion}:natives-linux"
+    bundledNatives "org.lwjgl:lwjgl:${lwjglVersion}:natives-macos"
+    bundledNatives "org.lwjgl:lwjgl-shaderc:${lwjglVersion}:natives-windows"
+    bundledNatives "org.lwjgl:lwjgl-shaderc:${lwjglVersion}:natives-linux"
+    bundledNatives "org.lwjgl:lwjgl-shaderc:${lwjglVersion}:natives-macos"
+    bundledNatives "org.lwjgl:lwjgl-vulkan:${lwjglVersion}:natives-macos"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 8
+    def disabledLint = ['options']
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_20)) disabledLint += 'this-escape'
+    options.compilerArgs += ["-Xlint:all,-${disabledLint.join(',-')}", '-Werror']
+}
+
+jar {
+    archiveBaseName = 'jdistlib-all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    zip64 = true
+    dependsOn configurations.runtimeClasspath, configurations.bundledNatives
+    from('src/main/merged-services')
+    from({
+        (configurations.runtimeClasspath.files + configurations.bundledNatives.files)
+            .collect { it.isDirectory() ? it : zipTree(it) }
+    }) {
+        exclude 'META-INF/services/jdistlib.accelerator.ComputeBackend'
+    }
+    exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA'
+    exclude 'module-info.class', 'META-INF/versions/*/module-info.class'
+    manifest {
+        attributes(
+            'Implementation-Title': 'JDistlib all-in-one distribution',
+            'Implementation-Version': project.version
+        )
+    }
+}
+
+def compileAllJarSmoke = tasks.register('compileAllJarSmoke', JavaCompile) {
+    dependsOn tasks.named('jar')
+    source fileTree('src/smoke/java') { include '**/*.java' }
+    classpath = files(tasks.named('jar').flatMap { it.archiveFile })
+    destinationDirectory = layout.buildDirectory.dir('all-jar-smoke')
+}
+
+def allJarSmoke = tasks.register('allJarSmoke', JavaExec) {
+    dependsOn compileAllJarSmoke
+    classpath = files(tasks.named('jar').flatMap { it.archiveFile },
+        compileAllJarSmoke.flatMap { it.destinationDirectory })
+    mainClass = 'jdistlib.distribution.AllJarSmoke'
+}
+
+tasks.named('check') { dependsOn allJarSmoke }

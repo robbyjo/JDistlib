@@ -1,4 +1,46 @@
-# JDistlib 0.8.3
+# JDistlib 0.8.4
+
+JDistlib 0.8.4 makes GPU-enabled installation a one-download operation and
+adds the Vulkan provider that was intentionally deferred from 0.8.3. The
+recommended release artifact is now `jdistlib-all-0.8.4.jar`, a standalone
+x86-64 JAR containing core JDistlib, CUDA, OpenCL, Vulkan, JTransforms, and all
+required Java/JNI binding libraries for Windows, Linux, and macOS. GPU vendor
+drivers remain system components. When no compatible GPU runtime is present,
+the same artifact retains deterministic CPU operation.
+
+The new Java 8-compatible `jdistlib-vulkan` module uses LWJGL Vulkan 3.3.6 and
+shaderc. It selects a compute-capable device with `shaderFloat64`, records the
+device and memory capabilities, and implements the same unary vector, AXPY,
+dot-product, dense-GEMM, and batched logistic likelihood/gradient contract as
+the CUDA and OpenCL providers. Vulkan core GLSL does not guarantee FP64
+transcendental overloads, so the provider supplies deterministic range-reduced
+double-precision exponential, logarithm, `log1p`, logistic, and hyperbolic
+tangent shader routines instead of reducing those operations to float.
+
+Real-device parity tests compare every Vulkan primitive with the CPU reference.
+The release candidate passed on an NVIDIA GeForce RTX 2080 through Vulkan 1.4,
+including direct provider selection and a standalone hardware smoke. CI hosts
+without FP64 Vulkan hardware skip only the device-dependent parity assertions;
+CPU fallback and unified-JAR discovery remain mandatory release checks.
+
+The all-in-one build merges the CUDA, OpenCL, and Vulkan service descriptors,
+bundles Windows/Linux JCuda JNI libraries and Windows/Linux/macOS x86-64 LWJGL
+and shaderc resources, removes conflicting signatures/module descriptors, and
+runs a classpath-isolated smoke using no external JARs. On supported hardware
+that smoke exercises every detected backend. Its approximately 41 MB size is
+the cost of carrying multiple operating-system native runtimes in one file.
+
+Small modular artifacts remain available for Gradle/Maven users and for
+applications that require only CPU or one GPU API. The native-free core and all
+existing 0.8 APIs remain source- and binary-compatible, deterministic caller-
+owned random streams are unchanged, and JDistlib-produced classes remain Java
+8 bytecode. Accelerator lint flags are now JDK-version-aware, restoring the
+Java 17 CI lane and allowing the downstream Java 8 smoke to exercise both core
+and unified artifacts. The GitHub release deliberately exposes the single all-in-one
+runtime plus `SHA256SUMS`; source is available from the signed release tag and
+JavaDoc remains on the project website.
+
+## Previous release: JDistlib 0.8.3
 
 JDistlib 0.8.3 is a broad Stan-compatibility, numerical-modeling, and modern
 inference release. It preserves the complete 0.8 API, deterministic caller-owned

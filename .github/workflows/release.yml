@@ -46,22 +46,34 @@ jobs:
           VERSION: ${{ steps.release.outputs.version }}
         run: |
           ./gradlew clean build :jdistlib-cuda:build :jdistlib-opencl:build \
+            :jdistlib-vulkan:build :jdistlib-all:build \
             --no-daemon -PreleaseVersion="$VERSION"
           test -f "build/libs/jdistlib-$VERSION.jar"
           unzip -p "build/libs/jdistlib-$VERSION.jar" META-INF/MANIFEST.MF |
             grep -F "Implementation-Version: $VERSION"
-          for MODULE in cuda opencl; do
+          for MODULE in cuda opencl vulkan; do
             test -f "accelerators/$MODULE/build/libs/jdistlib-$MODULE-$VERSION.jar"
             unzip -p "accelerators/$MODULE/build/libs/jdistlib-$MODULE-$VERSION.jar" META-INF/MANIFEST.MF |
               grep -F "Implementation-Version: $VERSION"
-            cp accelerators/$MODULE/build/libs/*.jar build/libs/
           done
-          if find build/libs -maxdepth 1 -name '*SNAPSHOT*' | grep -q .; then
+          ALL_JAR="distribution/all/build/libs/jdistlib-all-$VERSION.jar"
+          test -f "$ALL_JAR"
+          unzip -p "$ALL_JAR" META-INF/MANIFEST.MF |
+            grep -F "Implementation-Version: $VERSION"
+          unzip -p "$ALL_JAR" META-INF/services/jdistlib.accelerator.ComputeBackend |
+            grep -F 'jdistlib.accelerator.cuda.CudaComputeBackend'
+          unzip -p "$ALL_JAR" META-INF/services/jdistlib.accelerator.ComputeBackend |
+            grep -F 'jdistlib.accelerator.opencl.OpenClComputeBackend'
+          unzip -p "$ALL_JAR" META-INF/services/jdistlib.accelerator.ComputeBackend |
+            grep -F 'jdistlib.accelerator.vulkan.VulkanComputeBackend'
+          mkdir -p build/release-assets
+          cp "$ALL_JAR" build/release-assets/
+          if find build/release-assets -maxdepth 1 -name '*SNAPSHOT*' | grep -q .; then
             echo "SNAPSHOT artifact found in release output" >&2
             exit 1
           fi
       - name: Create SHA-256 checksums
-        working-directory: build/libs
+        working-directory: build/release-assets
         run: sha256sum *.jar > SHA256SUMS
       - name: Publish GitHub release
         env:
@@ -81,4 +93,4 @@ jobs:
               --verify-tag \
               --latest
           fi
-          gh release upload "$TAG" build/libs/* --clobber
+          gh release upload "$TAG" build/release-assets/* --clobber

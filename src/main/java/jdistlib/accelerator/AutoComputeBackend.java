@@ -40,6 +40,22 @@ final class AutoComputeBackend implements ComputeBackend {
 		return (work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
 				.matrixMultiply(left, right);
 	}
+	@Override public PreparedTransposeProduct prepareTransposeProduct(final double[][] matrix) {
+		final PreparedTransposeProduct cpuPrepared = cpu.prepareTransposeProduct(matrix);
+		final PreparedTransposeProduct acceleratorPrepared;
+		try { acceleratorPrepared = accelerator.prepareTransposeProduct(matrix); }
+		catch (RuntimeException failure) { cpuPrepared.close(); throw failure; }
+		return new PreparedTransposeProduct() {
+			@Override public int rows() { return cpuPrepared.rows(); }
+			@Override public int columns() { return cpuPrepared.columns(); }
+			@Override public double[][] multiply(double[][] vectors) {
+				if (vectors == null) throw new IllegalArgumentException("score vectors required");
+				long work = saturatingProduct(rows(), columns(), vectors.length);
+				return (work >= LOGISTIC_THRESHOLD ? acceleratorPrepared : cpuPrepared).multiply(vectors);
+			}
+			@Override public void close() { try { acceleratorPrepared.close(); } finally { cpuPrepared.close(); } }
+		};
+	}
 	@Override public LogisticRegressionBatchResult logisticRegression(double[][] design,
 			double[] outcomes, double[][] states, double priorPrecision) {
 		long work = logisticWork(design, states);

@@ -21,6 +21,7 @@ import jdistlib.accelerator.ComputeBackend;
 import jdistlib.accelerator.ComputeCapabilities;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.PreparedLogisticRegression;
+import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.UnaryOperation;
 
 /** Optional portable OpenCL 1.2 backend using JOCL. */
@@ -34,6 +35,7 @@ public final class OpenClComputeBackend implements ComputeBackend {
 			+ "__kernel void axpy_kernel(double a,__global const double*x,__global const double*y,__global double*z,int n){int i=get_global_id(0);if(i<n)z[i]=a*x[i]+y[i];}\n"
 			+ "__kernel void dot_kernel(__global const double*x,__global const double*y,__global double*out,int n){if(get_global_id(0)==0){double s=0;for(int i=0;i<n;i++)s+=x[i]*y[i];out[0]=s;}}\n"
 			+ "__kernel void gemm_kernel(__global const double*a,__global const double*b,__global double*c,int m,int k,int n){int row=get_global_id(1),col=get_global_id(0);if(row<m&&col<n){double s=0;for(int p=0;p<k;p++)s+=a[row*k+p]*b[p*n+col];c[row*n+col]=s;}}\n"
+			+ "__kernel void transpose_product(__global const double*x,__global const double*v,__global double*out,int rows,int cols,int batches){int z=get_global_id(0);if(z<cols*batches){int b=z/cols,col=z-b*cols;double s=0;for(int row=0;row<rows;row++)s+=x[row*cols+col]*v[b*rows+row];out[z]=s;}}\n"
 			+ "__kernel void logistic_residual(__global const double*x,__global const double*y,__global const double*q,__global double*r,__global double*t,int rows,int dims,int chains){int z=get_global_id(0);if(z<rows*chains){int c=z/rows,i=z-c*rows;double eta=0;for(int d=0;d<dims;d++)eta+=x[i*dims+d]*q[c*dims+d];r[z]=y[i]-logistic(eta);t[z]=y[i]*eta-l1e(eta);}}\n"
 			+ "__kernel void logistic_gradient(__global const double*x,__global const double*q,__global const double*r,__global double*g,int rows,int dims,int chains,double prior){int z=get_global_id(0);if(z<dims*chains){int c=z/dims,d=z-c*dims;double s=-prior*q[z];for(int i=0;i<rows;i++)s+=r[c*rows+i]*x[i*dims+d];g[z]=s;}}\n"
 			+ "__kernel void logistic_logp(__global const double*t,__global const double*q,__global double*out,int rows,int dims,int chains,double prior){int c=get_global_id(0);if(c<chains){double s=0;for(int i=0;i<rows;i++)s+=t[c*rows+i];for(int d=0;d<dims;d++){double v=q[c*dims+d];s-=0.5*prior*v*v;}out[c]=s;}}\n";
@@ -98,6 +100,35 @@ public final class OpenClComputeBackend implements ComputeBackend {
 			double[] outcomes, double[][] states, double priorPrecision) {
 		PreparedLogisticRegression prepared = prepareLogisticRegression(design, outcomes);
 		try { return prepared.evaluate(states, priorPrecision); } finally { prepared.close(); }
+	}
+	@Override public synchronized PreparedTransposeProduct prepareTransposeProduct(double[][] matrix) {
+		int[] matrixShape = shape(matrix); ensureAvailable();
+		return new PreparedTranspose(matrix, matrixShape[0], matrixShape[1]);
+	}
+
+	private final class PreparedTranspose implements PreparedTransposeProduct {
+		private final int rows, columns; private cl_mem matrix;
+		PreparedTranspose(double[][] source, int rows, int columns) {
+			this.rows = rows; this.columns = columns; matrix = input(flatten(source));
+		}
+		@Override public int rows() { return rows; }
+		@Override public int columns() { return columns; }
+		@Override public double[][] multiply(double[][] vectors) {
+			synchronized (OpenClComputeBackend.this) {
+				if (matrix == null) throw new IllegalStateException("prepared transpose product is closed");
+				int[] vectorShape = shape(vectors); if (vectorShape[1] != rows) throw new IllegalArgumentException("score vector length mismatch");
+				int batches = vectorShape[0], count = columns * batches;
+				cl_mem input = input(flatten(vectors)), output = output(count); cl_kernel product = kernel("transpose_product");
+				try {
+					arg(product, 0, matrix); arg(product, 1, input); arg(product, 2, output); arg(product, 3, rows);
+					arg(product, 4, columns); arg(product, 5, batches); run1d(product, count);
+					return reshape(read(output, count), batches, columns);
+				} finally { clReleaseKernel(product); clReleaseMemObject(input); clReleaseMemObject(output); }
+			}
+		}
+		@Override public void close() { synchronized (OpenClComputeBackend.this) {
+			if (matrix != null) { clReleaseMemObject(matrix); matrix = null; }
+		} }
 	}
 	@Override public synchronized PreparedLogisticRegression prepareLogisticRegression(double[][] design,
 			double[] outcomes) {

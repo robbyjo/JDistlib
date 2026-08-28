@@ -266,6 +266,19 @@ birth proposals, and per-model adaptive random walks. Move weights, proposal
 scales, and adaptive Gaussian birth moments change only during discarded
 warmup, then freeze and enter the exact checkpoint.
 
+For a much larger candidate universe, `SparseSubsetTarget` and
+`SparseSubsetState` use sorted integer indices rather than a bit mask and enforce
+an independent maximum-active bound. `SparseSubsetRjSampler` implements exact
+add/drop/swap ratios with state-dependent `SparseCandidateProposal` densities.
+`ResidualInformedSparseCandidateProposal` mixes a uniform component with
+`|X'v|` scores, using `PreparedTransposeProduct` to keep CUDA/OpenCL matrices
+resident where available. `SparseSubsetCheckpointIO` atomically writes a
+checksummed complete process state, including the RNG, ongoing warmup
+adaptation, 64-bit counters, and online summaries. Tidy draw segments are forced
+and atomically installed before the checkpoint so replay after interruption is
+idempotent. See the [17,000-gene public-data mixed-model
+example](sparse-transcriptome-rjmcmc-example.html).
+
 `ReversibleJumpDiagnostics` reports model and inclusion probabilities,
 model/inclusion ESS, MCSE, and R-hat, transition counts, round trips, per-direction move
 acceptance and invalid proposals, and parameter summaries conditional on

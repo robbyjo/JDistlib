@@ -1,6 +1,18 @@
 What's new:
 
 Development after 0.9.0:
+* Added an arbitrary-candidate sparse subset RJMCMC engine with sorted active
+  indices, an explicit active-size cap, exact add/drop/swap proposal accounting,
+  residual-informed proposals, online inclusion summaries, and crash-safe tidy
+  draw segments plus checksummed atomic continuation checkpoints. CUDA and
+  OpenCL can keep prepared transcriptome matrices resident for repeated
+  transpose products; CPU remains the reference and Vulkan falls back for this
+  primitive.
+* Added a compiled public-data GSE93272 expression-array mixed-model analysis,
+  reproducible Bioconductor preparation script, and troubleshooting tutorial
+  linked from the MCMC learning center. The regression suite verifies 17,000
+  candidate indices, accelerator parity, corrupt/incompatible checkpoint
+  rejection, and exact split/resume trajectories including interrupted warmup.
 * Completed the six additive finance follow-ups: tempered-stable and Meixner
   laws, multivariate normal-mixture and elliptical families, exact/Panjer/FFT/
   COS/saddlepoint aggregation, stable analytical tails and adaptive inversion,

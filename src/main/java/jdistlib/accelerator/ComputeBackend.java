@@ -14,6 +14,11 @@ public interface ComputeBackend extends AutoCloseable {
 	double[] axpy(double alpha, double[] x, double[] y);
 	double dot(double[] x, double[] y);
 	double[][] matrixMultiply(double[][] left, double[][] right);
+	/** Keeps a reusable row-by-feature matrix ready for repeated {@code X'v} batches. */
+	default PreparedTransposeProduct prepareTransposeProduct(final double[][] matrix) {
+		final CpuComputeBackend cpu = new CpuComputeBackend();
+		return cpu.prepareTransposeProduct(matrix);
+	}
 	LogisticRegressionBatchResult logisticRegression(double[][] design,
 			double[] outcomes, double[][] states, double priorPrecision);
 	/** Keeps reusable data in backend-optimal storage when the backend supports it. */

@@ -12,6 +12,7 @@ import jdistlib.accelerator.Compute;
 import jdistlib.accelerator.ComputeBackends;
 import jdistlib.accelerator.ComputeSelection;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
+import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.UnaryOperation;
 
 public class OpenClComputeBackendTest {
@@ -29,6 +30,13 @@ public class OpenClComputeBackendTest {
 			assertArrayEquals(cpu.unary(UnaryOperation.LOGISTIC, x), opencl.unary(UnaryOperation.LOGISTIC, x), 1e-13);
 			assertArrayEquals(cpu.axpy(0.3, x, y), opencl.axpy(0.3, x, y), 1e-13);
 			assertEquals(cpu.dot(x, y), opencl.dot(x, y), 1e-13);
+			double[][] scoreDesign = {{1, 2, 3}, {4, 5, 6}, {-1, 0.5, 2}};
+			double[][] scoreVectors = {{2, -1, 0.25}, {-3, 4, 1}};
+			try (PreparedTransposeProduct expectedProduct = cpu.prepareTransposeProduct(scoreDesign);
+					PreparedTransposeProduct actualProduct = opencl.prepareTransposeProduct(scoreDesign)) {
+				for (int i = 0; i < scoreVectors.length; i++) assertArrayEquals(
+						expectedProduct.multiply(scoreVectors)[i], actualProduct.multiply(scoreVectors)[i], 1e-12);
+			}
 			double[][] design = {{1, -1}, {1, 0.5}, {1, 2}}, states = {{0.1, -0.4}, {0.5, 0.2}};
 			double[] outcomes = {0, 1, 1};
 			LogisticRegressionBatchResult expected = cpu.logisticRegression(design, outcomes, states, 0.2);

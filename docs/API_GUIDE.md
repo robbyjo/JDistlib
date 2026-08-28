@@ -65,7 +65,7 @@ monotonicity, convexity, and boundary conditions before extracting an
 | A differentiable continuous posterior | `NoUTurnSampler` with multiple explicit-seed chains |
 | A posterior without gradients | Metropolis, `SliceSampler`, or composable `GibbsSampler` blocks |
 | A fixed-dimensional mixed continuous/discrete posterior | `MixedStateSpace` and a scheduled `HybridSampler` |
-| A genuinely variable-dimensional Java model | `ReversibleJumpSampler`, or `SubsetSelectionRj` for add/drop/swap selection |
+| A genuinely variable-dimensional Java model | `ReversibleJumpSampler`, `SubsetSelectionRj` for up to 62 candidates, or `SparseSubsetRjSampler` for a large candidate universe with a small active cap |
 | MCMC convergence and sampler health | `McmcDiagnostics` and `McmcDiagnosticReport` |
 | Trace, rank, ACF, energy, pair, or model graphs | `DiagnosticGraphs`, `ModelGraphExport`, and `InferenceHtmlReport` |
 | A Stan-inspired model script or generated Java wrapper | `jdistlib.inference.lang.ModelScript` or `ModelSourceGenerator` |

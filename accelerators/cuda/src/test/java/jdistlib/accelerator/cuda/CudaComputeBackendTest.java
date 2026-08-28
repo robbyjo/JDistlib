@@ -13,6 +13,7 @@ import jdistlib.accelerator.Compute;
 import jdistlib.accelerator.ComputeBackends;
 import jdistlib.accelerator.ComputeSelection;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
+import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.UnaryOperation;
 import jdistlib.inference.AcceleratedLogisticRegression;
 import jdistlib.inference.AdaptiveStaticHamiltonianMonteCarlo;
@@ -47,6 +48,12 @@ public class CudaComputeBackendTest {
 			assertEquals(cpu.dot(x, y), cuda.dot(x, y), 1e-13);
 			double[][] a = {{1, 2, 3}, {4, 5, 6}}, b = {{2, 1}, {0, 3}, {-1, 2}};
 			assertMatrix(cpu.matrixMultiply(a, b), cuda.matrixMultiply(a, b), 1e-13);
+			double[][] scoreDesign = {{1, 2, 3}, {4, 5, 6}, {-1, 0.5, 2}};
+			double[][] scoreVectors = {{2, -1, 0.25}, {-3, 4, 1}};
+			try (PreparedTransposeProduct expectedProduct = cpu.prepareTransposeProduct(scoreDesign);
+					PreparedTransposeProduct actualProduct = cuda.prepareTransposeProduct(scoreDesign)) {
+				assertMatrix(expectedProduct.multiply(scoreVectors), actualProduct.multiply(scoreVectors), 1e-12);
+			}
 			double[][] design = {{1, -1}, {0.5, 2}, {-2, 0.25}, {1.5, 0.3}};
 			double[] outcomes = {1, 0, 1, 0};
 			double[][] states = {{0.2, -0.3}, {1.0, 0.5}, {-0.7, 0.1}};

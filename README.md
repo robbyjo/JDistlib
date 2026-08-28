@@ -333,6 +333,15 @@ maps, general reversible moves, subset add/drop/swap selection, model-specific
 within-model kernels, frozen adaptation, ragged diagnostics/exports, portable
 checkpoints, and a [worked covariate-selection analysis](docs/rjmcmc-example.html).
 
+The additive sparse RJMCMC path removes the 62-candidate bit-mask limit for
+large screening problems. It stores sorted active indices, caps model size
+independently (for example, 20 active genes among 17,000), supports exact
+restart during warmup or sampling, and offers residual-informed proposals using
+a prepared `X'v` product. The [GSE93272 public expression-array
+tutorial](docs/sparse-transcriptome-rjmcmc-example.html) combines this state with
+a marginalized subject random-intercept model, bounded crash-safe draw
+segments, and optional CUDA/OpenCL acceleration.
+
 ### Optional CUDA, OpenCL, and Vulkan acceleration
 
 The dependency-managed core remains native-free. The `jdistlib-cuda` module
@@ -350,6 +359,9 @@ requests fail rather than silently falling back. See the
 examples, measured guidance, logging/provenance, and the warning that forced
 NUTS target offload may be slower. Direct-download users should use
 `jdistlib-all`; modular artifacts are intended for dependency-managed builds.
+CUDA and OpenCL additionally implement a resident prepared transpose product
+for repeated high-dimensional score calculations; Vulkan currently uses its
+CPU fallback for that primitive.
 
 ## Multiple testing and false discovery rates
 

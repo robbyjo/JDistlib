@@ -79,8 +79,12 @@ try (AcceleratedLogisticRegression target =
     ComputeBackend compute = selection.backend();
     double dot = compute.dot(x, y);
     double[][] product = compute.matrixMultiply(a, b);
+    try (PreparedTransposeProduct scores =
+            compute.prepareTransposeProduct(design)) {
+        double[][] xtResidual = scores.multiply(residualBatches);
+    }
 }</code></pre>
-      <p>The optional modules implement double-precision unary vector functions, AXPY, dot products, dense matrix multiplication, and batched logistic likelihoods and gradients. The modular core artifact remains native-free.</p>
+      <p>The optional modules implement double-precision unary vector functions, AXPY, dot products, dense matrix multiplication, and batched logistic likelihoods and gradients. CUDA and OpenCL also keep a prepared matrix resident for repeated transpose products such as high-dimensional residual scores; Vulkan uses the CPU fallback for this primitive. The modular core artifact remains native-free.</p>
     </section>
 
     <section class="guide-section" id="cli">

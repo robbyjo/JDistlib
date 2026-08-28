@@ -42,6 +42,7 @@ import jdistlib.accelerator.ComputeBackend;
 import jdistlib.accelerator.ComputeCapabilities;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.PreparedLogisticRegression;
+import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.UnaryOperation;
 
 /** Optional double-precision CUDA backend using JCuda Driver and JNvrtc. */
@@ -62,6 +63,9 @@ public final class CudaComputeBackend implements ComputeBackend {
 			+ "extern \"C\" __global__ void gemm_kernel(const double*a,const double*b,double*c,int m,int k,int n){"
 			+ "int row=blockIdx.y*blockDim.y+threadIdx.y,col=blockIdx.x*blockDim.x+threadIdx.x;"
 			+ "if(row<m&&col<n){double sum=0;for(int p=0;p<k;p++)sum+=a[row*k+p]*b[p*n+col];c[row*n+col]=sum;}}"
+			+ "extern \"C\" __global__ void transpose_product(const double*x,const double*v,double*out,int rows,int cols,int batches){"
+			+ "int z=blockIdx.x*blockDim.x+threadIdx.x;if(z<cols*batches){int b=z/cols,col=z-b*cols;double sum=0;"
+			+ "for(int row=0;row<rows;row++)sum+=x[row*cols+col]*v[b*rows+row];out[z]=sum;}}"
 			+ "__device__ double l1e(double x){return x>0?x+log1p(exp(-x)):log1p(exp(x));}"
 			+ "extern \"C\" __global__ void logistic_residual(const double*x,const double*y,const double*q,double*r,double*t,int rows,int dims,int chains){"
 			+ "int z=blockIdx.x*blockDim.x+threadIdx.x;if(z<rows*chains){int c=z/rows,i=z-c*rows;double eta=0;"
@@ -163,6 +167,36 @@ public final class CudaComputeBackend implements ComputeBackend {
 			cuMemFree(x); cuMemFree(y); cuMemFree(q); cuMemFree(residual);
 			cuMemFree(terms); cuMemFree(gradient); cuMemFree(logp);
 		}
+	}
+	@Override public synchronized PreparedTransposeProduct prepareTransposeProduct(double[][] matrix) {
+		int[] matrixShape = shape(matrix); ensureAvailable(); setCurrent();
+		return new PreparedTranspose(matrix, matrixShape[0], matrixShape[1]);
+	}
+
+	private final class PreparedTranspose implements PreparedTransposeProduct {
+		private final int rows, columns; private CUdeviceptr matrix;
+		PreparedTranspose(double[][] source, int rows, int columns) {
+			this.rows = rows; this.columns = columns; matrix = allocate(flatten(source));
+		}
+		@Override public int rows() { return rows; }
+		@Override public int columns() { return columns; }
+		@Override public double[][] multiply(double[][] vectors) {
+			synchronized (CudaComputeBackend.this) {
+				if (matrix == null) throw new IllegalStateException("prepared transpose product is closed");
+				int[] vectorShape = shape(vectors); if (vectorShape[1] != rows) throw new IllegalArgumentException("score vector length mismatch");
+				ensureAvailable(); setCurrent(); int batches = vectorShape[0], count = columns * batches;
+				CUdeviceptr input = allocate(flatten(vectors)), output = allocateDoubles(count);
+				try {
+					launch("transpose_product", grid(count), 1, 1, BLOCK, 1, 1,
+							Pointer.to(Pointer.to(matrix), Pointer.to(input), Pointer.to(output),
+									Pointer.to(new int[] {rows}), Pointer.to(new int[] {columns}), Pointer.to(new int[] {batches})));
+					return reshape(copy(output, count), batches, columns);
+				} finally { cuMemFree(input); cuMemFree(output); }
+			}
+		}
+		@Override public void close() { synchronized (CudaComputeBackend.this) {
+			if (matrix != null) { setCurrent(); cuMemFree(matrix); matrix = null; }
+		} }
 	}
 	@Override public synchronized PreparedLogisticRegression prepareLogisticRegression(
 			double[][] design, double[] outcomes) {

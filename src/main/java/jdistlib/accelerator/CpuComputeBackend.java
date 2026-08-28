@@ -41,6 +41,27 @@ public final class CpuComputeBackend implements ComputeBackend {
 			for (int j = 0; j < rightShape[1]; j++) result[i][j] += left[i][k] * right[k][j];
 		return result;
 	}
+	@Override public PreparedTransposeProduct prepareTransposeProduct(double[][] matrix) {
+		int[] shape = matrixShape(matrix); final int rows = shape[0], columns = shape[1];
+		final double[] values = new double[rows * columns];
+		for (int row = 0; row < rows; row++) System.arraycopy(matrix[row], 0, values, row * columns, columns);
+		return new PreparedTransposeProduct() {
+			@Override public int rows() { return rows; }
+			@Override public int columns() { return columns; }
+			@Override public double[][] multiply(double[][] vectors) {
+				if (vectors == null || vectors.length == 0) throw new IllegalArgumentException("one or more score vectors required");
+				double[][] result = new double[vectors.length][columns];
+				for (int batch = 0; batch < vectors.length; batch++) {
+					double[] vector = vectors[batch]; if (vector == null || vector.length != rows) throw new IllegalArgumentException("score vector length mismatch");
+					double[] output = result[batch];
+					for (int row = 0; row < rows; row++) { double weight = vector[row]; int offset = row * columns;
+						for (int column = 0; column < columns; column++) output[column] += values[offset + column] * weight; }
+				}
+				return result;
+			}
+			@Override public void close() {}
+		};
+	}
 	@Override public LogisticRegressionBatchResult logisticRegression(double[][] design,
 			double[] outcomes, double[][] states, double priorPrecision) {
 		int[] shape = matrixShape(design);

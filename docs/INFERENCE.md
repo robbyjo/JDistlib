@@ -241,10 +241,40 @@ adaptive-rejection updates remain useful for scalar full conditionals. Hybrid
 proposal scales belong to their kernels; the HMC-specific mass-matrix and
 dual-averaging options in `SamplingOptions` do not tune this schedule.
 
-This mixed-state API has a fixed state dimension. It supports indicator-based
-variable selection when a fixed maximum set of coefficients is acceptable, but
-it does not implement reversible-jump dimension changes or their proposal
-Jacobians. See `InferenceExamples.java` for a compiled end-to-end workflow.
+This mixed-state API has a fixed state dimension and remains the simpler choice
+when a padded indicator representation is acceptable. `ReversibleJumpSampler`
+is the separate Java-only API for genuinely variable-dimensional states.
+
+## Reversible-jump MCMC
+
+`ReversibleJumpState` pairs a nonnegative model identifier with a ragged
+parameter vector, while `ReversibleJumpTarget` supplies each model's named
+schema and a complete normalized `logJoint`. Unlike ordinary within-model MCMC,
+model-dependent normalizing constants must not be discarded.
+
+Every `ReversibleJumpMove` returns the proposed state, reverse move name,
+forward and reverse auxiliary densities, and log absolute Jacobian. The sampler
+adds forward/reverse move-selection probabilities among the moves applicable at
+each boundary. `DimensionMatchingValidator` tests total dimensions, inverse
+round trips, and reciprocal Jacobians. `FixedDimensionSamplerRjKernel` reuses a
+frozen ordinary JDistlib sampler within one model; callers can override
+`fixedModelTarget` with a differentiable target to retain HMC/NUTS gradients.
+
+`SubsetSelectionTarget` uses a bit-mask family of up to 62 candidate variables.
+`SubsetSelectionRj` supplies add, drop, and swap moves, prior-matched or custom
+birth proposals, and per-model adaptive random walks. Move weights, proposal
+scales, and adaptive Gaussian birth moments change only during discarded
+warmup, then freeze and enter the exact checkpoint.
+
+`ReversibleJumpDiagnostics` reports model and inclusion probabilities,
+model/inclusion ESS, MCSE, and R-hat, transition counts, round trips, per-direction move
+acceptance and invalid proposals, and parameter summaries conditional on
+presence. Ragged draws export as tidy CSV, while portable checksummed
+checkpoints retain the exact random stream, model state, frozen schedule, and
+component adaptation. See the [worked covariate-selection example](rjmcmc-example.html)
+and `WorkedReversibleJumpSelectionExample.java`.
+
+See `InferenceExamples.java` for a compiled fixed-dimensional workflow.
 The website adds a beginner tutorial, reference guide, posterior vignette,
 diagnostics vignette, language tutorial, and a catalog backed by fifteen named
 tests in `BayesianShowcaseTest`.

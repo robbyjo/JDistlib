@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Worked Java-only reversible-jump MCMC covariate-selection example with normalized model probabilities, add/drop/swap moves, diagnostics, and checkpoints.">
+<title>Worked RJMCMC subset selection in JDistlib</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="rjmcmc-example.html">RJMCMC example</a><a href="examples.html">Examples</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide">
+<section class="guide-hero"><p class="eyebrow">Worked analysis · Java-only · 0.8.4</p><h1>Select covariates with reversible-jump MCMC</h1><p class="lede">A complete linear-regression analysis that moves between models of different dimensions, checks inclusion mixing, exports ragged draws, and resumes from an exact portable checkpoint.</p><div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/blob/master/examples/WorkedReversibleJumpSelectionExample.java">Open the complete Java file</a><a class="button secondary" href="#run">Compile and run</a></div></section>
+<nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#question">Question</a><a href="#target">Normalized target</a><a href="#moves">Moves</a><a href="#run">Run</a><a href="#diagnostics">Review</a><a href="#checkpoint">Resume</a></nav>
+<section class="guide-section" id="question"><p class="eyebrow">Scientific question</p><h2>Which predictors belong in the regression?</h2><p>The checked-in example has sixteen observations and three candidate predictors: <code>dose</code>, <code>genotype</code>, and a correlated <code>proxy_marker</code>. The response was generated from the first two, while the proxy creates a realistic competing-locus model that exercises swap moves. A model identifier is a bit mask, so model <code>3</code> contains dose and genotype while model <code>0</code> contains only the common intercept.</p><p>For subset <em>M</em>, the model is:</p><pre><code>y[i] ~ Normal(alpha + sum(beta[j] * x[i,j], j in M), 0.75)
+alpha ~ Normal(0, 5)
+beta[j] ~ Normal(0, 2)
+Pr(j in M) = 0.30 independently</code></pre><aside class="callout"><strong>Why genuine RJMCMC?</strong> A draw stores one intercept plus only the active coefficients. Adding a predictor increases the parameter dimension and dropping it decreases the dimension. A fixed padded indicator model remains a good alternative when that representation is more convenient.</aside></section>
+<section class="guide-section" id="target"><p class="eyebrow">Correct target</p><h2>Keep every model-dependent constant</h2><p><code>SubsetSelectionTarget</code> takes a Java callback that receives common parameters, sorted active candidate indices, and active coefficients. Unlike an ordinary within-model target, it must return the complete normalized log joint. Constants that differ between models directly affect posterior model probabilities.</p><pre><code>SubsetSelectionTarget target = new SubsetSelectionTarget(
+    new String[] {"alpha"},
+    new String[] {"dose", "genotype", "proxy_marker"},
+    (common, active, coefficients) -&gt; {
+        double result = normalLogDensity(common[0], 0, 5);
+        result += active.length * Math.log(0.30)
+            + (3 - active.length) * Math.log(0.70);
+        for (double beta : coefficients)
+            result += normalLogDensity(beta, 0, 2);
+        // Add every normalized observation density here.
+        return result;
+    });</code></pre><aside class="callout caution"><strong>Invalid shortcut:</strong> dropping a likelihood normalizing constant is harmless only when that constant is identical in every compared model. The worked file deliberately retains all normal, prior, and model-prior terms.</aside></section>
+<section class="guide-section" id="moves"><p class="eyebrow">Detailed balance</p><h2>Add, drop, swap, then update within the model</h2><p><code>SubsetSelectionRj</code> schedules three reversible structure moves. Add chooses uniformly among inactive predictors and samples a new coefficient from its declared birth density. Drop chooses uniformly among active predictors and evaluates the matching reverse birth density. Swap chooses one of each and preserves dimension. The sampler also includes the probability of selecting each move among those available at the current and proposed boundaries.</p><pre><code>GaussianRjBirthProposal birth =
+    new GaussianRjBirthProposal(0, 2);
+ReversibleJumpSampler sampler =
+    SubsetSelectionRj.sampler(birth, 0.20, 0.30);</code></pre><p>The general engine evaluates:</p><pre><code>log alpha = logJoint(proposed) - logJoint(current)
+          + log q(reverse) - log q(forward)
+          + log p(select reverse) - log p(select forward)
+          + logAbsJacobian</code></pre><p><code>CoordinateInsertionTransformation</code> supplies the unit-Jacobian birth/death map and <code>DimensionMatchingValidator</code> checks total dimensions, inverse round trips, and reciprocal Jacobians. Custom <code>ReversibleJumpMove</code> implementations can supply nonzero Jacobians and arbitrary Java model structures.</p></section>
+<section class="guide-section" id="run"><p class="eyebrow">Four independent chains</p><h2>Warm up proposals, freeze them, and retain ragged draws</h2><pre><code>ReversibleJumpSamplingOptions options =
+    ReversibleJumpSamplingOptions.builder()
+        .warmupIterations(1500)
+        .sampleIterations(4000)
+        .targetJumpAcceptance(0.25)
+        .adaptMoveWeights(true)
+        .build();
+
+ReversibleJumpResult chain = sampler.sample(
+    target,
+    target.state(0, new double[] {0}, new double[0]),
+    options,
+    new MersenneTwister(20260829));</code></pre><p>Move weights, per-model random-walk scales, and adaptive birth proposals may change only during discarded warmup. They are frozen before retained sampling. Use a separate sampler instance and explicit random engine for each independent chain.</p><h3>Compile and run the complete file</h3><pre><code>./gradlew compileDocumentationExamples -PreleaseVersion=0.8.4
+java -cp "build/libs/jdistlib-0.8.4.jar:build/documentation-examples" \
+  examples.WorkedReversibleJumpSelectionExample
+
+# Windows
+gradlew.bat compileDocumentationExamples "-PreleaseVersion=0.8.4"
+java -cp "build\libs\jdistlib-0.8.4.jar;build\documentation-examples" examples.WorkedReversibleJumpSelectionExample</code></pre><p>An optional first argument selects the output directory. The default is <code>build/example-output/rjmcmc</code>.</p></section>
+<section class="guide-section" id="diagnostics"><p class="eyebrow">Review the trans-dimensional chain</p><h2>Model occupancy alone is not enough</h2><p><code>ReversibleJumpDiagnostics.analyze</code> combines chains and reports posterior model and candidate inclusion probabilities with ESS/MCSE/R-hat, retained transition counts, round trips between the two most visited models, add/drop/swap acceptance and invalid proposals, and parameter summaries conditional on presence.</p><pre><code>ReversibleJumpDiagnosticReport report =
+    ReversibleJumpDiagnostics.analyze(target, chains);
+
+double[] inclusion = report.inclusionProbabilities();
+double[] inclusionEss = report.inclusionEffectiveSampleSizes();
+double[] inclusionRhat = report.inclusionRHats();</code></pre><p>Investigate a candidate with low inclusion ESS or R-hat above 1.01, a move direction with near-zero acceptance, no round trips, models seen in only one chain, or active coefficients with very few conditional draws. The example writes <code>rjmcmc-diagnostics.json</code> using schema <code>jdistlib.rjmcmc-diagnostics/1</code> and <code>rjmcmc-chain-1.csv</code> in tidy ragged form.</p></section>
+<section class="guide-section" id="checkpoint"><p class="eyebrow">Reproducibility</p><h2>Resume the exact frozen process</h2><p>The portable checkpoint includes the model identifier, variable-length parameter vector, log joint, completed iteration, cloned random stream, frozen move weights, and every component's adaptation state. Model and option fingerprints reject incompatible restores.</p><pre><code>ReversibleJumpCheckpointIO.write(path, chain.checkpoint(),
+    "worked-rj-linear-v1", "warmup-1500-samples-4000-v1");
+
+PortableReversibleJumpCheckpoint restored =
+    ReversibleJumpCheckpointIO.read(path,
+        "worked-rj-linear-v1", "warmup-1500-samples-4000-v1");
+
+ReversibleJumpResult continued = newSampler.resume(
+    target, restored.checkpoint(),
+    ReversibleJumpSamplingOptions.builder()
+        .warmupIterations(0).sampleIterations(250).build());</code></pre><aside class="version-note"><strong>Validation behind the example:</strong> the test suite checks exact posterior model odds, add/drop reciprocal ratios, nonzero Jacobian acceptance, dimension-map round trips, deterministic restart, checkpoint fingerprints, ragged exports, and inclusion recovery against a known 0.30 probability.</aside></section>
+<section class="guide-section guide-next"><p class="eyebrow">Next steps</p><h2>Use the smallest model-changing mechanism that fits</h2><p>For a finite maximum predictor set, compare this approach with the fixed-dimensional <code>HybridSampler</code>. Use general <code>ReversibleJumpMove</code> implementations when the state truly changes shape—for example change points, mixture components, trees, or split/merge constructions. Continue with the <a href="inference-guide.html">inference guide</a> and inspect the <a href="https://github.com/robbyjo/JDistlib/blob/master/src/test/java/jdistlib/ReversibleJumpTest.java">mathematical regression tests</a>.</p></section>
+</main><footer><span>JDistlib worked RJMCMC example.</span><span>Java-only trans-dimensional inference.</span></footer></body></html>

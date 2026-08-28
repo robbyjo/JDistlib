@@ -302,10 +302,11 @@ compressed selected-column draw storage, and machine-readable health advice.
 
 The 0.8.4 API adds pointwise likelihood extraction for Java and compiled Stan
 models, PSIS-LOO/WAIC comparison and predictive stacking, projection-predictive
-and shrinkage variable selection, and typed fixed-dimensional hybrid inference
-for continuous, integer, and categorical coordinates. The hybrid API enables
-indicator-based selection but deliberately does not claim reversible-jump
-dimension changes.
+and shrinkage variable selection, typed fixed-dimensional hybrid inference,
+and Java-only reversible-jump MCMC. The RJ layer includes dimension-matching
+maps, general reversible moves, subset add/drop/swap selection, model-specific
+within-model kernels, frozen adaptation, ragged diagnostics/exports, portable
+checkpoints, and a [worked covariate-selection analysis](docs/rjmcmc-example.html).
 
 ### Optional CUDA, OpenCL, and Vulkan acceleration
 

@@ -65,8 +65,15 @@ inference capabilities do not depend on adding one.
 * Added language-independent typed mixed state spaces, finite discrete Gibbs
   and discrete Metropolis kernels, conditional continuous block Metropolis
   updates, scheduled hybrid sampling, and per-kernel acceptance/support
-  diagnostics. This is fixed-dimensional inference, not trans-dimensional
-  reversible-jump MCMC.
+  diagnostics. This remains the simpler fixed-dimensional indicator workflow.
+* Added a Java-only reversible-jump layer with explicit normalized log-joint
+  targets, ragged model states and schemas, forward/reverse proposal and move-
+  selection terms, validated dimension-matching maps and Jacobians, general
+  model-specific within-model kernels, and warmup-frozen checkpointable
+  adaptation. The initial production workflow provides covariate/locus
+  add/drop/swap moves, candidate-specific birth proposals, posterior model and
+  inclusion diagnostics, tidy ragged export, exact portable restart, analytical
+  detailed-balance tests, and a complete website example.
 * Added named Wishart probability APIs for exact directional quadratic-form and
   scale-standardized-trace events, plus error-reporting determinant and log-
   determinant intervals based on Bartlett's independent chi-square factors.

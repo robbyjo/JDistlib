@@ -34,6 +34,7 @@ Use the smallest API that expresses the distribution you have.
 | A differentiable continuous posterior | `NoUTurnSampler` with multiple explicit-seed chains |
 | A posterior without gradients | Metropolis, `SliceSampler`, or composable `GibbsSampler` blocks |
 | A fixed-dimensional mixed continuous/discrete posterior | `MixedStateSpace` and a scheduled `HybridSampler` |
+| A genuinely variable-dimensional Java model | `ReversibleJumpSampler`, or `SubsetSelectionRj` for add/drop/swap selection |
 | MCMC convergence and sampler health | `McmcDiagnostics` and `McmcDiagnosticReport` |
 | Trace, rank, ACF, energy, pair, or model graphs | `DiagnosticGraphs`, `ModelGraphExport`, and `InferenceHtmlReport` |
 | A Stan-inspired model script or generated Java wrapper | `jdistlib.inference.lang.ModelScript` or `ModelSourceGenerator` |

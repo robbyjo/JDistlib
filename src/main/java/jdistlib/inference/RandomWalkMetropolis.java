@@ -46,6 +46,8 @@ public final class RandomWalkMetropolis implements Sampler {
 				value = proposed;
 			}
 			completed++;
+			IterationStats stats = new IterationStats(accepted, probability,
+					step, -value, Double.NaN, false, 0, 0);
 			if (iteration < options.warmupIterations()) {
 				acceptanceSum += probability;
 				if (options.adaptStepSize()) {
@@ -54,9 +56,9 @@ public final class RandomWalkMetropolis implements Sampler {
 				}
 			} else if ((iteration - options.warmupIterations() + 1)
 					% options.thinning() == 0) {
-				output.add(state, value, new IterationStats(accepted, probability,
-						step, -value, Double.NaN, false, 0, 0));
+				output.retain(options, state, value, stats);
 			}
+			options.progress(completed, total, iteration < options.warmupIterations(), stats);
 		}
 		return output.result(state, value, completed, random,
 				warmup(options, initialStep, Math.exp(logStep), acceptanceSum),

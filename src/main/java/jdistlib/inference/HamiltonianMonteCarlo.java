@@ -18,7 +18,8 @@ public final class HamiltonianMonteCarlo implements Sampler {
 			return output.result(initialState, state.logDensity, 0, random, null,
 					ChainResult.Status.INVALID_INITIAL_STATE);
 		}
-		HamiltonianSupport.MassMatrix mass = new HamiltonianSupport.MassMatrix(initialState.length);
+		HamiltonianSupport.MassMatrix mass = new HamiltonianSupport.MassMatrix(
+				initialState.length, options.metricConfiguration());
 		double initialStep = options.adaptStepSize()
 				? HamiltonianSupport.findReasonableStep(differentiable,
 						state, mass, random, options.stepSize()) : options.stepSize();
@@ -27,6 +28,8 @@ public final class HamiltonianMonteCarlo implements Sampler {
 				new HamiltonianSupport.DualAveraging(step, options.targetAcceptance());
 		HamiltonianSupport.RunningCovariance covariance =
 				new HamiltonianSupport.RunningCovariance(initialState.length);
+		WarmupSchedule.Resolved schedule = options.warmupSchedule()
+				.resolve(options.warmupIterations());
 		double acceptanceSum = 0.0;
 		int completed = 0;
 		int total = options.warmupIterations()
@@ -34,12 +37,17 @@ public final class HamiltonianMonteCarlo implements Sampler {
 		for (int iteration = 0; iteration < total; iteration++) {
 			if (options.cancelled()) return result(output, state, completed, random,
 					options, initialStep, step, mass, acceptanceSum, ChainResult.Status.CANCELLED);
+			double transitionStep = HamiltonianSupport.jitter(step,
+					options.stepSizeJitter(), random);
 			double[] momentum = mass.momentum(random);
 			HamiltonianSupport.Point proposal = new HamiltonianSupport.Point(state.q,
 					momentum, state.gradient, state.logDensity);
 			double initialEnergy = -state.logDensity + mass.kinetic(momentum);
-			for (int leapfrog = 0; leapfrog < options.leapfrogSteps(); leapfrog++)
-				proposal = HamiltonianSupport.leapfrog(differentiable, proposal, step, mass);
+			int leapfrogCount = Double.isNaN(options.integrationTime())
+					? options.leapfrogSteps() : Math.max(1,
+							(int) Math.floor(options.integrationTime() / transitionStep));
+			for (int leapfrog = 0; leapfrog < leapfrogCount; leapfrog++)
+				proposal = HamiltonianSupport.leapfrog(differentiable, proposal, transitionStep, mass);
 			double proposedEnergy = -proposal.logDensity + mass.kinetic(proposal.p);
 			double error = proposedEnergy - initialEnergy;
 			double probability = finite(proposal) && Double.isFinite(error)
@@ -50,21 +58,33 @@ public final class HamiltonianMonteCarlo implements Sampler {
 			if (accepted) state = new HamiltonianSupport.Point(proposal.q,
 					new double[proposal.q.length], proposal.gradient, proposal.logDensity);
 			completed++;
+			IterationStats stats = new IterationStats(accepted,
+					probability, step, proposedEnergy, error, divergent, 0,
+					false, leapfrogCount, mass.conditionNumber());
 			if (iteration < options.warmupIterations()) {
 				acceptanceSum += probability;
-				covariance.add(state.q);
+				if (schedule.phase(iteration) == WarmupSchedule.Phase.SLOW)
+					covariance.add(state.q);
 				if (options.adaptStepSize()) step = adaptation.update(probability);
-				if (options.adaptMassMatrix() && iteration > 50 && (iteration + 1) % 50 == 0) {
-					mass.update(covariance.covariance(), options.denseMassMatrix());
+				if (options.adaptMassMatrix() && covariance.count() > 1
+						&& schedule.endsSlowWindow(iteration + 1)) {
+					mass.update(covariance.covariance(), options.metricConfiguration());
+					covariance.reset();
+					if (options.adaptStepSize()) {
+						step = HamiltonianSupport.findReasonableStep(differentiable,
+								state, mass, random, step);
+						adaptation = new HamiltonianSupport.DualAveraging(step,
+								options.targetAcceptance());
+					}
 				}
 				if (iteration + 1 == options.warmupIterations() && options.adaptStepSize())
 					step = adaptation.averaged();
+				options.progress(completed, total, true, stats);
 			} else if ((iteration - options.warmupIterations() + 1)
 					% options.thinning() == 0) {
-				output.add(state.q, state.logDensity, new IterationStats(accepted,
-						probability, step, proposedEnergy, error, divergent, 0,
-						options.leapfrogSteps()));
-			}
+				output.retain(options, state.q, state.logDensity, stats);
+				options.progress(completed, total, false, stats);
+			} else options.progress(completed, total, false, stats);
 		}
 		return result(output, state, completed, random, options, initialStep, step,
 				mass, acceptanceSum, ChainResult.Status.SUCCESS);

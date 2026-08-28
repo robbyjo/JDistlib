@@ -80,6 +80,21 @@ public final class BayesianModel implements DifferentiableLogDensity, GradientPr
 		return result;
 	}
 
+	/** Converts a complete map of named constrained parameter values to sampler space. */
+	public double[] unconstrain(Map<String, double[]> values) {
+		if (values == null) throw new IllegalArgumentException("values are required");
+		double[] result = new double[dimension()];
+		for (ParameterSpec parameter : parameters.values()) {
+			double[] value = values.get(parameter.name());
+			if (value == null || value.length != parameter.constrainedDimension())
+				throw new IllegalArgumentException("missing or invalid constrained value: "
+						+ parameter.name());
+			parameter.constraint().unconstrain(value, 0, result,
+					parameter.unconstrainedOffset());
+		}
+		return result;
+	}
+
 	/** Returns a named constrained view backed by a fresh transformed state. */
 	public ModelState state(double[] unconstrainedState) {
 		return new ModelState(constrain(unconstrainedState), parameters, data);

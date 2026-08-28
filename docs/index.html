@@ -57,31 +57,6 @@
       </ul>
     </section>
 
-    <section class="section" aria-labelledby="learn-heading">
-      <p class="eyebrow">Start learning</p>
-      <h2 id="learn-heading">From first probability to a fitted joint model</h2>
-      <p class="lede learning-intro">Short tutorials teach the API one idea at a time;
-        applied vignettes show how the pieces fit together in a realistic analysis.</p>
-      <div class="learning-grid">
-        <article class="learning-card"><span class="card-kicker">Beginner tutorial</span><h3>Use a distribution</h3><p>Learn density, CDF, quantile, simulation, tails, and reproducible random streams.</p><a class="card-link" href="getting-started.html">Start here →</a></article>
-        <article class="learning-card"><span class="card-kicker">Applied vignette</span><h3>Plan with response times</h3><p>Turn a log-normal model into service-level probabilities, percentiles, simulation, and fit checks.</p><a class="card-link" href="distribution-vignette.html">Follow the analysis →</a></article>
-        <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.6.0+</span><h3>Compose and transform distributions</h3><p>Mix populations, restrict support, model observation limits, change units, and apply nonlinear transformations.</p><a class="card-link" href="composition-tutorial.html">Design a composition →</a></article>
-        <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.6.0+</span><h3>Build a custom distribution</h3><p>Start with an unnormalized formula, declare its support, and let JDistlib build D/P/Q/R.</p><a class="card-link" href="custom-distributions.html#beginner-path">Build your first law →</a></article>
-        <article class="learning-card"><span class="card-kicker">Applied vignette · 0.6.0+</span><h3>Model bounded sensor error</h3><p>Construct and validate a domain-specific law from an engineering kernel.</p><a class="card-link" href="custom-distribution-vignette.html">Follow the build →</a></article>
-        <article class="learning-card"><span class="card-kicker">After hypothesis tests · expanded in 0.7.1</span><h3>Control multiple testing</h3><p>Use batch and weighted corrections, grouped families, online LORD++/SAFFRON streams, discrete DBH, adaptive methods, censoring, and Storey q-values.</p><a class="card-link" href="multiple-testing.html">Use multiple testing →</a></article>
-        <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.7.0+</span><h3>Use a copula</h3><p>Combine marginal distributions with dependence, then simulate a joint outcome.</p><a class="card-link" href="copula-tutorial.html">Learn copulas →</a></article>
-        <article class="learning-card"><span class="card-kicker">Applied vignette · 0.7.0+</span><h3>Fit mixed claim outcomes</h3><p>Join continuous severity and discrete occurrence, then compare dependence families.</p><a class="card-link" href="copula-vignette.html">Follow the copula analysis →</a></article>
-        <article class="learning-card"><span class="card-kicker">Complete walkthrough · 0.8.0+</span><h3>Take CSV data through MCMC</h3><p>Load a CSV and JDM file, compile the model, tune and run reproducible NUTS chains, diagnose and plot convergence, summarize the posterior, and reach a conclusion.</p><a class="card-link" href="inference-tutorial.html#worked">Start the worked analysis →</a></article>
-        <article class="learning-card"><span class="card-kicker">Applied vignettes · 0.8.0+</span><h3>Review posterior computation</h3><p>Make a posterior-predictive decision, then investigate a funnel with trace, rank, pairs, and energy evidence.</p><a class="card-link" href="inference-vignette.html">Follow the analysis →</a></article>
-        <article class="learning-card"><span class="card-kicker">Stan users · 0.8.0+</span><h3>Move a model to Java</h3><p>Map Stan data, compilation, sampling, generated quantities, and diagnostics onto the documented JDistlib subset.</p><a class="card-link" href="stan-users.html">Read the migration guide →</a></article>
-        <article class="learning-card"><span class="card-kicker">Stan source core · development</span><h3>Keep portable model syntax</h3><p>Compile the supported ordinary Stan core while retaining Java-native autodiff, RNGs, samplers, diagnostics, and output.</p><a class="card-link" href="STAN_SOURCE_COMPATIBILITY.md">Read the compatibility contract →</a></article>
-        <article class="learning-card"><span class="card-kicker">Stan containers · 0.8.3</span><h3>Use arrays, tuples, and matrices</h3><p>Learn literals, complex and sparse algebra, multidimensional slices and assignments, shaped algorithms, and diagnostics.</p><a class="card-link" href="stan-containers-tutorial.html">Open the tutorial →</a></article>
-        <article class="learning-card"><span class="card-kicker">Stan functions · 0.8.3</span><h3>Organize reusable model code</h3><p>Use forward declarations, overloads, tuples, external and higher-order callbacks, data arguments, suffixes, and recursion.</p><a class="card-link" href="stan-functions-tutorial.html">Open the tutorial →</a></article>
-        <article class="learning-card"><span class="card-kicker">Numerical systems · 0.8.3</span><h3>Differentiate roots, integrals, ODEs, and DAEs</h3><p>Use Java or script callbacks with sensitivities, adaptive RK45/BDF integration, and index-1 or holonomic index-3 DAEs.</p><a class="card-link" href="stan-solvers-tutorial.html">Open the tutorial →</a></article>
-        <article class="learning-card"><span class="card-kicker">Executable catalog · expanded for 0.8.3</span><h3>Browse verified examples</h3><p>Fifty JDistlib scripts, forty-one ordinary Stan fixtures, fifteen Bayesian test models, and feature-focused Java integrations.</p><a class="card-link" href="examples.html">Browse examples →</a></article>
-      </div>
-    </section>
-
     <section class="section" aria-labelledby="why-heading">
       <p class="eyebrow">Why JDistlib</p>
       <h2 id="why-heading">A practical statistical foundation</h2>
@@ -135,6 +110,32 @@
           <a class="card-link" href="inference-tutorial.html#worked">Run the complete example →</a><br>
           <a class="card-link" href="inference-guide.html">Read the inference reference →</a>
         </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="learn-heading">
+      <p class="eyebrow">Start learning</p>
+      <h2 id="learn-heading">From first probability to a fitted joint model</h2>
+      <p class="lede learning-intro">Short tutorials teach the API one idea at a time;
+        applied vignettes show how the pieces fit together in a realistic analysis.</p>
+      <div class="learning-grid">
+        <article class="learning-card"><span class="card-kicker">Beginner tutorial</span><h3>Use a distribution</h3><p>Learn density, CDF, quantile, simulation, tails, and reproducible random streams.</p><a class="card-link" href="getting-started.html">Start here →</a></article>
+        <article class="learning-card"><span class="card-kicker">Applied vignette</span><h3>Plan with response times</h3><p>Turn a log-normal model into service-level probabilities, percentiles, simulation, and fit checks.</p><a class="card-link" href="distribution-vignette.html">Follow the analysis →</a></article>
+        <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.6.0+</span><h3>Compose and transform distributions</h3><p>Mix populations, restrict support, model observation limits, change units, and apply nonlinear transformations.</p><a class="card-link" href="composition-tutorial.html">Design a composition →</a></article>
+        <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.6.0+</span><h3>Build a custom distribution</h3><p>Start with an unnormalized formula, declare its support, and let JDistlib build D/P/Q/R.</p><a class="card-link" href="custom-distributions.html#beginner-path">Build your first law →</a></article>
+        <article class="learning-card"><span class="card-kicker">Applied vignette · 0.6.0+</span><h3>Model bounded sensor error</h3><p>Construct and validate a domain-specific law from an engineering kernel.</p><a class="card-link" href="custom-distribution-vignette.html">Follow the build →</a></article>
+        <article class="learning-card"><span class="card-kicker">After hypothesis tests · expanded in 0.7.1</span><h3>Control multiple testing</h3><p>Use batch and weighted corrections, grouped families, online LORD++/SAFFRON streams, discrete DBH, adaptive methods, censoring, and Storey q-values.</p><a class="card-link" href="multiple-testing.html">Use multiple testing →</a></article>
+        <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.7.0+</span><h3>Use a copula</h3><p>Combine marginal distributions with dependence, then simulate a joint outcome.</p><a class="card-link" href="copula-tutorial.html">Learn copulas →</a></article>
+        <article class="learning-card"><span class="card-kicker">Applied vignette · 0.7.0+</span><h3>Fit mixed claim outcomes</h3><p>Join continuous severity and discrete occurrence, then compare dependence families.</p><a class="card-link" href="copula-vignette.html">Follow the copula analysis →</a></article>
+        <article class="learning-card"><span class="card-kicker">Complete walkthrough · 0.8.0+</span><h3>Take CSV data through MCMC</h3><p>Load a CSV and JDM file, compile the model, tune and run reproducible NUTS chains, diagnose and plot convergence, summarize the posterior, and reach a conclusion.</p><a class="card-link" href="inference-tutorial.html#worked">Start the worked analysis →</a></article>
+        <article class="learning-card"><span class="card-kicker">Applied vignettes · 0.8.0+</span><h3>Review posterior computation</h3><p>Make a posterior-predictive decision, then investigate a funnel with trace, rank, pairs, and energy evidence.</p><a class="card-link" href="inference-vignette.html">Follow the analysis →</a></article>
+        <article class="learning-card"><span class="card-kicker">Modern MCMC · development</span><h3>Use the expanded inference core</h3><p>Configure staged warmup and metrics, resume exact NUTS checkpoints, choose adjusted MCLMC and additional kernels, stream draws, and inspect richer diagnostics.</p><a class="card-link" href="MCMC_MODERNIZATION.md">Read the API guide →</a><br><a class="card-link" href="GPU_ACCELERATION.md">Review the CUDA plan →</a></article>
+        <article class="learning-card"><span class="card-kicker">Stan users · 0.8.0+</span><h3>Move a model to Java</h3><p>Map Stan data, compilation, sampling, generated quantities, and diagnostics onto the documented JDistlib subset.</p><a class="card-link" href="stan-users.html">Read the migration guide →</a></article>
+        <article class="learning-card"><span class="card-kicker">Stan source core · development</span><h3>Keep portable model syntax</h3><p>Compile the supported ordinary Stan core while retaining Java-native autodiff, RNGs, samplers, diagnostics, and output.</p><a class="card-link" href="STAN_SOURCE_COMPATIBILITY.md">Read the compatibility contract →</a></article>
+        <article class="learning-card"><span class="card-kicker">Stan containers · 0.8.3</span><h3>Use arrays, tuples, and matrices</h3><p>Learn literals, complex and sparse algebra, multidimensional slices and assignments, shaped algorithms, and diagnostics.</p><a class="card-link" href="stan-containers-tutorial.html">Open the tutorial →</a></article>
+        <article class="learning-card"><span class="card-kicker">Stan functions · 0.8.3</span><h3>Organize reusable model code</h3><p>Use forward declarations, overloads, tuples, external and higher-order callbacks, data arguments, suffixes, and recursion.</p><a class="card-link" href="stan-functions-tutorial.html">Open the tutorial →</a></article>
+        <article class="learning-card"><span class="card-kicker">Numerical systems · 0.8.3</span><h3>Differentiate roots, integrals, ODEs, and DAEs</h3><p>Use Java or script callbacks with sensitivities, adaptive RK45/BDF integration, and index-1 or holonomic index-3 DAEs.</p><a class="card-link" href="stan-solvers-tutorial.html">Open the tutorial →</a></article>
+        <article class="learning-card"><span class="card-kicker">Executable catalog · expanded for 0.8.3</span><h3>Browse verified examples</h3><p>Fifty JDistlib scripts, forty-one ordinary Stan fixtures, fifteen Bayesian test models, and feature-focused Java integrations.</p><a class="card-link" href="examples.html">Browse examples →</a></article>
       </div>
     </section>
 

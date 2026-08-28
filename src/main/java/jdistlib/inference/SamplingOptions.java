@@ -19,6 +19,13 @@ public final class SamplingOptions {
 	private final boolean adaptMassMatrix;
 	private final boolean denseMassMatrix;
 	private final boolean allowFiniteDifferences;
+	private final WarmupSchedule warmupSchedule;
+	private final MetricConfiguration metricConfiguration;
+	private final double integrationTime;
+	private final double stepSizeJitter;
+	private final ProgressListener progressListener;
+	private final DrawSink drawSink;
+	private final boolean storeDraws;
 	private final BooleanSupplier cancellation;
 
 	private SamplingOptions(Builder builder) {
@@ -36,6 +43,15 @@ public final class SamplingOptions {
 		adaptMassMatrix = builder.adaptMassMatrix;
 		denseMassMatrix = builder.denseMassMatrix;
 		allowFiniteDifferences = builder.allowFiniteDifferences;
+		warmupSchedule = builder.warmupSchedule;
+		metricConfiguration = builder.metricConfiguration != null
+				? builder.metricConfiguration : (builder.denseMassMatrix
+				? MetricConfiguration.dense() : MetricConfiguration.diagonal());
+		integrationTime = builder.integrationTime;
+		stepSizeJitter = builder.stepSizeJitter;
+		progressListener = builder.progressListener;
+		drawSink = builder.drawSink;
+		storeDraws = builder.storeDraws;
 		cancellation = builder.cancellation;
 	}
 
@@ -54,6 +70,18 @@ public final class SamplingOptions {
 	public boolean adaptMassMatrix() { return adaptMassMatrix; }
 	public boolean denseMassMatrix() { return denseMassMatrix; }
 	public boolean allowFiniteDifferences() { return allowFiniteDifferences; }
+	public WarmupSchedule warmupSchedule() { return warmupSchedule; }
+	public MetricConfiguration metricConfiguration() { return metricConfiguration; }
+	/** Static-HMC integration time; NaN retains the legacy fixed leapfrog count. */
+	public double integrationTime() { return integrationTime; }
+	public double stepSizeJitter() { return stepSizeJitter; }
+	public boolean storeDraws() { return storeDraws; }
+	void progress(int completed, int total, boolean warmup, IterationStats statistics) {
+		if (progressListener != null) progressListener.update(completed, total, warmup, statistics);
+	}
+	void emit(int retained, double[] state, double logDensity, IterationStats statistics) {
+		if (drawSink != null) drawSink.accept(retained, state.clone(), logDensity, statistics);
+	}
 	public boolean cancelled() { return cancellation != null && cancellation.getAsBoolean(); }
 
 	public static final class Builder {
@@ -71,6 +99,13 @@ public final class SamplingOptions {
 		private boolean adaptMassMatrix = true;
 		private boolean denseMassMatrix;
 		private boolean allowFiniteDifferences;
+		private WarmupSchedule warmupSchedule = WarmupSchedule.stanDefault();
+		private MetricConfiguration metricConfiguration;
+		private double integrationTime = Double.NaN;
+		private double stepSizeJitter;
+		private ProgressListener progressListener;
+		private DrawSink drawSink;
+		private boolean storeDraws = true;
 		private BooleanSupplier cancellation;
 
 		public Builder warmupIterations(int value) { warmupIterations = value; return this; }
@@ -87,6 +122,13 @@ public final class SamplingOptions {
 		public Builder adaptMassMatrix(boolean value) { adaptMassMatrix = value; return this; }
 		public Builder denseMassMatrix(boolean value) { denseMassMatrix = value; return this; }
 		public Builder allowFiniteDifferences(boolean value) { allowFiniteDifferences = value; return this; }
+		public Builder warmupSchedule(WarmupSchedule value) { warmupSchedule = value; return this; }
+		public Builder metric(MetricConfiguration value) { metricConfiguration = value; return this; }
+		public Builder integrationTime(double value) { integrationTime = value; return this; }
+		public Builder stepSizeJitter(double value) { stepSizeJitter = value; return this; }
+		public Builder progressListener(ProgressListener value) { progressListener = value; return this; }
+		public Builder drawSink(DrawSink value) { drawSink = value; return this; }
+		public Builder storeDraws(boolean value) { storeDraws = value; return this; }
 		public Builder cancellation(BooleanSupplier value) { cancellation = value; return this; }
 
 		public SamplingOptions build() {
@@ -94,7 +136,10 @@ public final class SamplingOptions {
 					|| !(stepSize > 0.0) || !Double.isFinite(stepSize)
 					|| !(targetAcceptance > 0.0 && targetAcceptance < 1.0)
 					|| leapfrogSteps < 1 || maximumTreeDepth < 1 || maximumTreeDepth > 20
-					|| !(maximumEnergyError > 0.0)
+					|| !(maximumEnergyError > 0.0) || warmupSchedule == null
+					|| (!Double.isNaN(integrationTime) && (!(integrationTime > 0.0)
+							|| !Double.isFinite(integrationTime)))
+					|| !(stepSizeJitter >= 0.0 && stepSizeJitter <= 1.0)
 					|| !(sliceWidth > 0.0) || maximumSliceSteps < 1) {
 				throw new IllegalArgumentException("invalid sampling options");
 			}

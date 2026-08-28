@@ -16,6 +16,12 @@ final class ChainAccumulator {
 	void add(double[] state, double logDensity, IterationStats stats) {
 		samples.add(state.clone()); logDensities.add(logDensity); statistics.add(stats);
 	}
+	void retain(SamplingOptions options, double[] state, double logDensity,
+			IterationStats stats) {
+		int index = samples.size();
+		options.emit(index, state, logDensity, stats);
+		if (options.storeDraws()) add(state, logDensity, stats);
+	}
 	void warn(String warning) { warnings.add(warning); }
 	ChainResult result(double[] state, double logDensity, int completed,
 			RandomEngine random, WarmupResult warmup, ChainResult.Status status) {
@@ -25,5 +31,16 @@ final class ChainAccumulator {
 		IterationStats[] statsArray = statistics.toArray(new IterationStats[statistics.size()]);
 		return new ChainResult(sampleArray, densityArray, statsArray, warmup,
 				new ChainCheckpoint(state, logDensity, completed, random), status, warnings);
+	}
+	ChainResult result(double[] state, double logDensity, int completed,
+			RandomEngine random, WarmupResult warmup, ChainResult.Status status,
+			SamplerCheckpoint samplerCheckpoint) {
+		double[][] sampleArray = samples.toArray(new double[samples.size()][]);
+		double[] densityArray = new double[logDensities.size()];
+		for (int i = 0; i < densityArray.length; i++) densityArray[i] = logDensities.get(i);
+		IterationStats[] statsArray = statistics.toArray(new IterationStats[statistics.size()]);
+		return new ChainResult(sampleArray, densityArray, statsArray, warmup,
+				new ChainCheckpoint(state, logDensity, completed, random, samplerCheckpoint),
+				status, warnings);
 	}
 }

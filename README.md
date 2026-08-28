@@ -124,6 +124,12 @@ The website now puts beginner material first:
   (**copula features require JDistlib 0.7.0+**).
 * [Bayesian modeling and MCMC](docs/INFERENCE.md) — model composition,
   samplers, diagnostics, graphing, and reproducibility (JDistlib 0.8.0+).
+* [Modern MCMC API](docs/MCMC_MODERNIZATION.md) — Stan-style warmup, exact
+  checkpoints, metrics, adjusted MCLMC, additional samplers, initialization,
+  streaming, diagnostics, and SBC.
+* [GPU acceleration plan](docs/GPU_ACCELERATION.md) — the CUDA smoke-test
+  protocol, hardware result, and why model evaluation—not the NUTS tree—is the
+  appropriate acceleration boundary.
 * [Fully worked CSV-to-MCMC tutorial](docs/inference-tutorial.html#worked) — a
   line-by-line-commented Java example that loads a CSV and JDM file, compiles
   the model, tunes and runs NUTS, diagnoses and plots the chains, summarizes the

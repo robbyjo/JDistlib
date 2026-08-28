@@ -1,0 +1,52 @@
+# Modern MCMC API
+
+The current development line keeps the original `Sampler.sample(...)` entry
+point and Java 8 bytecode while adding a composable, restartable inference layer.
+
+## What is now available
+
+| Area | API | Notes |
+|---|---|---|
+| warmup | `WarmupSchedule.stanDefault()` | initial fast adaptation, expanding slow metric windows, final fast adaptation |
+| transition composition | `TransitionKernel`, `KernelTransition`, `RandomWalkKernel` | reusable one-step kernels for meta-samplers |
+| exact NUTS restart | `SamplerCheckpoint`, `ResumableSampler`, `Chains.resume` | restores RNG, metric, dual averaging, covariance accumulator, and warmup position |
+| metrics | `MetricConfiguration` | unit, diagonal, dense, block diagonal, supplied, and low-rank-plus-diagonal |
+| trajectory control | `integrationTime`, `stepSizeJitter` | static HMC can use integration time; HMC-family steps can be jittered |
+| result facade | `Inference.fit`, `Fit`, `RunManifest` | chains, diagnostics, elapsed time, version, seed, and SHA-256 option/model identities |
+| initialization | `InitialStates`, `PathfinderInitializer`, `LbfgsOptimizer` | named constrained starts, deterministic retry, and quasi-Newton initialization |
+| additional samplers | `MetropolisAdjustedLangevin`, `BarkerGradientSampler`, `EllipticalSliceSampler`, `ParallelTempering` | exact gradient proposals, tuning-free Gaussian-reference updates, and replica exchange |
+| microcanonical | `AdjustedMicrocanonicalLangevin` | MH-adjusted isokinetic MCLMC/MHMCHMC; dimension must exceed one |
+| scale control | `DrawSink`, `storeDraws(false)`, `ProgressListener` | stream draws without retaining the chain and report/cancel progress |
+| diagnostics | `MonteCarloError`, `EvaluationCounter`, `Divergences`, `WarmupTrace` | MCSE for SD/quantiles, ESS per work/time, evaluation counts, divergence coordinates, and adaptation traces |
+| validation | `SimulationBasedCalibration` | deterministic SBC ranks for model/sampler test suites |
+
+The low-rank metric uses deterministic eigendirection extraction so seeded runs
+remain reproducible. Supplied metrics are positive-definiteness checked. Existing
+`denseMassMatrix(boolean)` calls retain their behavior; `metric(...)` is the more
+explicit replacement.
+
+## Adjusted MCLMC terminology
+
+`AdjustedMicrocanonicalLangevin` is not the unadjusted, potentially biased MCLMC
+algorithm. It draws a unit momentum, advances the reversible isokinetic
+McLachlan splitting, accounts for the kinetic-energy change, and applies a
+Metropolis correction. This adjusted method is often called MHMCHMC. The
+correction makes retained draws asymptotically exact, while divergences and
+acceptance still need review.
+
+## Initialization and optimization
+
+BOBYQA remains useful for derivative-free objectives. L-BFGS is included because
+Pathfinder and gradient models need curvature information accumulated along an
+optimization path, not because every MCMC run needs an optimizer. A valid user
+start can go directly to warmup. Use `InitialStates.retry(...)` when the support
+is awkward and `PathfinderInitializer` when a quick gradient-based route toward
+typical high-density geometry is useful.
+
+## Compatibility contract
+
+All additions are additive. The build continues to use `--release 8`, existing
+sampler defaults are retained, and randomness comes only from caller-provided
+`RandomEngine` instances. The NUTS checkpoint format is explicitly versioned;
+unsupported future checkpoint versions fail rather than silently restarting with
+different adaptation.

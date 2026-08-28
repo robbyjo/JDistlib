@@ -3,8 +3,8 @@ package jdistlib.inference;
 
 import jdistlib.rng.RandomEngine;
 
-/** Multinomial-candidate NUTS with dual averaging and diagonal/dense metrics. */
-public final class NoUTurnSampler implements Sampler {
+/** Multinomial-candidate NUTS with windowed adaptation and configurable metrics. */
+public final class NoUTurnSampler implements ResumableSampler {
 	private static final class Tree {
 		HamiltonianSupport.Point left;
 		HamiltonianSupport.Point right;
@@ -20,6 +20,23 @@ public final class NoUTurnSampler implements Sampler {
 
 	@Override public ChainResult sample(LogDensity target, double[] initialState,
 			SamplingOptions options, RandomEngine random) {
+		return run(target, initialState, options, random, null, 0);
+	}
+
+	@Override public ChainResult resume(LogDensity target, ChainCheckpoint checkpoint,
+			SamplingOptions options) {
+		if (checkpoint == null) throw new IllegalArgumentException("checkpoint is required");
+		SamplerCheckpoint samplerState = checkpoint.samplerCheckpoint();
+		if (samplerState == null || !"NUTS".equals(samplerState.sampler())
+				|| samplerState.version() != 1)
+			throw new IllegalArgumentException("checkpoint does not contain supported NUTS state");
+		return run(target, checkpoint.state(), options, checkpoint.random(), samplerState,
+				checkpoint.completedIterations());
+	}
+
+	private ChainResult run(LogDensity target, double[] initialState,
+			SamplingOptions options, RandomEngine random, SamplerCheckpoint checkpoint,
+			int completedBefore) {
 		if (target == null || initialState == null || initialState.length == 0
 				|| options == null || random == null)
 			throw new IllegalArgumentException("target, state, options and random are required");
@@ -31,50 +48,87 @@ public final class NoUTurnSampler implements Sampler {
 			return output.result(initialState, state.logDensity, 0, random, null,
 					ChainResult.Status.INVALID_INITIAL_STATE);
 		}
-		HamiltonianSupport.MassMatrix mass = new HamiltonianSupport.MassMatrix(initialState.length);
-		double initialStep = options.adaptStepSize()
+		MetricConfiguration metric = checkpoint == null ? options.metricConfiguration()
+				: options.metricConfiguration().withInitialInverseMassMatrix(
+						checkpoint.inverseMassMatrix());
+		HamiltonianSupport.MassMatrix mass = new HamiltonianSupport.MassMatrix(
+				initialState.length, metric);
+		double initialStep = checkpoint != null ? checkpoint.initialStepSize()
+				: options.adaptStepSize()
 				? HamiltonianSupport.findReasonableStep(differentiable,
 						state, mass, random, options.stepSize()) : options.stepSize();
-		double step = initialStep;
+		double step = checkpoint == null ? initialStep : checkpoint.stepSize();
 		HamiltonianSupport.DualAveraging adaptation =
-				new HamiltonianSupport.DualAveraging(step, options.targetAcceptance());
+				checkpoint != null && checkpoint.dualAveragingState() != null
+				? new HamiltonianSupport.DualAveraging(checkpoint.dualAveragingState())
+				: new HamiltonianSupport.DualAveraging(step, options.targetAcceptance());
 		HamiltonianSupport.RunningCovariance covariance =
-				new HamiltonianSupport.RunningCovariance(initialState.length);
-		double warmupAcceptance = 0.0;
-		int completed = 0;
-		int total = options.warmupIterations()
+				checkpoint != null && checkpoint.covarianceMean() != null
+				? new HamiltonianSupport.RunningCovariance(initialState.length,
+						checkpoint.covarianceCount(), checkpoint.covarianceMean(),
+						checkpoint.covarianceProducts())
+				: new HamiltonianSupport.RunningCovariance(initialState.length);
+		WarmupSchedule.Resolved schedule = options.warmupSchedule()
+				.resolve(options.warmupIterations());
+		double warmupAcceptance = checkpoint == null
+				|| !Double.isFinite(checkpoint.warmupAcceptanceSum()) ? 0.0
+				: checkpoint.warmupAcceptanceSum();
+		int warmupCompleted = checkpoint == null ? 0 : checkpoint.warmupIteration();
+		if (warmupCompleted > options.warmupIterations())
+			throw new IllegalArgumentException("checkpoint warmup exceeds configured warmup");
+		int completed = completedBefore;
+		int remainingWarmup = options.warmupIterations() - warmupCompleted;
+		int total = remainingWarmup
 				+ options.sampleIterations() * options.thinning();
 		for (int iteration = 0; iteration < total; iteration++) {
 			if (options.cancelled()) return finish(output, state, completed, random,
 					options, initialStep, step, mass, warmupAcceptance,
-					ChainResult.Status.CANCELLED);
-			Transition transition = transition(differentiable, state, step, mass,
+					ChainResult.Status.CANCELLED, adaptation, covariance, warmupCompleted);
+			double transitionStep = HamiltonianSupport.jitter(step,
+					options.stepSizeJitter(), random);
+			Transition transition = transition(differentiable, state, transitionStep, mass,
 					options, random);
 			state = transition.state;
 			completed++;
-			if (iteration < options.warmupIterations()) {
+			IterationStats transitionStats = new IterationStats(
+					transition.moved, transition.acceptanceProbability, step,
+					transition.energy, transition.maximumEnergyError,
+					transition.divergent, transition.depth,
+					transition.depth >= options.maximumTreeDepth(),
+					transition.leapfrogs, mass.conditionNumber());
+			if (iteration < remainingWarmup) {
+				int warmupIteration = warmupCompleted;
 				warmupAcceptance += transition.acceptanceProbability;
-				covariance.add(state.q);
+				if (schedule.phase(warmupIteration) == WarmupSchedule.Phase.SLOW)
+					covariance.add(state.q);
 				if (options.adaptStepSize())
 					step = adaptation.update(transition.acceptanceProbability);
-				if (options.adaptMassMatrix() && iteration > 50
-						&& (iteration + 1) % 50 == 0) {
-					mass.update(covariance.covariance(), options.denseMassMatrix());
+				if (options.adaptMassMatrix() && covariance.count() > 1
+						&& schedule.endsSlowWindow(warmupIteration + 1)) {
+					mass.update(covariance.covariance(), options.metricConfiguration());
+					covariance.reset();
+					if (options.adaptStepSize()) {
+						step = HamiltonianSupport.findReasonableStep(differentiable,
+								state, mass, random, step);
+						adaptation = new HamiltonianSupport.DualAveraging(step,
+								options.targetAcceptance());
+					}
 				}
-				if (iteration + 1 == options.warmupIterations()
+				warmupCompleted++;
+				if (warmupCompleted == options.warmupIterations()
 						&& options.adaptStepSize()) step = adaptation.averaged();
-			} else if ((iteration - options.warmupIterations() + 1)
+				options.progress(completed, total, true, transitionStats);
+			} else if ((iteration - remainingWarmup + 1)
 					% options.thinning() == 0) {
-				output.add(state.q, state.logDensity, new IterationStats(
-						transition.moved, transition.acceptanceProbability, step,
-						transition.energy, transition.maximumEnergyError,
-						transition.divergent, transition.depth,
-						transition.depth >= options.maximumTreeDepth(),
-						transition.leapfrogs));
+				output.retain(options, state.q, state.logDensity, transitionStats);
+				options.progress(completed, total, false, transitionStats);
+			} else {
+				options.progress(completed, total, false, transitionStats);
 			}
 		}
 		return finish(output, state, completed, random, options, initialStep, step,
-				mass, warmupAcceptance, ChainResult.Status.SUCCESS);
+				mass, warmupAcceptance, ChainResult.Status.SUCCESS, adaptation,
+				covariance, warmupCompleted);
 	}
 
 	private static final class Transition {
@@ -221,11 +275,17 @@ public final class NoUTurnSampler implements Sampler {
 			HamiltonianSupport.Point state, int completed, RandomEngine random,
 			SamplingOptions options, double initialStep, double finalStep,
 			HamiltonianSupport.MassMatrix mass, double acceptanceSum,
-			ChainResult.Status status) {
+			ChainResult.Status status, HamiltonianSupport.DualAveraging adaptation,
+			HamiltonianSupport.RunningCovariance covariance, int warmupCompleted) {
 		WarmupResult warmup = WarmupResult.withInverseMassMatrix(
 				options.warmupIterations(), initialStep,
 				finalStep, mass.inverseMatrix(), options.warmupIterations() == 0
 				? Double.NaN : acceptanceSum / options.warmupIterations());
-		return output.result(state.q, state.logDensity, completed, random, warmup, status);
+		SamplerCheckpoint checkpoint = new SamplerCheckpoint("NUTS", 1,
+				warmupCompleted, initialStep, finalStep, mass.inverseMatrix(),
+				adaptation.state(), covariance.count(), covariance.meanState(),
+				covariance.productsState(), acceptanceSum);
+		return output.result(state.q, state.logDensity, completed, random, warmup,
+				status, checkpoint);
 	}
 }

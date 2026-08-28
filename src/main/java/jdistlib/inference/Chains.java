@@ -59,6 +59,8 @@ public final class Chains {
 			ChainCheckpoint checkpoint, SamplingOptions options) {
 		if (sampler == null || target == null || checkpoint == null || options == null)
 			throw new IllegalArgumentException("sampler, target, checkpoint and options are required");
+		if (sampler instanceof ResumableSampler)
+			return ((ResumableSampler) sampler).resume(target, checkpoint, options);
 		return sampler.sample(target, checkpoint.state(), options, checkpoint.random());
 	}
 

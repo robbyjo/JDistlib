@@ -12,17 +12,34 @@ public final class IterationStats {
 	private final int treeDepth;
 	private final boolean treeDepthSaturated;
 	private final int leapfrogSteps;
+	private final double metricConditionNumber;
 
 	public IterationStats(boolean accepted, double acceptanceProbability,
 			double stepSize, double energy, double energyError, boolean divergent,
 			int treeDepth, int leapfrogSteps) {
 		this(accepted, acceptanceProbability, stepSize, energy, energyError,
-				divergent, treeDepth, false, leapfrogSteps);
+				divergent, treeDepth, false, leapfrogSteps, Double.NaN);
 	}
 
 	public IterationStats(boolean accepted, double acceptanceProbability,
 			double stepSize, double energy, double energyError, boolean divergent,
 			int treeDepth, boolean treeDepthSaturated, int leapfrogSteps) {
+		this.accepted = accepted;
+		this.metricConditionNumber = Double.NaN;
+		this.acceptanceProbability = acceptanceProbability;
+		this.stepSize = stepSize;
+		this.energy = energy;
+		this.energyError = energyError;
+		this.divergent = divergent;
+		this.treeDepth = treeDepth;
+		this.treeDepthSaturated = treeDepthSaturated;
+		this.leapfrogSteps = leapfrogSteps;
+	}
+
+	public IterationStats(boolean accepted, double acceptanceProbability,
+			double stepSize, double energy, double energyError, boolean divergent,
+			int treeDepth, boolean treeDepthSaturated, int leapfrogSteps,
+			double metricConditionNumber) {
 		this.accepted = accepted;
 		this.acceptanceProbability = acceptanceProbability;
 		this.stepSize = stepSize;
@@ -32,6 +49,7 @@ public final class IterationStats {
 		this.treeDepth = treeDepth;
 		this.treeDepthSaturated = treeDepthSaturated;
 		this.leapfrogSteps = leapfrogSteps;
+		this.metricConditionNumber = metricConditionNumber;
 	}
 	public boolean accepted() { return accepted; }
 	public double acceptanceProbability() { return acceptanceProbability; }
@@ -42,4 +60,6 @@ public final class IterationStats {
 	public int treeDepth() { return treeDepth; }
 	public boolean treeDepthSaturated() { return treeDepthSaturated; }
 	public int leapfrogSteps() { return leapfrogSteps; }
+	/** Approximate condition number of the active inverse metric, when reported. */
+	public double metricConditionNumber() { return metricConditionNumber; }
 }

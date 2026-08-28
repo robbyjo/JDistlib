@@ -1,5 +1,15 @@
 What's new:
 
+Version 0.9.0 (August 28, 2026):
+* Completed the probability-first finance roadmap with atom-aware tail/payoff
+  analysis, transform domains and Esscher tilts, generalized-hyperbolic/NIG,
+  variance-gamma and stable laws, reproducible aggregation, compound counts,
+  rotated/Joe/BB1 copulas, tail stress diagnostics, generic censored fitting,
+  EVT inference, checked implied volatility, arbitrage-repaired option curves,
+  parametric option calibration, and labeled posterior-predictive adapters.
+* Added `FinanceFeatureExamples`, a complete worked European-options analysis,
+  two website tutorials, API/website navigation, and focused Java 8 regressions.
+
 Version 0.8.5 (August 28, 2026):
 * Added a Java-only reversible-jump MCMC framework with ragged model states,
   complete normalized targets, boundary-aware move scheduling, forward/reverse

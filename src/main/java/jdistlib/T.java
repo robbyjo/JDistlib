@@ -27,7 +27,8 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
-public class T extends GenericDistribution {
+public class T extends GenericDistribution implements SupportedDistribution,
+		jdistlib.finance.TransformDistribution {
 	public static final double density(double x, double n, boolean give_log) {
 		if (Double.isNaN(x) || Double.isNaN(n))
 			return x + n;
@@ -344,4 +345,24 @@ public class T extends GenericDistribution {
 	public double random() {
 		return random(df, random);
 	}
+
+	@Override public jdistlib.math.Complex logCharacteristic(double frequency) {
+		if (frequency == 0.0) return jdistlib.math.Complex.ZERO;
+		double order = df / 2.0;
+		double x = Math.sqrt(df) * Math.abs(frequency);
+		double logValue = order * Math.log(x)
+				+ jdistlib.finance.GeneralizedHyperbolicDistribution.logBesselK(x, order)
+				- (order - 1.0) * Math.log(2.0)
+				- jdistlib.math.MathFunctions.lgammafn(order);
+		return new jdistlib.math.Complex(logValue, 0.0);
+	}
+	@Override public jdistlib.math.Complex logMomentGenerating(double argument) {
+		return argument == 0.0 ? jdistlib.math.Complex.ZERO
+				: new jdistlib.math.Complex(Double.POSITIVE_INFINITY, 0.0);
+	}
+	@Override public jdistlib.finance.TransformDomain momentGeneratingDomain() {
+		return new jdistlib.finance.TransformDomain(0.0, true, 0.0, true);
+	}
+	@Override public double getLowerBound() { return Double.NEGATIVE_INFINITY; }
+	@Override public double getUpperBound() { return Double.POSITIVE_INFINITY; }
 }

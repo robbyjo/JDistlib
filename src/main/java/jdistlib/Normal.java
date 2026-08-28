@@ -38,7 +38,8 @@ import jdistlib.rng.RandomEngine;
  * Manually translated from R's Distlib by Roby Joehanes
  *
  */
-public class Normal extends GenericDistribution {
+public class Normal extends GenericDistribution implements SupportedDistribution,
+		jdistlib.finance.TransformDistribution {
 	public static final double density(double x, double mu, double sigma, boolean give_log) {
 		if (isNaN(x) || isNaN(mu) || isNaN(sigma))
 			return x + mu + sigma;
@@ -621,4 +622,16 @@ public class Normal extends GenericDistribution {
 	public double random() {
 		return random(mu, sigma, random);
 	}
+
+	@Override public jdistlib.math.Complex logCharacteristic(double frequency) {
+		return new jdistlib.math.Complex(-0.5 * sigma * sigma * frequency * frequency, mu * frequency);
+	}
+	@Override public jdistlib.math.Complex logMomentGenerating(double argument) {
+		return new jdistlib.math.Complex(mu * argument + 0.5 * sigma * sigma * argument * argument, 0.0);
+	}
+	@Override public jdistlib.finance.TransformDomain momentGeneratingDomain() {
+		return jdistlib.finance.TransformDomain.allReal();
+	}
+	@Override public double getLowerBound() { return Double.NEGATIVE_INFINITY; }
+	@Override public double getUpperBound() { return Double.POSITIVE_INFINITY; }
 }

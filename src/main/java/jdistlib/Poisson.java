@@ -30,7 +30,8 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
-public class Poisson extends GenericDistribution {
+public class Poisson extends GenericDistribution implements SupportedDistribution,
+		jdistlib.finance.TransformDistribution {
 	public static class RandomState {
 		/* These are static --- persistent between calls for same mu : */
 		int l, m;
@@ -394,4 +395,16 @@ public class Poisson extends GenericDistribution {
 	public double[] random(int n) {
 		return random(n, lambda, random, state);
 	}
+
+	@Override public jdistlib.math.Complex logCharacteristic(double frequency) {
+		return new jdistlib.math.Complex(lambda * (Math.cos(frequency) - 1.0), lambda * Math.sin(frequency));
+	}
+	@Override public jdistlib.math.Complex logMomentGenerating(double argument) {
+		return new jdistlib.math.Complex(lambda * Math.expm1(argument), 0.0);
+	}
+	@Override public jdistlib.finance.TransformDomain momentGeneratingDomain() {
+		return jdistlib.finance.TransformDomain.allReal();
+	}
+	@Override public double getLowerBound() { return 0.0; }
+	@Override public double getUpperBound() { return Double.POSITIVE_INFINITY; }
 }

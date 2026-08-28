@@ -31,26 +31,26 @@
       <div class="release-banner" aria-label="Latest stable release">
         <div>
           <span class="release-label">Latest stable release</span>
-          <strong>JDistlib 0.8.5</strong>
+          <strong>JDistlib 0.9.0</strong>
           <span class="release-meta">Java 8+ compatible bytecode</span>
         </div>
-        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/download/v0.8.5/jdistlib-all-0.8.5.jar">Download JDistlib 0.8.5 — all in one ↓</a>
+        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/download/v0.9.0/jdistlib-all-0.9.0.jar">Download JDistlib 0.9.0 — all in one ↓</a>
       </div>
       <p class="eyebrow">Probability distributions for Java</p>
       <h1>R-grade numerical methods,<br>designed for concurrent Java.</h1>
       <p class="lede">JDistlib is a Java translation of R's <code>src/nmath</code>,
         adapted to avoid process-global mutable caches and extended with distributions
-        beyond the R library. Version 0.8.5 is the current stable release,
-        adding reversible-jump and mixed-state inference, predictive assessment,
-        and new multivariate probability APIs in the self-contained CPU/GPU JAR.</p>
+        beyond the R library. Version 0.9.0 is the current stable release,
+        adding tail risk, heavy-tailed laws, EVT, dependence stress diagnostics,
+        and option-implied or posterior-predictive distributions.</p>
       <div class="actions">
-        <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.8.5">Release notes &amp; checksum</a>
+        <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.9.0">Release notes &amp; checksum</a>
         <a class="button secondary" href="getting-started.html">Start the beginner tutorial</a>
         <a class="button secondary" href="learn.html">Explore all learning paths</a>
         <a class="button secondary" href="examples.html">Browse examples</a>
       </div>
       <ul class="facts" aria-label="Project facts">
-        <li><strong>0.8.5</strong><span>current release</span></li>
+        <li><strong>0.9.0</strong><span>current release</span></li>
         <li><strong>R 4.6.1</strong><span>sync target</span></li>
         <li><strong>Java 8+</strong><span>compatible bytecode</span></li>
         <li><strong>GPL-2.0+</strong><span>open source</span></li>
@@ -115,6 +115,14 @@
           <br><a class="card-link" href="gpu-acceleration.html">Read CUDA/OpenCL/Vulkan guidance →</a>
           <br><a class="card-link" href="INFERENCE_ACCELERATION_RESULT.md">Review the consolidated development result →</a>
         </article>
+        <article>
+          <h3>Probability-first finance</h3>
+          <p>Calculate atom-aware tail risk and payoffs, compose heavy-tailed
+            return laws, fit extremes, repair option curves, and carry numerical
+            diagnostics into risk-neutral or predictive distributions.</p>
+          <a class="card-link" href="finance-tutorial.html">Read the 0.9.0 finance tutorial →</a>
+          <br><a class="card-link" href="options-trading-worked-example.html">Follow the worked options analysis →</a>
+        </article>
       </div>
     </section>
 
@@ -150,10 +158,10 @@ double x = Normal.quantile(
         <p class="eyebrow">Release status</p>
         <h2 id="status-heading">The R 4.6.1 audit is complete</h2>
       </div>
-      <p>Version 0.8.5 adds Java-only reversible-jump and mixed-state inference,
-        PSIS-LOO/WAIC and predictive selection, exact and error-reporting
-        multivariate probabilities, Wishart events, and the Wiener first-passage
-        model while preserving Java 8 compatibility and the 0.8.4 unified JAR.</p>
+      <p>Version 0.9.0 completes the probability-first finance roadmap, from
+        atom-aware tails and transform-domain laws through EVT, asymmetric tail
+        dependence, checked option inversion, arbitrage-repaired curves, and
+        labeled risk-neutral or physical posterior-predictive distributions.</p>
       <a class="text-link" href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">Read the synchronization ledger →</a>
     </section>
   </main>

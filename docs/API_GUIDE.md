@@ -10,6 +10,37 @@ factories fit together and how to define a general monotone transformation.
 
 Use the smallest API that expresses the distribution you have.
 
+## Finance, tail risk, and option-implied distributions (0.9.0+)
+
+Use `jdistlib.finance.FinancialRisk` when the input is already a distribution
+and the output is VaR, atom-aware expected shortfall, a partial moment,
+downside/shortfall measure, expectile, stop-loss, or European terminal payoff.
+Always pass `RiskConvention.LOSS` or `RiskConvention.RETURN`; approximate
+outputs are `NumericalEstimate` values and must be checked.
+
+Use `TransformDistribution` and `DistributionTransforms` for log
+characteristic/MGF values, domains, cumulants, Fourier inversion, and Esscher
+tilting. Use `GeneralizedHyperbolicDistribution`,
+`NormalInverseGaussianDistribution`, `VarianceGammaDistribution`, or
+`StableDistribution` when those parameterizations match the model. Use
+`DistributionAggregation` for seeded independent sums, compound sums,
+products, ratios, and scenarios; its `DistributionApproximation` states the
+strategy, error, and seed.
+
+Use `CopulaTailAnalysis` with `RotatedCopula`, `JoeCopula`, `BB1Copula`, or an
+existing pair copula for finite/asymptotic concentration and stress regions.
+Use `DistributionFit` for bounded exact/censored/interval MLE or MAP and
+`ExtremeValueInference` for GEV, GPD, tail-index, return-level, bootstrap, and
+threshold diagnostics.
+
+For European quotes, use `ReferenceOptions` for checked Black-Scholes or
+Bachelier inversion and `OptionCurve` to enforce parity, price bounds,
+monotonicity, convexity, and boundary conditions before extracting an
+`OptionImpliedDistribution`. Use `OptionCalibration` for parametric fit and
+`OptionInference` for model factors or labeled posterior ensembles. See the
+[finance tutorial](finance-tutorial.html) and
+[worked options analysis](options-trading-worked-example.html).
+
 | Need | API to start with |
 | --- | --- |
 | One calculation for a built-in scalar law | Static methods such as `Normal.density`, `Normal.cumulative`, and `Normal.quantile` |

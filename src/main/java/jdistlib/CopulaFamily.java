@@ -8,5 +8,7 @@ public enum CopulaFamily {
 	STUDENT_T,
 	CLAYTON,
 	GUMBEL,
-	FRANK
+	FRANK,
+	JOE,
+	BB1
 }

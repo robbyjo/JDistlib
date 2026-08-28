@@ -27,7 +27,8 @@ import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
 import jdistlib.rng.RandomEngine;
 
-public class Gamma extends GenericDistribution {
+public class Gamma extends GenericDistribution implements SupportedDistribution,
+		jdistlib.finance.TransformDistribution {
 	static final double M_cutoff = M_LN2 * DBL_MAX_EXP / DBL_EPSILON;
 	public static final double density(double x, double shape, double scale, boolean give_log)
 	{
@@ -728,4 +729,19 @@ public class Gamma extends GenericDistribution {
 	public double random() {
 		return random(shape, scale, random);
 	}
+
+	@Override public jdistlib.math.Complex logCharacteristic(double frequency) {
+		jdistlib.math.Complex value = new jdistlib.math.Complex(1.0, -scale * frequency).log();
+		return new jdistlib.math.Complex(-shape * value.real(), -shape * value.imaginary());
+	}
+	@Override public jdistlib.math.Complex logMomentGenerating(double argument) {
+		return momentGeneratingDomain().contains(argument)
+				? new jdistlib.math.Complex(-shape * Math.log1p(-scale * argument), 0.0)
+				: new jdistlib.math.Complex(Double.POSITIVE_INFINITY, 0.0);
+	}
+	@Override public jdistlib.finance.TransformDomain momentGeneratingDomain() {
+		return new jdistlib.finance.TransformDomain(Double.NEGATIVE_INFINITY, false, 1.0 / scale, false);
+	}
+	@Override public double getLowerBound() { return 0.0; }
+	@Override public double getUpperBound() { return Double.POSITIVE_INFINITY; }
 }

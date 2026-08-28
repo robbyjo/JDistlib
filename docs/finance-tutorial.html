@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="JDistlib 0.9.0 finance tutorial: tail risk, transforms, heavy tails, aggregation, copula tails, EVT, and option-implied distributions.">
+<title>Probability-first finance — JDistlib</title><link rel="stylesheet" href="assets/style.css"></head>
+<body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="examples.html">Examples</a><a aria-current="page" href="finance-tutorial.html">Finance 0.9.0+</a><a href="options-trading-worked-example.html">Worked options analysis</a><a href="api/">JavaDoc</a></nav></header>
+<main class="guide"><section class="guide-hero"><p class="eyebrow">Finance · probability distributions · JDistlib 0.9.0</p><h1>Move from tails to option-implied probabilities without hiding numerical risk</h1><p class="lede">The finance layer treats a price, return, loss, payoff, or posterior output as a probability distribution. Approximate operations return error, work, strategy, warning, and convergence information.</p><span class="version-pill">Available from 0.9.0</span></section>
+<nav class="guide-toc" aria-label="On this page"><strong>On this page</strong><a href="#risk">Tail risk</a><a href="#transforms">Transforms and heavy tails</a><a href="#aggregate">Aggregation</a><a href="#dependence">Dependence and EVT</a><a href="#options">Option-implied laws</a><a href="#bayesian">Calibration and posterior output</a><a href="#boundary">Scope boundary</a></nav>
+<section class="guide-section" id="risk"><p class="eyebrow">Conventions first</p><h2>Say whether the input is a loss or a return</h2><pre><code>Normal dailyReturn = new Normal(0.0004, 0.018);
+double var99 = FinancialRisk.valueAtRisk(
+    dailyReturn, 0.99, RiskConvention.RETURN);
+NumericalEstimate es99 = FinancialRisk.expectedShortfall(
+    dailyReturn, 0.99, RiskConvention.RETURN);
+
+if (!es99.isConverged()) {
+    throw new IllegalStateException(es99.getWarning());
+}</code></pre><p>Expected shortfall is a quantile integral, so a CDF jump is split correctly at the requested probability. The same class provides lower/upper partial moments, stop-loss, call and put payoffs, downside deviation, conditional shortfall magnitude, expectiles, and caller-owned VaR output arrays.</p></section>
+<section class="guide-section" id="transforms"><p class="eyebrow">Transform-domain foundation</p><h2>Inspect existence before using an MGF</h2><pre><code>Gamma waitingTime = new Gamma(2.0, 0.5);
+TransformDomain domain = waitingTime.momentGeneratingDomain();
+Complex logCf = waitingTime.logCharacteristic(3.0);
+NumericalEstimate variance =
+    DistributionTransforms.cumulant(waitingTime, 2);
+
+DistributionTransforms.TiltResult tilted =
+    DistributionTransforms.esscherTilt(new Normal(), 0.25);</code></pre><p>Normal, gamma, Poisson, and Student-t objects implement the transform contract directly. Fourier inversion returns a checked result. Generalized hyperbolic/NIG, variance-gamma, and S1 alpha-stable laws expose density, both CDF tails, quantiles, explicit-stream sampling through the ordinary distribution API, transforms, MGF domains, and parameter getters. <code>StableDistribution.fromS0</code> performs the named Nolan conversion.</p></section>
+<section class="guide-section" id="aggregate"><p class="eyebrow">Independent composition</p><h2>Keep approximation and seed provenance beside the law</h2><pre><code>DistributionApproximation portfolio =
+    DistributionAggregation.weightedSum(
+        new GenericDistribution[] {assetA, assetB},
+        new double[] {0.6, 0.4}, 50_000, 914L);
+
+System.out.println(portfolio.getDiagnostics().getStrategy());
+double q01 = portfolio.getDistribution().quantile(0.01);</code></pre><p>Convolution, weighted sums, compound sums, products, ratios, and scenarios use one reproducible fallback. The result reports Monte Carlo error and truncation. Conditional intervals and iid minima/maxima are exact. Delaporte and Polya-Aeppli classes provide robust compound-count mass, CDF, quantile, and RNG APIs.</p></section>
+<section class="guide-section" id="dependence"><p class="eyebrow">Tail-sensitive dependence and EVT</p><h2>Do not reduce dependence to one central rank statistic</h2><pre><code>Copula survival = new RotatedCopula(
+    new ClaytonCopula(2, 2.0),
+    RotatedCopula.Rotation.SURVIVAL_180);
+NumericalEstimate lambdaUpper =
+    CopulaTailAnalysis.upperTailDependence(survival);
+double jointStress = CopulaTailAnalysis.stressProbability(
+    survival, Tail.UPPER, .99, Tail.UPPER, .99);</code></pre><p>Rotations, the Joe and BB1 families, finite-level concentration, mixed stress regions, and tail-weighted likelihoods integrate with the existing copula interfaces. <code>DistributionFit</code> supplies bounded MLE/MAP and exact/censored/interval likelihoods. <code>ExtremeValueInference</code> adds GEV MLE/PWM, GPD peaks over threshold, Hill/Pickands estimates, return levels, bootstrap uncertainty, mean residual life, and threshold stability diagnostics.</p></section>
+<section class="guide-section" id="options"><p class="eyebrow">Quotes to a distribution</p><h2>Repair the curve before differentiating it</h2><pre><code>ImpliedVolatilityResult iv =
+    ReferenceOptions.impliedBlackScholes(
+        price, forward, strike, discount, maturity, true);
+
+OptionCurve curve = OptionCurve.build(
+    forward, discount, maturity, quotes);
+OptionImpliedDistribution q = curve.getDistribution();
+
+double chanceAbove120 = q.cumulative(120, false, false);
+double interval = curve.strikeIntervalProbability(95, 115);</code></pre><p>Inversion reports price bounds, residual, iterations, bracket, and status. The curve converts puts by parity, enforces bounds, monotonicity, convexity, and terminal conditions, then returns an atom-aware normalized risk-neutral distribution. Always inspect <code>OptionCurve.Diagnostics</code>; repaired observations are evidence about the inputs, not noise to suppress.</p><p><a class="button primary" href="options-trading-worked-example.html">Follow the complete worked options analysis →</a></p></section>
+<section class="guide-section" id="bayesian"><p class="eyebrow">Uncertainty over distributions</p><h2>Label Q and physical/predictive outputs explicitly</h2><p><code>OptionCalibration</code> fits compatible parametric laws to bid/ask or point quotes and retains residual and identifiability diagnostics. <code>OptionInference.likelihood</code> creates a reusable interval/heteroskedastic model factor. <code>OptionInference.posterior</code> turns retained draws into terminal-price, payoff, strike-event, VaR, and expected-shortfall ensembles with MCSE, seed, chain provenance, and an explicit <code>RISK_NEUTRAL</code> or <code>PHYSICAL_PREDICTIVE</code> label.</p></section>
+<section class="guide-section" id="boundary"><p class="eyebrow">Library boundary</p><h2>This is probability machinery, not a trading platform</h2><p>JDistlib does not ingest market data, manage surfaces or instruments, calculate a general Greeks hierarchy, choose trades, backtest, account for a portfolio, or execute orders. Those systems can use these distributions and diagnostics without making them part of the statistical core.</p><p>The complete compilable catalog is in <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/FinanceFeatureExamples.java"><code>FinanceFeatureExamples.java</code></a>.</p></section></main><footer><span>JDistlib probability-first finance.</span><span>Approximation diagnostics are part of the result.</span></footer></body></html>

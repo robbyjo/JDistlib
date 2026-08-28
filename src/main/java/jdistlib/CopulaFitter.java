@@ -199,6 +199,29 @@ public final class CopulaFitter {
 							value -> new FrankCopula(dimension, value));
 				}
 				return success(family, new FrankCopula(dimension, frank), uniforms, 1);
+			case JOE:
+				if (dimension != 2) return incompatible(family, uniforms.length,
+						"Joe fitting is currently bivariate");
+				if (averageTau < 0.0) return incompatible(family, uniforms.length,
+						"Joe cannot represent negative dependence");
+				double joe = invertJoeTau(Math.min(0.999999, averageTau));
+				if (options.getMethod() == CopulaFitOptions.Method.MAXIMUM_LIKELIHOOD)
+					joe = optimizeScalar(uniforms, 1.0, Math.max(30.0, joe * 4.0), options,
+							JoeCopula::new);
+				return success(family, new JoeCopula(joe), uniforms, 1);
+			case BB1:
+				if (dimension != 2) return incompatible(family, uniforms.length,
+						"BB1 fitting is currently bivariate");
+				if (averageTau < 0.0) return incompatible(family, uniforms.length,
+						"BB1 cannot represent negative dependence");
+				/* Delta=1 is the identifiable Clayton boundary used for one-parameter
+				 * rank initialization. Callers can construct the full two-parameter law. */
+				double bb1Theta = ClaytonCopula.parameterFromKendallsTau(
+						Math.min(0.999999, averageTau));
+				if (options.getMethod() == CopulaFitOptions.Method.MAXIMUM_LIKELIHOOD)
+					bb1Theta = optimizeScalar(uniforms, 0.0, Math.max(30.0, bb1Theta * 4.0 + 2.0),
+							options, value -> new BB1Copula(value, 1.0));
+				return success(family, new BB1Copula(bb1Theta, 1.0), uniforms, 2);
 			default:
 				throw new AssertionError(family);
 			}
@@ -206,6 +229,16 @@ public final class CopulaFitter {
 			return failure(family, CopulaFitResult.Status.NUMERICAL_FAILURE,
 					exception.getMessage(), uniforms.length);
 		}
+	}
+
+	private static double invertJoeTau(double target) {
+		double low = 1.0, high = 100.0;
+		for (int i = 0; i < 60; i++) {
+			double middle = low + (high - low) / 2.0;
+			if (new JoeCopula(middle).kendallsTau(0, 1) < target) low = middle;
+			else high = middle;
+		}
+		return low + (high - low) / 2.0;
 	}
 
 	/** Pairwise empirical Kendall tau computed over untied pairs. */

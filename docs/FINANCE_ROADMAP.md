@@ -1,5 +1,13 @@
 # JDistlib 0.9.0 finance and options roadmap
 
+**Status: complete for 0.9.0.** The implementation is in
+`jdistlib.finance`, with transform additions on Normal/Gamma/Poisson/Student-t,
+Joe/BB1/rotated copulas in `jdistlib`, focused regression coverage in
+`Finance090Test`, compiled feature examples in `FinanceFeatureExamples`, and a
+complete option-strip analysis in `WorkedOptionsTradingExample`. Approximation
+strategies are deliberately exposed in result diagnostics; the roadmap's
+market-data, lifecycle, general-pricing, and execution boundary is unchanged.
+
 ## Release objective
 
 JDistlib 0.9.0 will add reusable probability machinery for financial loss and

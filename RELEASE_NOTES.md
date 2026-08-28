@@ -1,3 +1,54 @@
+# JDistlib 0.9.0
+
+JDistlib 0.9.0 completes the probability-first finance and options roadmap
+without turning the library into a market-data, instrument-management, pricing,
+or execution system. The new `jdistlib.finance` package starts with explicit
+loss/return and upper/lower-tail conventions. It supplies atom-aware VaR and
+expected shortfall, partial moments, downside and shortfall measures, expectiles,
+stop-loss, call, and put expectations, including caller-owned VaR output arrays
+and immutable numerical diagnostics.
+
+Normal, gamma, Poisson, and Student-t objects now expose log characteristic and
+cumulant-generating transforms with existence domains. Numerical transform,
+cumulant, Fourier-inversion, and normalized Esscher-tilt helpers sit beside a
+canonical generalized-hyperbolic/NIG family, variance-gamma mixture law, and a
+documented S1 alpha-stable implementation with named S0 conversion, exact normal
+and Cauchy reductions, and explicit-stream generation.
+
+Independent convolution, weighted sums, compound sums, products, ratios, and
+scenario transformations use a reproducible, strategy-reporting Monte Carlo
+fallback. Conditional intervals and iid extrema retain exact distribution
+semantics. Delaporte and Polya-Aeppli provide robust compound-count APIs. Copula
+coverage adds 90/180/270-degree rotation, survival forms, Joe and BB1 families,
+finite-level and asymptotic tail concentration, mixed stress regions, and
+tail-weighted likelihoods; ordinary pair fitting and selection recognize the
+new families.
+
+The reusable fitting layer supports bounded MLE/MAP objectives, weighted exact,
+left/right-censored, and interval observations, numerical covariance estimates,
+and caller-defined calibration losses. EVT helpers add GEV MLE/PWM, GPD peaks
+over threshold, Hill and Pickands estimators, return levels, bootstrap
+uncertainty, mean residual life, and threshold-stability summaries.
+
+Reference Black-Scholes and Bachelier transformations now have checked implied-
+volatility inversion with no-arbitrage bounds, bracket, iterations, residual,
+and status. `OptionCurve` converts puts through parity, repairs call strips to
+bounds, monotonicity, convexity, and terminal conditions, reports every repair,
+and returns a normalized atom-aware risk-neutral distribution. Calibration and
+MCMC likelihood adapters accept point or bid/ask observations, while posterior
+ensembles produce terminal-price, payoff, strike-event, VaR, and expected-
+shortfall summaries with MCSE, seed/chain provenance, and an explicit
+risk-neutral or physical/predictive label.
+
+Two compiled Java catalogs and two website tutorials cover the new surface.
+`FinanceFeatureExamples` demonstrates tails, transforms, heavy-tailed families,
+aggregation, dependence, and EVT. `WorkedOptionsTradingExample` validates a call
+strip, recovers probabilities, works a covered-call terminal payoff, and keeps a
+physical scenario separate from the option-implied measure. Regression coverage
+includes reductions, transform domains, seeded reproducibility, curve repair,
+normalization, count-law degeneracies, and finance boundary conventions. All
+public additions preserve Java 8 bytecode compatibility.
+
 # JDistlib 0.8.5
 
 JDistlib 0.8.5 adds two complementary model-selection paths without changing

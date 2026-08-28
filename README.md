@@ -18,7 +18,8 @@ hurdle and zero-modified counts,
 half-Cauchy/normal/t, inverse gamma, inverse normal, Lindley, logit-normal,
 Makeham, Kumaraswamy, Laplace, Levy, log-logistic, logarithmic,
 Maxwell/Maxwell-Boltzmann, multinomial, Nakagami, negative hypergeometric,
-phase-type, Poisson-binomial, Poisson-inverse-Gaussian, Rice, sinh-arcsinh,
+phase-type, Poisson-binomial, Poisson-inverse-Gaussian, Delaporte, Polya-Aeppli,
+generalized-hyperbolic/NIG, variance-gamma, alpha-stable, Rice, sinh-arcsinh,
 Skellam, skewed t, slash, triangular, Tukey lambda, Tweedie, Wishart, Zipf,
 Wiener first-passage, and the `jdistlib.evd` package. Vector APIs
 cover Dirichlet and Dirichlet-multinomial, multivariate hypergeometric,
@@ -28,10 +29,14 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.8.5 is the current stable release. It adds Java-only reversible-jump
-MCMC, fixed-dimensional mixed-state inference, PSIS-LOO/WAIC assessment,
-predictive stacking and variable-selection tools, multivariate rectangle and
-Wishart event probabilities, and the Wiener first-passage model. Version 0.8.4
+Version 0.9.0 is the current stable release. It adds probability-first finance:
+tail and payoff functionals, transform-domain and heavy-tailed laws,
+aggregation, tail-sensitive copulas, EVT fitting, checked implied volatility,
+arbitrage-repaired option curves, and risk-neutral or posterior-predictive
+distribution outputs. Version 0.8.5 added Java-only reversible-jump MCMC,
+fixed-dimensional mixed-state inference, PSIS-LOO/WAIC assessment, predictive
+stacking and variable-selection tools, multivariate rectangle and Wishart event
+probabilities, and the Wiener first-passage model. Version 0.8.4
 added the tested Vulkan FP64 provider and the self-contained cross-platform
 x86-64 JAR that bundles core JDistlib, CUDA, OpenCL, Vulkan, and their Java/JNI
 runtime dependencies. The modular artifacts remain available for dependency-
@@ -77,19 +82,22 @@ JDistlib preserves the model meaning of supported source while intentionally
 retaining its own Java reverse-mode implementation, RNG, samplers,
 diagnostics, floating-point behavior, and output formats.
 
-The planned [0.9.0 finance and options roadmap](docs/FINANCE_ROADMAP.md) covers
-tail-risk and payoff functionals, transform-domain and heavy-tailed families,
-aggregation, tail-sensitive dependence, distribution/EVT fitting, and
-arbitrage-constrained option-implied and posterior-predictive distributions.
+The completed [0.9.0 finance and options roadmap](docs/FINANCE_ROADMAP.md) and
+[finance tutorial](docs/finance-tutorial.html) cover tail risk, transform-domain
+and heavy-tailed families, aggregation, tail-sensitive dependence,
+distribution/EVT fitting, and arbitrage-constrained option-implied and
+posterior-predictive distributions. A separate
+[worked options analysis](docs/options-trading-worked-example.html) keeps
+risk-neutral and physical probabilities explicit.
 
 ## Download
 
-The [JDistlib 0.8.5 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.5)
+The [JDistlib 0.9.0 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.9.0)
 provides one recommended, self-contained `jdistlib-all` JAR with SHA-256
 checksums. It contains core JDistlib, CUDA, OpenCL, Vulkan, and the required
 Java/JNI libraries for Windows, Linux, and macOS x86-64. It produces Java
 8-compatible bytecode. Download the
-[all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.5/jdistlib-all-0.8.5.jar).
+[all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.9.0/jdistlib-all-0.9.0.jar).
 
 GPU vendor runtimes remain system components: CUDA requires a compatible
 NVIDIA driver and NVRTC, OpenCL requires an installed OpenCL implementation,
@@ -134,6 +142,12 @@ The website now puts beginner material first:
 * [Compose and transform distributions](https://robbyjo.github.io/JDistlib/composition-tutorial.html) —
   a beginner guide to mixtures, truncation, censoring, changes of units, and
   general monotone transformations.
+* [Probability-first finance](https://robbyjo.github.io/JDistlib/finance-tutorial.html) —
+  tail risk, heavy-tailed laws, aggregation, EVT, option-implied distributions,
+  calibration, and predictive outputs (JDistlib 0.9.0+).
+* [Worked options analysis](https://robbyjo.github.io/JDistlib/options-trading-worked-example.html) —
+  checked IV, arbitrage repair, risk-neutral probabilities, a terminal covered-
+  call payoff, and an explicitly separate physical scenario.
 * [Multiple testing and FDR](https://robbyjo.github.io/JDistlib/multiple-testing.html) —
   adjusted and log p-values, adaptive BKY, censored families, rejection
   thresholds, and Storey q-values (JDistlib 0.7.0+).
@@ -188,8 +202,8 @@ The website now puts beginner material first:
 * [Browse all examples](https://robbyjo.github.io/JDistlib/examples.html) —
   fifty-one JDistlib scripts, forty-one ordinary `.stan` compatibility fixtures, and
   compilable Java workflows for
-  copulas, mixtures, transformations, FDR, custom distributions, MCMC, and
-  numerical integration.
+  copulas, mixtures, transformations, FDR, custom distributions, finance,
+  options, MCMC, and numerical integration.
 
 ## Using the distribution APIs
 

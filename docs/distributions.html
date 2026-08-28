@@ -86,6 +86,9 @@
         <table class="distribution-table">
           <thead><tr><th>Distribution</th><th>Support &amp; parameters</th><th>Defining formula</th><th>API</th></tr></thead>
           <tbody>
+            <tr><td><a href="api/jdistlib/finance/GeneralizedHyperbolicDistribution.html"><code>finance.GeneralizedHyperbolicDistribution</code></a></td><td>x∈ℝ; canonical λ,α,β,δ,μ with α&gt;|β|, δ&gt;0</td><td>Generalized-hyperbolic density with scaled modified-Bessel K evaluation; named NIG specialization</td><td class="methods">DPQR CF/MGF</td></tr>
+            <tr><td><a href="api/jdistlib/finance/VarianceGammaDistribution.html"><code>finance.VarianceGammaDistribution</code></a></td><td>x∈ℝ; shape r, drift θ, scale σ, location μ</td><td>(X=\mu+\theta G+\sigma\sqrt G Z, G\sim\operatorname{Gamma}(r,1))</td><td class="methods">DPQR CF/MGF</td></tr>
+            <tr><td><a href="api/jdistlib/finance/StableDistribution.html"><code>finance.StableDistribution</code></a></td><td>x∈ℝ; S1 α∈(0,2], β∈[-1,1], scale, location</td><td>Nolan S1 alpha-stable characteristic function; named S0 conversion and CMS RNG</td><td class="methods">DPQR CF</td></tr>
             <tr><td><a href="api/jdistlib/Arcsine.html"><code>Arcsine</code></a></td><td>a&lt;x&lt;b; endpoints a,b</td><td>\(f(x)=\dfrac{1}{\pi\sqrt{(x-a)(b-x)}}\)</td><td class="methods">DPQR</td></tr>
             <tr><td><a href="api/jdistlib/AsymmetricLaplace.html"><code>AsymmetricLaplace</code></a></td><td>x∈ℝ; location μ, scale σ, asymmetry p</td><td>\(f(x)=\dfrac{p(1-p)}{\sigma}\exp[-\rho_p((x-\mu)/\sigma)]\)</td><td class="methods">DPQR</td></tr>
             <tr><td><a href="api/jdistlib/Beta.html"><code>Beta</code></a></td><td>0&lt;x&lt;1; shapes α,β</td><td>\(f(x)=\dfrac{x^{\alpha-1}(1-x)^{\beta-1}}{B(\alpha,\beta)}\)</td><td class="methods">DPQR</td></tr>
@@ -155,6 +158,8 @@
         <table class="distribution-table">
           <thead><tr><th>Distribution</th><th>Support &amp; parameters</th><th>Defining formula</th><th>API</th></tr></thead>
           <tbody>
+            <tr><td><a href="api/jdistlib/finance/DelaporteDistribution.html"><code>finance.DelaporteDistribution</code></a></td><td>x=0,1,…; Poisson λ, NB shape and success probability</td><td>Independent Poisson plus negative-binomial count</td><td class="methods">DPQR atom</td></tr>
+            <tr><td><a href="api/jdistlib/finance/PolyaAeppliDistribution.html"><code>finance.PolyaAeppliDistribution</code></a></td><td>x=0,1,…; cluster rate λ, geometric success probability</td><td>Compound Poisson with shifted-geometric cluster sizes</td><td class="methods">DPQR atom</td></tr>
             <tr><td><a href="api/jdistlib/BetaBinomial.html"><code>BetaBinomial</code></a></td><td>x=0,…,n; mean μ, dispersion σ, size n</td><td>\(\Pr(X=x)=\binom{n}{x}\dfrac{B(x+\mu/\sigma,\;n-x+(1-\mu)/\sigma)}{B(\mu/\sigma,\;(1-\mu)/\sigma)}\)</td><td class="methods">DPQR</td></tr>
             <tr><td><a href="api/jdistlib/BetaNegativeBinomial.html"><code>BetaNegativeBinomial</code></a></td><td>x≥0; size r, beta shapes α,β</td><td>\(\Pr(X=x)=\dfrac{\Gamma(r+x)}{x!\Gamma(r)}\dfrac{B(\alpha+r,\beta+x)}{B(\alpha,\beta)}\)</td><td class="methods">DPQR</td></tr>
             <tr><td><a href="api/jdistlib/Binomial.html"><code>Binomial</code></a></td><td>x=0,…,n; size n, success p</td><td>\(\Pr(X=x)=\binom{n}{x}p^x(1-p)^{n-x}\)</td><td class="methods">DPQR <span title="explicit RandomState overloads">state</span></td></tr>
@@ -223,6 +228,9 @@
             <tr><td><a href="api/jdistlib/ClaytonCopula.html"><code>ClaytonCopula</code></a></td><td>θ≥0</td><td>\(C(\mathbf u)=[\sum_i u_i^{-\theta}-d+1]^{-1/\theta}\)</td><td class="methods">DP–R τ</td></tr>
             <tr><td><a href="api/jdistlib/GumbelCopula.html"><code>GumbelCopula</code></a></td><td>θ≥1</td><td>\(C(\mathbf u)=\exp\{-[\sum_i(-\log u_i)^\theta]^{1/\theta}\}\)</td><td class="methods">DP–R τ</td></tr>
             <tr><td><a href="api/jdistlib/FrankCopula.html"><code>FrankCopula</code></a></td><td>finite θ; θ&lt;0 only when d=2</td><td>Frank Archimedean generator with logarithmic-series frailty</td><td class="methods">DP–R τ</td></tr>
+            <tr><td><a href="api/jdistlib/JoeCopula.html"><code>JoeCopula</code></a></td><td>bivariate; θ≥1</td><td>Asymmetric Archimedean family with upper-tail dependence</td><td class="methods">DP–R τ tail</td></tr>
+            <tr><td><a href="api/jdistlib/BB1Copula.html"><code>BB1Copula</code></a></td><td>bivariate; θ≥0, δ≥1</td><td>BB1/Clayton-Gumbel family with two-tail flexibility</td><td class="methods">DP–R τ tail</td></tr>
+            <tr><td><a href="api/jdistlib/RotatedCopula.html"><code>RotatedCopula</code></a></td><td>bivariate base; 90°, 180° survival, or 270°</td><td>Coordinate rotation preserving pair-copula density and explicit-stream sampling</td><td class="methods">DP–R τ tail</td></tr>
             <tr><td><a href="api/jdistlib/CVineCopula.html"><code>CVineCopula</code></a></td><td>triangular simplified C-vine pair array</td><td>Root-ordered conditional pair-copula product</td><td class="methods">D P* – R fit</td></tr>
             <tr><td><a href="api/jdistlib/DVineCopula.html"><code>DVineCopula</code></a></td><td>triangular simplified D-vine pair array</td><td>Path-ordered conditional pair-copula product</td><td class="methods">D P* – R fit</td></tr>
             <tr><td><a href="api/jdistlib/MixedCopulaDistribution.html"><code>MixedCopulaDistribution</code></a></td><td>declared continuous/discrete marginals</td><td>Copula CDF jump rectangles and mixed partial derivatives</td><td class="methods">D/P – R status</td></tr>

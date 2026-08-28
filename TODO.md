@@ -1,8 +1,8 @@
 # JDistlib to-do
 
-## Planned for 0.9.0: financial distributions and implied inference
+## Completed for 0.9.0: financial distributions and implied inference
 
-Version 0.9.0 is planned as a probability-first finance release. It will add
+Version 0.9.0 is a probability-first finance release. It adds
 the reusable distribution, numerical, fitting, and inference primitives in the
 [finance and options roadmap](docs/FINANCE_ROADMAP.md), including:
 
@@ -38,7 +38,7 @@ the reusable distribution, numerical, fitting, and inference primitives in the
   instrument-lifecycle, trading, backtesting, or portfolio-accounting systems
   in JDistlib.
 
-The implementation order and acceptance contracts are recorded in
+The completed implementation and acceptance contracts are recorded in
 `docs/FINANCE_ROADMAP.md`. Full instrument pricing, American exercise,
 volatility-surface lifecycle management, Greeks, market-data ingestion, and
 execution remain integration-library concerns rather than JDistlib 0.9.0 core

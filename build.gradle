@@ -97,6 +97,12 @@ tasks.register('validateReleaseDocumentation') {
             if (!file(name).getText('UTF-8').contains(latestDownload))
                 throw new GradleException("${name} must use the stable latest-release download")
         }
+        def homePage = file('docs/index.html').getText('UTF-8')
+        if (!homePage.contains("data-latest-release-version>${releaseLine}<"))
+            throw new GradleException('homepage release-number fallback must match the release line')
+        if (!file('docs/assets/latest-release.js').getText('UTF-8').contains(
+                'repos/robbyjo/JDistlib/releases/latest'))
+            throw new GradleException('homepage release number must query the latest GitHub release')
         if (!file('.github/workflows/release.yml').getText('UTF-8').contains(
                 'build/release-assets/jdistlib-all.jar'))
             throw new GradleException('release workflow must publish the stable jdistlib-all.jar alias')

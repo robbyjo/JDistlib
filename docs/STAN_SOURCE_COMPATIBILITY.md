@@ -19,12 +19,16 @@ The core accepts:
   `transformed parameters`, `model`, and `generated quantities` blocks;
 * arbitrary-rank modern and legacy arrays, including arrays of vectors and
   matrices, flattened only at the Java `double[]` data boundary while retaining
-  complete runtime shape and base-type metadata;
+  complete runtime shape and base-type metadata; complex host arrays use
+  interleaved real/imaginary components;
 * rectangular array, vector, row-vector, and matrix literals, with nested shape
   inference and rejection of ragged literals;
 * one-based scalar, partial, chained, range, and all (`:`) indexing, slices,
   and scalar/container indexed assignment;
-* container-valued user functions, forward declarations, lexical scopes, overload selection with
+* differentiable complex scalars, vectors, row vectors, and matrices; nested
+  local tuple values, tuple member access/assignment, and tuple-valued function
+  arguments and returns;
+* container/tuple-valued user functions, forward declarations, lexical scopes, overload selection with
   integer-to-real promotion, `data`-qualified arguments, guarded recursion,
   `_lpdf`/`_lpmf` distribution functions, `_lp` target effects, and `return`;
 * general scalar/vector/matrix `lower` and `upper` parameter bounds,
@@ -32,9 +36,15 @@ The core accepts:
   `sum_to_zero_vector`, `unit_vector`, covariance/correlation matrices, and
   covariance/correlation Cholesky factors, with exact transforms and
   log-Jacobians;
-* type-checked matrix/vector products and transpose, Cholesky and thin-QR
+* type-checked real and complex matrix/vector products and conjugate transpose,
+  Cholesky and thin-QR
   decompositions, inverse, determinant/log determinant, SPD solves, and differentiable
   `multi_normal` covariance and Cholesky kernels;
+* immutable Java CSR matrices plus Stan `csr_matrix_times_vector`,
+  `csr_to_dense_matrix`, and extraction kernels;
+* Java-bound external forward declarations whose callbacks return values,
+  shapes, and exact flattened Jacobians; higher-order callbacks for
+  `integrate_1d`, algebraic solves, RK45/BDF ODEs, and index-1 DAEs;
 * scalar/container broadcasting for arithmetic, scalar functions, and
   probability arguments,
   explicit elementwise `.*` and `./`, conditional expressions, `sum`, `prod`,
@@ -45,7 +55,7 @@ The core accepts:
   control-flow, diagnostic, and sampler surface listed in
   `MODELING_LANGUAGE.md`.
 
-The checked `examples/stan` directory contains thirty ordinary `.stan` fixtures for
+The checked `examples/stan` directory contains forty-one ordinary `.stan` fixtures for
 each compatibility family. `./gradlew validateModelScripts` binds data,
 compiles them through `compileStan`, checks analytic gradients against central
 differences, requires a finite initial density, and executes generated
@@ -53,7 +63,9 @@ quantities.
 
 Stan's current type system includes arbitrary arrays, vectors, row vectors,
 matrices, complex and tuple values, plus specialized constrained containers.
-JDistlib currently implements only the real-valued core above. See the
+JDistlib implements the explicitly listed 0.8.3 surface above; tuple values are
+procedural/function values rather than top-level data or parameter declarations,
+and arrays of tuples are not yet host-bindable. See the
 [Stan type reference](https://mc-stan.org/docs/reference-manual/types.html) and
 [Stan expression/indexing reference](https://mc-stan.org/docs/reference-manual/expressions.html)
 for the upstream language definition.
@@ -65,7 +77,7 @@ Source compatibility does not mean implementation identity:
 | Concern | Stan/CmdStan | JDistlib |
 | --- | --- | --- |
 | Compiler/runtime | `stanc3`, generated C++, Stan Math | Java parser/lowering into `BayesianModel` |
-| Differentiation | Stan Math reverse-mode and specialized kernels | Forward-mode script differentiation; reusable primitive-arena reverse mode is also available to Java model factors |
+| Differentiation | Stan Math reverse-mode and specialized kernels | Script factors execute on thread-local reusable primitive reverse tapes; normal, Student-t, dot/distance, matrix-normal, external, and solver results use atomic reverse kernels; forward mode remains available inside numerical callbacks |
 | Container storage | Typed Eigen/C++ containers | Shape metadata plus flattened Java arrays at the host boundary |
 | Floating point | C++ compiler, math library, and Stan kernels | JVM `Math`, JDistlib distribution kernels, and Java evaluation order |
 | Random streams | Stan RNG ownership and draw order | Caller-owned JDistlib `RandomEngine` streams |
@@ -99,25 +111,34 @@ container right division remains explicit through named solve operations.
 This table is enforced by `StanAdvancedCompatibilityTest`; diagnostics include
 the conflicting types and dimensions.
 
-## Not yet source compatible
+## Deliberate and remaining boundary
 
 The following still require implementation before arbitrary Stan source can be
 claimed:
 
-* complex values, tuples, and sparse matrix operations;
-* higher-order functions and external functions;
-* complete Stan standard-library overloads, probability families,
-  truncation/CDF semantics, reduce/map parallel constructs, and external
-  functions;
-* automatic lowering of every script expression onto the reverse tape and the
-  remainder of Stan Math's specialized derivative kernels; and
-* direct script bindings and sensitivity differentiation for numerical solvers.
+* top-level tuple data/parameter declarations, arrays of tuples, tuple
+  destructuring, and external callbacks that return tuples;
+* modern variadic solver callback signatures, adjoint ODE sensitivities, event
+  handling, and general automatic index reduction for arbitrary DAEs;
+* Stan's parallel `reduce_sum`/`map_rect` services and toolchain-specific
+  threading semantics;
+* specialized probability laws not listed in `MODELING_LANGUAGE.md`, including
+  the Wiener first-passage law, and complete CDF/CCDF/truncation coverage for
+  every Stan distribution;
+* advanced dense/sparse decompositions and specialized functions not listed in
+  the supported surface. Unknown functions and incompatible overloads fail
+  explicitly; there is no claim that the complete evolving Stan Math catalog
+  is mirrored; and
+* byte-for-byte Stan Math derivative kernels. JDistlib uses equivalent
+  Java-native expressions or its own atomic reverse kernels and can therefore
+  differ in rounding and performance.
 
 JDistlib 0.8.3 provides Java-native damped-Newton algebraic, adaptive
-Dormand-Prince ODE, and implicit-Euler index-1 DAE solvers. They use typed Java
-callback interfaces until higher-order function syntax is source-compatible.
-See `stan-solvers-tutorial.html` for the migration path and current algorithmic
-scope (non-stiff ODEs and index-1 DAEs).
+Dormand-Prince ODE, adaptive BDF1 stiff ODE, implicit-Euler index-1 DAE, and
+projected velocity-Verlet holonomic index-3 DAE solvers. Algebraic, ODE, and
+index-1 DAE callbacks are callable from the modeling language with propagated
+sensitivities. See `stan-solvers-tutorial.html` for signatures, examples, and
+the exact algorithmic boundary.
 
 Use `compileStan` when the source is intended to be portable Stan syntax and
 `compile` for the JDistlib language, which may include explicitly documented

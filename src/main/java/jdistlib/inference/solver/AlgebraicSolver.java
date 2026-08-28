@@ -82,6 +82,40 @@ public final class AlgebraicSolver {
 				+ options.maximumIterations + " iterations");
 	}
 
+	/**
+	 * Solves the system and differentiates the root with respect to parameters
+	 * using the implicit-function identity {@code dx/dp = -Jx^-1 Jp}.
+	 */
+	public static SensitivityResult solveWithSensitivities(AlgebraicSystem system,
+			double[] initial, double[] parameters, double[] data, Options options) {
+		if (parameters == null) throw new IllegalArgumentException("parameters are required for sensitivities");
+		double[] parameterCopy = parameters.clone();
+		double[] dataCopy = data == null ? new double[0] : data.clone();
+		Result solved = solve(system, initial, parameterCopy, dataCopy, options);
+		double[] root = solved.solution(); int states = root.length, count = parameterCopy.length;
+		double[][] stateJacobian = new double[states][states];
+		double[] baseline = new double[states]; system.evaluate(root, parameterCopy, dataCopy, baseline);
+		for (int column = 0; column < states; column++) {
+			double[] shifted = root.clone();
+			double step = options.differenceStep * Math.max(1.0, Math.abs(root[column]));
+			shifted[column] += step; double[] residual = new double[states];
+			system.evaluate(shifted, parameterCopy, dataCopy, residual);
+			for (int row = 0; row < states; row++) stateJacobian[row][column] = (residual[row]-baseline[row])/step;
+		}
+		double[][] sensitivity = new double[states][count];
+		for (int parameter = 0; parameter < count; parameter++) {
+			double[] shifted = parameterCopy.clone();
+			double step = options.differenceStep * Math.max(1.0, Math.abs(parameterCopy[parameter]));
+			shifted[parameter] += step; double[] residual = new double[states];
+			system.evaluate(root, shifted, dataCopy, residual);
+			double[] right = new double[states];
+			for (int row = 0; row < states; row++) right[row] = -(residual[row]-baseline[row])/step;
+			double[] derivative = solveDense(stateJacobian, right);
+			for (int state = 0; state < states; state++) sensitivity[state][parameter] = derivative[state];
+		}
+		return new SensitivityResult(new double[][] {root}, new double[][][] {sensitivity});
+	}
+
 	static double[] solveDense(double[][] matrix, double[] right) {
 		int size = right.length; double[][] a = new double[size][size];
 		for (int row = 0; row < size; row++) a[row] = Arrays.copyOf(matrix[row], size);
@@ -112,7 +146,7 @@ public final class AlgebraicSolver {
 		for (int i = 0; i < values.length; i++) result[i] = -values[i];
 		return result;
 	}
-	static double infinityNorm(double[] values) {
+	public static double infinityNorm(double[] values) {
 		double result = 0;
 		for (double value : values) result = Math.max(result, Math.abs(value));
 		return result;

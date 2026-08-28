@@ -29,4 +29,21 @@ public final class DaeSolver {
 		}
 		return result;
 	}
+
+	/** Differentiates a DAE trajectory by consistently perturbing each parameter. */
+	public static SensitivityResult integrateWithSensitivities(DaeSystem system,
+			double[] initial, double initialTime, double[] times, double[] parameters,
+			double[] data, AlgebraicSolver.Options options) {
+		if (parameters == null) throw new IllegalArgumentException("parameters are required for sensitivities");
+		double[][] values = integrate(system, initial, initialTime, times, parameters, data, options);
+		double[][][] sensitivity = new double[times.length][initial.length][parameters.length];
+		for (int parameter = 0; parameter < parameters.length; parameter++) {
+			double[] shifted = parameters.clone();
+			double step = 1e-6 * Math.max(1.0, Math.abs(parameters[parameter])); shifted[parameter] += step;
+			double[][] perturbed = integrate(system, initial, initialTime, times, shifted, data, options);
+			for (int output = 0; output < times.length; output++) for (int state = 0; state < initial.length; state++)
+				sensitivity[output][state][parameter] = (perturbed[output][state]-values[output][state])/step;
+		}
+		return new SensitivityResult(values, sensitivity);
+	}
 }

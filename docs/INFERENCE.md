@@ -6,6 +6,22 @@ JDistlib 0.8.0 adds a separate inference layer in `jdistlib.inference`. A
 unconstrained Euclidean space. Keeping these contracts separate lets inference
 reuse the distribution catalogue without inventing CDFs for posterior models.
 
+## Choose the page that matches your goal
+
+| Goal | Start here | What it provides |
+| --- | --- | --- |
+| Complete first analysis | [MCMC tutorial](inference-tutorial.html#worked) | A fully commented CSV → JDM → compilation → four-chain NUTS → diagnostics → plots → conclusion workflow |
+| Bind data or compare frontends | [Data and model-script tutorial](modeling-language-tutorial.html) | The same data through `ModelBuilder` and `ModelScript`, plus compilation choices |
+| Select/tune a sampler | [Inference reference](inference-guide.html) | Warmup, metrics, diagnostics, graphing, performance, checkpoints, and failures |
+| Interpret an applied model | [Posterior vignette](inference-vignette.html) | Posterior prediction and communication |
+| Debug difficult chains | [Diagnostics vignette](inference-diagnostics-vignette.html) | Trace/rank/pairs/energy evidence and geometry fixes |
+| Migrate Stan code | [Guide for Stan users](stan-users.html) | Data, compilation, execution differences, output, and compatibility boundaries |
+| Find more runnable code | [Example center](examples.html) | JDM, ordinary Stan, and Java integrations |
+
+The complete executable is
+[`examples/WorkedMcmcCsvJdmExample.java`](../examples/WorkedMcmcCsvJdmExample.java).
+It is intentionally verbose and comments every stage of a reviewable analysis.
+
 ## Programmatic models
 
 `ModelBuilder` names observed data, constrained parameters, and additive prior

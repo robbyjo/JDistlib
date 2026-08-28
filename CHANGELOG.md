@@ -1,14 +1,34 @@
 What's new:
 
 Unreleased:
+* Added a fully commented, executable CSV-to-JDM MCMC analysis covering model
+  compilation, configurable parallel NUTS, comprehensive diagnostics, trace/
+  rank/ACF/energy exports, posterior summaries, predictive generation, and a
+  convergence-aware conclusion; reorganized the MCMC tutorials around a
+  task-oriented learning map.
+* Added differentiable complex scalars/vectors/matrices and elementary
+  overloads, nested procedural tuples and tuple-valued functions, immutable CSR
+  matrices and Stan sparse kernels, and Java external-function declarations
+  with explicit value/shape/Jacobian results.
+* Lowered compiled script factors onto thread-local reusable reverse tapes;
+  added reusable n-ary atomic edges and specialized normal, Student-t,
+  dot/distance, matrix-normal, external, and solver-sensitivity reverse kernels.
+* Added algebraic implicit sensitivities, ODE/DAE sensitivities, script
+  higher-order bindings for `integrate_1d`, algebraic, RK45, BDF, and DAE
+  callbacks, adaptive stiff BDF1 integration, and projected velocity-Verlet for
+  holonomic index-3 DAEs with separate reference corpora.
+* Added reduction, distance, SPD solve/inverse/log-determinant, triangular,
+  symmetrization, and trace-quadratic standard-library overloads; expanded the
+  ordinary Stan catalog from thirty to forty-one fixtures and the combined
+  semantic gate from eighty to ninety-one scripts.
 * Added Stan-compatible array/vector/row-vector/matrix literal expressions and
   forward function declarations, plus append, slicing, sequence-transform,
   diagonal, quadratic-form, cross-product, and matrix dot-product operations.
 * Added Java-native damped-Newton algebraic, adaptive Dormand-Prince ODE, and
   implicit-Euler index-1 DAE solvers with explicit controls, work guards,
   numerical tests, and a runnable migration example.
-* Expanded the ordinary `.stan` conformance suite from twelve to thirty models
-  and the combined semantic gate to eighty scripts; added focused v0.8.3
+* Expanded the ordinary `.stan` conformance suite from twelve to forty-one models
+  and the combined semantic gate to ninety-one scripts; added focused v0.8.3
   tutorials for containers/matrices, functions, and numerical solvers.
 * Completed the shaped Stan container core: arbitrary-rank arrays, partial/range/
   all indexes, indexed assignments, arrays of vectors and matrices, typed

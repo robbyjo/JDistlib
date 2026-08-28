@@ -51,6 +51,56 @@ public final class OdeSolver {
 		return result;
 	}
 
+	/**
+	 * Integrates the state and forward parameter-sensitivity equations.
+	 * Jacobians of the caller's system are estimated with scaled finite
+	 * differences, while the augmented sensitivity system uses the same adaptive
+	 * Dormand-Prince error control as the state.
+	 */
+	public static SensitivityResult integrateWithSensitivities(OdeSystem system,
+			double[] initial, double initialTime, double[] times, double[] parameters,
+			double[] data, Options options) {
+		if (parameters == null) throw new IllegalArgumentException("parameters are required for sensitivities");
+		final int states = initial.length, parameterCount = parameters.length;
+		double[] augmented = new double[states + states * parameterCount];
+		System.arraycopy(initial, 0, augmented, 0, states);
+		OdeSystem sensitivitySystem = (time, combined, ignored, observed, derivative) -> {
+			double[] state = new double[states]; System.arraycopy(combined, 0, state, 0, states);
+			double[] base = new double[states]; system.derivatives(time, state, parameters, observed, base);
+			System.arraycopy(base, 0, derivative, 0, states);
+			double[][] stateJacobian = new double[states][states];
+			for (int column = 0; column < states; column++) {
+				double[] shifted = state.clone(); double step = 1e-6 * Math.max(1.0, Math.abs(state[column]));
+				shifted[column] += step; double[] value = new double[states];
+				system.derivatives(time, shifted, parameters, observed, value);
+				for (int row = 0; row < states; row++) stateJacobian[row][column] = (value[row]-base[row])/step;
+			}
+			double[][] parameterJacobian = new double[states][parameterCount];
+			for (int column = 0; column < parameterCount; column++) {
+				double[] shifted = parameters.clone(); double step = 1e-6 * Math.max(1.0, Math.abs(parameters[column]));
+				shifted[column] += step; double[] value = new double[states];
+				system.derivatives(time, state, shifted, observed, value);
+				for (int row = 0; row < states; row++) parameterJacobian[row][column] = (value[row]-base[row])/step;
+			}
+			for (int row = 0; row < states; row++) for (int parameter = 0; parameter < parameterCount; parameter++) {
+				double value = parameterJacobian[row][parameter];
+				for (int column = 0; column < states; column++)
+					value += stateJacobian[row][column] * combined[states + column*parameterCount + parameter];
+				derivative[states + row*parameterCount + parameter] = value;
+			}
+		};
+		double[][] combined = integrate(sensitivitySystem, augmented, initialTime, times,
+				new double[0], data, options);
+		double[][] values = new double[times.length][states];
+		double[][][] sensitivities = new double[times.length][states][parameterCount];
+		for (int output = 0; output < times.length; output++) for (int state = 0; state < states; state++) {
+			values[output][state] = combined[output][state];
+			for (int parameter = 0; parameter < parameterCount; parameter++)
+				sensitivities[output][state][parameter] = combined[output][states + state*parameterCount + parameter];
+		}
+		return new SensitivityResult(values, sensitivities);
+	}
+
 	private static final class Step {
 		final double[] state; final double error;
 		Step(double[] state, double error) { this.state = state; this.error = error; }

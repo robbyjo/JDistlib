@@ -91,7 +91,8 @@ and a gamma-Poisson count-rate model.
 
 - `data`, `transformed data`, `parameters`, `transformed parameters`, `model`,
   and `generated quantities` blocks;
-- scalar `real` and `int`, `vector`, `row_vector`, `matrix`, `ordered`,
+- scalar `real`, `int`, and `complex`; real/complex `vector`, `row_vector`, and
+  `matrix`; procedural nested `tuple` values; `ordered`,
   `positive_ordered`, `sum_to_zero_vector`, `simplex`, and `unit_vector`;
 - arbitrary-rank arrays, including arrays of vectors and matrices, with
   one-based scalar/partial/range/all indexing, slices, and indexed assignment;
@@ -101,10 +102,12 @@ and a gamma-Poisson count-rate model.
   `cholesky_factor_corr`, with exact Java-native transforms/Jacobians;
 - scalar/container lower, upper, finite lower/upper, offset/multiplier,
   positive-ordered, and sum-to-zero parameter constraints;
-- type-checked matrix/vector products, transpose (`'` or `transpose`),
+- type-checked real/complex matrix/vector products, conjugate transpose (`'` or `transpose`),
   `cholesky_decompose`, thin QR (`qr_thin_Q`/`qr_thin_R`), `inverse`,
   `determinant`, `log_determinant`,
-  `mdivide_left_spd`, and covariance/Cholesky `multi_normal` kernels;
+  `mdivide_left_spd`/`mdivide_right_spd`, SPD inverse/log-determinant,
+  triangular products/symmetrization, trace quadratic forms, and covariance/
+  Cholesky `multi_normal` kernels;
 - `+`, `-`, `*`, `/`, exponentiation, comparisons, boolean expressions,
   parentheses, scalar-local assignment (`=`, `+=`, `-=`, `*=`, `/=`), sampling
   statements, and `target +=`;
@@ -124,21 +127,56 @@ and a gamma-Poisson count-rate model.
   `hypergeometric`, `neg_binomial`, `neg_binomial_2`, `neg_binomial_2_log`,
   `poisson`, `poisson_log`, `geometric`, and `discrete_range`;
 - corresponding `_lpdf`/`_lpmf` calls and generated-quantity `_rng` calls;
-- scalar/container/array user functions and overloads, `data` arguments,
+- scalar/container/array/tuple user functions and overloads, `data` arguments,
   forward declarations, guarded recursion, Stan probability suffixes and `_lp` target effects,
   `return`, conditional expressions,
   initialized transformed containers, symmetric scalar/container probability
   broadcasting, explicit `.*`/`./`, reductions, `dot_product`, shape queries,
   conversions, repetition constructors, append/head/tail/segment functions,
   block/row/column extraction, softmax/log-softmax, cumulative/sort/reverse
-  transforms, diagonal multiplication, quadratic forms, and cross products.
+  transforms, diagonal multiplication, quadratic forms, and cross products;
+- Stan CSR matrix multiply/conversion/extraction functions, immutable Java
+  `CsrMatrix`, Java external-function bindings with supplied Jacobians, and
+  higher-order `integrate_1d`, algebraic, RK45, BDF, and DAE callbacks with
+  propagated parameter sensitivities.
 
 Sampling a data vector with scalar distribution parameters is vectorized.
 Gamma follows Stan's shape/rate convention in scripts; JDistlib's underlying
-`Gamma.random` scale argument is converted internally. Compiled scripts use
-forward-mode derivatives, including `lgamma` through the digamma function.
-Java-authored targets may instead use `ReverseModeLogDensity`, whose primitive
-arena/tape is reset and reused for every HMC or NUTS evaluation.
+`Gamma.random` scale argument is converted internally. Compiled script factors
+execute on thread-local reusable reverse tapes. Atomic reverse nodes cover
+normal, Student-t, dot/distance, matrix-normal, external callback, and numerical
+solver results; numerical callbacks use isolated forward/finite-difference
+sensitivity work before attaching their result to the main reverse tape.
+Java-authored targets may use `ReverseModeLogDensity` directly.
+
+### Complex, tuple, sparse, and external example
+
+```stan
+functions { real java_penalty(real x, real scale); }
+parameters { complex z; real x; real scale; }
+model {
+  tuple(real, complex) state = (x, z);
+  vector[2] sparse_product = csr_matrix_times_vector(
+      2, 2, [1,2]', {1,2}, {1,2,3}, [x,scale]');
+  target += get_real(sin(state.2)) + sum(sparse_product)
+            - java_penalty(state.1, scale);
+}
+```
+
+Bind the forward declaration at compilation:
+
+```java
+ExternalFunctionRegistry externals = ExternalFunctionRegistry.builder()
+    .bind("java_penalty", args -> ExternalFunctionResult.scalar(
+        args[1][0] * args[0][0] * args[0][0],
+        2 * args[1][0] * args[0][0], args[0][0] * args[0][0]))
+    .build();
+CompiledModelScript compiled = ModelScript.compileStan(source, data, externals);
+```
+
+External Jacobian columns follow flattened argument order. Complex Java data is
+interleaved `[real0, imaginary0, ...]`. Tuples are currently local/function
+values; top-level tuple data/parameters and arrays of tuples fail explicitly.
 
 ### Indexing example
 
@@ -242,9 +280,10 @@ parameterization changes require a new language version.
 supported declaration, constraint, transformed block, distribution, RNG,
 vectorization/indexing form, and manual-target pattern. Models 42–50 are focused
 0.8.2 examples for the expanded distributions, scalar math, locals, and control
-flow. `examples/stan` adds thirty ordinary `.stan` fixtures, including eighteen
-v0.8.3 examples for literals, forward declarations, container algorithms,
-matrix pipelines, and structured types. Run:
+flow. `examples/stan` adds forty-one ordinary `.stan` fixtures, including
+twenty-nine v0.8.3 examples for literals, forward declarations, complex/tuple
+values, sparse and external functions, container algorithms, matrix pipelines,
+structured types, quadrature, and numerical solvers. Run:
 
 ```text
 ./gradlew validateModelScripts

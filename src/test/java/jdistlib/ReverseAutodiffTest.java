@@ -11,6 +11,20 @@ import jdistlib.inference.autodiff.ReverseModeLogDensity;
 import jdistlib.inference.autodiff.ReverseTape;
 
 public class ReverseAutodiffTest {
+	@Test public void atomicKernelUsesReusableEdgeArena() {
+		ReverseTape tape = new ReverseTape(4);
+		int x = tape.variable(2), y = tape.variable(3);
+		int productSum = tape.atomic(13, new int[] {x, y}, new double[] {4, 3});
+		tape.reverse(productSum);
+		assertEquals(4, tape.adjoint(x), 0);
+		assertEquals(3, tape.adjoint(y), 0);
+		int mark = tape.mark();
+		tape.atomic(1, new int[] {x}, new double[] {7});
+		tape.rewind(mark);
+		int replacement = tape.atomic(5, new int[] {y}, new double[] {2});
+		tape.reverse(replacement);
+		assertEquals(2, tape.adjoint(y), 0);
+	}
 	@Test public void differentiatesCoupledExpression() {
 		ReverseModeGradient engine = new ReverseModeGradient(new ReverseTape(2));
 		double[] gradient = new double[2];

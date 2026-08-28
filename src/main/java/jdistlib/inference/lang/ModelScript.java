@@ -38,6 +38,14 @@ import jdistlib.inference.DifferentiableModelFactor;
 import jdistlib.inference.ModelBuilder;
 import jdistlib.inference.ModelState;
 import jdistlib.inference.ParameterConstraint;
+import jdistlib.inference.autodiff.ReverseTape;
+import jdistlib.inference.solver.AlgebraicSolver;
+import jdistlib.inference.solver.DaeSolver;
+import jdistlib.inference.solver.OdeSolver;
+import jdistlib.inference.solver.SensitivityResult;
+import jdistlib.inference.solver.StiffOdeSolver;
+import jdistlib.math.Integrate;
+import jdistlib.math.IntegrationResult;
 import jdistlib.rng.RandomEngine;
 
 /** Java-native compiler for the JDistlib language and its Stan-compatible source core. */
@@ -47,12 +55,19 @@ public final class ModelScript {
 	private ModelScript() {}
 
 	public static CompiledModelScript compile(String source, Map<String, double[]> suppliedData) {
+		return compile(source, suppliedData, ExternalFunctionRegistry.empty());
+	}
+
+	/** Compiles with Java bindings for forward-declared external functions. */
+	public static CompiledModelScript compile(String source, Map<String, double[]> suppliedData,
+			ExternalFunctionRegistry externalFunctions) {
 		if (source == null || suppliedData == null)
 			throw new IllegalArgumentException("source and data are required");
+		if (externalFunctions == null) throw new IllegalArgumentException("external registry is required");
 		Parser parser = new Parser(source);
 		Program program = parser.parse();
 		if (!parser.diagnostics.isEmpty()) throw new ModelScriptException(parser.diagnostics);
-		return program.compile(suppliedData);
+		return program.compile(suppliedData, externalFunctions);
 	}
 
 	public static CompiledModelScript compile(String source) {
@@ -63,6 +78,12 @@ public final class ModelScript {
 	public static CompiledModelScript compileStan(String source,
 			Map<String, double[]> suppliedData) {
 		return compile(source, suppliedData);
+	}
+
+	/** Compiles Stan-compatible source with Java external-function bindings. */
+	public static CompiledModelScript compileStan(String source, Map<String, double[]> suppliedData,
+			ExternalFunctionRegistry externalFunctions) {
+		return compile(source, suppliedData, externalFunctions);
 	}
 
 	/** Compiles a data-free Stan source program supported by the compatibility core. */
@@ -106,14 +127,19 @@ public final class ModelScript {
 			}
 			if (Character.isDigit(c) || c == '.' && index + 1 < source.length()
 					&& Character.isDigit(source.charAt(index + 1))) {
-				advance();
-				while (index < source.length()) {
-					c = source.charAt(index);
-					if (!(Character.isDigit(c) || c == '.' || c == 'e' || c == 'E'
-							|| (c == '+' || c == '-') && index > start
-							&& (source.charAt(index - 1) == 'e' || source.charAt(index - 1) == 'E'))) break;
-					advance();
+				boolean decimal = false;
+				if (c == '.') { decimal = true; advance(); }
+				while (index < source.length() && Character.isDigit(source.charAt(index))) advance();
+				if (!decimal && index < source.length() && source.charAt(index) == '.') {
+					decimal = true; advance();
+					while (index < source.length() && Character.isDigit(source.charAt(index))) advance();
 				}
+				if (index < source.length() && (source.charAt(index) == 'e' || source.charAt(index) == 'E')) {
+					advance();
+					if (index < source.length() && (source.charAt(index) == '+' || source.charAt(index) == '-')) advance();
+					while (index < source.length() && Character.isDigit(source.charAt(index))) advance();
+				}
+				if (index < source.length() && source.charAt(index) == 'i') advance();
 				return new Token(TokenKind.NUMBER, source.substring(start, index), startLine, startColumn);
 			}
 			if (index + 1 < source.length()) {
@@ -161,11 +187,14 @@ public final class ModelScript {
 		final List<Statement> model = new ArrayList<Statement>();
 		final List<Assignment> generated = new ArrayList<Assignment>();
 
-		CompiledModelScript compile(Map<String, double[]> supplied) {
+		CompiledModelScript compile(Map<String, double[]> supplied, ExternalFunctionRegistry externals) {
 			for (List<UserFunction> overloads : functions.values()) for (UserFunction function : overloads)
-				if (function.body == null) throw new ModelScriptException(Collections.singletonList(
+				if (function.body == null && !externals.contains(function.name))
+					throw new ModelScriptException(Collections.singletonList(
 						new ScriptDiagnostic(function.token.line, function.token.column,
 								"forward-declared function '" + function.name + "' has no definition")));
+			for (List<UserFunction> overloads : functions.values()) for (UserFunction function : overloads)
+				if (function.body == null) function.external = externals.function(function.name);
 			Map<String, double[]> dataValues = copyData(supplied);
 			Map<String, int[]> shapes = defaultShapes(dataValues);
 			Map<String, ValueType> types = defaultTypes(dataValues);
@@ -178,7 +207,7 @@ public final class ModelScript {
 				if (values == null) diagnostics.add(declaration.error("missing required data '" + declaration.name + "'"));
 				else {
 					int[] declaredShape = checkedShape(declaration, validationContext);
-					int expected = elementCount(declaredShape, declaration);
+					int expected = elementCount(declaredShape, declaration) * storageWidth(declaration.valueType().kind);
 					shapes.put(declaration.name, declaredShape);
 					if (values.length != expected) diagnostics.add(declaration.error(
 							"data length " + values.length + " does not match declared length " + expected));
@@ -199,20 +228,28 @@ public final class ModelScript {
 			for (Map.Entry<String, double[]> entry : dataValues.entrySet()) builder.data(entry.getKey(), entry.getValue());
 			Context constants = new Context(null, dataValues, shapes, types, 0, null, functions);
 			for (Assignment assignment : transformedData) {
-				Diff[] value = assignment.expression.evalVector(constants);
+				RuntimeValue runtime = assignment.runtimeValue(constants); Diff[] value = runtime.values;
 				double[] plain = values(value); dataValues.put(assignment.name, plain);
 				builder.data(assignment.name, plain);
-				int[] assignmentShape = assignment.checkedShape(constants, value.length);
+				int[] assignmentShape = runtime.shape;
 				shapes.put(assignment.name, assignmentShape); types.put(assignment.name, assignment.valueType());
-				constants.setLocal(assignment.name, assignment.wrap(value, assignmentShape), true);
+				constants.setLocal(assignment.name, runtime, true);
 			}
 			for (Declaration declaration : parameters) {
 				int[] declaredShape = checkedShape(declaration, constants);
-				int dimension = elementCount(declaredShape, declaration);
+				int logicalDimension = elementCount(declaredShape, declaration);
+				int dimension = logicalDimension * storageWidth(declaration.valueType().kind);
 				shapes.put(declaration.name, declaredShape);
 				ParameterConstraint constraint;
 				double[] initial;
-				if (declaration.type.equals("unit_vector")) {
+				if (complexKind(declaration.valueType().kind)) {
+					if (declaration.lower != null || declaration.upper != null || declaration.offset != null
+							|| declaration.multiplier != null)
+						throw new ModelScriptException(Collections.singletonList(
+								declaration.error("complex parameters do not accept real constraints")));
+					constraint = dimension == 1 ? Constraints.real() : Constraints.realVector(dimension);
+					initial = new double[dimension];
+				} else if (declaration.type.equals("unit_vector")) {
 					int size = declaration.baseDimension(constants, 0);
 					constraint = Constraints.unitVector(size); initial = new double[size]; initial[0] = 1.0;
 				} else if (declaration.type.equals("cov_matrix")) {
@@ -358,15 +395,24 @@ public final class ModelScript {
 					new ArrayList<Assignment>(transformedParameters);
 			builder.factor(factorName, dependencies.toArray(new String[dependencies.size()]),
 					new DifferentiableModelFactor() {
+			private final ThreadLocal<ReverseTape> tapes = new ThreadLocal<ReverseTape>() {
+				@Override protected ReverseTape initialValue() {
+					return new ReverseTape(Math.max(1024, constrainedDimension * 32));
+				}
+			};
 				@Override public double logDensityAndAddGradient(ModelState state,
 						double[] gradient) {
-					Context context = new Context(state, capturedData, capturedShapes, capturedTypes,
-							constrainedDimension, null, functions);
-					for (Assignment assignment : capturedTransforms)
-						context.setLocal(assignment.name, assignment.runtimeValue(context));
-					Diff contribution = statement.eval(context).add(context.consumeFunctionTarget());
-					for (int i = 0; i < gradient.length; i++) gradient[i] += contribution.gradient[i];
-					return contribution.value;
+					ReverseTape tape = tapes.get(); tape.reset();
+					Diff.beginReverse(tape, constrainedDimension);
+					try {
+						Context context = new Context(state, capturedData, capturedShapes, capturedTypes,
+								constrainedDimension, null, functions);
+						for (Assignment assignment : capturedTransforms)
+							context.setLocal(assignment.name, assignment.runtimeValue(context));
+						Diff contribution = statement.eval(context).add(context.consumeFunctionTarget());
+						Diff.reverseInto(contribution, gradient);
+						return contribution.value;
+					} finally { Diff.endReverse(); }
 				}
 			});
 		}
@@ -402,7 +448,8 @@ public final class ModelScript {
 		}
 		ValueType valueType() { return new ValueType(kind, arrayRank); }
 		RuntimeValue runtimeValue(Context context) {
-			Diff[] values = expression.evalVector(context); return wrap(values, checkedShape(context, values.length));
+			RuntimeValue evaluated = promoteComplex(expression.evalValue(context), kind, context);
+			return wrap(evaluated.values, checkedShape(context, evaluated.values.length));
 		}
 		RuntimeValue wrap(Diff[] values, int[] checkedShape) {
 			return new RuntimeValue(values, checkedShape, kind, arrayRank);
@@ -420,28 +467,74 @@ public final class ModelScript {
 			return result;
 		}
 		int[] checkedShape(Context context, int actualLength) {
-			if (shape.isEmpty()) return actualLength == 1 ? new int[0] : new int[] {actualLength};
+			int width = storageWidth(kind);
+			if (actualLength % width != 0) throw new ModelScriptException(Collections.singletonList(
+					new ScriptDiagnostic(token.line, token.column, "initializer storage does not match type")));
+			int logicalLength = actualLength / width;
+			if (shape.isEmpty()) return logicalLength == 1 ? new int[0] : new int[] {logicalLength};
 			int[] result = declaredShape(context); long count = 1;
 			for (int extent : result) count *= extent;
-			if (count != actualLength) throw new ModelScriptException(Collections.singletonList(
+			if (count != logicalLength) throw new ModelScriptException(Collections.singletonList(
 					new ScriptDiagnostic(token.line, token.column,
 							"initializer size does not match declaration")));
 			return result;
 		}
 	}
 	private static final class FunctionType {
-		final ValueKind kind; final int arrayRank; final boolean integer;
+		final ValueKind kind; final int arrayRank; final boolean integer; final TupleTypeSpec tuple;
 		FunctionType(ValueKind kind, int arrayRank, boolean integer) {
-			this.kind = kind; this.arrayRank = arrayRank; this.integer = integer;
+			this(kind, arrayRank, integer, null);
+		}
+		FunctionType(TupleTypeSpec tuple) {
+			this(ValueKind.TUPLE, 0, false, tuple);
+		}
+		private FunctionType(ValueKind kind, int arrayRank, boolean integer, TupleTypeSpec tuple) {
+			this.kind = kind; this.arrayRank = arrayRank; this.integer = integer; this.tuple = tuple;
 		}
 		boolean sameSignature(FunctionType other) {
-			return kind == other.kind && arrayRank == other.arrayRank && integer == other.integer;
+			return kind == other.kind && arrayRank == other.arrayRank && integer == other.integer
+					&& sameTupleSignature(tuple, other.tuple);
+		}
+		boolean accepts(RuntimeValue value) {
+			return kind == value.kind && arrayRank == value.arrayRank
+					&& (tuple == null || acceptsTuple(tuple, value));
+		}
+		private static boolean acceptsTuple(TupleTypeSpec type, RuntimeValue value) {
+			if (type.kind != value.kind || type.arrayRank != value.arrayRank) return false;
+			if (type.kind != ValueKind.TUPLE) return true;
+			if (value.tuple.length != type.members.length) return false;
+			for (int i = 0; i < type.members.length; i++)
+				if (!acceptsTuple(type.members[i], value.tuple[i])) return false;
+			return true;
+		}
+		private static boolean sameTupleSignature(TupleTypeSpec left, TupleTypeSpec right) {
+			if (left == null || right == null) return left == right;
+			if (left.kind != right.kind || left.arrayRank != right.arrayRank) return false;
+			if (left.kind != ValueKind.TUPLE) return true;
+			if (left.members.length != right.members.length) return false;
+			for (int i = 0; i < left.members.length; i++)
+				if (!sameTupleSignature(left.members[i], right.members[i])) return false;
+			return true;
 		}
 		String display() {
+			if (tuple != null) return displayTuple(tuple);
 			StringBuilder result = new StringBuilder();
 			for (int i = 0; i < arrayRank; i++) result.append("array[] ");
 			return result.append(integer ? "int" : kind == ValueKind.SCALAR ? "real"
 					: kind.name().toLowerCase()).toString();
+		}
+		private static String displayTuple(TupleTypeSpec type) {
+			if (type.kind != ValueKind.TUPLE) {
+				StringBuilder result = new StringBuilder();
+				for (int i = 0; i < type.arrayRank; i++) result.append("array[] ");
+				return result.append(type.kind == ValueKind.SCALAR ? "real"
+						: type.kind.name().toLowerCase()).toString();
+			}
+			StringBuilder result = new StringBuilder("tuple(");
+			for (int i = 0; i < type.members.length; i++) {
+				if (i > 0) result.append(", "); result.append(displayTuple(type.members[i]));
+			}
+			return result.append(')').toString();
 		}
 	}
 	private static final class FunctionArgument {
@@ -452,14 +545,14 @@ public final class ModelScript {
 	}
 	private static final class UserFunction {
 		final String name; final FunctionType returnType; final FunctionArgument[] arguments;
-		Statement body; final Token token;
+		Statement body; StanExternalFunction external; final Token token;
 		UserFunction(String name, FunctionType returnType, FunctionArgument[] arguments,
 				Statement body, Token token) {
 			this.name = name; this.returnType = returnType; this.arguments = arguments;
 			this.body = body; this.token = token;
 		}
 		RuntimeValue invoke(RuntimeValue[] values, boolean[] dataArguments, Context context) {
-			if (body == null) throw new IllegalArgumentException("function '" + name + "' was declared but not defined");
+			if (body == null) return invokeExternal(values);
 			if (++context.functionDepth > 1000) {
 				context.functionDepth--;
 				throw new IllegalStateException("user-function recursion exceeded 1000 calls");
@@ -483,8 +576,40 @@ public final class ModelScript {
 				context.popScope(); context.functionDepth--;
 			}
 		}
+		private RuntimeValue invokeExternal(RuntimeValue[] arguments) {
+			if (external == null) throw new IllegalArgumentException("function '"+name+"' has no external binding");
+			if (returnType.kind == ValueKind.TUPLE)
+				throw new IllegalArgumentException("external tuple returns require a Java adapter function");
+			double[][] plain = new double[arguments.length][]; int inputCount = 0;
+			for (int i = 0; i < arguments.length; i++) {
+				Diff[] flattened = flatten(arguments[i]); plain[i] = values(flattened); inputCount += flattened.length;
+			}
+			ExternalFunctionResult evaluated = external.evaluate(plain);
+			if (evaluated == null) throw new IllegalArgumentException("external function '"+name+"' returned null");
+			double[] output = evaluated.values(); int[] shape = evaluated.shape();
+			double[][] jacobian = evaluated.jacobian(); Diff[] inputs = new Diff[inputCount]; int input = 0;
+			for (RuntimeValue argument : arguments) for (Diff value : flatten(argument)) inputs[input++] = value;
+			Diff[] result = new Diff[output.length];
+			for (int row = 0; row < result.length; row++) {
+				if (jacobian[row].length != inputCount)
+					throw new IllegalArgumentException("external function '"+name+"' Jacobian column mismatch");
+				result[row] = Diff.atomic(output[row], inputs, jacobian[row]);
+			}
+			if (returnType.arrayRank > shape.length)
+				throw new IllegalArgumentException("external function '"+name+"' result rank mismatch");
+			return new RuntimeValue(result, shape, returnType.kind, returnType.arrayRank);
+		}
+		private Diff[] flatten(RuntimeValue value) {
+			if (value.kind != ValueKind.TUPLE) return value.values;
+			List<Diff> result = new ArrayList<Diff>(); flatten(value, result);
+			return result.toArray(new Diff[result.size()]);
+		}
+		private void flatten(RuntimeValue value, List<Diff> result) {
+			if (value.kind != ValueKind.TUPLE) { result.addAll(Arrays.asList(value.values)); return; }
+			for (RuntimeValue member : value.tuple) flatten(member, result);
+		}
 		private boolean matchesReturn(RuntimeValue value) {
-			if (returnType.kind != value.kind || returnType.arrayRank != value.arrayRank) return false;
+			if (!returnType.accepts(value)) return false;
 			if (returnType.integer) for (Diff element : value.values)
 				if (element.value != Math.rint(element.value)) return false;
 			return true;
@@ -559,20 +684,21 @@ public final class ModelScript {
 			this.shape = shape; this.kind = kind; this.arrayRank = arrayRank;
 		}
 		@Override public Diff eval(Context context) {
-			int[] extents = new int[shape.size()]; int count = 1;
+			int[] extents = new int[shape.size()]; int logicalCount = 1;
 			for (int i = 0; i < extents.length; i++) {
 				double dimension = shape.get(i).eval(context).value;
 				if (dimension != Math.rint(dimension) || dimension < 1 || dimension > 100000)
 					throw new IllegalArgumentException("invalid local-container dimension for " + name);
-				extents[i] = (int) dimension; count *= extents[i];
+				extents[i] = (int) dimension; logicalCount *= extents[i];
 			}
+			int count = logicalCount * storageWidth(kind);
 			RuntimeValue value;
 			if (initializer == null) {
 				Diff[] uninitialized = new Diff[count];
 				for (int i = 0; i < count; i++) uninitialized[i] = Diff.constant(Double.NaN, context.dimension);
 				value = new RuntimeValue(uninitialized, extents, kind, arrayRank);
 			} else {
-				RuntimeValue evaluated = initializer.evalValue(context);
+				RuntimeValue evaluated = promoteComplex(initializer.evalValue(context), kind, context);
 				if (evaluated.values.length != count)
 					throw new IllegalArgumentException("initializer size does not match local declaration " + name);
 				value = new RuntimeValue(evaluated.values, extents, kind, arrayRank);
@@ -588,6 +714,68 @@ public final class ModelScript {
 		@Override public String label() { return "local"; }
 		@Override public boolean procedural() { return true; }
 	}
+	private static final class TupleTypeSpec {
+		final ValueKind kind; final int arrayRank; final List<Expr> shape; final TupleTypeSpec[] members;
+		TupleTypeSpec(ValueKind kind,int arrayRank,List<Expr> shape,TupleTypeSpec[] members){
+			this.kind=kind;this.arrayRank=arrayRank;this.shape=shape;this.members=members;
+		}
+		void validate(RuntimeValue value,Context context,String name){
+			if(kind==ValueKind.TUPLE){
+				if(value.kind!=ValueKind.TUPLE||value.tuple.length!=members.length)
+					throw new IllegalArgumentException("tuple initializer does not match "+name);
+				for(int i=0;i<members.length;i++)members[i].validate(value.tuple[i],context,name+"."+(i+1));
+				return;
+			}
+			if(value.kind!=kind||value.arrayRank!=arrayRank)
+				throw new IllegalArgumentException("tuple member type mismatch for "+name);
+			int[] expected=new int[shape.size()];
+			for(int i=0;i<expected.length;i++)expected[i]=checkedLoopBound(shape.get(i).eval(context).value,name);
+			if(!Arrays.equals(expected,value.shape))throw new IllegalArgumentException("tuple member shape mismatch for "+name);
+		}
+		void collect(Set<String> names){for(Expr extent:shape)extent.collect(names);if(members!=null)for(TupleTypeSpec member:members)member.collect(names);}
+	}
+	private static final class TupleLocalDeclarationStatement implements Statement {
+		final String name;final TupleTypeSpec type;final Expr initializer;
+		TupleLocalDeclarationStatement(String name,TupleTypeSpec type,Expr initializer){this.name=name;this.type=type;this.initializer=initializer;}
+		@Override public Diff eval(Context context){
+			if(initializer==null)throw new IllegalArgumentException("tuple local '"+name+"' requires an initializer");
+			RuntimeValue value=initializer.evalValue(context);type.validate(value,context,name);
+			context.declareLocal(name,value,false,initializer.dataOnly(context));return Diff.constant(0,context.dimension);
+		}
+		@Override public void collect(Set<String> names){type.collect(names);if(initializer!=null)initializer.collect(names);}
+		@Override public String label(){return "tuple-local";}
+		@Override public boolean procedural(){return true;}
+	}
+	private static final class TupleAssignmentStatement implements Statement {
+		final TupleAccessExpr target;final Expr expression;
+		TupleAssignmentStatement(TupleAccessExpr target,Expr expression){this.target=target;this.expression=expression;}
+		@Override public Diff eval(Context context){
+			List<Integer> path=new ArrayList<Integer>();Expr root=target;
+			while(root instanceof TupleAccessExpr){TupleAccessExpr access=(TupleAccessExpr)root;path.add(0,access.index);root=access.tuple;}
+			if(!(root instanceof VariableExpr)||!((VariableExpr)root).indices.isEmpty())
+				throw new IllegalArgumentException("tuple assignment requires a local tuple variable");
+			String name=((VariableExpr)root).name;RuntimeValue tuple=context.local(name);
+			if(tuple==null||tuple.kind!=ValueKind.TUPLE)throw new IllegalArgumentException("unknown local tuple: "+name);
+			RuntimeValue current=tuple;for(int index:path){
+				if(current.kind!=ValueKind.TUPLE||index<0||index>=current.tuple.length)
+					throw new IllegalArgumentException("tuple member index is out of range");
+				current=current.tuple[index];
+			}
+			RuntimeValue value=expression.evalValue(context);
+			value=promoteComplex(value,current.kind,context);
+			if(value.kind!=current.kind||value.arrayRank!=current.arrayRank||!Arrays.equals(value.shape,current.shape))
+				throw new IllegalArgumentException("tuple member assignment type mismatch");
+			context.assignLocal(name,replace(tuple,path,0,value));return Diff.constant(0,context.dimension);
+		}
+		private RuntimeValue replace(RuntimeValue tuple,List<Integer> path,int depth,RuntimeValue value){
+			RuntimeValue[] members=tuple.tuple.clone();int index=path.get(depth);
+			members[index]=depth+1==path.size()?value:replace(members[index],path,depth+1,value);
+			return RuntimeValue.tuple(members);
+		}
+		@Override public void collect(Set<String> names){target.collect(names);expression.collect(names);}
+		@Override public String label(){return "tuple-assign";}
+		@Override public boolean procedural(){return true;}
+	}
 	private static final class AssignmentStatement implements Statement {
 		final VariableExpr target; final String operator; final Expr expression;
 		AssignmentStatement(VariableExpr target, String operator, Expr expression) {
@@ -597,25 +785,43 @@ public final class ModelScript {
 			RuntimeValue current = context.local(target.name);
 			if (current == null) throw new IllegalArgumentException(
 					"assignment requires a declared local variable: " + target.name);
-			RuntimeValue value = expression.evalValue(context);
+			RuntimeValue value = promoteComplex(expression.evalValue(context), current.kind, context);
 			if (target.indices.isEmpty()) {
 				if (!operator.equals("=")) value = compound(current, value, context);
 				context.assignLocal(target.name, value);
 			} else {
 				Selection selection = target.selection(context, current);
-				if (value.values.length != 1 && value.values.length != selection.offsets.length)
+				int width = storageWidth(current.kind), logicalValues = value.values.length / width;
+				if (logicalValues != 1 && logicalValues != selection.offsets.length)
 					throw new IllegalArgumentException("indexed assignment shape mismatch for " + target.name);
 				Diff[] replaced = current.values.clone();
 				for (int i = 0; i < selection.offsets.length; i++) {
-					Diff assigned = value.values[value.values.length == 1 ? 0 : i];
-					if (!operator.equals("=")) assigned = compoundScalar(replaced[selection.offsets[i]], assigned);
-					replaced[selection.offsets[i]] = assigned;
+					int source = (logicalValues == 1 ? 0 : i)*width, targetOffset = selection.offsets[i]*width;
+					if (operator.equals("=")) System.arraycopy(value.values,source,replaced,targetOffset,width);
+					else if (width == 1) replaced[targetOffset] = compoundScalar(replaced[targetOffset],value.values[source]);
+					else {
+						Diff[] assigned = complexApply(operator.substring(0,1),replaced[targetOffset],
+								replaced[targetOffset+1],value.values[source],value.values[source+1]);
+						replaced[targetOffset]=assigned[0]; replaced[targetOffset+1]=assigned[1];
+					}
 				}
 				context.assignLocal(target.name, new RuntimeValue(replaced, current.shape, current.kind, current.arrayRank));
 			}
 			return Diff.constant(0.0, context.dimension);
 		}
 		private RuntimeValue compound(RuntimeValue current, RuntimeValue value, Context context) {
+			if (current.isComplex()) {
+				int currentCount=current.logicalSize(), valueCount=value.logicalSize();
+				if (valueCount != 1 && valueCount != currentCount)
+					throw new IllegalArgumentException("compound assignment shape mismatch");
+				Diff[] result = new Diff[current.values.length];
+				for (int i=0;i<currentCount;i++) {
+					int source=(valueCount==1?0:i)*2; Diff[] pair=complexApply(operator.substring(0,1),
+							current.values[2*i],current.values[2*i+1],value.values[source],value.values[source+1]);
+					result[2*i]=pair[0]; result[2*i+1]=pair[1];
+				}
+				return new RuntimeValue(result,current.shape,current.kind,current.arrayRank);
+			}
 			if (current.values.length != value.values.length && value.values.length != 1)
 				throw new IllegalArgumentException("compound assignment shape mismatch");
 			Diff[] result = new Diff[current.values.length];
@@ -752,30 +958,48 @@ public final class ModelScript {
 		@Override public String label() { return distribution; }
 	}
 
-	private enum ValueKind { SCALAR, VECTOR, ROW_VECTOR, MATRIX }
+	private enum ValueKind {
+		SCALAR, VECTOR, ROW_VECTOR, MATRIX,
+		COMPLEX, COMPLEX_VECTOR, COMPLEX_ROW_VECTOR, COMPLEX_MATRIX, TUPLE
+	}
 	private static final class RuntimeValue {
 		final Diff[] values; final int[] shape; final ValueKind kind; final int arrayRank;
+		final RuntimeValue[] tuple;
 		RuntimeValue(Diff[] values, int[] shape, ValueKind kind, int arrayRank) {
-			this.values = values; this.shape = shape.clone(); this.kind = kind; this.arrayRank = arrayRank;
+			this.values = values; this.shape = shape.clone(); this.kind = kind; this.arrayRank = arrayRank; this.tuple = null;
 			long count = 1; for (int extent : shape) count *= extent;
 			if (shape.length == 0) count = 1;
-			if (count != values.length || arrayRank < 0 || arrayRank > shape.length)
+			if (count * storageWidth(kind) != values.length || arrayRank < 0 || arrayRank > shape.length)
 				throw new IllegalArgumentException("invalid runtime value shape");
+		}
+		private RuntimeValue(RuntimeValue[] tuple) {
+			if (tuple == null || tuple.length == 0) throw new IllegalArgumentException("tuple must not be empty");
+			this.tuple = tuple.clone(); this.values = new Diff[0]; this.shape = new int[] {tuple.length};
+			this.kind = ValueKind.TUPLE; this.arrayRank = 0;
 		}
 		static RuntimeValue scalar(Diff value) {
 			return new RuntimeValue(new Diff[] {value}, new int[0], ValueKind.SCALAR, 0);
 		}
+		static RuntimeValue complex(Diff real, Diff imaginary) {
+			return new RuntimeValue(new Diff[] {real, imaginary}, new int[0], ValueKind.COMPLEX, 0);
+		}
+		static RuntimeValue tuple(RuntimeValue[] values) { return new RuntimeValue(values); }
 		Diff scalar(String description) {
-			if (values.length != 1) throw new IllegalArgumentException(description + " must be scalar");
+			if (kind != ValueKind.SCALAR || values.length != 1)
+				throw new IllegalArgumentException(description + " must be a real scalar");
 			return values[0];
 		}
-		boolean isScalar() { return values.length == 1 && shape.length == 0; }
+		boolean isScalar() { return shape.length == 0 && kind != ValueKind.TUPLE; }
+		boolean isComplex() { return complexKind(kind); }
+		int logicalSize() { return kind == ValueKind.TUPLE ? tuple.length : values.length / storageWidth(kind); }
 		int rows() {
-			if (kind != ValueKind.MATRIX || shape.length < 2) throw new IllegalArgumentException("matrix required");
+			if (kind != ValueKind.MATRIX && kind != ValueKind.COMPLEX_MATRIX || shape.length < 2)
+				throw new IllegalArgumentException("matrix required");
 			return shape[shape.length - 2];
 		}
 		int columns() {
-			if (kind != ValueKind.MATRIX || shape.length < 2) throw new IllegalArgumentException("matrix required");
+			if (kind != ValueKind.MATRIX && kind != ValueKind.COMPLEX_MATRIX || shape.length < 2)
+				throw new IllegalArgumentException("matrix required");
 			return shape[shape.length - 1];
 		}
 	}
@@ -792,9 +1016,13 @@ public final class ModelScript {
 		void collect(Set<String> names);
 	}
 	private static final class NumberExpr implements Expr {
-		final double value; NumberExpr(double value) { this.value = value; }
+		final double value; final boolean imaginary;
+		NumberExpr(double value) { this(value, false); }
+		NumberExpr(double value, boolean imaginary) { this.value = value; this.imaginary = imaginary; }
 		@Override public RuntimeValue evalValue(Context context) {
-			return RuntimeValue.scalar(Diff.constant(value, context.dimension));
+			Diff number = Diff.constant(value, context.dimension);
+			return imaginary ? RuntimeValue.complex(Diff.constant(0, context.dimension), number)
+					: RuntimeValue.scalar(number);
 		}
 		@Override public boolean dataOnly(Context context) { return true; }
 		@Override public void collect(Set<String> names) {}
@@ -807,14 +1035,21 @@ public final class ModelScript {
 				return new RuntimeValue(new Diff[0], new int[] {0}, ValueKind.SCALAR, array ? 1 : 0);
 			RuntimeValue first = elements.get(0).evalValue(context);
 			List<RuntimeValue> evaluated = new ArrayList<RuntimeValue>(); evaluated.add(first);
-			int total = first.values.length;
 			for (int i = 1; i < elements.size(); i++) {
 				RuntimeValue value = elements.get(i).evalValue(context);
+				if (complexKind(value.kind) && !complexKind(first.kind)
+						&& complexKindFor(first.kind) == value.kind) {
+					first = promoteComplex(first, value.kind, context);
+					for (int prior = 0; prior < evaluated.size(); prior++)
+						evaluated.set(prior, promoteComplex(evaluated.get(prior), value.kind, context));
+				}
+				value = promoteComplex(value, first.kind, context);
 				if (value.kind != first.kind || value.arrayRank != first.arrayRank
 						|| !Arrays.equals(value.shape, first.shape))
 					throw new IllegalArgumentException("literal elements must have one common type and shape");
-				evaluated.add(value); total += value.values.length;
+				evaluated.add(value);
 			}
+			int total = 0; for (RuntimeValue value : evaluated) total += value.values.length;
 			Diff[] values = new Diff[total]; int offset = 0;
 			for (RuntimeValue value : evaluated) {
 				System.arraycopy(value.values, 0, values, offset, value.values.length); offset += value.values.length;
@@ -824,10 +1059,12 @@ public final class ModelScript {
 				return new RuntimeValue(values, shape, first.kind, first.arrayRank + 1);
 			}
 			if (first.isScalar())
-				return new RuntimeValue(values, new int[] {elements.size()}, ValueKind.ROW_VECTOR, 0);
-			if (first.kind == ValueKind.ROW_VECTOR && first.arrayRank == 0) {
-				return new RuntimeValue(values, new int[] {elements.size(), first.values.length},
-						ValueKind.MATRIX, 0);
+				return new RuntimeValue(values, new int[] {elements.size()}, first.isComplex()
+						? ValueKind.COMPLEX_ROW_VECTOR : ValueKind.ROW_VECTOR, 0);
+			if ((first.kind == ValueKind.ROW_VECTOR || first.kind == ValueKind.COMPLEX_ROW_VECTOR)
+					&& first.arrayRank == 0) {
+				return new RuntimeValue(values, new int[] {elements.size(), first.logicalSize()},
+						first.isComplex() ? ValueKind.COMPLEX_MATRIX : ValueKind.MATRIX, 0);
 			}
 			throw new IllegalArgumentException("bracket literals contain scalars or equal row vectors");
 		}
@@ -842,6 +1079,29 @@ public final class ModelScript {
 		@Override public void collect(Set<String> names) {
 			for (Expr element : elements) element.collect(names);
 		}
+	}
+	private static final class TupleExpr implements Expr {
+		final List<Expr> elements;
+		TupleExpr(List<Expr> elements){this.elements=elements;}
+		@Override public RuntimeValue evalValue(Context context){
+			RuntimeValue[] values=new RuntimeValue[elements.size()];
+			for(int i=0;i<values.length;i++)values[i]=elements.get(i).evalValue(context);
+			return RuntimeValue.tuple(values);
+		}
+		@Override public boolean dataOnly(Context context){for(Expr element:elements)if(!element.dataOnly(context))return false;return true;}
+		@Override public void collect(Set<String> names){for(Expr element:elements)element.collect(names);}
+	}
+	private static final class TupleAccessExpr implements Expr {
+		final Expr tuple; final int index;
+		TupleAccessExpr(Expr tuple,int index){this.tuple=tuple;this.index=index;}
+		@Override public RuntimeValue evalValue(Context context){
+			RuntimeValue value=tuple.evalValue(context);
+			if(value.kind!=ValueKind.TUPLE||index<0||index>=value.tuple.length)
+				throw new IllegalArgumentException("tuple member index is out of range");
+			return value.tuple[index];
+		}
+		@Override public boolean dataOnly(Context context){return tuple.dataOnly(context);}
+		@Override public void collect(Set<String> names){tuple.collect(names);}
 	}
 	private static final class IndexSpec {
 		final Expr lower; final Expr upper; final boolean single;
@@ -867,8 +1127,9 @@ public final class ModelScript {
 			RuntimeValue resolved = resolveValue(context);
 			if (indices.isEmpty()) return resolved;
 			Selection selection = selection(context, resolved);
-			Diff[] selected = new Diff[selection.offsets.length];
-			for (int i = 0; i < selected.length; i++) selected[i] = resolved.values[selection.offsets[i]];
+			int width = storageWidth(resolved.kind); Diff[] selected = new Diff[selection.offsets.length*width];
+			for (int i = 0; i < selection.offsets.length; i++)
+				System.arraycopy(resolved.values,selection.offsets[i]*width,selected,i*width,width);
 			return new RuntimeValue(selected, selection.shape, selection.kind, selection.arrayRank);
 		}
 		Selection selection(Context context, RuntimeValue resolved) {
@@ -912,16 +1173,18 @@ public final class ModelScript {
 		}
 		private ValueKind selectedKind(RuntimeValue value, boolean[] retained) {
 			int baseStart = value.arrayRank;
-			if (value.kind == ValueKind.MATRIX) {
+			if (value.kind == ValueKind.MATRIX || value.kind == ValueKind.COMPLEX_MATRIX) {
 				boolean rows = retained[baseStart], columns = retained[baseStart + 1];
-				if (rows && columns) return ValueKind.MATRIX;
-				if (rows) return ValueKind.VECTOR;
-				if (columns) return ValueKind.ROW_VECTOR;
-				return ValueKind.SCALAR;
+				boolean complex = value.kind == ValueKind.COMPLEX_MATRIX;
+				if (rows && columns) return complex ? ValueKind.COMPLEX_MATRIX : ValueKind.MATRIX;
+				if (rows) return complex ? ValueKind.COMPLEX_VECTOR : ValueKind.VECTOR;
+				if (columns) return complex ? ValueKind.COMPLEX_ROW_VECTOR : ValueKind.ROW_VECTOR;
+				return complex ? ValueKind.COMPLEX : ValueKind.SCALAR;
 			}
-			if ((value.kind == ValueKind.VECTOR || value.kind == ValueKind.ROW_VECTOR)
+			if ((value.kind == ValueKind.VECTOR || value.kind == ValueKind.ROW_VECTOR
+					|| value.kind == ValueKind.COMPLEX_VECTOR || value.kind == ValueKind.COMPLEX_ROW_VECTOR)
 					&& retained[baseStart]) return value.kind;
-			return ValueKind.SCALAR;
+			return value.isComplex() ? ValueKind.COMPLEX : ValueKind.SCALAR;
 		}
 		private RuntimeValue resolveValue(Context context) {
 			RuntimeValue local = context.local(name);
@@ -930,8 +1193,8 @@ public final class ModelScript {
 				int size = context.state.parameterDimension(name);
 				Diff[] result = new Diff[size];
 				for (int i = 0; i < size; i++) {
-					result[i] = Diff.constant(context.state.value(name, i), context.dimension);
-					result[i].gradient[context.state.constrainedOffset(name) + i] = 1.0;
+					result[i] = Diff.variable(context.state.value(name, i), context.dimension,
+							context.state.constrainedOffset(name) + i);
 				}
 				return context.wrap(name, result);
 			}
@@ -976,21 +1239,34 @@ public final class ModelScript {
 		TransposeExpr(Expr operand) { this.operand = operand; }
 		@Override public RuntimeValue evalValue(Context context) {
 			RuntimeValue value = operand.evalValue(context);
-			if (value.kind == ValueKind.VECTOR)
-				return new RuntimeValue(value.values, value.shape, ValueKind.ROW_VECTOR, value.arrayRank);
-			if (value.kind == ValueKind.ROW_VECTOR)
-				return new RuntimeValue(value.values, value.shape, ValueKind.VECTOR, value.arrayRank);
-			if (value.kind != ValueKind.MATRIX) return value;
+			if (value.kind == ValueKind.VECTOR || value.kind == ValueKind.COMPLEX_VECTOR) {
+				Diff[] values = conjugateIfComplex(value);
+				return new RuntimeValue(values, value.shape, value.kind == ValueKind.COMPLEX_VECTOR
+						? ValueKind.COMPLEX_ROW_VECTOR : ValueKind.ROW_VECTOR, value.arrayRank);
+			}
+			if (value.kind == ValueKind.ROW_VECTOR || value.kind == ValueKind.COMPLEX_ROW_VECTOR) {
+				Diff[] values = conjugateIfComplex(value);
+				return new RuntimeValue(values, value.shape, value.kind == ValueKind.COMPLEX_ROW_VECTOR
+						? ValueKind.COMPLEX_VECTOR : ValueKind.VECTOR, value.arrayRank);
+			}
+			if (value.kind != ValueKind.MATRIX && value.kind != ValueKind.COMPLEX_MATRIX) return value;
 			int rows = value.rows(), columns = value.columns();
-			int matrices = value.values.length / (rows * columns);
+			int width=storageWidth(value.kind), matrices = value.logicalSize() / (rows * columns);
 			Diff[] result = new Diff[value.values.length];
 			for (int matrix = 0; matrix < matrices; matrix++) {
 				int base = matrix * rows * columns;
 				for (int row = 0; row < rows; row++) for (int column = 0; column < columns; column++)
-					result[base + column * rows + row] = value.values[base + row * columns + column];
+					for(int component=0;component<width;component++) {
+						Diff element=value.values[(base+row*columns+column)*width+component];
+						result[(base+column*rows+row)*width+component]=width==2&&component==1?element.negate():element;
+					}
 			}
 			int[] shape = value.shape.clone(); shape[shape.length - 2] = columns; shape[shape.length - 1] = rows;
-			return new RuntimeValue(result, shape, ValueKind.MATRIX, value.arrayRank);
+			return new RuntimeValue(result, shape, value.kind, value.arrayRank);
+		}
+		private Diff[] conjugateIfComplex(RuntimeValue value) {
+			if(!value.isComplex()) return value.values;
+			Diff[] result=value.values.clone(); for(int i=1;i<result.length;i+=2) result[i]=result[i].negate(); return result;
 		}
 		@Override public void collect(Set<String> names) { operand.collect(names); }
 		@Override public boolean dataOnly(Context context) { return operand.dataOnly(context); }
@@ -1007,6 +1283,8 @@ public final class ModelScript {
 			if (operator.equals("||") && truth(leftValue.scalar("logical operand")))
 				return RuntimeValue.scalar(booleanValue(true, context));
 			RuntimeValue rightValue = right.evalValue(context);
+			if (leftValue.isComplex() || rightValue.isComplex())
+				return complexBinary(leftValue,rightValue,context);
 			if (operator.equals("*") && !leftValue.isScalar() && !rightValue.isScalar())
 				return matrixMultiply(leftValue, rightValue, context);
 			if (operator.equals("/") && !leftValue.isScalar() && !rightValue.isScalar())
@@ -1024,6 +1302,60 @@ public final class ModelScript {
 			RuntimeValue template = a.length == 1 ? rightValue : leftValue;
 			return length == 1 ? RuntimeValue.scalar(result[0])
 					: new RuntimeValue(result, template.shape, template.kind, template.arrayRank);
+		}
+		private RuntimeValue complexBinary(RuntimeValue leftValue, RuntimeValue rightValue, Context context) {
+			if(!leftValue.isComplex()) leftValue=promoteComplex(leftValue,complexKindFor(leftValue.kind),context);
+			if(!rightValue.isComplex()) rightValue=promoteComplex(rightValue,complexKindFor(rightValue.kind),context);
+			if(operator.equals("*")&&!leftValue.isScalar()&&!rightValue.isScalar())
+				return complexMatrixMultiply(leftValue,rightValue,context);
+			int leftCount=leftValue.logicalSize(), rightCount=rightValue.logicalSize();
+			if(leftCount!=1&&rightCount!=1&&(!Arrays.equals(leftValue.shape,rightValue.shape)
+					||leftValue.kind!=rightValue.kind||leftValue.arrayRank!=rightValue.arrayRank))
+				throw new IllegalArgumentException("incompatible complex container shapes");
+			int count=Math.max(leftCount,rightCount); boolean comparison=operator.equals("==")||operator.equals("!=");
+			Diff[] result=new Diff[count*(comparison?1:2)];
+			for(int i=0;i<count;i++) {
+				int li=(leftCount==1?0:i)*2,ri=(rightCount==1?0:i)*2;
+				if(comparison) {
+					boolean equal=leftValue.values[li].value==rightValue.values[ri].value
+							&&leftValue.values[li+1].value==rightValue.values[ri+1].value;
+					result[i]=booleanValue(operator.equals("==")?equal:!equal,context);
+				} else {
+					Diff[] pair=complexApply(operator,leftValue.values[li],leftValue.values[li+1],
+							rightValue.values[ri],rightValue.values[ri+1]); result[2*i]=pair[0];result[2*i+1]=pair[1];
+				}
+			}
+			RuntimeValue template=leftCount==1?rightValue:leftValue;
+			if(comparison) return count==1?RuntimeValue.scalar(result[0]):new RuntimeValue(result,template.shape,
+					realKindFor(template.kind),template.arrayRank);
+			return new RuntimeValue(result,template.shape,template.kind,template.arrayRank);
+		}
+		private RuntimeValue complexMatrixMultiply(RuntimeValue a,RuntimeValue b,Context context) {
+			if(a.arrayRank>0||b.arrayRank>0) throw new IllegalArgumentException("complex matrix multiplication does not broadcast arrays");
+			ValueKind ar=realKindFor(a.kind),br=realKindFor(b.kind); int rows,inner,columns; ValueKind resultKind;
+			if(ar==ValueKind.ROW_VECTOR&&br==ValueKind.VECTOR) { rows=1;inner=a.logicalSize();columns=1;resultKind=ValueKind.COMPLEX; }
+			else if(ar==ValueKind.VECTOR&&br==ValueKind.ROW_VECTOR) { rows=a.logicalSize();inner=1;columns=b.logicalSize();resultKind=ValueKind.COMPLEX_MATRIX; }
+			else if(ar==ValueKind.MATRIX&&br==ValueKind.VECTOR) { rows=a.rows();inner=a.columns();columns=1;resultKind=ValueKind.COMPLEX_VECTOR; }
+			else if(ar==ValueKind.ROW_VECTOR&&br==ValueKind.MATRIX) { rows=1;inner=a.logicalSize();columns=b.columns();resultKind=ValueKind.COMPLEX_ROW_VECTOR; }
+			else if(ar==ValueKind.MATRIX&&br==ValueKind.MATRIX) { rows=a.rows();inner=a.columns();columns=b.columns();resultKind=ValueKind.COMPLEX_MATRIX; }
+			else throw new IllegalArgumentException("unsupported complex matrix product");
+			int bRows=br==ValueKind.MATRIX?b.rows():br==ValueKind.VECTOR?b.logicalSize():1;
+			if(inner!=bRows) throw new IllegalArgumentException("complex matrix inner dimensions differ");
+			Diff[] result=new Diff[rows*columns*2];
+			for(int row=0;row<rows;row++)for(int column=0;column<columns;column++) {
+				Diff real=Diff.constant(0,context.dimension),imag=Diff.constant(0,context.dimension);
+				for(int k=0;k<inner;k++) {
+					int ai=(ar==ValueKind.ROW_VECTOR?k:ar==ValueKind.VECTOR?row:row*inner+k)*2;
+					int bi=(br==ValueKind.VECTOR?k:br==ValueKind.ROW_VECTOR?column:k*columns+column)*2;
+					Diff[] pair=complexApply("*",a.values[ai],a.values[ai+1],b.values[bi],b.values[bi+1]);
+					real=real.add(pair[0]);imag=imag.add(pair[1]);
+				}
+				result[(row*columns+column)*2]=real;result[(row*columns+column)*2+1]=imag;
+			}
+			int[] shape=resultKind==ValueKind.COMPLEX?new int[0]
+					:resultKind==ValueKind.COMPLEX_MATRIX?new int[]{rows,columns}
+					:new int[]{resultKind==ValueKind.COMPLEX_VECTOR?rows:columns};
+			return new RuntimeValue(result,shape,resultKind,0);
 		}
 		private RuntimeValue matrixMultiply(RuntimeValue a, RuntimeValue b, Context context) {
 			if (a.arrayRank > 0 || b.arrayRank > 0)
@@ -1146,6 +1478,8 @@ public final class ModelScript {
 		}
 		private RuntimeValue broadcastScalarFunction(Context context) {
 			if (name.equals("sum") || name.equals("prod") || name.equals("mean")
+					|| name.equals("variance") || name.equals("sd") || name.equals("dot_self")
+					|| name.equals("distance") || name.equals("squared_distance")
 					|| name.equals("dot_product") || name.equals("num_elements") || name.equals("size")
 					|| name.equals("rows") || name.equals("cols") || name.startsWith("rep_")
 					|| name.equals("to_vector") || name.equals("to_row_vector")
@@ -1154,17 +1488,31 @@ public final class ModelScript {
 					|| name.equals("diagonal") || name.equals("cholesky_decompose")
 					|| name.equals("qr_thin_Q") || name.equals("qr_thin_R")
 					|| name.equals("inverse") || name.equals("determinant")
-					|| name.equals("log_determinant") || name.equals("mdivide_left_spd")
+					|| name.equals("log_determinant") || name.equals("log_determinant_spd")
+					|| name.equals("mdivide_left_spd") || name.equals("mdivide_right_spd")
+					|| name.equals("inverse_spd") || name.equals("multiply_lower_tri_self_transpose")
+					|| name.equals("symmetrize_from_lower_tri") || name.equals("symmetrize_from_upper_tri")
 					|| name.equals("append_array") || name.equals("append_row") || name.equals("append_col")
 					|| name.equals("head") || name.equals("tail") || name.equals("segment")
 					|| name.equals("block") || name.equals("row") || name.equals("col")
-					|| name.equals("trace") || name.equals("quad_form")
+					|| name.equals("trace") || name.equals("quad_form") || name.equals("trace_quad_form")
+					|| name.equals("trace_gen_quad_form")
 					|| name.equals("diag_pre_multiply") || name.equals("diag_post_multiply")
 					|| name.equals("crossprod") || name.equals("tcrossprod")
 					|| name.equals("columns_dot_product") || name.equals("rows_dot_product")
+					|| name.equals("columns_dot_self") || name.equals("rows_dot_self")
 					|| name.equals("softmax") || name.equals("log_softmax")
 					|| name.equals("cumulative_sum") || name.equals("reverse")
-					|| name.equals("sort_asc") || name.equals("sort_desc")) return null;
+					|| name.equals("sort_asc") || name.equals("sort_desc")
+					|| name.equals("csr_matrix_times_vector") || name.equals("csr_to_dense_matrix")
+					|| name.equals("csr_extract_w") || name.equals("csr_extract_v")
+					|| name.equals("csr_extract_u") || name.equals("algebra_solver")
+					|| name.equals("algebra_solver_newton") || name.equals("ode_rk45")
+					|| name.equals("ode_bdf") || name.equals("dae") || name.equals("to_complex")
+					|| name.equals("get_real") || name.equals("get_imag") || name.equals("conj")
+					|| name.equals("arg") || name.equals("norm") || name.equals("integrate_1d")
+					|| arguments.size() == 1 && (name.equals("min") || name.equals("max")
+							|| name.equals("log_sum_exp"))) return null;
 			if (name.endsWith("_rng") || name.endsWith("_lpdf") || name.endsWith("_lpmf")
 					|| name.endsWith("_lupdf") || name.endsWith("_lupmf")) return null;
 			RuntimeValue[] evaluated = new RuntimeValue[arguments.size()]; RuntimeValue template = null;
@@ -1191,6 +1539,45 @@ public final class ModelScript {
 					: new RuntimeValue(result, template.shape, template.kind, template.arrayRank);
 		}
 		private RuntimeValue structuredFunction(Context context) {
+			if (name.equals("to_complex") && (arguments.size()==1||arguments.size()==2)) {
+				RuntimeValue real=arguments.get(0).evalValue(context);
+				if(arguments.size()==1) return promoteComplex(real,complexKindFor(real.kind),context);
+				RuntimeValue imaginary=arguments.get(1).evalValue(context);
+				if(real.kind!=imaginary.kind||real.arrayRank!=imaginary.arrayRank||!Arrays.equals(real.shape,imaginary.shape))
+					throw new IllegalArgumentException("to_complex arguments must have identical real shapes");
+				Diff[] values=new Diff[real.values.length*2]; for(int i=0;i<real.values.length;i++){values[2*i]=real.values[i];values[2*i+1]=imaginary.values[i];}
+				return new RuntimeValue(values,real.shape,complexKindFor(real.kind),real.arrayRank);
+			}
+			if ((name.equals("get_real")||name.equals("get_imag")||name.equals("conj")
+					||name.equals("abs")||name.equals("arg")||name.equals("norm")
+					||name.equals("exp")||name.equals("log")||name.equals("sqrt")
+					||name.equals("sin")||name.equals("cos")||name.equals("tan")
+					||name.equals("sinh")||name.equals("cosh")||name.equals("tanh"))&&arguments.size()==1) {
+				RuntimeValue input=arguments.get(0).evalValue(context);
+				if(input.isComplex()) return complexFunction(input,context);
+			}
+			if(name.equals("sum")&&arguments.size()==1) {
+				RuntimeValue input=arguments.get(0).evalValue(context);
+				if(input.isComplex()) {
+					Diff real=Diff.constant(0,context.dimension),imaginary=Diff.constant(0,context.dimension);
+					for(int i=0;i<input.logicalSize();i++){real=real.add(input.values[2*i]);imaginary=imaginary.add(input.values[2*i+1]);}
+					return RuntimeValue.complex(real,imaginary);
+				}
+			}
+			if ((name.equals("min") || name.equals("max") || name.equals("log_sum_exp")
+					|| name.equals("mean") || name.equals("variance") || name.equals("sd")
+					|| name.equals("dot_self")) && arguments.size() == 1)
+				return RuntimeValue.scalar(reduction(arguments.get(0).evalValue(context), context));
+			if ((name.equals("distance") || name.equals("squared_distance")) && arguments.size() == 2)
+				return RuntimeValue.scalar(distance(arguments.get(0).evalValue(context),
+						arguments.get(1).evalValue(context), context));
+			if ((name.equals("algebra_solver") || name.equals("algebra_solver_newton"))
+					&& arguments.size() == 5) return algebraSolver(context);
+			if (name.equals("integrate_1d") && (arguments.size() == 6 || arguments.size() == 7))
+				return integrateOneDimension(context);
+			if ((name.equals("ode_rk45") || name.equals("ode_bdf"))
+					&& arguments.size() == 7) return odeSolver(context, name.equals("ode_bdf"));
+			if (name.equals("dae") && arguments.size() == 8) return daeSolver(context);
 			if (name.equals("transpose") && arguments.size() == 1)
 				return new TransposeExpr(arguments.get(0)).evalValue(context);
 			if (name.equals("rep_matrix") && arguments.size() == 3) {
@@ -1238,20 +1625,42 @@ public final class ModelScript {
 				QrPair qr = qrThin(matrix, context);
 				return name.equals("qr_thin_Q") ? qr.q : qr.r;
 			}
-			if (name.equals("inverse") && arguments.size() == 1) {
+			if ((name.equals("inverse") || name.equals("inverse_spd")) && arguments.size() == 1) {
 				RuntimeValue matrix = arguments.get(0).evalValue(context); requireSquareMatrix(matrix, name);
+				if (name.equals("inverse_spd")) cholesky(matrix, context);
 				return inverse(matrix, context);
 			}
-			if ((name.equals("determinant") || name.equals("log_determinant")) && arguments.size() == 1) {
+			if ((name.equals("determinant") || name.equals("log_determinant")
+					|| name.equals("log_determinant_spd")) && arguments.size() == 1) {
 				RuntimeValue matrix = arguments.get(0).evalValue(context); requireSquareMatrix(matrix, name);
+				if (name.equals("log_determinant_spd")) cholesky(matrix, context);
 				Diff determinant = determinant(matrix, context);
-				return RuntimeValue.scalar(name.equals("log_determinant") ? determinant.abs().log() : determinant);
+				return RuntimeValue.scalar(name.startsWith("log_determinant") ? determinant.abs().log() : determinant);
 			}
 			if (name.equals("mdivide_left_spd") && arguments.size() == 2) {
 				RuntimeValue matrix = arguments.get(0).evalValue(context); requireSquareMatrix(matrix, name);
 				RuntimeValue right = arguments.get(1).evalValue(context);
 				return solveSpd(matrix, right, context);
 			}
+			if (name.equals("mdivide_right_spd") && arguments.size() == 2) {
+				RuntimeValue left = arguments.get(0).evalValue(context);
+				RuntimeValue matrix = arguments.get(1).evalValue(context); requireSquareMatrix(matrix, name);
+				RuntimeValue transposed = transposeValue(left, context);
+				RuntimeValue solved = solveSpd(matrix, transposed, context);
+				return transposeValue(solved, context);
+			}
+			if (name.equals("multiply_lower_tri_self_transpose") && arguments.size() == 1) {
+				RuntimeValue matrix = arguments.get(0).evalValue(context); requireMatrix(matrix, name);
+				Diff[] lower = constants(matrix.values.length, 0.0, context);
+				for (int row = 0; row < matrix.rows(); row++)
+					for (int column = 0; column < matrix.columns() && column <= row; column++)
+						lower[row * matrix.columns() + column] = matrix.values[row * matrix.columns() + column];
+				RuntimeValue triangular = new RuntimeValue(lower, matrix.shape, ValueKind.MATRIX, 0);
+				return matrixProduct(triangular, transposeValue(triangular, context), context);
+			}
+			if ((name.equals("symmetrize_from_lower_tri") || name.equals("symmetrize_from_upper_tri"))
+					&& arguments.size() == 1)
+				return symmetrize(arguments.get(0).evalValue(context), name.endsWith("lower_tri"), context);
 			if (name.equals("append_array") && arguments.size() == 2)
 				return appendArray(arguments.get(0).evalValue(context), arguments.get(1).evalValue(context));
 			if ((name.equals("append_row") || name.equals("append_col")) && arguments.size() == 2)
@@ -1293,6 +1702,21 @@ public final class ModelScript {
 				return new BinaryExpr("*", new BinaryExpr("*", new TransposeExpr(right), matrix), right)
 						.evalValue(context);
 			}
+			if (name.equals("trace_quad_form") && arguments.size() == 2) {
+				RuntimeValue matrix = arguments.get(0).evalValue(context);
+				RuntimeValue right = arguments.get(1).evalValue(context);
+				RuntimeValue product = matrixProduct(transposeValue(right, context),
+						matrixProduct(matrix, right, context), context);
+				return RuntimeValue.scalar(trace(product, context));
+			}
+			if (name.equals("trace_gen_quad_form") && arguments.size() == 3) {
+				RuntimeValue diagonal = arguments.get(0).evalValue(context);
+				RuntimeValue matrix = arguments.get(1).evalValue(context);
+				RuntimeValue right = arguments.get(2).evalValue(context);
+				RuntimeValue quadratic = matrixProduct(transposeValue(right, context),
+						matrixProduct(matrix, right, context), context);
+				return RuntimeValue.scalar(trace(matrixProduct(diagonal, quadratic, context), context));
+			}
 			if ((name.equals("diag_pre_multiply") || name.equals("diag_post_multiply"))
 					&& arguments.size() == 2)
 				return diagonalMultiply(arguments.get(0).evalValue(context),
@@ -1307,10 +1731,22 @@ public final class ModelScript {
 					&& arguments.size() == 2)
 				return matrixDotProducts(arguments.get(0).evalValue(context),
 						arguments.get(1).evalValue(context), name.equals("columns_dot_product"), context);
+			if ((name.equals("columns_dot_self") || name.equals("rows_dot_self"))
+					&& arguments.size() == 1) {
+				RuntimeValue matrix = arguments.get(0).evalValue(context);
+				return matrixDotProducts(matrix, matrix, name.equals("columns_dot_self"), context);
+			}
 			if ((name.equals("softmax") || name.equals("log_softmax")
 					|| name.equals("cumulative_sum") || name.equals("reverse")
 					|| name.equals("sort_asc") || name.equals("sort_desc")) && arguments.size() == 1)
 				return sequenceTransform(arguments.get(0).evalValue(context), context);
+			if (name.equals("csr_matrix_times_vector") && arguments.size() == 6)
+				return csrMultiply(context);
+			if (name.equals("csr_to_dense_matrix") && arguments.size() == 5)
+				return csrDense(context);
+			if ((name.equals("csr_extract_w") || name.equals("csr_extract_v")
+					|| name.equals("csr_extract_u")) && arguments.size() == 1)
+				return csrExtract(arguments.get(0).evalValue(context), context);
 			if ((name.equals("multi_normal_lpdf") || name.equals("multi_normal_cholesky_lpdf"))
 					&& arguments.size() == 3)
 				return RuntimeValue.scalar(multiNormal(context, name.endsWith("cholesky_lpdf")));
@@ -1383,6 +1819,96 @@ public final class ModelScript {
 			return new RuntimeValue(result, new int[] {count},
 					columns ? ValueKind.ROW_VECTOR : ValueKind.VECTOR, 0);
 		}
+		private Diff reduction(RuntimeValue input, Context context) {
+			if (input.kind == ValueKind.TUPLE || input.isComplex())
+				throw new IllegalArgumentException(name + " requires a real scalar or container");
+			if (input.values.length == 0) throw new IllegalArgumentException(name + " requires a non-empty input");
+			if (name.equals("min") || name.equals("max")) {
+				Diff result = input.values[0];
+				for (int i = 1; i < input.values.length; i++)
+					if (name.equals("min") ? input.values[i].value < result.value
+							: input.values[i].value > result.value) result = input.values[i];
+				return result;
+			}
+			if (name.equals("log_sum_exp")) {
+				double maximum = Double.NEGATIVE_INFINITY;
+				for (Diff value : input.values) maximum = Math.max(maximum, value.value);
+				Diff sum = Diff.constant(0.0, context.dimension);
+				for (Diff value : input.values) sum = sum.add(value.add(-maximum).exp());
+				return sum.log().add(maximum);
+			}
+			if (name.equals("dot_self")) {
+				Diff[] partials = input.values; double[] derivative = new double[partials.length]; double value = 0;
+				for (int i = 0; i < partials.length; i++) {
+					value += partials[i].value * partials[i].value; derivative[i] = 2 * partials[i].value;
+				}
+				return Diff.atomic(value, partials, derivative);
+			}
+			Diff mean = Diff.constant(0.0, context.dimension);
+			for (Diff value : input.values) mean = mean.add(value);
+			mean = mean.multiply(1.0 / input.values.length);
+			if (name.equals("mean")) return mean;
+			if (input.values.length < 2) throw new IllegalArgumentException(name + " requires at least two values");
+			Diff sumSquares = Diff.constant(0.0, context.dimension);
+			for (Diff value : input.values) {
+				Diff centered = value.subtract(mean); sumSquares = sumSquares.add(centered.multiply(centered));
+			}
+			Diff variance = sumSquares.multiply(1.0 / (input.values.length - 1.0));
+			return name.equals("sd") ? variance.sqrt() : variance;
+		}
+		private Diff distance(RuntimeValue left, RuntimeValue right, Context context) {
+			if (left.kind == ValueKind.TUPLE || right.kind == ValueKind.TUPLE)
+				throw new IllegalArgumentException(name + " does not accept tuples");
+			if (left.values.length != right.values.length || !Arrays.equals(left.shape, right.shape)
+					|| left.kind != right.kind || left.arrayRank != right.arrayRank)
+				throw new IllegalArgumentException(name + " requires identically typed and shaped values");
+			Diff[] inputs = new Diff[left.values.length * 2]; double[] derivative = new double[inputs.length];
+			double squared = 0;
+			for (int i = 0; i < left.values.length; i++) {
+				double difference = left.values[i].value - right.values[i].value; squared += difference * difference;
+				inputs[i] = left.values[i]; inputs[left.values.length + i] = right.values[i];
+				derivative[i] = 2 * difference; derivative[left.values.length + i] = -2 * difference;
+			}
+			Diff result = Diff.atomic(squared, inputs, derivative);
+			return name.equals("distance") ? result.sqrt() : result;
+		}
+		private RuntimeValue transposeValue(RuntimeValue value, Context context) {
+			if (value.kind == ValueKind.VECTOR)
+				return new RuntimeValue(value.values, value.shape, ValueKind.ROW_VECTOR, 0);
+			if (value.kind == ValueKind.ROW_VECTOR)
+				return new RuntimeValue(value.values, value.shape, ValueKind.VECTOR, 0);
+			requireMatrix(value, name); int rows = value.rows(), columns = value.columns();
+			Diff[] result = new Diff[value.values.length];
+			for (int row = 0; row < rows; row++) for (int column = 0; column < columns; column++)
+				result[column * rows + row] = value.values[row * columns + column];
+			return new RuntimeValue(result, new int[] {columns, rows}, ValueKind.MATRIX, 0);
+		}
+		private RuntimeValue matrixProduct(RuntimeValue left, RuntimeValue right, Context context) {
+			if (left.kind == ValueKind.MATRIX && right.kind == ValueKind.MATRIX) {
+				if (left.columns() != right.rows()) throw new IllegalArgumentException(name + " matrix dimension mismatch");
+				Diff[] result = constants(left.rows() * right.columns(), 0.0, context);
+				for (int row = 0; row < left.rows(); row++) for (int column = 0; column < right.columns(); column++)
+					for (int k = 0; k < left.columns(); k++) result[row * right.columns() + column] =
+							result[row * right.columns() + column].add(left.values[row * left.columns() + k]
+									.multiply(right.values[k * right.columns() + column]));
+				return new RuntimeValue(result, new int[] {left.rows(), right.columns()}, ValueKind.MATRIX, 0);
+			}
+			throw new IllegalArgumentException(name + " requires matrix operands");
+		}
+		private Diff trace(RuntimeValue matrix, Context context) {
+			requireMatrix(matrix, name); Diff result = Diff.constant(0.0, context.dimension);
+			for (int i = 0; i < Math.min(matrix.rows(), matrix.columns()); i++)
+				result = result.add(matrix.values[i * matrix.columns() + i]);
+			return result;
+		}
+		private RuntimeValue symmetrize(RuntimeValue matrix, boolean lower, Context context) {
+			requireSquareMatrix(matrix, name); int size = matrix.rows(); Diff[] result = constants(size * size, 0, context);
+			for (int row = 0; row < size; row++) for (int column = 0; column < size; column++)
+				result[row * size + column] = lower
+						? matrix.values[(row >= column ? row * size + column : column * size + row)]
+						: matrix.values[(row <= column ? row * size + column : column * size + row)];
+			return new RuntimeValue(result, matrix.shape, ValueKind.MATRIX, 0);
+		}
 		private int firstExtent(RuntimeValue value) {
 			if (value.shape.length == 0) throw new IllegalArgumentException(name + " requires a sequence");
 			if (value.arrayRank == 0 && value.kind == ValueKind.MATRIX)
@@ -1450,6 +1976,349 @@ public final class ModelScript {
 						? result[i].divide(denominator) : result[i].log().subtract(denominator.log());
 			}
 			return new RuntimeValue(result, value.shape, value.kind, 0);
+		}
+		private RuntimeValue complexFunction(RuntimeValue input,Context context) {
+			boolean realOutput=name.equals("get_real")||name.equals("get_imag")||name.equals("abs")
+					||name.equals("arg")||name.equals("norm");
+			Diff[] result=new Diff[input.logicalSize()*(realOutput?1:2)];
+			for(int i=0;i<input.logicalSize();i++) {
+				Diff real=input.values[2*i],imaginary=input.values[2*i+1];
+				if(name.equals("get_real")) result[i]=real;
+				else if(name.equals("get_imag")) result[i]=imaginary;
+				else if(name.equals("abs")) result[i]=real.multiply(real).add(imaginary.multiply(imaginary)).sqrt();
+				else if(name.equals("norm")) result[i]=real.multiply(real).add(imaginary.multiply(imaginary));
+				else if(name.equals("arg")) {
+					double denominator=real.value*real.value+imaginary.value*imaginary.value;
+					result[i]=Diff.atomic(Math.atan2(imaginary.value,real.value),new Diff[]{real,imaginary},
+							new double[]{-imaginary.value/denominator,real.value/denominator});
+				} else if(name.equals("conj")) {result[2*i]=real;result[2*i+1]=imaginary.negate();}
+				else if(name.equals("exp")) {Diff scale=real.exp();result[2*i]=scale.multiply(imaginary.cos());result[2*i+1]=scale.multiply(imaginary.sin());}
+				else if(name.equals("log")) {result[2*i]=real.multiply(real).add(imaginary.multiply(imaginary)).log().multiply(.5);result[2*i+1]=Diff.atomic(Math.atan2(imaginary.value,real.value),new Diff[]{real,imaginary},new double[]{-imaginary.value/(real.value*real.value+imaginary.value*imaginary.value),real.value/(real.value*real.value+imaginary.value*imaginary.value)});}
+				else if(name.equals("sin")){result[2*i]=real.sin().multiply(imaginary.cosh());result[2*i+1]=real.cos().multiply(imaginary.sinh());}
+				else if(name.equals("cos")){result[2*i]=real.cos().multiply(imaginary.cosh());result[2*i+1]=real.sin().multiply(imaginary.sinh()).negate();}
+				else if(name.equals("sinh")){result[2*i]=real.sinh().multiply(imaginary.cos());result[2*i+1]=real.cosh().multiply(imaginary.sin());}
+				else if(name.equals("cosh")){result[2*i]=real.cosh().multiply(imaginary.cos());result[2*i+1]=real.sinh().multiply(imaginary.sin());}
+				else if(name.equals("tan")||name.equals("tanh")){
+					Diff numeratorReal,numeratorImaginary,denominatorReal,denominatorImaginary;
+					if(name.equals("tan")){numeratorReal=real.sin().multiply(imaginary.cosh());numeratorImaginary=real.cos().multiply(imaginary.sinh());denominatorReal=real.cos().multiply(imaginary.cosh());denominatorImaginary=real.sin().multiply(imaginary.sinh()).negate();}
+					else{numeratorReal=real.sinh().multiply(imaginary.cos());numeratorImaginary=real.cosh().multiply(imaginary.sin());denominatorReal=real.cosh().multiply(imaginary.cos());denominatorImaginary=real.sinh().multiply(imaginary.sin());}
+					Diff denominator=denominatorReal.multiply(denominatorReal).add(denominatorImaginary.multiply(denominatorImaginary));
+					result[2*i]=numeratorReal.multiply(denominatorReal).add(numeratorImaginary.multiply(denominatorImaginary)).divide(denominator);
+					result[2*i+1]=numeratorImaginary.multiply(denominatorReal).subtract(numeratorReal.multiply(denominatorImaginary)).divide(denominator);
+				}
+				else { double magnitude=Math.hypot(real.value,imaginary.value),u=Math.sqrt((magnitude+real.value)/2),v=Math.copySign(Math.sqrt(Math.max(0,(magnitude-real.value)/2)),imaginary.value); double denominator=2*(u*u+v*v); result[2*i]=Diff.atomic(u,new Diff[]{real,imaginary},new double[]{u/denominator,v/denominator});result[2*i+1]=Diff.atomic(v,new Diff[]{real,imaginary},new double[]{-v/denominator,u/denominator}); }
+			}
+			return new RuntimeValue(result,input.shape,realOutput?realKindFor(input.kind):input.kind,input.arrayRank);
+		}
+		private RuntimeValue csrMultiply(Context context) {
+			int rows = checkedPositiveSize(arguments.get(0).eval(context).value, name);
+			int columns = checkedPositiveSize(arguments.get(1).eval(context).value, name);
+			RuntimeValue weights = arguments.get(2).evalValue(context);
+			RuntimeValue columnIndex = arguments.get(3).evalValue(context);
+			RuntimeValue rowStart = arguments.get(4).evalValue(context);
+			RuntimeValue vector = arguments.get(5).evalValue(context); requireVector(vector, name);
+			int[] v = integerArray(columnIndex, name), u = integerArray(rowStart, name);
+			validateCsr(rows, columns, weights.values.length, v, u);
+			if (vector.values.length != columns) throw new IllegalArgumentException(name+" vector length mismatch");
+			Diff[] result = constants(rows, 0.0, context);
+			for (int row = 0; row < rows; row++) for (int offset = u[row]-1; offset < u[row+1]-1; offset++)
+				result[row] = result[row].add(weights.values[offset].multiply(vector.values[v[offset]-1]));
+			return new RuntimeValue(result, new int[] {rows}, ValueKind.VECTOR, 0);
+		}
+		private RuntimeValue csrDense(Context context) {
+			int rows = checkedPositiveSize(arguments.get(0).eval(context).value, name);
+			int columns = checkedPositiveSize(arguments.get(1).eval(context).value, name);
+			RuntimeValue weights = arguments.get(2).evalValue(context);
+			int[] v = integerArray(arguments.get(3).evalValue(context), name);
+			int[] u = integerArray(arguments.get(4).evalValue(context), name);
+			validateCsr(rows, columns, weights.values.length, v, u);
+			Diff[] result = constants(rows*columns, 0.0, context);
+			for (int row = 0; row < rows; row++) for (int offset = u[row]-1; offset < u[row+1]-1; offset++)
+				result[row*columns+v[offset]-1] = result[row*columns+v[offset]-1].add(weights.values[offset]);
+			return new RuntimeValue(result, new int[] {rows, columns}, ValueKind.MATRIX, 0);
+		}
+		private RuntimeValue csrExtract(RuntimeValue matrix, Context context) {
+			requireMatrix(matrix, name); int nonzero = 0;
+			for (Diff value : matrix.values) if (value.value != 0.0) nonzero++;
+			if (name.equals("csr_extract_w")) {
+				Diff[] result = new Diff[nonzero]; int output = 0;
+				for (Diff value : matrix.values) if (value.value != 0.0) result[output++] = value;
+				return new RuntimeValue(result, new int[] {nonzero}, ValueKind.VECTOR, 0);
+			}
+			if (name.equals("csr_extract_v")) {
+				Diff[] result = new Diff[nonzero]; int output = 0;
+				for (int row = 0; row < matrix.rows(); row++) for (int column = 0; column < matrix.columns(); column++)
+					if (matrix.values[row*matrix.columns()+column].value != 0.0)
+						result[output++] = Diff.constant(column+1, context.dimension);
+				return new RuntimeValue(result, new int[] {nonzero}, ValueKind.SCALAR, 1);
+			}
+			Diff[] result = new Diff[matrix.rows()+1]; int offset = 1; result[0] = Diff.constant(1, context.dimension);
+			for (int row = 0; row < matrix.rows(); row++) {
+				for (int column = 0; column < matrix.columns(); column++)
+					if (matrix.values[row*matrix.columns()+column].value != 0.0) offset++;
+				result[row+1] = Diff.constant(offset, context.dimension);
+			}
+			return new RuntimeValue(result, new int[] {result.length}, ValueKind.SCALAR, 1);
+		}
+		private int[] integerArray(RuntimeValue value, String function) {
+			int[] result = new int[value.values.length];
+			for (int i = 0; i < result.length; i++) {
+				double element = value.values[i].value;
+				if (element != Math.rint(element) || element < Integer.MIN_VALUE || element > Integer.MAX_VALUE)
+					throw new IllegalArgumentException(function+" CSR indexes must be integers");
+				result[i] = (int)element;
+			}
+			return result;
+		}
+		private void validateCsr(int rows, int columns, int nonzero, int[] v, int[] u) {
+			if (v.length != nonzero || u.length != rows+1 || u[0] != 1 || u[rows] != nonzero+1)
+				throw new IllegalArgumentException(name+" invalid CSR storage lengths or row endpoints");
+			for (int row = 0; row < rows; row++) if (u[row] > u[row+1])
+				throw new IllegalArgumentException(name+" CSR row starts must be nondecreasing");
+			for (int index : v) if (index < 1 || index > columns)
+				throw new IllegalArgumentException(name+" CSR column index outside 1..columns");
+		}
+		private RuntimeValue integrateOneDimension(Context context) {
+			String function = functionReference(arguments.get(0), name);
+			requireDataArgument(context, 4); requireDataArgument(context, 5);
+			if (arguments.size() == 7) requireDataArgument(context, 6);
+			Diff lower = arguments.get(1).eval(context), upper = arguments.get(2).eval(context);
+			RuntimeValue parameters = arguments.get(3).evalValue(context);
+			RuntimeValue realData = arguments.get(4).evalValue(context);
+			RuntimeValue intData = arguments.get(5).evalValue(context);
+			if (parameters.kind != ValueKind.SCALAR || parameters.arrayRank != 1
+					|| realData.kind != ValueKind.SCALAR || realData.arrayRank != 1
+					|| intData.kind != ValueKind.SCALAR || intData.arrayRank != 1)
+				throw new IllegalArgumentException("integrate_1d expects real parameter/data arrays and an int data array");
+			double relative = arguments.size() == 7 ? arguments.get(6).eval(context).value : 1e-8;
+			if (!(relative > 0) || !Double.isFinite(relative))
+				throw new IllegalArgumentException("integrate_1d relative tolerance must be finite and positive");
+			double[] theta = values(parameters.values), xReal = values(realData.values), xInteger = values(intData.values);
+			double integral, lowerDerivative, upperDerivative; double[] thetaDerivative = new double[theta.length];
+			Diff.suspendReverse();
+			try {
+				integral = integrateFunction(function, context, lower.value, upper.value, theta, xReal, xInteger, relative);
+				for (int parameter = 0; parameter < theta.length; parameter++) {
+					double step = 1e-6 * Math.max(1.0, Math.abs(theta[parameter]));
+					double[] plus = theta.clone(), minus = theta.clone(); plus[parameter] += step; minus[parameter] -= step;
+					thetaDerivative[parameter] = (integrateFunction(function, context, lower.value, upper.value,
+							plus, xReal, xInteger, relative) - integrateFunction(function, context, lower.value, upper.value,
+							minus, xReal, xInteger, relative)) / (2 * step);
+				}
+				lowerDerivative = Double.isFinite(lower.value)
+						? -integrand(function, context, lower.value, lower.value, upper.value, theta, xReal, xInteger) : 0;
+				upperDerivative = Double.isFinite(upper.value)
+						? integrand(function, context, upper.value, lower.value, upper.value, theta, xReal, xInteger) : 0;
+			} finally { Diff.resumeReverse(); }
+			Diff[] inputs = new Diff[theta.length + 2]; double[] partials = new double[inputs.length];
+			inputs[0] = lower; inputs[1] = upper; partials[0] = lowerDerivative; partials[1] = upperDerivative;
+			for (int i = 0; i < theta.length; i++) { inputs[i + 2] = parameters.values[i]; partials[i + 2] = thetaDerivative[i]; }
+			return RuntimeValue.scalar(Diff.atomic(integral, inputs, partials));
+		}
+		private double integrateFunction(String function, Context context, double lower, double upper,
+				double[] theta, double[] realData, double[] intData, double relative) {
+			IntegrationResult result = Integrate.integrate(x -> integrand(function, context, x, lower, upper,
+					theta, realData, intData), lower, upper, relative, relative, 1000);
+			if (!result.isSuccess()) throw new ArithmeticException("integrate_1d failed with status " + result.ier);
+			return result.result;
+		}
+		private double integrand(String function, Context context, double x, double lower, double upper,
+				double[] theta, double[] realData, double[] intData) {
+			double complement = Double.isFinite(lower) && Double.isFinite(upper)
+					? Math.min(Math.abs(x - lower), Math.abs(upper - x)) : Double.NaN;
+			RuntimeValue result = invokeHigherOrder(function, context,
+					plain(new double[] {x}, ValueKind.SCALAR, 0),
+					plain(new double[] {complement}, ValueKind.SCALAR, 0),
+					plain(theta, ValueKind.SCALAR, 1), plain(realData, ValueKind.SCALAR, 1),
+					plain(intData, ValueKind.SCALAR, 1));
+			return result.scalar(function + " integrand return").value;
+		}
+		private RuntimeValue algebraSolver(Context context) {
+			String function = functionReference(arguments.get(0), name);
+			requireDataArgument(context, 1); requireDataArgument(context, 3); requireDataArgument(context, 4);
+			RuntimeValue initial = arguments.get(1).evalValue(context); requireKind(initial, ValueKind.VECTOR, name);
+			RuntimeValue parameters = arguments.get(2).evalValue(context); requireKind(parameters, ValueKind.VECTOR, name);
+			RuntimeValue realData = arguments.get(3).evalValue(context);
+			RuntimeValue intData = arguments.get(4).evalValue(context);
+			double[] initialValues = values(initial.values), parameterValues = values(parameters.values);
+			double[] realValues = values(realData.values), intValues = values(intData.values);
+			SensitivityResult solved;
+			Diff.suspendReverse();
+			try {
+				solved = AlgebraicSolver.solveWithSensitivities((state, theta, ignored, residual) -> {
+					RuntimeValue result = invokeHigherOrder(function, context,
+							plain(state, ValueKind.VECTOR, 0), plain(theta, ValueKind.VECTOR, 0),
+							plain(realValues, ValueKind.SCALAR, 1), plain(intValues, ValueKind.SCALAR, 1));
+					requireKind(result, ValueKind.VECTOR, function); copyPlain(result, residual, function);
+				}, initialValues, parameterValues, new double[0], AlgebraicSolver.Options.defaults());
+			} finally { Diff.resumeReverse(); }
+			double[] roots = solved.values()[0]; double[][] sensitivity = solved.sensitivities()[0];
+			Diff[] result = new Diff[roots.length];
+			for (int row = 0; row < result.length; row++) result[row] = Diff.atomic(roots[row], parameters.values, sensitivity[row]);
+			return new RuntimeValue(result, new int[] {result.length}, ValueKind.VECTOR, 0);
+		}
+		private RuntimeValue odeSolver(Context context, boolean stiff) {
+			String function = functionReference(arguments.get(0), name);
+			requireDataArgument(context, 2); requireDataArgument(context, 3);
+			requireDataArgument(context, 5); requireDataArgument(context, 6);
+			RuntimeValue initial = arguments.get(1).evalValue(context); requireKind(initial, ValueKind.VECTOR, name);
+			double initialTime = arguments.get(2).eval(context).value;
+			double[] times = values(arguments.get(3).evalValue(context).values);
+			RuntimeValue parameters = arguments.get(4).evalValue(context); requireKind(parameters, ValueKind.VECTOR, name);
+			double[] realData = values(arguments.get(5).evalValue(context).values);
+			double[] intData = values(arguments.get(6).evalValue(context).values);
+			double[] initialValues = values(initial.values), parameterValues = values(parameters.values);
+			jdistlib.inference.solver.OdeSystem system = (time, state, theta, ignored, derivative) -> {
+				RuntimeValue result = invokeHigherOrder(function, context,
+						plain(new double[] {time}, ValueKind.SCALAR, 0), plain(state, ValueKind.VECTOR, 0),
+						plain(theta, ValueKind.VECTOR, 0), plain(realData, ValueKind.SCALAR, 1),
+						plain(intData, ValueKind.SCALAR, 1));
+				requireKind(result, ValueKind.VECTOR, function); copyPlain(result, derivative, function);
+			};
+			double[][] trajectory; double[][][] thetaSensitivity; double[][][] initialSensitivity;
+			Diff.suspendReverse();
+			try {
+				if (stiff) {
+					trajectory = StiffOdeSolver.integrate(system, initialValues, initialTime, times,
+							parameterValues, new double[0], StiffOdeSolver.Options.defaults());
+					thetaSensitivity = finiteOdeParameterSensitivity(system, initialValues, initialTime,
+							times, parameterValues, trajectory, true);
+				} else {
+					SensitivityResult solved = OdeSolver.integrateWithSensitivities(system, initialValues,
+							initialTime, times, parameterValues, new double[0], OdeSolver.Options.defaults());
+					trajectory = solved.values(); thetaSensitivity = solved.sensitivities();
+				}
+				initialSensitivity = finiteOdeInitialSensitivity(system, initialValues,
+						initialTime, times, parameterValues, trajectory, stiff);
+			} finally { Diff.resumeReverse(); }
+			return solverTrajectory(trajectory, initialSensitivity, thetaSensitivity, initial, parameters);
+		}
+		private RuntimeValue daeSolver(Context context) {
+			String function = functionReference(arguments.get(0), name);
+			requireDataArgument(context, 3); requireDataArgument(context, 4);
+			requireDataArgument(context, 6); requireDataArgument(context, 7);
+			RuntimeValue initial = arguments.get(1).evalValue(context); requireKind(initial, ValueKind.VECTOR, name);
+			RuntimeValue initialDerivative = arguments.get(2).evalValue(context); requireKind(initialDerivative, ValueKind.VECTOR, name);
+			double initialTime = arguments.get(3).eval(context).value;
+			double[] times = values(arguments.get(4).evalValue(context).values);
+			RuntimeValue parameters = arguments.get(5).evalValue(context); requireKind(parameters, ValueKind.VECTOR, name);
+			double[] realData = values(arguments.get(6).evalValue(context).values);
+			double[] intData = values(arguments.get(7).evalValue(context).values);
+			double[] initialValues = values(initial.values), derivativeValues = values(initialDerivative.values);
+			double[] parameterValues = values(parameters.values);
+			jdistlib.inference.solver.DaeSystem system = (time, state, derivative, theta, ignored, residual) -> {
+				RuntimeValue result = invokeHigherOrder(function, context,
+						plain(new double[] {time}, ValueKind.SCALAR, 0), plain(state, ValueKind.VECTOR, 0),
+						plain(derivative, ValueKind.VECTOR, 0), plain(theta, ValueKind.VECTOR, 0),
+						plain(realData, ValueKind.SCALAR, 1), plain(intData, ValueKind.SCALAR, 1));
+				requireKind(result, ValueKind.VECTOR, function); copyPlain(result, residual, function);
+			};
+			double[][] trajectory; double[][][] parameterSensitivity; double[][][] initialSensitivity;
+			Diff.suspendReverse();
+			try {
+				double[] consistency = new double[initialValues.length];
+				system.residual(initialTime, initialValues, derivativeValues, parameterValues, new double[0], consistency);
+				if (AlgebraicSolver.infinityNorm(consistency) > 1e-5)
+					throw new IllegalArgumentException("dae initial derivative is inconsistent with the residual");
+				SensitivityResult solved = DaeSolver.integrateWithSensitivities(system, initialValues,
+						initialTime, times, parameterValues, new double[0], AlgebraicSolver.Options.defaults());
+				trajectory = solved.values(); parameterSensitivity = solved.sensitivities();
+				initialSensitivity = finiteDaeInitialSensitivity(system, initialValues,
+						initialTime, times, parameterValues, trajectory);
+			} finally { Diff.resumeReverse(); }
+			return solverTrajectory(trajectory, initialSensitivity, parameterSensitivity, initial, parameters);
+		}
+		private RuntimeValue invokeHigherOrder(String function, Context context, RuntimeValue... values) {
+			List<UserFunction> overloads = context.functions == null ? null : context.functions.get(function);
+			if (overloads == null) throw new IllegalArgumentException("unknown higher-order function: "+function);
+			for (UserFunction candidate : overloads) {
+				if (candidate.arguments.length != values.length) continue; boolean compatible = true;
+				for (int i = 0; i < values.length; i++) if (!candidate.arguments[i].type.accepts(values[i])) {
+					compatible = false; break;
+				}
+				if (compatible) {
+					boolean[] data = new boolean[values.length]; Arrays.fill(data, true);
+					return candidate.invoke(values, data, context);
+				}
+			}
+			throw new IllegalArgumentException("no matching higher-order signature for "+function);
+		}
+		private String functionReference(Expr expression, String solver) {
+			if (!(expression instanceof VariableExpr) || !((VariableExpr)expression).indices.isEmpty())
+				throw new IllegalArgumentException(solver+" first argument must be a function name");
+			return ((VariableExpr)expression).name;
+		}
+		private void requireDataArgument(Context context, int index) {
+			if (!arguments.get(index).dataOnly(context))
+				throw new IllegalArgumentException(name + " argument " + (index + 1) + " must be data-only");
+		}
+		private RuntimeValue plain(double[] values, ValueKind kind, int arrayRank) {
+			Diff[] result = new Diff[values.length];
+			for (int i = 0; i < result.length; i++) result[i] = Diff.constant(values[i], 0);
+			int[] shape = kind == ValueKind.SCALAR && arrayRank == 0 ? new int[0] : new int[] {values.length};
+			return new RuntimeValue(result, shape, kind, arrayRank);
+		}
+		private void copyPlain(RuntimeValue value, double[] target, String function) {
+			if (value.values.length != target.length) throw new IllegalArgumentException(function+" return length mismatch");
+			for (int i = 0; i < target.length; i++) target[i] = value.values[i].value;
+		}
+		private void requireKind(RuntimeValue value, ValueKind kind, String function) {
+			if (value.kind != kind || value.arrayRank != 0)
+				throw new IllegalArgumentException(function+" requires "+kind.name().toLowerCase());
+		}
+		private double[][][] finiteOdeInitialSensitivity(jdistlib.inference.solver.OdeSystem system,
+				double[] initial, double initialTime, double[] times, double[] parameters,
+				double[][] baseline, boolean stiff) {
+			double[][][] result = new double[times.length][initial.length][initial.length];
+			for (int column = 0; column < initial.length; column++) {
+				double[] shifted = initial.clone(); double step = 1e-6*Math.max(1.0,Math.abs(initial[column])); shifted[column] += step;
+				double[][] value = stiff ? StiffOdeSolver.integrate(system, shifted, initialTime, times, parameters,
+						new double[0], StiffOdeSolver.Options.defaults()) : OdeSolver.integrate(system, shifted,
+						initialTime, times, parameters, new double[0], OdeSolver.Options.defaults());
+				for (int output = 0; output < times.length; output++) for (int row = 0; row < initial.length; row++)
+					result[output][row][column] = (value[output][row]-baseline[output][row])/step;
+			}
+			return result;
+		}
+		private double[][][] finiteOdeParameterSensitivity(jdistlib.inference.solver.OdeSystem system,
+				double[] initial, double initialTime, double[] times, double[] parameters,
+				double[][] baseline, boolean stiff) {
+			double[][][] result = new double[times.length][initial.length][parameters.length];
+			for (int column = 0; column < parameters.length; column++) {
+				double[] shifted = parameters.clone(); double step = 1e-6*Math.max(1.0,Math.abs(parameters[column])); shifted[column] += step;
+				double[][] value = stiff ? StiffOdeSolver.integrate(system, initial, initialTime, times, shifted,
+						new double[0], StiffOdeSolver.Options.defaults()) : OdeSolver.integrate(system, initial,
+						initialTime, times, shifted, new double[0], OdeSolver.Options.defaults());
+				for (int output = 0; output < times.length; output++) for (int row = 0; row < initial.length; row++)
+					result[output][row][column] = (value[output][row]-baseline[output][row])/step;
+			}
+			return result;
+		}
+		private double[][][] finiteDaeInitialSensitivity(jdistlib.inference.solver.DaeSystem system,
+				double[] initial, double initialTime, double[] times, double[] parameters, double[][] baseline) {
+			double[][][] result = new double[times.length][initial.length][initial.length];
+			for (int column = 0; column < initial.length; column++) {
+				double[] shifted = initial.clone(); double step = 1e-6*Math.max(1.0,Math.abs(initial[column])); shifted[column] += step;
+				double[][] value = DaeSolver.integrate(system, shifted, initialTime, times, parameters,
+						new double[0], AlgebraicSolver.Options.defaults());
+				for (int output = 0; output < times.length; output++) for (int row = 0; row < initial.length; row++)
+					result[output][row][column] = (value[output][row]-baseline[output][row])/step;
+			}
+			return result;
+		}
+		private RuntimeValue solverTrajectory(double[][] values, double[][][] initialSensitivity,
+				double[][][] parameterSensitivity, RuntimeValue initial, RuntimeValue parameters) {
+			int outputs = values.length, states = initial.values.length;
+			Diff[] result = new Diff[outputs*states]; Diff[] inputs = new Diff[states+parameters.values.length];
+			System.arraycopy(initial.values,0,inputs,0,states);
+			System.arraycopy(parameters.values,0,inputs,states,parameters.values.length);
+			for (int output = 0; output < outputs; output++) for (int state = 0; state < states; state++) {
+				double[] partials = new double[inputs.length];
+				System.arraycopy(initialSensitivity[output][state],0,partials,0,states);
+				System.arraycopy(parameterSensitivity[output][state],0,partials,states,parameters.values.length);
+				result[output*states+state] = Diff.atomic(values[output][state],inputs,partials);
+			}
+			return new RuntimeValue(result,new int[] {outputs,states},ValueKind.VECTOR,1);
 		}
 		private int checkedPositiveSize(double value, String function) {
 			if (value != Math.rint(value) || value < 1 || value > 100000)
@@ -1674,16 +2543,20 @@ public final class ModelScript {
 				Diff[] rightValues = arguments.get(1).evalVector(context);
 				if (leftValues.length != rightValues.length)
 					throw new IllegalArgumentException("dot_product arguments must have equal lengths");
-				Diff result = Diff.constant(0.0, context.dimension);
-				for (int i = 0; i < leftValues.length; i++)
-					result = result.add(leftValues[i].multiply(rightValues[i]));
-				return result;
+				Diff[] inputs = new Diff[leftValues.length * 2];
+				double[] partials = new double[inputs.length]; double value = 0.0;
+				for (int i = 0; i < leftValues.length; i++) {
+					inputs[i] = leftValues[i]; inputs[leftValues.length + i] = rightValues[i];
+					partials[i] = rightValues[i].value; partials[leftValues.length + i] = leftValues[i].value;
+					value += leftValues[i].value * rightValues[i].value;
+				}
+				return Diff.atomic(value, inputs, partials);
 			}
 			if ((name.equals("num_elements") || name.equals("size") || name.equals("rows")
 					|| name.equals("cols")) && arguments.size() == 1) {
 				RuntimeValue value = arguments.get(0).evalValue(context);
 				if (name.equals("num_elements"))
-					return Diff.constant(value.values.length, context.dimension);
+					return Diff.constant(value.logicalSize(), context.dimension);
 				int[] shape = value.shape;
 				int extent = name.equals("cols") ? shape[shape.length - 1]
 						: name.equals("rows") && value.kind == ValueKind.MATRIX ? shape[shape.length - 2]
@@ -1708,7 +2581,7 @@ public final class ModelScript {
 				int promotions = 0; boolean compatible = true;
 				for (int i = 0; i < values.length; i++) {
 					FunctionArgument formal = candidate.arguments[i]; RuntimeValue actual = values[i];
-					if (formal.type.kind != actual.kind || formal.type.arrayRank != actual.arrayRank) {
+					if (!formal.type.accepts(actual)) {
 						compatible = false; break;
 					}
 					boolean integerArgument = isIntegerArgument(arguments.get(i), actual, context);
@@ -2141,11 +3014,80 @@ public final class ModelScript {
 		}
 	}
 	private static final class Diff {
-		final double value; final double[] gradient;
-		Diff(double value, double[] gradient) { this.value = value; this.gradient = gradient; }
-		static Diff constant(double value, int dimension) { return new Diff(value, new double[dimension]); }
+		private static final class ReverseContext {
+			ReverseTape tape; int dimension; int[] handles = new int[128];
+			int[] coordinates = new int[128]; int handleCount; int suspensionDepth;
+			void begin(ReverseTape value, int dimensions) {
+				if (tape != null) throw new IllegalStateException("nested reverse evaluation");
+				tape = value; dimension = dimensions; handleCount = 0;
+			}
+			void register(int handle, int coordinate) {
+				if (handleCount == handles.length) {
+					handles = Arrays.copyOf(handles, handles.length * 2);
+					coordinates = Arrays.copyOf(coordinates, coordinates.length * 2);
+				}
+				handles[handleCount] = handle; coordinates[handleCount++] = coordinate;
+			}
+			void clear() { tape = null; dimension = 0; handleCount = 0; suspensionDepth = 0; }
+			boolean active() { return tape != null && suspensionDepth == 0; }
+		}
+		private static final ThreadLocal<ReverseContext> REVERSE =
+				new ThreadLocal<ReverseContext>() {
+					@Override protected ReverseContext initialValue() { return new ReverseContext(); }
+				};
+		final double value; final double[] gradient; final int node;
+		Diff(double value, double[] gradient) { this(value, gradient, -1); }
+		Diff(double value, double[] gradient, int node) {
+			this.value = value; this.gradient = gradient; this.node = node;
+		}
+		static void beginReverse(ReverseTape tape, int dimension) {
+			REVERSE.get().begin(tape, dimension);
+		}
+		static void endReverse() { REVERSE.get().clear(); }
+		static void suspendReverse() { REVERSE.get().suspensionDepth++; }
+		static void resumeReverse() {
+			ReverseContext reverse = REVERSE.get();
+			if (reverse.suspensionDepth < 1) throw new IllegalStateException("reverse evaluation is not suspended");
+			reverse.suspensionDepth--;
+		}
+		static Diff constant(double value, int dimension) {
+			ReverseContext reverse = REVERSE.get();
+			return !reverse.active() ? new Diff(value, new double[dimension])
+					: new Diff(value, null, reverse.tape.constant(value));
+		}
+		static Diff variable(double value, int dimension, int coordinate) {
+			ReverseContext reverse = REVERSE.get();
+			if (!reverse.active()) {
+				double[] derivative = new double[dimension]; derivative[coordinate] = 1.0;
+				return new Diff(value, derivative);
+			}
+			int handle = reverse.tape.variable(value); reverse.register(handle, coordinate);
+			return new Diff(value, null, handle);
+		}
+		static void reverseInto(Diff output, double[] gradient) {
+			ReverseContext reverse = REVERSE.get();
+			if (reverse.tape == null || output.node < 0)
+				throw new IllegalStateException("reverse output is not on the active tape");
+			reverse.tape.reverse(output.node);
+			for (int i = 0; i < reverse.handleCount; i++)
+				gradient[reverse.coordinates[i]] += reverse.tape.adjoint(reverse.handles[i]);
+		}
+		static Diff atomic(double value, Diff[] inputs, double[] partials) {
+			ReverseContext reverse = REVERSE.get();
+			if (!reverse.active()) {
+				double[] derivative = new double[reverse.dimension];
+				if (inputs.length > 0) derivative = new double[inputs[0].gradient.length];
+				for (int input = 0; input < inputs.length; input++) for (int i = 0; i < derivative.length; i++)
+					derivative[i] += partials[input] * inputs[input].gradient[i];
+				return new Diff(value, derivative);
+			}
+			int[] parents = new int[inputs.length];
+			for (int i = 0; i < inputs.length; i++) parents[i] = inputs[i].node;
+			return new Diff(value, null, reverse.tape.atomic(value, parents, partials));
+		}
+		int dimension() { return gradient == null ? REVERSE.get().dimension : gradient.length; }
 		Diff add(Diff other) { return combine(value + other.value, 1.0, other, 1.0); }
-		Diff add(double other) { return new Diff(value + other, gradient.clone()); }
+		Diff add(double other) { return scale(value + other, 1.0); }
 		Diff subtract(Diff other) { return combine(value - other.value, 1.0, other, -1.0); }
 		Diff multiply(Diff other) { return combine(value * other.value, other.value, other, value); }
 		Diff multiply(double other) { return scale(value * other, other); }
@@ -2178,22 +3120,34 @@ public final class ModelScript {
 		Diff digamma() { return scale(psi(value), jdistlib.math.PolyGamma.trigamma(value)); }
 		Diff trigamma() { return scale(jdistlib.math.PolyGamma.trigamma(value), tetragamma(value)); }
 		Diff pow(Diff other) {
-			if (other.constantGradient() && other.value == Math.rint(other.value)) {
+			if (other.value == Math.rint(other.value) && (other.constantGradient() || value <= 0.0)) {
 				double result = Math.pow(value, other.value);
-				return scale(result, other.value * Math.pow(value, other.value - 1.0));
+				double baseDerivative = other.value == 0.0 ? 0.0
+						: other.value * Math.pow(value, other.value - 1.0);
+				return combine(result, baseDerivative, other, 0.0);
 			}
 			return log().multiply(other).exp();
 		}
 		private boolean constantGradient() {
+			if (gradient == null) return false;
 			for (double derivative : gradient) if (derivative != 0.0) return false;
 			return true;
 		}
 		private Diff scale(double result, double multiplier) {
+			if (gradient == null) {
+				ReverseTape tape = REVERSE.get().tape;
+				return new Diff(result, null, tape.customUnary(node, result, multiplier));
+			}
 			double[] derivative = new double[gradient.length];
 			for (int i = 0; i < derivative.length; i++) derivative[i] = multiplier * gradient[i];
 			return new Diff(result, derivative);
 		}
 		private Diff combine(double result, double ownMultiplier, Diff other, double otherMultiplier) {
+			if (gradient == null) {
+				ReverseTape tape = REVERSE.get().tape;
+				return new Diff(result, null, tape.customBinary(node, other.node, result,
+						ownMultiplier, otherMultiplier));
+			}
 			double[] derivative = new double[gradient.length];
 			for (int i = 0; i < derivative.length; i++)
 				derivative[i] = ownMultiplier * gradient[i] + otherMultiplier * other.gradient[i];
@@ -2206,9 +3160,11 @@ public final class ModelScript {
 			return x[0].multiply(x[0]).multiply(-0.5).add(-0.5 * Math.log(2.0 * Math.PI));
 		if (distribution.equals("normal") && x.length == 3) {
 			if (!positive(x[2])) return outside(x);
-			Diff z = x[0].subtract(x[1]).divide(x[2]);
-			return x[2].log().negate().add(-0.5 * Math.log(2.0 * Math.PI))
-					.subtract(z.multiply(z).multiply(0.5));
+			double difference = x[0].value - x[1].value;
+			double inverseScale = 1.0 / x[2].value, z = difference * inverseScale;
+			double value = -Math.log(x[2].value) - 0.5 * Math.log(2.0 * Math.PI) - 0.5 * z * z;
+			return Diff.atomic(value, x, new double[] {-z * inverseScale, z * inverseScale,
+					(z * z - 1.0) * inverseScale});
 		}
 		if (distribution.equals("lognormal") && x.length == 3) {
 			if (!positive(x[0]) || !positive(x[2])) return outside(x);
@@ -2218,17 +3174,23 @@ public final class ModelScript {
 		}
 		if (distribution.equals("student_t") && x.length == 4) {
 			if (!positive(x[1]) || !positive(x[3])) return outside(x);
-			Diff z = x[0].subtract(x[2]).divide(x[3]);
-			return x[1].add(1.0).multiply(0.5).lgamma().subtract(x[1].multiply(0.5).lgamma())
-					.subtract(x[1].multiply(Math.PI).log().multiply(0.5)).subtract(x[3].log())
-					.subtract(x[1].add(1.0).multiply(0.5)
-							.multiply(z.multiply(z).divide(x[1]).log1p()));
+			double nu = x[1].value, sigma = x[3].value;
+			double z = (x[0].value - x[2].value) / sigma, z2 = z * z;
+			double value = lgammafn(0.5 * (nu + 1.0)) - lgammafn(0.5 * nu)
+					- 0.5 * Math.log(nu * Math.PI) - Math.log(sigma)
+					- 0.5 * (nu + 1.0) * Math.log1p(z2 / nu);
+			double locationDerivative = (nu + 1.0) * z / (sigma * (nu + z2));
+			double nuDerivative = 0.5 * psi(0.5 * (nu + 1.0)) - 0.5 * psi(0.5 * nu)
+					- 0.5 / nu - 0.5 * Math.log1p(z2 / nu)
+					+ 0.5 * (nu + 1.0) * z2 / (nu * (nu + z2));
+			return Diff.atomic(value, x, new double[] {-locationDerivative, nuDerivative,
+					locationDerivative, (-1.0 + (nu + 1.0) * z2 / (nu + z2)) / sigma});
 		}
 		if (distribution.equals("cauchy") && x.length == 3) {
 			if (!positive(x[2])) return outside(x);
 			Diff z = x[0].subtract(x[1]).divide(x[2]);
 			return x[2].log().negate().add(-Math.log(Math.PI))
-					.subtract(Diff.constant(1.0, x[0].gradient.length).add(z.multiply(z)).log());
+					.subtract(Diff.constant(1.0, x[0].dimension()).add(z.multiply(z)).log());
 		}
 		if (distribution.equals("double_exponential") && x.length == 3) {
 			if (!positive(x[2])) return outside(x);
@@ -2281,12 +3243,12 @@ public final class ModelScript {
 		}
 		if (distribution.equals("chi_square") && x.length == 2) {
 			if (!positive(x[0]) || !positive(x[1])) return outside(x);
-			Diff shape = x[1].multiply(0.5); Diff rate = Diff.constant(0.5, x[0].gradient.length);
+			Diff shape = x[1].multiply(0.5); Diff rate = Diff.constant(0.5, x[0].dimension());
 			return shape.multiply(rate.log()).subtract(shape.lgamma())
 					.add(shape.subtract(one(x)).multiply(x[0].log())).subtract(rate.multiply(x[0]));
 		}
 		if (distribution.equals("inv_chi_square") && x.length == 2) {
-			Diff[] expanded = {x[0], x[1].multiply(0.5), Diff.constant(0.5, x[0].gradient.length)};
+			Diff[] expanded = {x[0], x[1].multiply(0.5), Diff.constant(0.5, x[0].dimension())};
 			return logProbability("inv_gamma", expanded);
 		}
 		if (distribution.equals("scaled_inv_chi_square") && x.length == 3) {
@@ -2388,7 +3350,7 @@ public final class ModelScript {
 		if (distribution.equals("poisson") && x.length == 2) {
 			if (!nonnegativeInteger(x[0]) || x[1].value < 0.0) return outside(x);
 			if (x[1].value == 0.0)
-				return x[0].value == 0.0 ? Diff.constant(0.0, x[0].gradient.length) : outside(x);
+				return x[0].value == 0.0 ? Diff.constant(0.0, x[0].dimension()) : outside(x);
 			return x[0].multiply(x[1].log()).subtract(x[1]).subtract(x[0].add(1.0).lgamma());
 		}
 		if (distribution.equals("poisson_log") && x.length == 2) {
@@ -2515,11 +3477,11 @@ public final class ModelScript {
 		return integer(value) && value.value >= lower && value.value <= upper;
 	}
 	private static Diff outside(Diff[] values) {
-		int dimension = values.length == 0 ? 0 : values[0].gradient.length;
+		int dimension = values.length == 0 ? 0 : values[0].dimension();
 		return Diff.constant(Double.NEGATIVE_INFINITY, dimension);
 	}
 	private static Diff one(Diff[] values) {
-		return Diff.constant(1.0, values[0].gradient.length);
+		return Diff.constant(1.0, values[0].dimension());
 	}
 	private static Diff logChoose(Diff total, Diff selected) {
 		return total.add(1.0).lgamma().subtract(selected.add(1.0).lgamma())
@@ -2600,7 +3562,7 @@ public final class ModelScript {
 	}
 	private static Diff nondifferentiable(Diff[] values, String name, double value) {
 		Diff argument = unary(values, name);
-		return Diff.constant(value, argument.gradient.length);
+		return Diff.constant(value, argument.dimension());
 	}
 	private static Diff predicate(Diff[] values, String name, boolean value, Context context) {
 		unary(values, name);
@@ -2696,14 +3658,47 @@ public final class ModelScript {
 				while (accept(",")) arrayRank++;
 				require("]");
 			}
+			if (current.text.equals("tuple")) {
+				if (arrayRank != 0) fail(current, "arrays of tuples are not supported as function values");
+				return new FunctionType(parseUnsizedTupleType());
+			}
 			Token token = require(TokenKind.IDENTIFIER, "function type expected");
-			if (!(token.text.equals("real") || token.text.equals("int") || token.text.equals("vector")
-					|| token.text.equals("row_vector") || token.text.equals("matrix")))
-				fail(token, "function types are real, int, vector, row_vector, matrix, or unsized arrays");
+			if (!(token.text.equals("real") || token.text.equals("int") || token.text.equals("complex")
+					|| token.text.equals("vector") || token.text.equals("row_vector") || token.text.equals("matrix")
+					|| token.text.equals("complex_vector") || token.text.equals("complex_row_vector")
+					|| token.text.equals("complex_matrix")))
+				fail(token, "unsupported function type");
 			if (accept("[")) fail(token, argument
 					? "function argument container dimensions must be unsized"
 					: "function return container dimensions must be unsized");
 			return new FunctionType(valueKind(token.text), arrayRank, token.text.equals("int"));
+		}
+		private TupleTypeSpec parseUnsizedTupleType() {
+			require("tuple"); require("("); List<TupleTypeSpec> members = new ArrayList<TupleTypeSpec>();
+			members.add(parseUnsizedTupleMemberType());
+			if (!accept(",")) fail(current, "tuple types require a comma-separated member list");
+			if (!current.text.equals(")")) {
+				do { members.add(parseUnsizedTupleMemberType()); } while (accept(","));
+			}
+			require(")");
+			return new TupleTypeSpec(ValueKind.TUPLE, 0, Collections.<Expr>emptyList(),
+					members.toArray(new TupleTypeSpec[members.size()]));
+		}
+		private TupleTypeSpec parseUnsizedTupleMemberType() {
+			if (current.text.equals("tuple")) return parseUnsizedTupleType();
+			int arrayRank = 0;
+			while (current.text.equals("array")) {
+				advance(); require("["); arrayRank++;
+				while (accept(",")) arrayRank++;
+				require("]");
+			}
+			Token type = require(TokenKind.IDENTIFIER, "tuple member function type expected");
+			if (!(type.text.equals("real") || type.text.equals("int") || type.text.equals("complex")
+					|| type.text.equals("vector") || type.text.equals("row_vector") || type.text.equals("matrix")
+					|| type.text.equals("complex_vector") || type.text.equals("complex_row_vector")
+					|| type.text.equals("complex_matrix"))) fail(type, "unsupported tuple member function type");
+			if (accept("[")) fail(type, "tuple function members must be unsized");
+			return new TupleTypeSpec(valueKind(type.text), arrayRank, Collections.<Expr>emptyList(), null);
 		}
 		private void validateProbabilityFunction(UserFunction function, Token token) {
 			if (!(function.name.endsWith("_lpdf") || function.name.endsWith("_lpmf"))) return;
@@ -2723,8 +3718,10 @@ public final class ModelScript {
 			}
 			Token typeToken = require(TokenKind.IDENTIFIER, "declaration type expected");
 			String type = typeToken.text;
-			if (!(type.equals("real") || type.equals("int") || type.equals("vector")
+			if (!(type.equals("real") || type.equals("int") || type.equals("complex") || type.equals("vector")
 					|| type.equals("row_vector") || type.equals("matrix")
+					|| type.equals("complex_vector") || type.equals("complex_row_vector")
+					|| type.equals("complex_matrix")
 					|| type.equals("simplex") || type.equals("ordered")
 					|| type.equals("positive_ordered")
 					|| type.equals("sum_to_zero_vector") || type.equals("unit_vector")
@@ -2746,8 +3743,10 @@ public final class ModelScript {
 			}
 			List<Expr> baseShape = new ArrayList<Expr>();
 			if (accept("[")) { baseShape.addAll(dimensionList()); require("]"); }
-			int baseDimensions = type.equals("matrix") || type.equals("cholesky_factor_cov") ? 2
+			int baseDimensions = type.equals("matrix") || type.equals("complex_matrix")
+					|| type.equals("cholesky_factor_cov") ? 2
 					: type.equals("vector") || type.equals("row_vector")
+					|| type.equals("complex_vector") || type.equals("complex_row_vector")
 					|| type.equals("simplex") || type.equals("ordered")
 					|| type.equals("positive_ordered")
 					|| type.equals("sum_to_zero_vector") || type.equals("unit_vector")
@@ -2804,8 +3803,10 @@ public final class ModelScript {
 			return new Assignment(name.text, value, shape, valueKind(type), arrayShape.size(), name);
 		}
 		private boolean isAssignmentType(String type) {
-			return type.equals("real") || type.equals("int") || type.equals("vector")
+			return type.equals("real") || type.equals("int") || type.equals("complex") || type.equals("vector")
 					|| type.equals("row_vector") || type.equals("matrix")
+					|| type.equals("complex_vector") || type.equals("complex_row_vector")
+					|| type.equals("complex_matrix")
 					|| type.equals("simplex") || type.equals("ordered")
 					|| type.equals("positive_ordered") || type.equals("sum_to_zero_vector")
 					|| type.equals("unit_vector") || type.equals("cov_matrix")
@@ -2843,6 +3844,7 @@ public final class ModelScript {
 				advance(); Expr value = expression(0); require(";");
 				return new ReturnStatement(value);
 			}
+			if (current.text.equals("tuple")) return parseTupleLocalDeclaration();
 			if (current.text.equals("array") || isAssignmentType(current.text)) {
 				return parseLocalDeclaration();
 			}
@@ -2855,6 +3857,10 @@ public final class ModelScript {
 				Token distribution = require(TokenKind.IDENTIFIER, "distribution name expected");
 				require("("); List<Expr> arguments = arguments(); require(")"); require(";");
 				return new SamplingStatement(left, distribution.text, arguments);
+			}
+			if (left instanceof TupleAccessExpr) {
+				if(!current.text.equals("="))fail(current,"tuple members currently support direct assignment");
+				advance();Expr value=expression(0);require(";");return new TupleAssignmentStatement((TupleAccessExpr)left,value);
 			}
 			if (!(left instanceof VariableExpr))
 				fail(current, "assignment requires a local variable or indexed local container");
@@ -2880,8 +3886,11 @@ public final class ModelScript {
 			}
 			List<Expr> baseShape = new ArrayList<Expr>();
 			if (accept("[")) { baseShape.addAll(dimensionList()); require("]"); }
-			int expectedBase = type.equals("matrix") || type.equals("cholesky_factor_cov") ? 2
+			int expectedBase = type.equals("matrix") || type.equals("complex_matrix")
+					|| type.equals("cholesky_factor_cov") ? 2
 					: valueKind(type) == ValueKind.VECTOR || valueKind(type) == ValueKind.ROW_VECTOR
+					|| valueKind(type) == ValueKind.COMPLEX_VECTOR
+					|| valueKind(type) == ValueKind.COMPLEX_ROW_VECTOR
 					|| type.equals("cov_matrix") || type.equals("corr_matrix")
 					|| type.equals("cholesky_factor_corr") ? 1 : 0;
 			if (baseShape.size() != expectedBase)
@@ -2895,16 +3904,56 @@ public final class ModelScript {
 			return new LocalDeclarationStatement(name.text, initializer, type.equals("int"),
 					shape, valueKind(type), arrayShape.size());
 		}
+		private Statement parseTupleLocalDeclaration(){
+			TupleTypeSpec type=parseTupleType();Token name=require(TokenKind.IDENTIFIER,"tuple variable name expected");
+			Expr initializer=accept("=")?expression(0):null;require(";");
+			return new TupleLocalDeclarationStatement(name.text,type,initializer);
+		}
+		private TupleTypeSpec parseTupleType(){
+			require("tuple");require("(");List<TupleTypeSpec> members=new ArrayList<TupleTypeSpec>();
+			members.add(parseTupleMemberType());
+			if(!accept(","))fail(current,"tuple types require a comma-separated member list");
+			if(current.text.equals(")")){advance();return new TupleTypeSpec(ValueKind.TUPLE,0,
+					Collections.<Expr>emptyList(),members.toArray(new TupleTypeSpec[members.size()]));}
+			do{members.add(parseTupleMemberType());}while(accept(","));require(")");
+			return new TupleTypeSpec(ValueKind.TUPLE,0,Collections.<Expr>emptyList(),members.toArray(new TupleTypeSpec[members.size()]));
+		}
+		private TupleTypeSpec parseTupleMemberType(){
+			if(current.text.equals("tuple"))return parseTupleType();
+			List<Expr> arrayShape=new ArrayList<Expr>();
+			if(current.text.equals("array")){advance();require("[");arrayShape.addAll(dimensionList());require("]");}
+			Token type=require(TokenKind.IDENTIFIER,"tuple member type expected");
+			if(!isAssignmentType(type.text))fail(type,"unsupported tuple member type");
+			if(accept("<")){do{require(TokenKind.IDENTIFIER,"constraint name expected");require("=");expression(4);}while(accept(","));require(">");}
+			List<Expr> baseShape=new ArrayList<Expr>();if(accept("[")){baseShape.addAll(dimensionList());require("]");}
+			int expected=type.text.equals("matrix")||type.text.equals("complex_matrix")?2
+					:valueKind(type.text)==ValueKind.VECTOR||valueKind(type.text)==ValueKind.ROW_VECTOR
+					||valueKind(type.text)==ValueKind.COMPLEX_VECTOR||valueKind(type.text)==ValueKind.COMPLEX_ROW_VECTOR?1:0;
+			if(baseShape.size()!=expected)fail(type,type.text+" requires "+expected+" dimension(s)");
+			List<Expr> shape=new ArrayList<Expr>(arrayShape);shape.addAll(baseShape);
+			return new TupleTypeSpec(valueKind(type.text),arrayShape.size(),shape,null);
+		}
 		private Expr expression(int minimumPrecedence) {
 			Expr left;
 			if (accept("+") || accept("-") || accept("!")) {
 				String operator = previous; left = new UnaryExpr(operator, expression(7));
-			} else if (accept("(")) { left = expression(0); require(")"); }
+			} else if (accept("(")) {
+				Expr first=expression(0);
+				if(accept(",")){
+					List<Expr> tuple=new ArrayList<Expr>();tuple.add(first);
+					if(!current.text.equals(")")){tuple.add(expression(0));while(accept(","))tuple.add(expression(0));}
+					require(")");left=new TupleExpr(tuple);
+				}else{left=first;require(")");}
+			}
 			else if (accept("[")) { left = new LiteralExpr(literalElements("]"), false); require("]"); }
 			else if (accept("{")) { left = new LiteralExpr(literalElements("}"), true); require("}"); }
 			else if (current.kind == TokenKind.NUMBER) {
 				Token number = current; advance();
-				try { left = new NumberExpr(Double.parseDouble(number.text)); }
+				try {
+					boolean imaginary = number.text.endsWith("i");
+					String numeric = imaginary ? number.text.substring(0, number.text.length()-1) : number.text;
+					left = new NumberExpr(Double.parseDouble(numeric), imaginary);
+				}
 				catch (NumberFormatException exception) { fail(number, "invalid number"); return null; }
 			} else if (current.kind == TokenKind.IDENTIFIER) {
 				Token identifier = current; advance();
@@ -2915,7 +3964,12 @@ public final class ModelScript {
 					left = new VariableExpr(identifier.text, indices);
 				}
 			} else { fail(current, "expression expected"); return null; }
-			while (accept("'")) left = new TransposeExpr(left);
+			boolean postfix=true;while(postfix){
+				if(accept("'"))left=new TransposeExpr(left);
+				else if(current.kind==TokenKind.NUMBER&&current.text.matches("\\.[1-9][0-9]*")){
+					int member=Integer.parseInt(current.text.substring(1));advance();left=new TupleAccessExpr(left,member-1);
+				}else postfix=false;
+			}
 			while (true) {
 				int precedence = precedence(current.text);
 				if (precedence < minimumPrecedence) break;
@@ -2993,7 +4047,8 @@ public final class ModelScript {
 	private static int constrainedDimension(List<Declaration> declarations, Context constants) {
 		int result = 0;
 		for (Declaration declaration : declarations)
-			result += elementCount(checkedShape(declaration, constants), declaration);
+			result += elementCount(checkedShape(declaration, constants), declaration)
+					* storageWidth(declaration.valueType().kind);
 		return result;
 	}
 	private static int[] checkedShape(Declaration declaration, Context context) {
@@ -3053,6 +4108,10 @@ public final class ModelScript {
 		return new LinkedHashMap<String, ValueType>(source);
 	}
 	private static ValueKind valueKind(String type) {
+		if (type.equals("complex")) return ValueKind.COMPLEX;
+		if (type.equals("complex_vector")) return ValueKind.COMPLEX_VECTOR;
+		if (type.equals("complex_row_vector")) return ValueKind.COMPLEX_ROW_VECTOR;
+		if (type.equals("complex_matrix")) return ValueKind.COMPLEX_MATRIX;
 		if (type.equals("vector") || type.equals("simplex") || type.equals("ordered")
 				|| type.equals("positive_ordered") || type.equals("sum_to_zero_vector")
 				|| type.equals("unit_vector")) return ValueKind.VECTOR;
@@ -3061,6 +4120,47 @@ public final class ModelScript {
 				|| type.equals("cholesky_factor_cov") || type.equals("cholesky_factor_corr"))
 			return ValueKind.MATRIX;
 		return ValueKind.SCALAR;
+	}
+	private static boolean complexKind(ValueKind kind) {
+		return kind == ValueKind.COMPLEX || kind == ValueKind.COMPLEX_VECTOR
+				|| kind == ValueKind.COMPLEX_ROW_VECTOR || kind == ValueKind.COMPLEX_MATRIX;
+	}
+	private static int storageWidth(ValueKind kind) { return complexKind(kind) ? 2 : 1; }
+	private static ValueKind complexKindFor(ValueKind kind) {
+		if (kind == ValueKind.SCALAR) return ValueKind.COMPLEX;
+		if (kind == ValueKind.VECTOR) return ValueKind.COMPLEX_VECTOR;
+		if (kind == ValueKind.ROW_VECTOR) return ValueKind.COMPLEX_ROW_VECTOR;
+		if (kind == ValueKind.MATRIX) return ValueKind.COMPLEX_MATRIX;
+		return kind;
+	}
+	private static ValueKind realKindFor(ValueKind kind) {
+		if (kind == ValueKind.COMPLEX) return ValueKind.SCALAR;
+		if (kind == ValueKind.COMPLEX_VECTOR) return ValueKind.VECTOR;
+		if (kind == ValueKind.COMPLEX_ROW_VECTOR) return ValueKind.ROW_VECTOR;
+		if (kind == ValueKind.COMPLEX_MATRIX) return ValueKind.MATRIX;
+		return kind;
+	}
+	private static RuntimeValue promoteComplex(RuntimeValue value, ValueKind target, Context context) {
+		if (!complexKind(target) || complexKind(value.kind)) return value;
+		if (complexKindFor(value.kind) != target)
+			throw new IllegalArgumentException("cannot promote "+value.kind+" to "+target);
+		Diff[] result = new Diff[value.values.length*2];
+		for (int i = 0; i < value.values.length; i++) {
+			result[2*i] = value.values[i]; result[2*i+1] = Diff.constant(0, context.dimension);
+		}
+		return new RuntimeValue(result, value.shape, target, value.arrayRank);
+	}
+	private static Diff[] complexApply(String operator, Diff ar, Diff ai, Diff br, Diff bi) {
+		if(operator.equals("+")) return new Diff[]{ar.add(br),ai.add(bi)};
+		if(operator.equals("-")) return new Diff[]{ar.subtract(br),ai.subtract(bi)};
+		if(operator.equals("*")||operator.equals(".*"))
+			return new Diff[]{ar.multiply(br).subtract(ai.multiply(bi)),ar.multiply(bi).add(ai.multiply(br))};
+		if(operator.equals("/")||operator.equals("./")) {
+			Diff denominator=br.multiply(br).add(bi.multiply(bi));
+			return new Diff[]{ar.multiply(br).add(ai.multiply(bi)).divide(denominator),
+					ai.multiply(br).subtract(ar.multiply(bi)).divide(denominator)};
+		}
+		throw new IllegalArgumentException("unsupported complex operator "+operator);
 	}
 	private static double[] identityMatrix(int dimension) {
 		double[] result = new double[dimension * dimension];

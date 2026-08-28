@@ -29,8 +29,9 @@ and are not removed during upstream synchronization.
 ## Project status
 
 Version 0.8.2 is the current stable release. The 0.8.3 development line adds
-Stan container literals and forward declarations, a broader shaped-container
-and linear-algebra library, Java-native algebraic/ODE/DAE solvers, and a much
+Stan complex and tuple values, sparse kernels, external and higher-order
+functions, reusable reverse-tape script execution, sensitivity-aware algebraic/
+ODE/DAE solvers, a stiff BDF path, holonomic index-3 DAE projection, and a much
 larger ordinary-Stan compatibility catalog. Version 0.8.2 expanded the language
 with scoped scalar locals, control flow, stable scalar math, more than thirty
 probability families and RNGs, file-backed data examples, and complete
@@ -45,21 +46,23 @@ file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
 and tested.
 
-The executable catalog contains fifty JDistlib model scripts and thirty
+The executable catalog contains fifty JDistlib model scripts and forty-one
 ordinary Stan fixtures, including focused
 examples for multidimensional indexing, matrix probability, container-valued
-functions, structured constraints, robust/logit/count/lifetime models, and
-control flow. Java-native algebraic, adaptive ODE, and index-1 DAE solvers are
-available under `jdistlib.inference.solver`; direct higher-order script bindings,
-complex/tuple values, sparse operations, and the remaining full-Stan library
-surface remain on the roadmap.
+functions, complex/tuple values, sparse and external functions, solver
+sensitivities, structured constraints, robust/logit/count/lifetime models, and
+control flow. Java-native algebraic, adaptive RK45, stiff BDF, index-1 DAE, and
+holonomic index-3 DAE solvers are available under `jdistlib.inference.solver`;
+the algebraic, ODE, DAE, and 1-D quadrature paths also have differentiable
+modeling-language bindings.
 
 The development branch also provides a Java-native
 [Stan source-compatibility core](docs/STAN_SOURCE_COMPATIBILITY.md). Ordinary
-`.stan` fixtures exercise arbitrary-rank arrays and slices, typed matrix
-algebra, container user functions, broadcasting, structured constraints, and
-transformed containers. JDistlib preserves the model meaning of supported
-source while intentionally retaining its own Java autodiff, RNG, samplers,
+`.stan` fixtures exercise arbitrary-rank arrays and slices, complex/tuple
+values, sparse and typed matrix algebra, container/external/higher-order user
+functions, broadcasting, structured constraints, and transformed containers.
+JDistlib preserves the model meaning of supported source while intentionally
+retaining its own Java reverse-mode implementation, RNG, samplers,
 diagnostics, floating-point behavior, and output formats.
 
 The planned [0.9.0 finance and options roadmap](docs/FINANCE_ROADMAP.md) covers
@@ -121,6 +124,10 @@ The website now puts beginner material first:
   (**copula features require JDistlib 0.7.0+**).
 * [Bayesian modeling and MCMC](docs/INFERENCE.md) — model composition,
   samplers, diagnostics, graphing, and reproducibility (JDistlib 0.8.0+).
+* [Fully worked CSV-to-MCMC tutorial](docs/inference-tutorial.html#worked) — a
+  line-by-line-commented Java example that loads a CSV and JDM file, compiles
+  the model, tunes and runs NUTS, diagnoses and plots the chains, summarizes the
+  posterior, and prints a conclusion.
 * [Modeling language](docs/MODELING_LANGUAGE.md) — the versioned,
   Stan-inspired script frontend and ahead-of-time Java workflow.
 * [Data ingestion and script compilation](docs/modeling-language-tutorial.html) —
@@ -132,19 +139,20 @@ The website now puts beginner material first:
   ordinary Stan syntax, Java execution differences, conformance tests, and the
   remaining boundary.
 * [Reverse-mode autodiff](docs/REVERSE_AUTODIFF.md) — reusable tape lifecycle,
-  sampler-facing API, and the forward-versus-reverse benchmark.
+  automatic script lowering, atomic kernels, and the sampler-facing API.
 * [Stan containers and matrices](docs/stan-containers-tutorial.html) — literals,
   arrays of vectors/matrices, slicing, assignment, and matrix pipelines.
 * [Stan user functions](docs/stan-functions-tutorial.html) — forward declarations,
   overloads, data-qualified arguments, recursion, and probability suffixes.
-* [Algebraic, ODE, and DAE solvers](docs/stan-solvers-tutorial.html) — Java-native
-  equation solving with tolerances, work guards, and migration guidance.
+* [Algebraic, ODE, and DAE solvers](docs/stan-solvers-tutorial.html) — Java and
+  script callbacks, sensitivities, stiff integration, higher-index projection,
+  tolerances, and work guards.
 * [Inference tutorial](docs/inference-tutorial.html), [complete guide](docs/inference-guide.html),
   [worked vignette](docs/inference-vignette.html), and
   [diagnostics vignette](docs/inference-diagnostics-vignette.html) — the full
   0.8.0 learning path, including fifteen executable reference models.
 * [Browse all examples](https://robbyjo.github.io/JDistlib/examples.html) —
-  fifty JDistlib scripts, thirty ordinary `.stan` compatibility fixtures, and
+  fifty JDistlib scripts, forty-one ordinary `.stan` compatibility fixtures, and
   compilable Java workflows for
   copulas, mixtures, transformations, FDR, custom distributions, MCMC, and
   numerical integration.
@@ -224,11 +232,11 @@ full contract and independent high-precision reference cases.
 The `jdistlib.inference` package composes observed data, constrained parameters,
 priors, and likelihood factors into an unnormalized multivariate target.
 Programmatic Java models and the Stan-inspired 0.8 script language lower into
-the same model representation. Scripts support scalar locals, comparisons,
-boolean expressions, `if`/`else`, integer-range `for`, guarded `while`, a broad
-Stan scalar-math surface, and more than thirty scalar probability families.
-HMC and multinomial NUTS use analytic forward-mode gradients or Java-authored
-`ReverseModeLogDensity` targets backed by a reusable primitive tape,
+the same model representation. Scripts support shaped real/complex/sparse
+containers, tuples, external and solver callbacks, control flow, a broad Stan
+math surface, and more than thirty scalar probability families. HMC and
+multinomial NUTS use script gradients lowered onto reusable reverse tapes or
+Java-authored `ReverseModeLogDensity` targets,
 dual-averaging warmup, and diagonal or dense metric
 adaptation; Metropolis, slice, Gibbs, adaptive-rejection, and mixed block updates
 cover targets without a single continuous gradient.
@@ -239,9 +247,12 @@ saturation, and E-BFMI. Trace, rank, autocorrelation, energy, pair, and model
 graphs export to JSON, CSV, SVG, HTML, or Graphviz without a UI dependency. See
 the [inference guide](docs/INFERENCE.md), [language guide](docs/MODELING_LANGUAGE.md),
 [Stan-user guide](docs/stan-users.html), and
-[compatibility contract](docs/INFERENCE_COMPATIBILITY.md). The complete
-[CSV ingestion example](examples/McmcDataIngestionExamples.java) feeds the same
-observations into both the Java builder and script compiler.
+[compatibility contract](docs/INFERENCE_COMPATIBILITY.md). The fully commented
+[worked CSV/JDM analysis](examples/WorkedMcmcCsvJdmExample.java) proceeds from
+file loading through compilation, tuned parallel NUTS, diagnostics, plots,
+exports, posterior summaries, and a conclusion. The shorter
+[data-ingestion comparison](examples/McmcDataIngestionExamples.java) feeds the
+same observations into both the Java builder and script compiler.
 
 ## Multiple testing and false discovery rates
 

@@ -71,14 +71,14 @@
         <article class="learning-card"><span class="card-kicker">After hypothesis tests · expanded in 0.7.1</span><h3>Control multiple testing</h3><p>Use batch and weighted corrections, grouped families, online LORD++/SAFFRON streams, discrete DBH, adaptive methods, censoring, and Storey q-values.</p><a class="card-link" href="multiple-testing.html">Use multiple testing →</a></article>
         <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.7.0+</span><h3>Use a copula</h3><p>Combine marginal distributions with dependence, then simulate a joint outcome.</p><a class="card-link" href="copula-tutorial.html">Learn copulas →</a></article>
         <article class="learning-card"><span class="card-kicker">Applied vignette · 0.7.0+</span><h3>Fit mixed claim outcomes</h3><p>Join continuous severity and discrete occurrence, then compare dependence families.</p><a class="card-link" href="copula-vignette.html">Follow the copula analysis →</a></article>
-        <article class="learning-card"><span class="card-kicker">Beginner tutorial · 0.8.0+</span><h3>Fit a Bayesian model</h3><p>Build a constrained posterior, run reproducible NUTS chains, diagnose convergence, and export plots.</p><a class="card-link" href="inference-tutorial.html">Start inference →</a></article>
+        <article class="learning-card"><span class="card-kicker">Complete walkthrough · 0.8.0+</span><h3>Take CSV data through MCMC</h3><p>Load a CSV and JDM file, compile the model, tune and run reproducible NUTS chains, diagnose and plot convergence, summarize the posterior, and reach a conclusion.</p><a class="card-link" href="inference-tutorial.html#worked">Start the worked analysis →</a></article>
         <article class="learning-card"><span class="card-kicker">Applied vignettes · 0.8.0+</span><h3>Review posterior computation</h3><p>Make a posterior-predictive decision, then investigate a funnel with trace, rank, pairs, and energy evidence.</p><a class="card-link" href="inference-vignette.html">Follow the analysis →</a></article>
         <article class="learning-card"><span class="card-kicker">Stan users · 0.8.0+</span><h3>Move a model to Java</h3><p>Map Stan data, compilation, sampling, generated quantities, and diagnostics onto the documented JDistlib subset.</p><a class="card-link" href="stan-users.html">Read the migration guide →</a></article>
         <article class="learning-card"><span class="card-kicker">Stan source core · development</span><h3>Keep portable model syntax</h3><p>Compile the supported ordinary Stan core while retaining Java-native autodiff, RNGs, samplers, diagnostics, and output.</p><a class="card-link" href="STAN_SOURCE_COMPATIBILITY.md">Read the compatibility contract →</a></article>
-        <article class="learning-card"><span class="card-kicker">Stan containers · slated for 0.8.3</span><h3>Use arrays and matrices</h3><p>Learn literals, multidimensional slices and assignments, shaped matrix algorithms, and compile-time diagnostics.</p><a class="card-link" href="stan-containers-tutorial.html">Open the tutorial →</a></article>
-        <article class="learning-card"><span class="card-kicker">Stan functions · slated for 0.8.3</span><h3>Organize reusable model code</h3><p>Use forward declarations, overloads, data-qualified arguments, probability suffixes, and guarded recursion.</p><a class="card-link" href="stan-functions-tutorial.html">Open the tutorial →</a></article>
-        <article class="learning-card"><span class="card-kicker">Numerical systems · slated for 0.8.3</span><h3>Solve roots, ODEs, and DAEs</h3><p>Migrate higher-order Stan solver callbacks to explicit Java interfaces with tolerances and work limits.</p><a class="card-link" href="stan-solvers-tutorial.html">Open the tutorial →</a></article>
-        <article class="learning-card"><span class="card-kicker">Executable catalog · expanded for 0.8.3</span><h3>Browse verified examples</h3><p>Fifty JDistlib scripts, thirty ordinary Stan fixtures, fifteen Bayesian test models, and feature-focused Java integrations.</p><a class="card-link" href="examples.html">Browse examples →</a></article>
+        <article class="learning-card"><span class="card-kicker">Stan containers · 0.8.3</span><h3>Use arrays, tuples, and matrices</h3><p>Learn literals, complex and sparse algebra, multidimensional slices and assignments, shaped algorithms, and diagnostics.</p><a class="card-link" href="stan-containers-tutorial.html">Open the tutorial →</a></article>
+        <article class="learning-card"><span class="card-kicker">Stan functions · 0.8.3</span><h3>Organize reusable model code</h3><p>Use forward declarations, overloads, tuples, external and higher-order callbacks, data arguments, suffixes, and recursion.</p><a class="card-link" href="stan-functions-tutorial.html">Open the tutorial →</a></article>
+        <article class="learning-card"><span class="card-kicker">Numerical systems · 0.8.3</span><h3>Differentiate roots, integrals, ODEs, and DAEs</h3><p>Use Java or script callbacks with sensitivities, adaptive RK45/BDF integration, and index-1 or holonomic index-3 DAEs.</p><a class="card-link" href="stan-solvers-tutorial.html">Open the tutorial →</a></article>
+        <article class="learning-card"><span class="card-kicker">Executable catalog · expanded for 0.8.3</span><h3>Browse verified examples</h3><p>Fifty JDistlib scripts, forty-one ordinary Stan fixtures, fifteen Bayesian test models, and feature-focused Java integrations.</p><a class="card-link" href="examples.html">Browse examples →</a></article>
       </div>
     </section>
 
@@ -132,7 +132,8 @@
           <p>Compose named constrained models or compile Stan-inspired scripts;
             sample with Metropolis, slice, Gibbs, HMC, or NUTS; then export
             modern diagnostics and headless graphs.</p>
-          <a class="card-link" href="inference-guide.html">Read the 0.8.0+ guide →</a>
+          <a class="card-link" href="inference-tutorial.html#worked">Run the complete example →</a><br>
+          <a class="card-link" href="inference-guide.html">Read the inference reference →</a>
         </article>
       </div>
     </section>
@@ -161,9 +162,9 @@ double x = Normal.quantile(
       <p>Version 0.8.2 adds scoped control flow, stable scalar math, expanded
         probability families, file-backed workflows, three documented script
         compilation paths, fifty checked model scripts, and Java 8 bytecode.
-        The 0.8.3 development line adds container literals, forward function
-        declarations, shaped algorithms, Java-native algebraic/ODE/DAE solvers,
-        reusable reverse autodiff, and thirty checked ordinary Stan fixtures.</p>
+        The 0.8.3 development line adds complex/tuple/sparse values, external
+        and higher-order functions, reverse-tape script lowering, sensitivities,
+        stiff and higher-index solvers, and forty-one checked ordinary Stan fixtures.</p>
       <a class="text-link" href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">Read the synchronization ledger →</a>
     </section>
   </main>

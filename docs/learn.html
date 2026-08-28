@@ -38,22 +38,27 @@
         <article class="learning-card"><span class="card-kicker">2 · Composition · 0.6.0+</span><h3>Compose and transform</h3><p>Mix populations, restrict support, represent measurement limits, change units, and apply a Jacobian correctly.</p><a class="card-link" href="composition-tutorial.html">Tutorial →</a></article>
         <article class="learning-card"><span class="card-kicker">3 · Builder · 0.6.0+</span><h3>Custom distributions</h3><p>Convert a nonnegative kernel or set of weights into a complete numerical distribution.</p><a class="card-link" href="custom-distributions.html#beginner-path">Tutorial →</a><br><a class="card-link" href="custom-distribution-vignette.html">Sensor-error vignette →</a></article>
         <article class="learning-card"><span class="card-kicker">4 · Joint models · 0.7.0+</span><h3>Copulas and dependence</h3><p>Keep marginal behavior separate from dependence, including mixed and vine models.</p><a class="card-link" href="copula-tutorial.html">Tutorial →</a><br><a class="card-link" href="copula-vignette.html">Claims vignette →</a></article>
-        <article class="learning-card"><span class="card-kicker">5 · Inference · 0.8.0+</span><h3>Bayesian models and MCMC</h3><p>Read data, build or compile a posterior, sample parallel chains, diagnose computation, and export plots and reports.</p><a class="card-link" href="inference-tutorial.html">Tutorial →</a><br><a class="card-link" href="modeling-language-tutorial.html">CSV and script compilation →</a><br><a class="card-link" href="stan-users.html">Guide for Stan users →</a><br><a class="card-link" href="inference-vignette.html">Posterior vignette →</a><br><a class="card-link" href="inference-diagnostics-vignette.html">Diagnostics vignette →</a></article>
+        <article class="learning-card"><span class="card-kicker">5 · Inference · 0.8.0+</span><h3>Bayesian models and MCMC</h3><p>Begin with one complete CSV-to-conclusion workflow. Then use the MCMC map below to find a focused tutorial, vignette, or reference.</p><a class="card-link" href="inference-tutorial.html#worked">Start the complete walkthrough →</a><br><a class="card-link" href="#mcmc-map">Choose another MCMC route →</a></article>
       </div>
       <aside class="version-note"><strong>Version note:</strong> copula APIs and both
         copula learning pages require JDistlib 0.7.0 or later. Custom numerical
         distributions require 0.6.0 or later. Bayesian inference and model
         scripts are available from JDistlib 0.8.0.</aside>
     </section>
-    <section class="guide-section">
-      <p class="eyebrow">Inference reference · 0.8.0+</p>
-      <h2>Go deeper after the first posterior</h2>
-      <p>The <a href="inference-guide.html">complete inference guide</a> covers
-        sampler selection, warmup, R-hat, ESS, MCSE, divergences, E-BFMI,
-        graphing, performance, checkpoints, and failure handling. Continue with
-        the <a href="modeling-language-tutorial.html">data and model-script tutorial</a>,
-        the <a href="stan-users.html">Stan-user migration guide</a>,
-        or browse the <a href="examples.html">complete executable example center</a>.</p>
+    <section class="guide-section" id="mcmc-map">
+      <p class="eyebrow">MCMC learning map · 0.8.0+</p>
+      <h2>Choose by what you are trying to do</h2>
+      <p>If this is your first JDistlib analysis, follow the first card. The other
+        pages are focused references rather than prerequisites.</p>
+      <div class="learning-grid">
+        <article class="learning-card"><span class="card-kicker">Start here</span><h3>Run CSV data through a JDM model</h3><p>A fully commented Java program loads files, compiles the model, tunes four NUTS chains, diagnoses them, exports plots and reports, summarizes the posterior, and states a conclusion.</p><a class="card-link" href="inference-tutorial.html#worked">Complete worked example →</a><br><a class="card-link" href="https://github.com/robbyjo/JDistlib/blob/master/examples/WorkedMcmcCsvJdmExample.java">Open the Java source →</a></article>
+        <article class="learning-card"><span class="card-kicker">Models and compilation</span><h3>Compare Java and JDM frontends</h3><p>Bind one dataset to either <code>ModelBuilder</code> or <code>ModelScript</code>, and choose in-memory, cached, or generated-source compilation.</p><a class="card-link" href="modeling-language-tutorial.html">Data and script tutorial →</a></article>
+        <article class="learning-card"><span class="card-kicker">Sampler reference</span><h3>Tune and review MCMC</h3><p>Choose a sampler and understand warmup, metrics, diagnostics, plots, performance, checkpoints, and failure states.</p><a class="card-link" href="inference-guide.html">Inference reference →</a></article>
+        <article class="learning-card"><span class="card-kicker">Applied analysis</span><h3>Use posterior prediction</h3><p>Follow a realistic analysis from posterior computation through predictive decisions and communication.</p><a class="card-link" href="inference-vignette.html">Posterior vignette →</a></article>
+        <article class="learning-card"><span class="card-kicker">Troubleshooting</span><h3>Investigate difficult chains</h3><p>Use traces, ranks, pairs, energy, divergences, and geometry to diagnose an unhealthy fit.</p><a class="card-link" href="inference-diagnostics-vignette.html">Diagnostics vignette →</a></article>
+        <article class="learning-card"><span class="card-kicker">Migration</span><h3>Bring a Stan model to Java</h3><p>Map data, compilation, sampling, generated quantities, and compatibility boundaries from Stan to JDistlib.</p><a class="card-link" href="stan-users.html">Guide for Stan users →</a></article>
+        <article class="learning-card"><span class="card-kicker">More code</span><h3>Browse verified model examples</h3><p>Find fifteen named Bayesian tests plus the broader catalog of JDM, Stan, and Java examples.</p><a class="card-link" href="inference-examples.html">15 Bayesian models →</a><br><a class="card-link" href="examples.html">Complete example center →</a></article>
+      </div>
     </section>
     <section class="guide-section">
       <p class="eyebrow">After hypothesis tests · 0.7.0+</p>

@@ -46,13 +46,6 @@ features.
 
 ## Unscheduled
 
-* Add complex and tuple values, sparse matrix operations, higher-order/external
-  functions, and the remaining Stan standard-library overloads.
-* Lower compiled script expressions onto the reusable reverse-mode tape and add
-  specialized reverse kernels beyond the implemented matrix-normal path.
-* Add sensitivity propagation and modeling-language higher-order function
-  bindings for the Java-native algebraic/ODE/DAE solvers, plus stiff ODE and
-  higher-index DAE algorithms with separate validation corpora.
 * Add the specialized Wiener first-passage distribution to the script
   probability catalog after selecting and validating a stable density and RNG
   implementation across small-time and extreme-parameter regimes.
@@ -73,6 +66,27 @@ features.
   implement the events that can be evaluated reliably.
 
 ## Recently completed
+
+* Added differentiable complex scalars/vectors/matrices, nested tuple values and
+  tuple-valued functions, one-based tuple member access/assignment, Java tuple
+  adapters, immutable CSR matrices and Stan CSR kernels, Java-bound external
+  functions with explicit Jacobians, and `integrate_1d` higher-order callbacks.
+* Filled the 0.8.3 standard-library compatibility layer with complex elementary
+  overloads, container reductions/distances, SPD inverse/solve/log-determinant,
+  lower-triangular products, symmetrization, trace quadratic forms, and row/
+  column self-dot kernels. The compatibility contract continues to enumerate
+  specialized Stan functions and probability laws outside the 0.8.3 surface.
+* Lowered compiled script factors onto thread-local reusable reverse tapes and
+  added n-ary atomic nodes plus specialized normal, Student-t, dot-product,
+  matrix-normal, external-function, distance, and solver-sensitivity kernels.
+* Added algebraic implicit sensitivities, ODE/DAE parameter sensitivities,
+  differentiable script bindings for algebraic, RK45, BDF, DAE, and 1-D
+  integration callbacks, an adaptive stiff BDF path, and a projected
+  velocity-Verlet solver for holonomic index-3 mechanical DAEs. Independent
+  stiff, sensitivity, and index-3 corpora guard the three numerical paths.
+* Expanded the ordinary Stan fixture catalog from thirty to forty-one programs,
+  with executable complex, tuple, sparse, external, standard-library,
+  quadrature, algebraic, stiff-ODE, and DAE examples.
 
 * Added Stan array, vector, row-vector, and rectangular matrix literals; forward
   user-function declarations; append/head/tail/segment/block/row/column helpers;

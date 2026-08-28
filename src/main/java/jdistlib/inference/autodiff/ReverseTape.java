@@ -15,6 +15,7 @@ public final class ReverseTape {
 	private static final int CONSTANT = 0;
 	private static final int UNARY = 1;
 	private static final int BINARY = 2;
+	private static final int ATOMIC = 3;
 
 	private double[] values;
 	private double[] adjoints;
@@ -23,6 +24,11 @@ public final class ReverseTape {
 	private int[] leftParents;
 	private int[] rightParents;
 	private byte[] arities;
+	private int[] edgeStarts;
+	private int[] edgeCounts;
+	private int[] edgeParents;
+	private double[] edgePartials;
+	private int edgeSize;
 	private int size;
 
 	public ReverseTape() { this(1024); }
@@ -36,12 +42,17 @@ public final class ReverseTape {
 		leftParents = new int[initialCapacity];
 		rightParents = new int[initialCapacity];
 		arities = new byte[initialCapacity];
+		edgeStarts = new int[initialCapacity];
+		edgeCounts = new int[initialCapacity];
+		edgeParents = new int[Math.max(16, initialCapacity * 2)];
+		edgePartials = new double[edgeParents.length];
 	}
 
 	/** Clears all nodes while retaining the arena capacity. */
 	public void reset() {
 		Arrays.fill(adjoints, 0, size, 0.0);
 		size = 0;
+		edgeSize = 0;
 	}
 
 	/** Current node count, useful for instrumentation and capacity planning. */
@@ -57,6 +68,11 @@ public final class ReverseTape {
 	public void rewind(int mark) {
 		if (mark < 0 || mark > size) throw new IllegalArgumentException("invalid tape mark");
 		Arrays.fill(adjoints, mark, size, 0.0);
+		int retainedEdges = 0;
+		for (int node = mark - 1; node >= 0; node--) if (arities[node] == ATOMIC) {
+			retainedEdges = edgeStarts[node] + edgeCounts[node]; break;
+		}
+		edgeSize = retainedEdges;
 		size = mark;
 	}
 
@@ -98,7 +114,38 @@ public final class ReverseTape {
 	public int pow(int a, int b) {
 		double v = Math.pow(values[a], values[b]);
 		return binary(a, b, v, values[b] * Math.pow(values[a], values[b] - 1.0),
-				v * Math.log(values[a]));
+				values[a] > 0.0 ? v * Math.log(values[a]) : 0.0);
+	}
+
+	/** Creates a unary node from a caller-supplied value and exact local derivative. */
+	public int customUnary(int parent, double value, double partial) {
+		return unary(parent, value, partial);
+	}
+
+	/** Creates a binary node from a caller-supplied value and exact local derivatives. */
+	public int customBinary(int left, int right, double value,
+			double leftPartial, double rightPartial) {
+		return binary(left, right, value, leftPartial, rightPartial);
+	}
+
+	/**
+	 * Creates an allocation-free many-input atomic node.
+	 *
+	 * <p>The parent and partial arrays are copied into the reusable edge arena,
+	 * allowing probability and linear-algebra kernels to contribute one tape
+	 * node rather than exposing all of their scalar implementation steps.</p>
+	 */
+	public int atomic(double value, int[] parents, double[] partials) {
+		if (parents == null || partials == null || parents.length != partials.length)
+			throw new IllegalArgumentException("matching atomic parents and partials required");
+		ensureEdgeCapacity(edgeSize + parents.length);
+		int node = allocate(); values[node] = value; arities[node] = ATOMIC;
+		edgeStarts[node] = edgeSize; edgeCounts[node] = parents.length;
+		for (int i = 0; i < parents.length; i++) {
+			checkHandle(parents[i]); edgeParents[edgeSize] = parents[i];
+			edgePartials[edgeSize++] = partials[i];
+		}
+		return node;
 	}
 
 	/** Runs one reverse sweep with unit seed at {@code output}. */
@@ -109,6 +156,12 @@ public final class ReverseTape {
 		for (int node = output; node >= 0; node--) {
 			double seed = adjoints[node];
 			if (seed == 0.0 || arities[node] == CONSTANT) continue;
+			if (arities[node] == ATOMIC) {
+				int start = edgeStarts[node], end = start + edgeCounts[node];
+				for (int edge = start; edge < end; edge++)
+					adjoints[edgeParents[edge]] += seed * edgePartials[edge];
+				continue;
+			}
 			adjoints[leftParents[node]] += seed * leftPartials[node];
 			if (arities[node] == BINARY)
 				adjoints[rightParents[node]] += seed * rightPartials[node];
@@ -143,6 +196,16 @@ public final class ReverseTape {
 		leftParents = Arrays.copyOf(leftParents, capacity);
 		rightParents = Arrays.copyOf(rightParents, capacity);
 		arities = Arrays.copyOf(arities, capacity);
+		edgeStarts = Arrays.copyOf(edgeStarts, capacity);
+		edgeCounts = Arrays.copyOf(edgeCounts, capacity);
+	}
+	private void ensureEdgeCapacity(int required) {
+		if (required <= edgeParents.length) return;
+		int capacity = edgeParents.length;
+		while (capacity < required) capacity = capacity < 1_048_576
+				? capacity * 2 : capacity + capacity / 2;
+		edgeParents = Arrays.copyOf(edgeParents, capacity);
+		edgePartials = Arrays.copyOf(edgePartials, capacity);
 	}
 	private void checkHandle(int handle) {
 		if (handle < 0 || handle >= size) throw new IllegalArgumentException("invalid tape handle");

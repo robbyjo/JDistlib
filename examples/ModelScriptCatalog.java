@@ -17,6 +17,8 @@ import jdistlib.inference.BayesianModel;
 import jdistlib.inference.GradientCheckResult;
 import jdistlib.inference.Gradients;
 import jdistlib.inference.lang.CompiledModelScript;
+import jdistlib.inference.lang.ExternalFunctionRegistry;
+import jdistlib.inference.lang.ExternalFunctionResult;
 import jdistlib.inference.lang.ModelScript;
 import jdistlib.rng.MersenneTwister;
 
@@ -48,15 +50,24 @@ public final class ModelScriptCatalog {
 	private static void validate(Path path) throws IOException {
 		String source = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
 		CompiledModelScript compiled = path.toString().endsWith(".stan")
-				? ModelScript.compileStan(source, data(path)) : ModelScript.compile(source, data(path));
+				? ModelScript.compileStan(source, data(path), externalFunctions(path))
+				: ModelScript.compile(source, data(path));
 		BayesianModel model = compiled.model();
-		GradientCheckResult gradient = Gradients.check(model, model.initialState(),
-				2e-5, 2e-5);
+		String name = path.getFileName().toString();
+		double tolerance = name.matches("(?:38|39|40|41)-.*\\.stan") ? 3e-3 : 2e-5;
+		GradientCheckResult gradient = Gradients.check(model, model.initialState(), tolerance, tolerance);
 		if (!gradient.passed())
 			throw new IllegalStateException(path + ": " + gradient);
 		if (!Double.isFinite(model.logDensity(model.initialState())))
 			throw new IllegalStateException(path + ": initial log density is not finite");
 		compiled.generate(model.initialState(), new MersenneTwister(path.toString().hashCode()));
+	}
+	private static ExternalFunctionRegistry externalFunctions(Path path) {
+		if (!path.getFileName().toString().startsWith("35-")) return ExternalFunctionRegistry.empty();
+		return ExternalFunctionRegistry.builder().bind("java_penalty", arguments -> {
+			double x = arguments[0][0], scale = arguments[1][0];
+			return ExternalFunctionResult.scalar(scale*x*x, 2*scale*x, x*x);
+		}).build();
 	}
 
 	private static Map<String, double[]> data(Path path) {
@@ -83,7 +94,9 @@ public final class ModelScriptCatalog {
 			case "12": break;
 			case "13": case "14": case "15": case "16": case "17": case "18":
 			case "19": case "20": case "21": case "22": case "23": case "24":
-			case "25": case "26": case "27": case "28": case "29": case "30": break;
+			case "25": case "26": case "27": case "28": case "29": case "30":
+			case "31": case "32": case "33": case "34": case "35": case "36":
+			case "37": case "38": case "39": case "40": case "41": break;
 			default: throw new IllegalArgumentException("no representative data for " + name);
 			}
 			return result;

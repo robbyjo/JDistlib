@@ -1,1 +1,4 @@
 rootProject.name = 'JDistlib'
+include 'jdistlib-cuda', 'jdistlib-opencl'
+project(':jdistlib-cuda').projectDir = file('accelerators/cuda')
+project(':jdistlib-opencl').projectDir = file('accelerators/opencl')

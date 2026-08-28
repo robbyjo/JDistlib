@@ -56,6 +56,8 @@ public final class SamplingOptions {
 	}
 
 	public static Builder builder() { return new Builder(); }
+	/** Starts a builder that preserves every option, including streaming callbacks. */
+	public Builder toBuilder() { return new Builder(this); }
 	public int warmupIterations() { return warmupIterations; }
 	public int sampleIterations() { return sampleIterations; }
 	public int thinning() { return thinning; }
@@ -107,6 +109,19 @@ public final class SamplingOptions {
 		private DrawSink drawSink;
 		private boolean storeDraws = true;
 		private BooleanSupplier cancellation;
+		private Builder() {}
+		private Builder(SamplingOptions source) {
+			warmupIterations = source.warmupIterations; sampleIterations = source.sampleIterations;
+			thinning = source.thinning; stepSize = source.stepSize; targetAcceptance = source.targetAcceptance;
+			leapfrogSteps = source.leapfrogSteps; maximumTreeDepth = source.maximumTreeDepth;
+			maximumEnergyError = source.maximumEnergyError; sliceWidth = source.sliceWidth;
+			maximumSliceSteps = source.maximumSliceSteps; adaptStepSize = source.adaptStepSize;
+			adaptMassMatrix = source.adaptMassMatrix; denseMassMatrix = source.denseMassMatrix;
+			allowFiniteDifferences = source.allowFiniteDifferences; warmupSchedule = source.warmupSchedule;
+			metricConfiguration = source.metricConfiguration; integrationTime = source.integrationTime;
+			stepSizeJitter = source.stepSizeJitter; progressListener = source.progressListener;
+			drawSink = source.drawSink; storeDraws = source.storeDraws; cancellation = source.cancellation;
+		}
 
 		public Builder warmupIterations(int value) { warmupIterations = value; return this; }
 		public Builder sampleIterations(int value) { sampleIterations = value; return this; }

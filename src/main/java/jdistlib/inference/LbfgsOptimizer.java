@@ -9,6 +9,10 @@ public final class LbfgsOptimizer {
 	private LbfgsOptimizer() {}
 	public static OptimizationResult maximize(DifferentiableLogDensity target,
 			double[] initial, int maximumIterations, int historySize, double tolerance) {
+		return trace(target, initial, maximumIterations, historySize, tolerance).result();
+	}
+	public static OptimizationTrace trace(DifferentiableLogDensity target,
+			double[] initial, int maximumIterations, int historySize, double tolerance) {
 		if (target == null || initial == null || maximumIterations < 1
 				|| historySize < 1 || !(tolerance > 0.0))
 			throw new IllegalArgumentException("invalid L-BFGS arguments");
@@ -18,9 +22,13 @@ public final class LbfgsOptimizer {
 		List<double[]> sHistory = new ArrayList<double[]>();
 		List<double[]> yHistory = new ArrayList<double[]>();
 		List<Double> rhoHistory = new ArrayList<Double>();
+		List<double[]> points = new ArrayList<double[]>(); List<Double> objectives = new ArrayList<Double>();
+		List<double[][]> inverseHessians = new ArrayList<double[][]>();
+		points.add(x.clone()); objectives.add(value);
+		inverseHessians.add(identity(x.length));
 		for (int iteration = 0; iteration < maximumIterations; iteration++) {
 			if (normInfinity(gradient) <= tolerance)
-				return new OptimizationResult(x, value, iteration, evaluations, true);
+				return traceResult(points, objectives, inverseHessians, x, value, iteration, evaluations, true);
 			double[] direction = inverseHessianProduct(gradient, sHistory,
 					yHistory, rhoHistory);
 			double directional = dot(gradient, direction);
@@ -35,7 +43,7 @@ public final class LbfgsOptimizer {
 				scale *= 0.5;
 			} while (scale > 1e-12);
 			if (scale <= 1e-12)
-				return new OptimizationResult(x, value, iteration, evaluations, false);
+				return traceResult(points, objectives, inverseHessians, x, value, iteration, evaluations, false);
 			double[] s = subtract(next, x), y = subtract(gradient, nextGradient);
 			double curvature = dot(s, y);
 			if (curvature > 1e-12) {
@@ -45,10 +53,27 @@ public final class LbfgsOptimizer {
 				sHistory.add(s); yHistory.add(y); rhoHistory.add(1.0 / curvature);
 			}
 			x = next.clone(); gradient = nextGradient.clone(); value = nextValue;
+			points.add(x.clone()); objectives.add(value);
+			inverseHessians.add(denseInverse(x.length, sHistory, yHistory, rhoHistory));
 		}
-		return new OptimizationResult(x, value, maximumIterations, evaluations,
+		return traceResult(points, objectives, inverseHessians, x, value, maximumIterations, evaluations,
 				normInfinity(gradient) <= tolerance);
 	}
+	private static OptimizationTrace traceResult(List<double[]> points, List<Double> objectives, List<double[][]> inverseHessians,
+			double[] point, double value, int iterations, int evaluations, boolean converged) {
+		double[] values = new double[objectives.size()]; for (int i = 0; i < values.length; i++) values[i] = objectives.get(i);
+		return new OptimizationTrace(points.toArray(new double[points.size()][]), values,
+				inverseHessians.toArray(new double[inverseHessians.size()][][]),
+				new OptimizationResult(point, value, iterations, evaluations, converged));
+	}
+	private static double[][] denseInverse(int dimension, List<double[]> s, List<double[]> y, List<Double> rho) {
+		double[][] result = new double[dimension][dimension]; for (int column = 0; column < dimension; column++) {
+			double[] basis = new double[dimension]; basis[column] = 1.0; double[] value = inverseHessianProduct(basis, s, y, rho);
+			for (int row = 0; row < dimension; row++) result[row][column] = value[row]; }
+		for (int row = 0; row < dimension; row++) for (int column = row + 1; column < dimension; column++) { double value = 0.5 * (result[row][column] + result[column][row]); result[row][column] = value; result[column][row] = value; }
+		return result;
+	}
+	private static double[][] identity(int dimension) { double[][] result = new double[dimension][dimension]; for (int i = 0; i < dimension; i++) result[i][i] = 1.0; return result; }
 	private static double[] inverseHessianProduct(double[] gradient,
 			List<double[]> s, List<double[]> y, List<Double> rho) {
 		double[] result = gradient.clone();

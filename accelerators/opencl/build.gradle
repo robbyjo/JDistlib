@@ -1,0 +1,22 @@
+plugins { id 'java-library' }
+
+group = rootProject.group
+version = rootProject.version
+
+repositories { mavenCentral() }
+
+base { archivesName = 'jdistlib-opencl' }
+
+dependencies {
+    api project(':')
+    implementation 'org.jocl:jocl:2.0.6'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 8
+    options.compilerArgs += ['-Xlint:all,-options,-this-escape', '-Werror']
+}
+
+test { useJUnit() }

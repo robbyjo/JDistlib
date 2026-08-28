@@ -86,7 +86,8 @@ def validateModelScripts = tasks.register('validateModelScripts', JavaExec) {
 }
 
 tasks.named('check') {
-    dependsOn compileDocumentationExamples, validateModelScripts
+    dependsOn compileDocumentationExamples, validateModelScripts,
+        ':jdistlib-cuda:check', ':jdistlib-opencl:check'
 }
 
 test {

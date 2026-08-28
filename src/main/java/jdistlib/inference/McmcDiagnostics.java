@@ -4,13 +4,70 @@ package jdistlib.inference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import jdistlib.Normal;
 
 /** Rank-normalized R-hat, bulk/tail ESS, MCSE, and sampler diagnostics. */
 public final class McmcDiagnostics {
 	private McmcDiagnostics() {}
+
+	/** Nested R-hat for chains grouped by common-initialization superchain IDs. */
+	public static double nestedRHat(double[][] chains, int[] superchainIds) {
+		validateNested(chains, superchainIds);
+		Map<Integer, List<Integer>> groups = groups(superchainIds);
+		double[] chainMeans = new double[chains.length], chainVariances = new double[chains.length];
+		for (int chain = 0; chain < chains.length; chain++) {
+			chainMeans[chain] = mean(chains[chain]);
+			chainVariances[chain] = sampleVariance(chains[chain], chainMeans[chain]);
+		}
+		double[] superMeans = new double[groups.size()]; double withinSuper = 0.0; int groupIndex = 0;
+		for (List<Integer> group : groups.values()) {
+			double[] means = new double[group.size()]; double withinChain = 0.0;
+			for (int i = 0; i < group.size(); i++) { int chain = group.get(i); means[i] = chainMeans[chain]; withinChain += chainVariances[chain]; }
+			withinChain /= group.size(); double groupMean = mean(means); superMeans[groupIndex++] = groupMean;
+			double betweenChain = group.size() == 1 ? 0.0 : sampleVariance(means, groupMean);
+			withinSuper += withinChain + betweenChain;
+		}
+		withinSuper /= groups.size(); double betweenSuper = sampleVariance(superMeans, mean(superMeans));
+		if (!(withinSuper > 0.0) || !Double.isFinite(withinSuper)) return Double.NaN;
+		return Math.sqrt(Math.max(1.0, 1.0 + betweenSuper / withinSuper));
+	}
+
+	/** Rank-normalized and folded nested R-hat, matching the robust ordinary diagnostic. */
+	public static double nestedRankNormalizedRHat(double[][] chains, int[] superchainIds) {
+		validateNested(chains, superchainIds); double[] pooled = flatten(chains);
+		double median = quantile(pooled, 0.5);
+		return Math.max(nestedRHat(rankNormalize(chains), superchainIds),
+				nestedRHat(rankNormalize(fold(chains, median)), superchainIds));
+	}
+
+	private static void validateNested(double[][] chains, int[] ids) {
+		if (chains == null || chains.length < 2 || ids == null || ids.length != chains.length)
+			throw new IllegalArgumentException("chains and one superchain ID per chain are required");
+		int draws = -1; for (double[] chain : chains) {
+			if (chain == null || chain.length == 0 || (draws >= 0 && chain.length != draws))
+				throw new IllegalArgumentException("nested R-hat requires rectangular, nonempty chains");
+			draws = chain.length; for (double value : chain) if (!Double.isFinite(value)) return;
+		}
+		Map<Integer, List<Integer>> groups = groups(ids); if (groups.size() < 2)
+			throw new IllegalArgumentException("at least two superchains are required");
+		int size = -1; for (List<Integer> group : groups.values()) { if (size < 0) size = group.size();
+			else if (group.size() != size) throw new IllegalArgumentException("superchains must contain equal chain counts"); }
+	}
+	private static Map<Integer, List<Integer>> groups(int[] ids) {
+		Map<Integer, List<Integer>> result = new LinkedHashMap<Integer, List<Integer>>();
+		for (int i = 0; i < ids.length; i++) { List<Integer> group = result.get(ids[i]);
+			if (group == null) { group = new ArrayList<Integer>(); result.put(ids[i], group); } group.add(i); }
+		return result;
+	}
+	private static double sampleVariance(double[] values, double center) {
+		if (values.length < 2) return 0.0; double result = 0.0;
+		for (double value : values) { double difference = value - center; result += difference * difference; }
+		return result / (values.length - 1.0);
+	}
 
 	public static McmcDiagnosticReport analyze(ChainResult... chains) {
 		if (chains == null || chains.length == 0)

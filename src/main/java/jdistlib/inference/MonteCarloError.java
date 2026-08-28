@@ -2,6 +2,8 @@
 package jdistlib.inference;
 
 import java.util.Arrays;
+import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 
 /** MCSE and efficiency helpers for one stationary retained sequence. */
 public final class MonteCarloError {
@@ -26,6 +28,31 @@ public final class MonteCarloError {
 		for (int i = 0; i < values.length; i++) { squared[i] = square(values[i] - mean); variance += squared[i]; }
 		variance /= Math.max(1.0, values.length - 1.0);
 		return Math.sqrt(variance / (2.0 * effectiveSampleSize(squared)));
+	}
+	public static double meanMcse(double[] values) {
+		if (values == null || values.length < 4) throw new IllegalArgumentException("at least four draws are required");
+		double center = mean(values), variance = 0.0;
+		for (double value : values) variance += square(value - center);
+		variance /= values.length - 1.0;
+		return Math.sqrt(variance / effectiveSampleSize(values));
+	}
+	public static double functionEss(double[][] samples, ToDoubleFunction<double[]> function) {
+		return effectiveSampleSize(transform(samples, function));
+	}
+	public static double functionMcse(double[][] samples, ToDoubleFunction<double[]> function) {
+		return meanMcse(transform(samples, function));
+	}
+	public static double indicatorEss(double[][] samples, Predicate<double[]> predicate) {
+		if (predicate == null) throw new IllegalArgumentException("predicate is required");
+		return functionEss(samples, value -> predicate.test(value) ? 1.0 : 0.0);
+	}
+	public static double[] transform(double[][] samples, ToDoubleFunction<double[]> function) {
+		if (samples == null || samples.length < 4 || function == null)
+			throw new IllegalArgumentException("at least four samples and a function are required");
+		double[] result = new double[samples.length];
+		for (int i = 0; i < samples.length; i++) { result[i] = function.applyAsDouble(samples[i].clone());
+			if (!Double.isFinite(result[i])) throw new IllegalArgumentException("function returned a non-finite value"); }
+		return result;
 	}
 	public static double quantileMcse(double[] values, double probability) {
 		if (!(probability > 0.0 && probability < 1.0)) throw new IllegalArgumentException("probability must be between zero and one");

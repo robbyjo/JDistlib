@@ -14,10 +14,16 @@ point and Java 8 bytecode while adding a composable, restartable inference layer
 | trajectory control | `integrationTime`, `stepSizeJitter` | static HMC can use integration time; HMC-family steps can be jittered |
 | result facade | `Inference.fit`, `Fit`, `RunManifest` | chains, diagnostics, elapsed time, version, seed, and SHA-256 option/model identities |
 | initialization | `InitialStates`, `PathfinderInitializer`, `LbfgsOptimizer` | named constrained starts, deterministic retry, and quasi-Newton initialization |
+| full approximation | `Pathfinder`, `PathfinderOptions`, `PathfinderFit` | L-BFGS path/ELBO selection, multiple paths, mixture scoring, PSIS resampling, and Pareto-k diagnostics |
+| many short chains | `ManyShortChains`, `ManyShortChainsResult`, `McmcDiagnostics.nestedRankNormalizedRHat` | common-start superchains and robust nested R-hat |
+| adaptive static HMC | `AdaptiveStaticHamiltonianMonteCarlo` | coordinated ChEES or SNAPER trajectory-length adaptation for regular many-chain work |
 | additional samplers | `MetropolisAdjustedLangevin`, `BarkerGradientSampler`, `EllipticalSliceSampler`, `ParallelTempering` | exact gradient proposals, tuning-free Gaussian-reference updates, and replica exchange |
 | microcanonical | `AdjustedMicrocanonicalLangevin` | MH-adjusted isokinetic MCLMC/MHMCHMC; dimension must exceed one |
+| adjusted-MCLMC tuning | `AdjustedMclmcTuner` | pilot selection of step size, decorrelation length, and diagonal mass scaling with auditable scores |
 | scale control | `DrawSink`, `storeDraws(false)`, `ProgressListener` | stream draws without retaining the chain and report/cancel progress |
 | diagnostics | `MonteCarloError`, `EvaluationCounter`, `Divergences`, `WarmupTrace` | MCSE for SD/quantiles, ESS per work/time, evaluation counts, divergence coordinates, and adaptation traces |
+| workflow QoL | `CheckpointIO`, `PrecisionContinuation`, `WarmupBundle`, `FactorProfiler`, `ChunkedDrawSink`, `MappedDrawStore`, `GeneratedQuantitySink`, `InferenceHealth`, `GeometryAdvisor` | portable restart, precision goals, safe warmup reuse, profiling, streaming/mapped output, generated quantities, and actionable health findings |
+| acceleration | `ComputeBackend`, optional `jdistlib-cuda` / `jdistlib-opencl` | detected CPU fallback, JCuda/NVRTC and JOCL providers, device-resident batched likelihoods |
 | validation | `SimulationBasedCalibration` | deterministic SBC ranks for model/sampler test suites |
 
 The low-rank metric uses deterministic eigendirection extraction so seeded runs
@@ -50,3 +56,6 @@ sampler defaults are retained, and randomness comes only from caller-provided
 `RandomEngine` instances. The NUTS checkpoint format is explicitly versioned;
 unsupported future checkpoint versions fail rather than silently restarting with
 different adaptation.
+
+See the [post-Stan MCMC roadmap](MCMC_FUTURE_ROADMAP.md) for the design record,
+acceptance gates, and experimental methods that remain deliberately isolated.

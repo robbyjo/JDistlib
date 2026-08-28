@@ -1,0 +1,41 @@
+plugins { id 'java-library' }
+
+group = rootProject.group
+version = rootProject.version
+
+repositories { mavenCentral() }
+
+base { archivesName = 'jdistlib-cuda' }
+
+def nativeOs = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win') ? 'windows' :
+    (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('linux') ? 'linux' : 'apple')
+def machine = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
+def nativeArch = (machine == 'amd64' || machine == 'x86_64') ? 'x86_64' :
+    ((machine == 'aarch64' || machine == 'arm64') ? 'aarch64' :
+    ((machine == 'ppc64' || machine == 'ppc64le') ? 'ppc_64' : machine))
+def supportedNative = (nativeOs == 'windows' && nativeArch == 'x86_64') ||
+    (nativeOs == 'linux' && ['x86_64', 'aarch64', 'ppc_64'].contains(nativeArch)) ||
+    (nativeOs == 'apple' && nativeArch == 'x86_64')
+
+dependencies {
+    api project(':')
+    implementation('org.jcuda:jcuda:12.6.0') {
+        exclude group: 'org.jcuda', module: 'jcuda-natives'
+    }
+    if (supportedNative) runtimeOnly "org.jcuda:jcuda-natives:12.6.0:${nativeOs}-${nativeArch}"
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 8
+    options.compilerArgs += ['-Xlint:all,-options,-this-escape', '-Werror']
+}
+
+test { useJUnit() }
+
+tasks.register('cudaSmokeBenchmark', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'jdistlib.accelerator.cuda.CudaSmokeBenchmark'
+}

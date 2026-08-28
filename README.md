@@ -127,9 +127,12 @@ The website now puts beginner material first:
 * [Modern MCMC API](docs/MCMC_MODERNIZATION.md) — Stan-style warmup, exact
   checkpoints, metrics, adjusted MCLMC, additional samplers, initialization,
   streaming, diagnostics, and SBC.
-* [GPU acceleration plan](docs/GPU_ACCELERATION.md) — the CUDA smoke-test
-  protocol, hardware result, and why model evaluation—not the NUTS tree—is the
-  appropriate acceleration boundary.
+* [GPU acceleration and measured smoke](docs/GPU_ACCELERATION.md) — optional
+  JCuda/NVRTC and JOCL backends, automatic CPU fallback, reproducible RTX 2080
+  likelihood numbers, and the still-provisional whole-NUTS decision.
+* [Post-Stan MCMC roadmap](docs/MCMC_FUTURE_ROADMAP.md) — the design record for
+  full Pathfinder, nested R-hat, adaptive static HMC, adjusted-MCLMC tuning,
+  workflow QoL, and explicitly experimental algorithms.
 * [Fully worked CSV-to-MCMC tutorial](docs/inference-tutorial.html#worked) — a
   line-by-line-commented Java example that loads a CSV and JDM file, compiles
   the model, tunes and runs NUTS, diagnoses and plots the chains, summarizes the
@@ -259,6 +262,25 @@ file loading through compilation, tuned parallel NUTS, diagnostics, plots,
 exports, posterior summaries, and a conclusion. The shorter
 [data-ingestion comparison](examples/McmcDataIngestionExamples.java) feeds the
 same observations into both the Java builder and script compiler.
+
+The 0.8.3 development API adds full multi-path Pathfinder with PSIS, many-short-
+chain superchains and nested R-hat, ChEES/SNAPER adaptive static HMC, automatic
+adjusted-MCLMC step/decorrelation/mass-scale tuning, checksummed portable
+checkpoints, MCSE-driven continuation, factor profiling, safe warmup reuse,
+compressed selected-column draw storage, and machine-readable health advice.
+
+### Optional CUDA and OpenCL acceleration
+
+Core JDistlib remains native-free. The `jdistlib-cuda` module uses JCuda/JNvrtc
+and the `jdistlib-opencl` module uses JOCL; both are discovered through
+`ComputeBackend`, require FP64, and fall back to the deterministic CPU backend
+when absent. They accelerate vector math, dense linear algebra, and prepared
+batched likelihood/gradient evaluation. Select explicitly with
+`-Djdistlib.compute.backend=cuda`, `opencl`, or `cpu`; the default `auto` order is
+CUDA, OpenCL, then CPU. See the [measured GPU guidance](docs/GPU_ACCELERATION.md)
+before offloading a model. Vulkan remains a permitted provider extension but is
+not shipped because OpenCL already covers the portable path with less SPIR-V and
+device-management complexity.
 
 ## Multiple testing and false discovery rates
 

@@ -44,8 +44,29 @@ volatility-surface lifecycle management, Greeks, market-data ingestion, and
 execution remain integration-library concerns rather than JDistlib 0.9.0 core
 features.
 
+## Source compatibility policy
+
+A BUGS/OpenBUGS/JAGS source-migration frontend remains demand-gated and is not
+currently planned. The reusable model-assessment, selection, and mixed-state
+inference capabilities do not depend on adding one.
+
 ## Recently completed
 
+* Added pointwise log-likelihood contracts for programmatic and compiled models,
+  observation/group metadata, and deterministic extraction across retained
+  chains. Compiled sampling statements with data-only left sides are identified
+  automatically.
+* Added PSIS-LOO with Pareto-k and effective-sample-size diagnostics, explicit
+  exact/refit fallbacks, paired model comparison, WAIC variance warnings, and
+  simplex-optimized predictive stacking.
+* Added Gaussian linear projection-predictive forward selection and posterior
+  shrinkage ranking by practical-significance probability, keeping predictive
+  selection separate from marginal-likelihood testing.
+* Added language-independent typed mixed state spaces, finite discrete Gibbs
+  and discrete Metropolis kernels, conditional continuous block Metropolis
+  updates, scheduled hybrid sampling, and per-kernel acceptance/support
+  diagnostics. This is fixed-dimensional inference, not trans-dimensional
+  reversible-jump MCMC.
 * Added named Wishart probability APIs for exact directional quadratic-form and
   scale-standardized-trace events, plus error-reporting determinant and log-
   determinant intervals based on Bartlett's independent chi-square factors.

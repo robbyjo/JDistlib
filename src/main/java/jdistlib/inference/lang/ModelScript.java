@@ -38,7 +38,9 @@ import jdistlib.inference.Constraints;
 import jdistlib.inference.DifferentiableModelFactor;
 import jdistlib.inference.ModelBuilder;
 import jdistlib.inference.ModelState;
+import jdistlib.inference.ObservationMetadata;
 import jdistlib.inference.ParameterConstraint;
+import jdistlib.inference.PointwiseLogLikelihoodEvaluator;
 import jdistlib.inference.autodiff.ReverseTape;
 import jdistlib.inference.solver.AlgebraicSolver;
 import jdistlib.inference.solver.DaeSolver;
@@ -343,7 +345,7 @@ public final class ModelScript {
 					addModelFactor(builder, "script:" + (++statementIndex) + ":" + statement.label(),
 							statement, declaredNames, dataValues, shapes, types, constrainedDimension);
 			}
-			final BayesianModel compiled = builder.build();
+			BayesianModel compiled = builder.build();
 			try {
 				compiled.logDensityAndGradient(compiled.initialState(), new double[compiled.dimension()]);
 			} catch (IllegalArgumentException exception) {
@@ -355,6 +357,24 @@ public final class ModelScript {
 			final Map<String, ValueType> capturedTypes = copyTypes(types);
 			final List<Assignment> capturedTransforms = new ArrayList<Assignment>(transformedParameters);
 			final List<Assignment> capturedGenerated = new ArrayList<Assignment>(generated);
+			final Statement capturedModel = new BlockStatement(new ArrayList<Statement>(model), false);
+			PointwiseCollector initialPointwise = collectPointwise(compiled.state(compiled.initialState()),
+					capturedModel, capturedData, capturedShapes, capturedTypes, capturedTransforms,
+					constrainedDimension);
+			if (!initialPointwise.values.isEmpty()) {
+				final ObservationMetadata metadata = initialPointwise.metadata();
+				compiled = compiled.withPointwiseLikelihood(metadata,
+						new PointwiseLogLikelihoodEvaluator() {
+					@Override public double[] evaluate(ModelState state) {
+						PointwiseCollector result = collectPointwise(state, capturedModel, capturedData,
+								capturedShapes, capturedTypes, capturedTransforms, constrainedDimension);
+						if (!metadata.equals(result.metadata()))
+							throw new IllegalStateException("pointwise observation structure changed during evaluation");
+						return result.values();
+					}
+				});
+			}
+			final BayesianModel capturedCompiled = compiled;
 			CompiledModelScript.Generator generator = new CompiledModelScript.Generator() {
 				@Override public Map<String, double[]> generate(ModelState state, RandomEngine random) {
 					Context context = new Context(state, capturedData, capturedShapes, capturedTypes,
@@ -370,7 +390,19 @@ public final class ModelScript {
 					return result;
 				}
 			};
-			return new CompiledModelScript(compiled, generator, LANGUAGE_VERSION);
+			return new CompiledModelScript(capturedCompiled, generator, LANGUAGE_VERSION);
+		}
+
+		private PointwiseCollector collectPointwise(ModelState state, Statement capturedModel,
+				Map<String, double[]> data, Map<String, int[]> shapes, Map<String, ValueType> types,
+				List<Assignment> transforms, int constrainedDimension) {
+			PointwiseCollector collector = new PointwiseCollector();
+			Context context = new Context(state, data, shapes, types, constrainedDimension,
+					null, functions, collector);
+			for (Assignment assignment : transforms)
+				context.setLocal(assignment.name, assignment.runtimeValue(context));
+			capturedModel.eval(context); context.consumeFunctionTarget();
+			return collector;
 		}
 
 		private void addModelFactor(ModelBuilder builder, String factorName,
@@ -914,12 +946,14 @@ public final class ModelScript {
 						: context.functions.containsKey(mass) ? mass : null;
 				if (selected != null) {
 					List<Expr> values = new ArrayList<Expr>(); values.add(left); values.addAll(arguments);
-					return capture(new CallExpr(selected, values).eval(context), context);
+					Diff contribution = new CallExpr(selected, values).eval(context);
+					collectPointwise(context, contribution); return capture(contribution, context);
 				}
 			}
 			if (distribution.equals("multi_normal") || distribution.equals("multi_normal_cholesky")) {
 				List<Expr> values = new ArrayList<Expr>(); values.add(left); values.addAll(arguments);
-				return capture(new CallExpr(distribution + "_lpdf", values).eval(context), context);
+				Diff contribution = new CallExpr(distribution + "_lpdf", values).eval(context);
+				collectPointwise(context, contribution); return capture(contribution, context);
 			}
 			RuntimeValue observationValue = left.evalValue(context);
 			Diff[] observations = observationValue.values;
@@ -944,9 +978,20 @@ public final class ModelScript {
 					RuntimeValue argument = evaluatedArguments[i];
 					values[i + 1] = argument.values[argument.isScalar() ? 0 : element];
 				}
-				result = result.add(logProbability(distribution, values));
+				Diff contribution = logProbability(distribution, values);
+				if (observed(context)) context.pointwise.add(group(), contribution.value);
+				result = result.add(contribution);
 			}
 			return capture(result, context);
+		}
+		private void collectPointwise(Context context, Diff contribution) {
+			if (observed(context)) context.pointwise.add(group(), contribution.value);
+		}
+		private boolean observed(Context context) {
+			return context.pointwise != null && context.functionDepth == 0 && left.dataOnly(context);
+		}
+		private String group() {
+			return left instanceof VariableExpr ? ((VariableExpr) left).name : distribution;
 		}
 		private Diff capture(Diff contribution, Context context) {
 			if (context.functionDepth == 0) return contribution;
@@ -2910,6 +2955,7 @@ public final class ModelScript {
 		final Map<String, int[]> shapes; final Map<String, ValueType> types; final int dimension;
 		final RandomEngine random;
 		final Map<String, List<UserFunction>> functions;
+		final PointwiseCollector pointwise;
 		int functionDepth;
 		Diff functionTarget;
 		final List<String> functionNames = new ArrayList<String>();
@@ -2919,8 +2965,13 @@ public final class ModelScript {
 		Context(ModelState state, Map<String, double[]> data, Map<String, int[]> shapes,
 				Map<String, ValueType> types,
 				int dimension, RandomEngine random, Map<String, List<UserFunction>> functions) {
+			this(state, data, shapes, types, dimension, random, functions, null);
+		}
+		Context(ModelState state, Map<String, double[]> data, Map<String, int[]> shapes,
+				Map<String, ValueType> types, int dimension, RandomEngine random,
+				Map<String, List<UserFunction>> functions, PointwiseCollector pointwise) {
 			this.state = state; this.data = data; this.shapes = shapes; this.types = types; this.dimension = dimension;
-			this.random = random; this.functions = functions;
+			this.random = random; this.functions = functions; this.pointwise = pointwise;
 			functionTarget = Diff.constant(0.0, dimension);
 			scopes.add(new LinkedHashMap<String, RuntimeValue>());
 			integerScopes.add(new LinkedHashSet<String>());
@@ -3012,6 +3063,26 @@ public final class ModelScript {
 		}
 		Diff consumeFunctionTarget() {
 			Diff result = functionTarget; functionTarget = Diff.constant(0.0, dimension); return result;
+		}
+	}
+	private static final class PointwiseCollector {
+		final List<String> names = new ArrayList<String>();
+		final List<String> groups = new ArrayList<String>();
+		final List<Double> values = new ArrayList<Double>();
+		final Map<String, Integer> counts = new LinkedHashMap<String, Integer>();
+		void add(String group, double value) {
+			Integer previous = counts.get(group); int count = previous == null ? 1 : previous + 1;
+			counts.put(group, count); groups.add(group); names.add(group + "[" + count + "]");
+			values.add(value);
+		}
+		ObservationMetadata metadata() {
+			return new ObservationMetadata(names.toArray(new String[names.size()]),
+					groups.toArray(new String[groups.size()]));
+		}
+		double[] values() {
+			double[] result = new double[values.size()];
+			for (int i = 0; i < result.length; i++) result[i] = values.get(i);
+			return result;
 		}
 	}
 	private static final class Diff {

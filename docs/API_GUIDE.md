@@ -29,8 +29,11 @@ Use the smallest API that expresses the distribution you have.
 | An exact multinomial/Dirichlet-multinomial/multivariate-hypergeometric rectangle | The law's inclusive-bound `probability` method |
 | A Wishart directional, standardized-trace, or determinant event | The named methods in `Wishart` and `WISHART_PROBABILITIES.md` |
 | A programmatic Bayesian posterior | `jdistlib.inference.ModelBuilder` and `BayesianModel` |
+| LOO, WAIC, model comparison, or stacking | `PointwiseLogLikelihoodDraws`, `PsisLoo`, `Waic`, and `PredictiveStacking` |
+| Predictive or shrinkage variable selection | `ProjectionPredictiveSelection` or `ShrinkageSelection` |
 | A differentiable continuous posterior | `NoUTurnSampler` with multiple explicit-seed chains |
-| A posterior without gradients or with discrete variables | Metropolis, `SliceSampler`, or composable `GibbsSampler` blocks |
+| A posterior without gradients | Metropolis, `SliceSampler`, or composable `GibbsSampler` blocks |
+| A fixed-dimensional mixed continuous/discrete posterior | `MixedStateSpace` and a scheduled `HybridSampler` |
 | MCMC convergence and sampler health | `McmcDiagnostics` and `McmcDiagnosticReport` |
 | Trace, rank, ACF, energy, pair, or model graphs | `DiagnosticGraphs`, `ModelGraphExport`, and `InferenceHtmlReport` |
 | A Stan-inspired model script or generated Java wrapper | `jdistlib.inference.lang.ModelScript` or `ModelSourceGenerator` |

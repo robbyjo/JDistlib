@@ -16,14 +16,15 @@ public final class ParetoSmoothedImportanceSampling {
 		int tailLength = Math.max(3, Math.min(weights.length / 5, (int) Math.ceil(3.0 * Math.sqrt(weights.length))));
 		int thresholdIndex = weights.length - tailLength - 1;
 		double threshold = weights[order[Math.max(0, thresholdIndex)]];
-		double mean = 0.0, variance = 0.0;
+		double mean = 0.0;
 		for (int i = weights.length - tailLength; i < weights.length; i++) mean += weights[order[i]] - threshold;
 		mean /= tailLength;
-		for (int i = weights.length - tailLength; i < weights.length; i++) { double d = weights[order[i]] - threshold - mean; variance += d * d; }
-		variance /= Math.max(1.0, tailLength - 1.0);
-		double k = variance > 0.0 ? 0.5 * (1.0 - mean * mean / variance) : 0.0;
-		k = Math.max(-0.5, Math.min(5.0, k));
-		double sigma = Math.max(1e-15, mean * (1.0 - k));
+		double safeThreshold = Math.max(Double.MIN_NORMAL, threshold), k = 0.0;
+		for (int i = weights.length - tailLength; i < weights.length; i++)
+			k += Math.log(Math.max(Double.MIN_NORMAL, weights[order[i]]) / safeThreshold);
+		k = Math.max(0.0, Math.min(5.0, k / tailLength));
+		double sigma = k < 0.9 ? Math.max(1e-15, mean * (1.0 - k))
+				: Math.max(1e-15, safeThreshold * k);
 		double largest = weights[order[weights.length - 1]];
 		for (int rank = 0; rank < tailLength; rank++) {
 			double probability = (rank + 0.5) / tailLength;

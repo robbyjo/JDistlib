@@ -32,6 +32,7 @@ public final class ModelBuilder {
 			new LinkedHashMap<String, PendingParameter>();
 	private final Map<String, double[]> data = new LinkedHashMap<String, double[]>();
 	private final List<PendingFactor> factors = new ArrayList<PendingFactor>();
+	private final List<PointwiseLikelihoodSpec> pointwise = new ArrayList<PointwiseLikelihoodSpec>();
 
 	public ModelBuilder data(String name, double... values) {
 		validateName(name);
@@ -61,6 +62,29 @@ public final class ModelBuilder {
 		for (PendingFactor existing : factors)
 			if (existing.name.equals(name)) throw new IllegalArgumentException("duplicate factor: " + name);
 		factors.add(new PendingFactor(name, dependencies.clone(), factor));
+		return this;
+	}
+
+	/** Adds a scalar likelihood factor and exposes it for pointwise predictive assessment. */
+	public ModelBuilder likelihood(String name, String[] dependencies, ModelFactor factor) {
+		return likelihood(name, name, dependencies, factor);
+	}
+
+	/** Adds a scalar likelihood factor with an explicit observation group. */
+	public ModelBuilder likelihood(String name, String group, String[] dependencies,
+			final ModelFactor factor) {
+		factor(name, dependencies, factor);
+		pointwiseLikelihood(new ObservationMetadata(new String[] {name}, new String[] {group}),
+				state -> new double[] {factor.logDensity(state)});
+		return this;
+	}
+
+	/** Registers likelihood contributions already included in the model target. */
+	public ModelBuilder pointwiseLikelihood(ObservationMetadata metadata,
+			PointwiseLogLikelihoodEvaluator evaluator) {
+		if (metadata == null || metadata.size() == 0 || evaluator == null)
+			throw new IllegalArgumentException("nonempty metadata and a pointwise evaluator are required");
+		pointwise.add(new PointwiseLikelihoodSpec(metadata, evaluator));
 		return this;
 	}
 
@@ -103,7 +127,7 @@ public final class ModelBuilder {
 					spec.unconstrainedOffset());
 		}
 		return new BayesianModel(compiled, compiledFactors, new ModelData(data),
-				initial, constrainedDimension);
+				initial, constrainedDimension, pointwise);
 	}
 
 	private static void validateName(String name) {

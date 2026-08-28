@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 /** Compiled named model evaluated on an unconstrained state space. */
-public final class BayesianModel implements DifferentiableLogDensity, GradientProvider {
+public final class BayesianModel implements DifferentiableLogDensity, GradientProvider,
+		PointwiseLogLikelihood {
 	private final Map<String, ParameterSpec> parameters;
 	private final List<FactorSpec> factors;
 	private final ModelData data;
@@ -16,9 +17,18 @@ public final class BayesianModel implements DifferentiableLogDensity, GradientPr
 	private final int constrainedDimension;
 	private final boolean analyticGradient;
 	private final ModelGraph graph;
+	private final List<PointwiseLikelihoodSpec> pointwise;
+	private final ObservationMetadata observationMetadata;
 
 	BayesianModel(Map<String, ParameterSpec> parameters, List<FactorSpec> factors,
 			ModelData data, double[] initialState, int constrainedDimension) {
+		this(parameters, factors, data, initialState, constrainedDimension,
+				Collections.<PointwiseLikelihoodSpec>emptyList());
+	}
+
+	BayesianModel(Map<String, ParameterSpec> parameters, List<FactorSpec> factors,
+			ModelData data, double[] initialState, int constrainedDimension,
+			List<PointwiseLikelihoodSpec> pointwise) {
 		this.parameters = Collections.unmodifiableMap(
 				new LinkedHashMap<String, ParameterSpec>(parameters));
 		this.factors = Collections.unmodifiableList(new ArrayList<FactorSpec>(factors));
@@ -28,6 +38,11 @@ public final class BayesianModel implements DifferentiableLogDensity, GradientPr
 		boolean analytic = true;
 		for (FactorSpec factor : factors) analytic &= factor.isDifferentiable();
 		analyticGradient = analytic;
+		this.pointwise = Collections.unmodifiableList(
+				new ArrayList<PointwiseLikelihoodSpec>(pointwise));
+		ObservationMetadata[] pieces = new ObservationMetadata[this.pointwise.size()];
+		for (int i = 0; i < pieces.length; i++) pieces[i] = this.pointwise.get(i).metadata;
+		observationMetadata = ObservationMetadata.concatenate(pieces);
 		graph = createGraph();
 	}
 
@@ -39,6 +54,33 @@ public final class BayesianModel implements DifferentiableLogDensity, GradientPr
 	public ModelGraph graph() { return graph; }
 	public ModelEvaluator evaluator() { return new ModelEvaluator(this); }
 	@Override public boolean hasAnalyticGradient() { return analyticGradient; }
+	@Override public ObservationMetadata observationMetadata() { return observationMetadata; }
+
+	@Override public double[] pointwiseLogLikelihood(double[] state) {
+		if (state == null || state.length != dimension())
+			throw new IllegalArgumentException("state dimension does not match model");
+		double[] constrained = constrain(state);
+		ModelState view = new ModelState(constrained, parameters, data);
+		double[] result = new double[observationMetadata.size()]; int offset = 0;
+		for (PointwiseLikelihoodSpec spec : pointwise) {
+			double[] values = spec.evaluator.evaluate(view);
+			if (values == null || values.length != spec.metadata.size())
+				throw new IllegalStateException("pointwise evaluator width does not match its metadata");
+			System.arraycopy(values, 0, result, offset, values.length); offset += values.length;
+		}
+		return result;
+	}
+
+	/** Returns a copy of this model with an additional pointwise likelihood evaluator. */
+	public BayesianModel withPointwiseLikelihood(ObservationMetadata metadata,
+			PointwiseLogLikelihoodEvaluator evaluator) {
+		if (metadata == null || metadata.size() == 0 || evaluator == null)
+			throw new IllegalArgumentException("nonempty metadata and evaluator are required");
+		List<PointwiseLikelihoodSpec> combined = new ArrayList<PointwiseLikelihoodSpec>(pointwise);
+		combined.add(new PointwiseLikelihoodSpec(metadata, evaluator));
+		return new BayesianModel(parameters, factors, data, initialState,
+				constrainedDimension, combined);
+	}
 
 	@Override public double logDensity(double[] state) {
 		if (state == null || state.length != dimension()) return Double.NaN;

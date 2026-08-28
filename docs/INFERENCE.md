@@ -59,6 +59,59 @@ All bundled samplers select a chain-local evaluator automatically when given a
 `BayesianModel`; callers only need `model.evaluator()` for custom algorithms or
 benchmarks.
 
+## Pointwise predictive assessment
+
+Likelihood contributions used for predictive assessment are explicit. For a
+programmatic model, use `ModelBuilder.likelihood` for a scalar observation or
+`pointwiseLikelihood` for a vector evaluator with `ObservationMetadata`.
+Ordinary `factor` calls remain target contributions only, so priors and custom
+penalties cannot accidentally appear in LOO or WAIC.
+
+```java
+BayesianModel model = new ModelBuilder()
+    .parameter("mu", Constraints.real(), 0)
+    .factor("prior", new String[] {"mu"}, prior)
+    .likelihood("y[1]", "y", new String[] {"mu"}, likelihood1)
+    .likelihood("y[2]", "y", new String[] {"mu"}, likelihood2)
+    .build();
+
+PointwiseLogLikelihoodDraws logLik =
+    model.extractPointwiseLogLikelihood(chain1, chain2);
+PsisLoo.Result loo = PsisLoo.compute(logLik,
+    (observation, name) -> refitWithout(observation));
+Waic.Result waic = Waic.compute(logLik);
+```
+
+The compiled Stan frontend automatically records each distribution statement
+whose left side is data-only. Vectorized built-in likelihoods produce one entry
+per scalar observation, with stable names such as `y[1]` and a common `y`
+group. A contribution written as `target += ...`, or a custom vector-valued
+distribution that returns one aggregate log density, cannot be split safely by
+the compiler; register its pointwise evaluator explicitly with
+`BayesianModel.withPointwiseLikelihood`.
+
+`PsisLoo.Result` exposes pointwise ELPD, Pareto k, importance effective sample
+size, unreliable observation indices, and which exact/refit fallbacks were
+used. A result is reliable only if every k is at most 0.7 or has been replaced
+by the supplied fallback. `Waic.Result` reports observations whose posterior
+log-likelihood variance exceeds 0.4. `LooModelComparison` uses paired pointwise
+differences and `PredictiveStacking` optimizes nonnegative weights summing to
+one; neither hides the reliability status of the underlying LOO estimates.
+
+## Predictive and shrinkage selection
+
+`ProjectionPredictiveSelection` performs forward projection from Gaussian
+linear reference-model coefficient draws. At every path step it projects the
+reference fitted values onto the candidate submodel, includes the residual
+projection error in its variance, and reports the mean KL loss. The selected
+step is the smallest submodel meeting the caller's loss tolerance.
+
+`ShrinkageSelection` is a complementary summary for posterior coefficient
+draws. It ranks variables by the posterior probability that the absolute
+coefficient exceeds a caller-defined practical magnitude and applies an
+explicit probability threshold. It is not a Bayes-factor, marginal-likelihood,
+or point-null test.
+
 ## Samplers
 
 | Target or model | Recommended starting point |
@@ -67,7 +120,8 @@ benchmarks.
 | Short, predictable differentiable trajectory | `HamiltonianMonteCarlo` |
 | No gradients, moderate dimension | `RandomWalkMetropolis` or `ComponentWiseMetropolis` |
 | Difficult one-dimensional conditionals | `SliceSampler` |
-| Known full conditionals or mixed variables | `GibbsSampler` with exact, ARS, or `MetropolisBlockKernel` updates |
+| Known full conditionals | `GibbsSampler` with exact, ARS, or `MetropolisBlockKernel` updates |
+| Fixed-dimensional mixed variables | `HybridSampler` with typed, support-aware kernels |
 
 NUTS uses multinomial candidate selection, dual-averaging step-size warmup,
 diagonal or dense covariance metrics, and divergence and tree-depth reporting.
@@ -176,10 +230,21 @@ divergences. Increase `targetAcceptance` only after checking the model and its
 gradients. A saturated tree-depth limit is not fixed merely by raising the
 limit; examine posterior geometry and effective sample size first.
 
-Discrete variables cannot be evolved by HMC. Use a Gibbs or Metropolis block
-for discrete coordinates and NUTS/HMC blocks for differentiable continuous
-coordinates. Slice and adaptive-rejection updates remain useful for scalar full
-conditionals. See `InferenceExamples.java` for a compiled end-to-end workflow.
+Discrete variables cannot be evolved by HMC. `MixedStateSpace` declares every
+coordinate as real, bounded real, integer, or categorical. `HybridSampler`
+runs its kernels in an explicit schedule: `FiniteDiscreteGibbsKernel` enumerates
+a finite full conditional, `DiscreteMetropolisKernel` uses valid symmetric
+discrete proposals, and `ContinuousBlockMetropolisKernel` updates continuous
+coordinates conditional on the current discrete state. Its diagnostics retain
+per-kernel attempts, acceptance rates, and support rejections. Slice and
+adaptive-rejection updates remain useful for scalar full conditionals. Hybrid
+proposal scales belong to their kernels; the HMC-specific mass-matrix and
+dual-averaging options in `SamplingOptions` do not tune this schedule.
+
+This mixed-state API has a fixed state dimension. It supports indicator-based
+variable selection when a fixed maximum set of coefficients is acceptable, but
+it does not implement reversible-jump dimension changes or their proposal
+Jacobians. See `InferenceExamples.java` for a compiled end-to-end workflow.
 The website adds a beginner tutorial, reference guide, posterior vignette,
 diagnostics vignette, language tutorial, and a catalog backed by fifteen named
 tests in `BayesianShowcaseTest`.

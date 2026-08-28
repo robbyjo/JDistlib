@@ -1,6 +1,6 @@
 # Modern MCMC API
 
-JDistlib 0.8.4 keeps the original `Sampler.sample(...)` entry
+JDistlib 0.8.5 keeps the original `Sampler.sample(...)` entry
 point and Java 8 bytecode while adding a composable, restartable inference layer.
 The consolidated [inference acceleration result](INFERENCE_ACCELERATION_RESULT.md)
 records the delivered surface, validation evidence, and measured GPU boundary.

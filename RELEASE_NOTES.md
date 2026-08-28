@@ -1,4 +1,58 @@
-# JDistlib 0.8.4
+# JDistlib 0.8.5
+
+JDistlib 0.8.5 adds two complementary model-selection paths without changing
+the existing sampler contracts or Java 8 bytecode target. The new Java-only
+reversible-jump layer represents each model with a named variable-dimensional
+state and evaluates a complete normalized log joint. General moves declare
+their reverse, forward and reverse auxiliary densities, and log absolute
+Jacobian; the sampler adds the boundary-dependent probabilities of selecting
+each applicable move. Dimension-matching utilities validate inverse round
+trips and reciprocal Jacobians.
+
+The first production RJMCMC workflow targets covariate, feature, and genotype-
+locus selection. It supplies add, drop, and swap moves for up to 62 candidates,
+prior-matched or warmup-adaptive Gaussian coefficient births, per-model
+continuous random walks, and adapters for existing fixed-dimensional JDistlib
+samplers. Move schedules and proposal adaptation freeze after discarded
+warmup. Ragged draws support tidy CSV export, and checksummed portable
+checkpoints retain the exact random stream, model state, move weights, and
+component adaptation for deterministic continuation.
+
+RJMCMC diagnostics report posterior model and inclusion probabilities with
+ESS, MCSE, and split R-hat, model-transition counts, top-model round trips,
+per-direction acceptance and invalid proposals, and coefficient summaries
+conditional on presence. Analytical tests verify exact posterior odds,
+birth/death and swap reciprocity, nonzero Jacobians, dimension-map inverses,
+schedule-independent parallel chains, and exact restart. A complete four-chain
+linear-regression example is linked directly from the MCMC learning center and
+walks through normalization, add/drop/swap sampling, review, export, and
+checkpoint resume.
+
+For models that fit a fixed padded representation, 0.8.5 also adds typed mixed
+state spaces, exact finite-discrete Gibbs updates, discrete and continuous-
+block Metropolis kernels, hybrid scheduling, and per-kernel diagnostics. Model
+assessment now includes pointwise log-likelihood extraction for Java and
+compiled scripts, PSIS-LOO with Pareto-k diagnostics and refit fallbacks, WAIC,
+paired comparison, predictive stacking, Gaussian projection-predictive forward
+selection, and shrinkage ranking by practical-significance probability.
+
+The probability layer adds exact multinomial, Dirichlet-multinomial, and
+multivariate-hypergeometric rectangle calculations; error-reporting Dirichlet,
+multivariate Laplace, and multivariate power-exponential rectangles; and named
+Wishart directional quadratic-form, standardized-trace, determinant, and log-
+determinant events. The four-parameter Wiener first-passage density and exact
+bias-conditioned inversion RNG are available in Java and compiled model
+scripts, with a checked reaction-time model in the executable catalog.
+
+The recommended GitHub artifact remains the self-contained
+`jdistlib-all-0.8.5.jar`, containing core JDistlib and the CUDA, OpenCL, and
+Vulkan providers with their cross-platform x86-64 Java/JNI dependencies. The
+native-free core and small modular accelerator artifacts remain available for
+dependency-managed builds. This release preserves existing 0.8 APIs,
+deterministic caller-owned random streams, CPU fallback, and Java 8-compatible
+class files.
+
+## Previous release: JDistlib 0.8.4
 
 JDistlib 0.8.4 makes GPU-enabled installation a one-download operation and
 adds the Vulkan provider that was intentionally deferred from 0.8.3. The

@@ -4,7 +4,7 @@
 <title>Worked RJMCMC subset selection in JDistlib</title><link rel="stylesheet" href="assets/style.css"></head>
 <body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="rjmcmc-example.html">RJMCMC example</a><a href="examples.html">Examples</a><a href="api/">JavaDoc</a></nav></header>
 <main class="guide">
-<section class="guide-hero"><p class="eyebrow">Worked analysis · Java-only · 0.8.4</p><h1>Select covariates with reversible-jump MCMC</h1><p class="lede">A complete linear-regression analysis that moves between models of different dimensions, checks inclusion mixing, exports ragged draws, and resumes from an exact portable checkpoint.</p><div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/blob/master/examples/WorkedReversibleJumpSelectionExample.java">Open the complete Java file</a><a class="button secondary" href="#run">Compile and run</a></div></section>
+<section class="guide-hero"><p class="eyebrow">Worked analysis · Java-only · 0.8.5</p><h1>Select covariates with reversible-jump MCMC</h1><p class="lede">A complete linear-regression analysis that moves between models of different dimensions, checks inclusion mixing, exports ragged draws, and resumes from an exact portable checkpoint.</p><div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/blob/master/examples/WorkedReversibleJumpSelectionExample.java">Open the complete Java file</a><a class="button secondary" href="#run">Compile and run</a></div></section>
 <nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#question">Question</a><a href="#target">Normalized target</a><a href="#moves">Moves</a><a href="#run">Run</a><a href="#diagnostics">Review</a><a href="#checkpoint">Resume</a></nav>
 <section class="guide-section" id="question"><p class="eyebrow">Scientific question</p><h2>Which predictors belong in the regression?</h2><p>The checked-in example has sixteen observations and three candidate predictors: <code>dose</code>, <code>genotype</code>, and a correlated <code>proxy_marker</code>. The response was generated from the first two, while the proxy creates a realistic competing-locus model that exercises swap moves. A model identifier is a bit mask, so model <code>3</code> contains dose and genotype while model <code>0</code> contains only the common intercept.</p><p>For subset <em>M</em>, the model is:</p><pre><code>y[i] ~ Normal(alpha + sum(beta[j] * x[i,j], j in M), 0.75)
 alpha ~ Normal(0, 5)
@@ -41,13 +41,13 @@ ReversibleJumpResult chain = sampler.sample(
     target,
     target.state(0, new double[] {0}, new double[0]),
     options,
-    new MersenneTwister(20260829));</code></pre><p>Move weights, per-model random-walk scales, and adaptive birth proposals may change only during discarded warmup. They are frozen before retained sampling. Use a separate sampler instance and explicit random engine for each independent chain.</p><h3>Compile and run the complete file</h3><pre><code>./gradlew compileDocumentationExamples -PreleaseVersion=0.8.4
-java -cp "build/libs/jdistlib-0.8.4.jar:build/documentation-examples" \
+    new MersenneTwister(20260829));</code></pre><p>Move weights, per-model random-walk scales, and adaptive birth proposals may change only during discarded warmup. They are frozen before retained sampling. Use a separate sampler instance and explicit random engine for each independent chain.</p><h3>Compile and run the complete file</h3><pre><code>./gradlew compileDocumentationExamples -PreleaseVersion=0.8.5
+java -cp "build/libs/jdistlib-0.8.5.jar:build/documentation-examples" \
   examples.WorkedReversibleJumpSelectionExample
 
 # Windows
-gradlew.bat compileDocumentationExamples "-PreleaseVersion=0.8.4"
-java -cp "build\libs\jdistlib-0.8.4.jar;build\documentation-examples" examples.WorkedReversibleJumpSelectionExample</code></pre><p>An optional first argument selects the output directory. The default is <code>build/example-output/rjmcmc</code>.</p></section>
+gradlew.bat compileDocumentationExamples "-PreleaseVersion=0.8.5"
+java -cp "build\libs\jdistlib-0.8.5.jar;build\documentation-examples" examples.WorkedReversibleJumpSelectionExample</code></pre><p>An optional first argument selects the output directory. The default is <code>build/example-output/rjmcmc</code>.</p></section>
 <section class="guide-section" id="diagnostics"><p class="eyebrow">Review the trans-dimensional chain</p><h2>Model occupancy alone is not enough</h2><p><code>ReversibleJumpDiagnostics.analyze</code> combines chains and reports posterior model and candidate inclusion probabilities with ESS/MCSE/R-hat, retained transition counts, round trips between the two most visited models, add/drop/swap acceptance and invalid proposals, and parameter summaries conditional on presence.</p><pre><code>ReversibleJumpDiagnosticReport report =
     ReversibleJumpDiagnostics.analyze(target, chains);
 

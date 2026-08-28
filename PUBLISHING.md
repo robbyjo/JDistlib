@@ -1,9 +1,9 @@
-# Publishing JDistlib 0.8.4
+# Publishing JDistlib 0.8.5
 
 The normal release workflow builds and tests the native-free core, modular
 CUDA/OpenCL/Vulkan providers, and unified distribution. It verifies manifests
 and the merged provider descriptor, rejects SNAPSHOT filenames, creates
-SHA-256 checksums, and attaches only `jdistlib-all-0.8.4.jar` plus the checksum
+SHA-256 checksums, and attaches only `jdistlib-all-0.8.5.jar` plus the checksum
 file to the GitHub tag. The Central bundle below contains the native-free core
 and the three small provider publications; it does not publish the fat JAR.
 
@@ -13,8 +13,8 @@ plugin. Build the released source from its immutable tag rather than from the
 later development branch:
 
 ```text
-git switch --detach v0.8.4
-gradlew.bat clean centralBundle '-PreleaseVersion=0.8.4'
+git switch --detach v0.8.5
+gradlew.bat clean centralBundle '-PreleaseVersion=0.8.5'
 ```
 
 Supply the ASCII-armored private signing key and its password through Gradle's
@@ -22,7 +22,7 @@ Supply the ASCII-armored private signing key and its password through Gradle's
 environment variables (`ORG_GRADLE_PROJECT_signingKey` and
 `ORG_GRADLE_PROJECT_signingPassword`). Never commit either value. The task
 refuses SNAPSHOT versions and unsigned bundles. Its output is
-`build/distributions/jdistlib-0.8.4-central.zip`, containing Maven-layout POM,
+`build/distributions/jdistlib-0.8.5-central.zip`, containing Maven-layout POM,
 JARs, signatures, and MD5/SHA-1/SHA-256/SHA-512 checksums.
 
 Before the first upload, the maintainer must verify ownership of the

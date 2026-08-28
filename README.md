@@ -28,10 +28,13 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.8.4 is the current stable release. It adds a tested Vulkan FP64
-compute provider and a self-contained cross-platform x86-64 download that
-bundles core JDistlib, CUDA, OpenCL, Vulkan, and their Java/JNI runtime
-dependencies in one JAR. The modular artifacts remain available for dependency-
+Version 0.8.5 is the current stable release. It adds Java-only reversible-jump
+MCMC, fixed-dimensional mixed-state inference, PSIS-LOO/WAIC assessment,
+predictive stacking and variable-selection tools, multivariate rectangle and
+Wishart event probabilities, and the Wiener first-passage model. Version 0.8.4
+added the tested Vulkan FP64 provider and the self-contained cross-platform
+x86-64 JAR that bundles core JDistlib, CUDA, OpenCL, Vulkan, and their Java/JNI
+runtime dependencies. The modular artifacts remain available for dependency-
 managed builds. Version 0.8.3 added
 Stan complex and tuple values, sparse kernels, external and higher-order
 functions, reusable reverse-tape script execution, sensitivity-aware algebraic/
@@ -81,12 +84,12 @@ arbitrage-constrained option-implied and posterior-predictive distributions.
 
 ## Download
 
-The [JDistlib 0.8.4 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.4)
+The [JDistlib 0.8.5 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.5)
 provides one recommended, self-contained `jdistlib-all` JAR with SHA-256
 checksums. It contains core JDistlib, CUDA, OpenCL, Vulkan, and the required
 Java/JNI libraries for Windows, Linux, and macOS x86-64. It produces Java
 8-compatible bytecode. Download the
-[all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.4/jdistlib-all-0.8.4.jar).
+[all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.5/jdistlib-all-0.8.5.jar).
 
 GPU vendor runtimes remain system components: CUDA requires a compatible
 NVIDIA driver and NVRTC, OpenCL requires an installed OpenCL implementation,
@@ -300,7 +303,7 @@ adjusted-MCLMC step/decorrelation/mass-scale tuning, checksummed portable
 checkpoints, MCSE-driven continuation, factor profiling, safe warmup reuse,
 compressed selected-column draw storage, and machine-readable health advice.
 
-The 0.8.4 API adds pointwise likelihood extraction for Java and compiled Stan
+The 0.8.5 API adds pointwise likelihood extraction for Java and compiled Stan
 models, PSIS-LOO/WAIC comparison and predictive stacking, projection-predictive
 and shrinkage variable selection, typed fixed-dimensional hybrid inference,
 and Java-only reversible-jump MCMC. The RJ layer includes dimension-matching

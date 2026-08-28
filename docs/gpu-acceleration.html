@@ -19,17 +19,17 @@
   </header>
   <main class="guide">
     <section class="guide-hero">
-      <p class="eyebrow">Optional acceleration · 0.8.4</p>
+      <p class="eyebrow">Optional acceleration · 0.8.4+</p>
       <h1>Use the GPU where the workload earns it</h1>
       <p class="lede">JDistlib can route large vector, dense-linear-algebra, and batched likelihood work through optional CUDA, OpenCL, or Vulkan providers. Small operations stay on the deterministic CPU reference path by default.</p>
-      <span class="version-pill">CUDA, OpenCL, and Vulkan are available in JDistlib 0.8.4</span>
+      <span class="version-pill">CUDA, OpenCL, and Vulkan are available since JDistlib 0.8.4</span>
     </section>
     <nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#install">Install</a><a href="#choices">Choices</a><a href="#java">Java</a><a href="#cli">Command line</a><a href="#nuts">NUTS</a><a href="#measurements">Measurements</a><a href="#requirements">Requirements</a></nav>
 
     <section class="guide-section" id="install">
       <p class="eyebrow">One-file installation</p><h2>Download one JAR; let JDistlib detect the machine</h2>
-      <p>The recommended <code>jdistlib-all-0.8.4.jar</code> contains core JDistlib, all three providers, and their Java/JNI dependencies for Windows, Linux, and macOS x86-64. It runs on CPU when no compatible GPU runtime is present.</p>
-      <div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/releases/download/v0.8.4/jdistlib-all-0.8.4.jar">Download the all-in-one JAR ↓</a><a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.8.4">Verify SHA-256 checksum</a></div>
+      <p>The recommended <code>jdistlib-all-0.8.5.jar</code> contains core JDistlib, all three providers, and their Java/JNI dependencies for Windows, Linux, and macOS x86-64. It runs on CPU when no compatible GPU runtime is present.</p>
+      <div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/releases/download/v0.8.5/jdistlib-all-0.8.5.jar">Download the all-in-one JAR ↓</a><a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.8.5">Verify SHA-256 checksum</a></div>
       <aside class="callout"><strong>Dependency-managed alternative:</strong> Gradle/Maven applications can retain the small native-free core and add only <code>jdistlib-cuda</code>, <code>jdistlib-opencl</code>, or <code>jdistlib-vulkan</code>. The provider JARs are add-ons, not standalone JDistlib distributions.</aside>
     </section>
 
@@ -140,6 +140,6 @@ device=NVIDIA GeForce RTX 2080 (sm_75), thresholded CPU fallback enabled</code><
       <p>Caller-provided random streams remain deterministic. Parallel reductions can differ in their final floating-point bits across hardware and providers, so JDistlib does not promise bit-identical chains across CPU, CUDA, OpenCL, or Vulkan devices. Use CPU for the cross-machine reference path; for accelerated reproduction, retain the backend/device manifest and use the same software and hardware configuration.</p>
     </section>
   </main>
-  <footer><span>JDistlib GPU acceleration guide.</span><span>CUDA/OpenCL/Vulkan behavior for JDistlib 0.8.4.</span></footer>
+  <footer><span>JDistlib GPU acceleration guide.</span><span>CUDA/OpenCL/Vulkan behavior introduced in JDistlib 0.8.4.</span></footer>
 </body>
 </html>

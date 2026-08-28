@@ -1,5 +1,36 @@
 What's new:
 
+Version 0.8.5 (August 28, 2026):
+* Added a Java-only reversible-jump MCMC framework with ragged model states,
+  complete normalized targets, boundary-aware move scheduling, forward/reverse
+  proposal terms, dimension-matching maps, Jacobians, model-specific
+  within-model kernels, deterministic parallel chains, and frozen exact
+  checkpoint/resume state.
+* Added a production subset-selection workflow with add/drop/swap moves,
+  adaptive or prior-matched coefficient births, model and inclusion
+  ESS/MCSE/R-hat, transition and round-trip diagnostics, tidy ragged export,
+  analytical detailed-balance tests, and a worked covariate/locus-selection
+  website example linked from the MCMC learning center.
+* Added pointwise log-likelihood extraction for Java and compiled model scripts,
+  PSIS-LOO and WAIC assessment, paired model comparison, predictive stacking,
+  Gaussian projection-predictive forward selection, and posterior shrinkage
+  ranking.
+* Added typed fixed-dimensional mixed state spaces with finite-discrete Gibbs
+  and Metropolis kernels, conditional continuous-block updates, hybrid
+  scheduling, and per-kernel diagnostics as a simpler indicator-model
+  alternative to RJMCMC.
+* Added exact multinomial, Dirichlet-multinomial, and multivariate-
+  hypergeometric rectangle probabilities; error-reporting Dirichlet,
+  multivariate Laplace, and multivariate power-exponential rectangle
+  probabilities; and named Wishart directional, trace, determinant, and
+  log-determinant probability APIs.
+* Added the four-parameter Wiener first-passage density and exact
+  bias-conditioned inversion RNG, including compiled-script likelihood/RNG
+  bindings and a checked reaction-time model.
+* Preserved the Java 8 bytecode target, native-free core, modular accelerator
+  artifacts, and the self-contained CPU/CUDA/OpenCL/Vulkan distribution while
+  advancing all release documentation and artifact links to 0.8.5.
+
 Version 0.8.4 (August 28, 2026):
 * Added the Java 8-compatible `jdistlib-vulkan` provider using LWJGL Vulkan and
   shaderc. It discovers a compute queue with FP64 shader support and implements

@@ -45,7 +45,7 @@ Run the checked comparison benchmark with:
 
 ```text
 ./gradlew compileDocumentationExamples
-java -cp build/libs/jdistlib-0.8.4.jar;build/documentation-examples examples.ReverseAutodiffBenchmark
+java -cp build/libs/jdistlib-0.8.5.jar;build/documentation-examples examples.ReverseAutodiffBenchmark
 ```
 
 Use `:` instead of `;` as the classpath separator on Unix-like systems. The

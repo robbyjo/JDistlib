@@ -41,13 +41,13 @@ ReversibleJumpResult chain = sampler.sample(
     target,
     target.state(0, new double[] {0}, new double[0]),
     options,
-    new MersenneTwister(20260829));</code></pre><p>Move weights, per-model random-walk scales, and adaptive birth proposals may change only during discarded warmup. They are frozen before retained sampling. Use a separate sampler instance and explicit random engine for each independent chain.</p><h3>Compile and run the complete file</h3><pre><code>./gradlew compileDocumentationExamples -PreleaseVersion=0.8.5
-java -cp "build/libs/jdistlib-0.8.5.jar:build/documentation-examples" \
+    new MersenneTwister(20260829));</code></pre><p>Move weights, per-model random-walk scales, and adaptive birth proposals may change only during discarded warmup. They are frozen before retained sampling. Use a separate sampler instance and explicit random engine for each independent chain.</p><h3>Compile and run the complete file</h3><p>The classpath wildcard stays valid across JDistlib releases.</p><pre><code>./gradlew compileDocumentationExamples
+java -cp "build/libs/*:build/documentation-examples" \
   examples.WorkedReversibleJumpSelectionExample
 
 # Windows
-gradlew.bat compileDocumentationExamples "-PreleaseVersion=0.8.5"
-java -cp "build\libs\jdistlib-0.8.5.jar;build\documentation-examples" examples.WorkedReversibleJumpSelectionExample</code></pre><p>An optional first argument selects the output directory. The default is <code>build/example-output/rjmcmc</code>.</p></section>
+gradlew.bat compileDocumentationExamples
+java -cp "build\libs\*;build\documentation-examples" examples.WorkedReversibleJumpSelectionExample</code></pre><p>An optional first argument selects the output directory. The default is <code>build/example-output/rjmcmc</code>.</p></section>
 <section class="guide-section" id="diagnostics"><p class="eyebrow">Review the trans-dimensional chain</p><h2>Model occupancy alone is not enough</h2><p><code>ReversibleJumpDiagnostics.analyze</code> combines chains and reports posterior model and candidate inclusion probabilities with ESS/MCSE/R-hat, retained transition counts, round trips between the two most visited models, add/drop/swap acceptance and invalid proposals, and parameter summaries conditional on presence.</p><pre><code>ReversibleJumpDiagnosticReport report =
     ReversibleJumpDiagnostics.analyze(target, chains);
 

@@ -4,7 +4,7 @@
 <title>Sparse transcriptome RJMCMC example in JDistlib</title><link rel="stylesheet" href="assets/style.css"></head>
 <body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="sparse-transcriptome-rjmcmc-example.html">Sparse transcriptome example</a><a href="examples.html">Examples</a><a href="api/">JavaDoc</a></nav></header>
 <main class="guide">
-<section class="guide-hero"><p class="eyebrow">Worked public-data analysis · restartable · GPU optional · 0.9.0+</p><h1>Search 17,000 array-measured genes with sparse RJMCMC</h1><p class="lede">Download a public rheumatoid-arthritis expression study, fit a subject random-intercept model with clinical covariates, explore models containing at most twenty genes, and safely continue a chain after a reboot.</p><div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/blob/master/examples/WorkedSparseTranscriptomeRjmcmcExample.java">Open the Java analysis</a><a class="button secondary" href="https://github.com/robbyjo/JDistlib/blob/master/examples/gse93272/prepare-gse93272.R">Open the data-preparation script</a></div></section>
+<section class="guide-hero"><p class="eyebrow">Worked public-data analysis · restartable · GPU optional · 0.9.1+</p><h1>Search 17,000 array-measured genes with sparse RJMCMC</h1><p class="lede">Download a public rheumatoid-arthritis expression study, fit a subject random-intercept model with clinical covariates, explore models containing at most twenty genes, and safely continue a chain after a reboot.</p><div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/blob/master/examples/WorkedSparseTranscriptomeRjmcmcExample.java">Open the Java analysis</a><a class="button secondary" href="https://github.com/robbyjo/JDistlib/blob/master/examples/gse93272/prepare-gse93272.R">Open the data-preparation script</a></div></section>
 <nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#scope">Scope</a><a href="#data">Data</a><a href="#model">Model</a><a href="#sparse">Sparse RJ</a><a href="#run">Run</a><a href="#restart">Restart</a><a href="#gpu">GPU</a><a href="#review">Review</a><a href="#trouble">Troubleshoot</a></nav>
 
 <section class="guide-section" id="scope"><p class="eyebrow">Name the analysis precisely</p><h2>This is transcriptome-wide association, not genetically predicted-expression TWAS</h2><p>The example associates directly measured Affymetrix expression with a clinical phenotype. That makes it an array-based transcriptome-wide biomarker association analysis. In contemporary human genetics, “TWAS” often means testing genetically predicted expression using an expression-reference panel and GWAS summary statistics; this example does not make that claim. Its purpose is to exercise real high-dimensional model selection, repeated observations, covariate adjustment, accelerators, and restart safety.</p><aside class="callout caution"><strong>Exploratory showcase:</strong> selection from one observational cohort does not establish causality, clinical utility, or external replication. Batch correction supplied by the study and the outcome-blind filter do not remove every source of bias.</aside></section>
@@ -37,13 +37,13 @@ SparseSubsetRjSampler sampler = new SparseSubsetRjSampler(
 ./gradlew :jdistlib-all:jar compileDocumentationExamples
 
 # macOS/Linux: force CPU for the first smoke run
-java -cp "distribution/all/build/libs/jdistlib-all-0.9.0-SNAPSHOT.jar:build/documentation-examples" \
+java -cp "distribution/all/build/libs/*:build/documentation-examples" \
   examples.WorkedSparseTranscriptomeRjmcmcExample \
   --data=build/example-data/gse93272 --compute=cpu \
   --chain=1 --segments=1 --segment-transitions=1000 --warmup=50000 --thin=10
 
 # Windows PowerShell: use the available accelerator automatically
-java -cp "distribution/all/build/libs/jdistlib-all-0.9.0-SNAPSHOT.jar;build/documentation-examples" `
+java -cp "distribution/all/build/libs/*;build/documentation-examples" `
   examples.WorkedSparseTranscriptomeRjmcmcExample `
   --data=build/example-data/gse93272 --compute=auto `
   --chain=1 --segments=10 --segment-transitions=10000 --warmup=50000 --thin=10</code></pre><p>Run a short CPU smoke first. Then launch independent output directories with different <code>--chain</code> values. A segment is a durability and scheduling unit, not a new chain: rerunning the same command detects <code>sparse-rj.checkpoint</code> and continues. Changing data, warmup, thinning, maximum model size, concrete backend, or chain number causes the fingerprint check to reject an unsafe continuation.</p></section>

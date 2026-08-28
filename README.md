@@ -31,7 +31,11 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.9.0 is the current stable release. It adds probability-first finance:
+Version 0.9.1 is the current stable release. It adds sparse subset RJMCMC for
+thousands of candidate features, exact restart during warmup or sampling,
+crash-safe segmented output, CUDA/OpenCL-assisted residual proposals, and a
+public GSE93272 mixed-model worked example. Version 0.9.0 added
+probability-first finance:
 tail and payoff functionals, transform-domain and heavy-tailed laws,
 aggregation, tail-sensitive copulas, EVT fitting, checked implied volatility,
 arbitrage-repaired option curves, and risk-neutral or posterior-predictive
@@ -75,7 +79,7 @@ holonomic index-3 DAE solvers are available under `jdistlib.inference.solver`;
 the algebraic, ODE, DAE, and 1-D quadrature paths also have differentiable
 modeling-language bindings.
 
-The development branch also provides a Java-native
+The library also provides a Java-native
 [Stan source-compatibility core](docs/STAN_SOURCE_COMPATIBILITY.md). Ordinary
 `.stan` fixtures exercise arbitrary-rank arrays and slices, complex/tuple
 values, sparse and typed matrix algebra, container/external/higher-order user
@@ -91,7 +95,7 @@ distribution/EVT fitting, and arbitrage-constrained option-implied and
 posterior-predictive distributions. A separate
 [worked options analysis](docs/options-trading-worked-example.html) keeps
 risk-neutral and physical probabilities explicit.
-The development surface additionally completes the finance follow-ups with
+Version 0.9.0 additionally completed the finance follow-ups with
 multivariate GH/NIG/VG/stable/NTS constructions, exact/Panjer/FFT/COS and
 saddlepoint aggregation, adaptive transform inversion, stable tail paths,
 smooth option-implied recovery, spectral/distortion/entropic risk, drawdown
@@ -100,12 +104,12 @@ laws, and Lévy-process increment composition. See the compiled
 
 ## Download
 
-The [JDistlib 0.9.0 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.9.0)
+The [latest JDistlib release](https://github.com/robbyjo/JDistlib/releases/latest)
 provides one recommended, self-contained `jdistlib-all` JAR with SHA-256
 checksums. It contains core JDistlib, CUDA, OpenCL, Vulkan, and the required
 Java/JNI libraries for Windows, Linux, and macOS x86-64. It produces Java
 8-compatible bytecode. Download the
-[all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.9.0/jdistlib-all-0.9.0.jar).
+[all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar).
 
 GPU vendor runtimes remain system components: CUDA requires a compatible
 NVIDIA driver and NVRTC, OpenCL requires an installed OpenCL implementation,

@@ -1,6 +1,6 @@
 What's new:
 
-Development after 0.9.0:
+Version 0.9.1 (August 28, 2026):
 * Added an arbitrary-candidate sparse subset RJMCMC engine with sorted active
   indices, an explicit active-size cap, exact add/drop/swap proposal accounting,
   residual-informed proposals, online inclusion summaries, and crash-safe tidy
@@ -13,6 +13,8 @@ Development after 0.9.0:
   linked from the MCMC learning center. The regression suite verifies 17,000
   candidate indices, accelerator parity, corrupt/incompatible checkpoint
   rejection, and exact split/resume trajectories including interrupted warmup.
+
+Version 0.9.0 (August 28, 2026):
 * Completed the six additive finance follow-ups: tempered-stable and Meixner
   laws, multivariate normal-mixture and elliptical families, exact/Panjer/FFT/
   COS/saddlepoint aggregation, stable analytical tails and adaptive inversion,
@@ -20,8 +22,6 @@ Development after 0.9.0:
   functionals, and Lévy increment composition.
 * Added checked diagnostics, numerical and reduction regressions, a compiled
   advanced-finance example, and expanded tutorial and distribution pages.
-
-Version 0.9.0 (August 28, 2026):
 * Completed the probability-first finance roadmap with atom-aware tail/payoff
   analysis, transform domains and Esscher tilts, generalized-hyperbolic/NIG,
   variance-gamma and stable laws, reproducible aggregation, compound counts,

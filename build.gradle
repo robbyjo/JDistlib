@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'net.sourceforge.jdistlib'
-def releaseLine = '0.9.0'
+def releaseLine = '0.9.1'
 def requestedReleaseVersion = providers.gradleProperty('releaseVersion').orNull
 if (requestedReleaseVersion != null && requestedReleaseVersion != releaseLine) {
     throw new GradleException("releaseVersion ${requestedReleaseVersion} does not match ${releaseLine}")
@@ -70,6 +70,39 @@ tasks.register('site', Sync) {
     into layout.buildDirectory.dir('site')
 }
 
+def releaseDocumentation = files(file('README.md'), fileTree('docs') {
+    include '**/*.html', '**/*.md'
+})
+
+tasks.register('validateReleaseDocumentation') {
+    group = 'verification'
+    description = 'Rejects stale version-pinned website downloads and runnable JAR paths.'
+    inputs.files(releaseDocumentation, file('.github/workflows/release.yml'))
+    doLast {
+        def stalePatterns = [
+            [label: 'version-pinned GitHub release link', pattern: ~/releases\/(?:download|tag)\/v\d+\.\d+\.\d+/],
+            [label: 'version-pinned runnable JAR', pattern: ~/jdistlib(?:-all)?-\d+\.\d+\.\d+(?:-SNAPSHOT)?\.jar/],
+            [label: 'version-pinned documentation build', pattern: ~/-PreleaseVersion=\d+\.\d+\.\d+/]
+        ]
+        releaseDocumentation.files.each { documentation ->
+            def text = documentation.getText('UTF-8')
+            stalePatterns.each { rule ->
+                if ((text =~ rule.pattern).find()) {
+                    throw new GradleException("${rule.label} in ${project.relativePath(documentation)}; use releases/latest or a version-independent classpath")
+                }
+            }
+        }
+        def latestDownload = 'https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar'
+        ['README.md', 'docs/index.html', 'docs/gpu-acceleration.html'].each { name ->
+            if (!file(name).getText('UTF-8').contains(latestDownload))
+                throw new GradleException("${name} must use the stable latest-release download")
+        }
+        if (!file('.github/workflows/release.yml').getText('UTF-8').contains(
+                'build/release-assets/jdistlib-all.jar'))
+            throw new GradleException('release workflow must publish the stable jdistlib-all.jar alias')
+    }
+}
+
 def compileDocumentationExamples = tasks.register('compileDocumentationExamples', JavaCompile) {
     dependsOn tasks.named('jar')
     source fileTree('examples') { include '**/*.java' }
@@ -86,7 +119,7 @@ def validateModelScripts = tasks.register('validateModelScripts', JavaExec) {
 }
 
 tasks.named('check') {
-    dependsOn compileDocumentationExamples, validateModelScripts,
+    dependsOn compileDocumentationExamples, validateModelScripts, validateReleaseDocumentation,
         ':jdistlib-cuda:check', ':jdistlib-opencl:check', ':jdistlib-vulkan:check',
         ':jdistlib-all:check', 'validateModularPoms'
 }

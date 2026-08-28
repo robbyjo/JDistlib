@@ -68,6 +68,7 @@ jobs:
             grep -F 'jdistlib.accelerator.vulkan.VulkanComputeBackend'
           mkdir -p build/release-assets
           cp "$ALL_JAR" build/release-assets/
+          cp "$ALL_JAR" build/release-assets/jdistlib-all.jar
           if find build/release-assets -maxdepth 1 -name '*SNAPSHOT*' | grep -q .; then
             echo "SNAPSHOT artifact found in release output" >&2
             exit 1

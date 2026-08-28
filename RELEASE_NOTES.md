@@ -1,4 +1,44 @@
-# JDistlib 0.9.0
+# JDistlib 0.9.1
+
+JDistlib 0.9.1 adds a production-oriented sparse subset RJMCMC path for a large
+candidate universe with a small active model. `SparseSubsetState` stores sorted
+integer candidate indices instead of a fixed-width model bit mask, while
+`SparseSubsetTarget` enforces an independent maximum-active bound. Exact
+add/drop/swap calculations retain state-dependent forward and reverse candidate
+probabilities, coefficient birth densities, and boundary-dependent move
+selection probabilities.
+
+Extremely long chains can run as bounded segments and resume during either
+warmup or retained sampling. The checksummed portable checkpoint contains the
+sparse state, current normalized log joint, exact random stream, global warmup
+target and adaptation, 64-bit counters, move statistics, and online model-size,
+inclusion, coefficient, and common-parameter moments. Draw segments and
+checkpoints are flushed, forced, and atomically installed in a deterministic
+order so interruption recovery can replay the same segment safely.
+
+The new residual-informed candidate proposal uses repeated `X'v` scores with a
+uniform mixture that preserves support for every inactive candidate. CUDA and
+OpenCL providers can keep the prepared feature matrix resident on device; CPU
+remains the reference implementation and Vulkan uses the CPU fallback for this
+primitive. Accelerator parity and exact split/resume tests cover interrupted
+warmup, corrupt or incompatible checkpoints, and 17,000-candidate states.
+
+A complete public-data analysis downloads the processed GSE93272 Affymetrix
+study from GEO, applies an outcome-blind 17,000-gene preparation, and fits a
+normalized Gaussian subject random-intercept model with age, sex, batch, and RIN
+covariates. The compiled Java example, Bioconductor preparation script, and
+website tutorial cover priors, GPU measurement, multiple-chain review,
+reboot-safe operation, and scientific limitations. The MCMC learning center
+links the example directly.
+
+Release downloads now include both the versioned all-in-one JAR and a stable
+`jdistlib-all.jar` alias. Website download buttons use GitHub's latest-release
+redirect, and runnable source-tree documentation uses version-independent
+classpath wildcards, preventing the version drift corrected in this release.
+
+All additions preserve the Java 8 bytecode target and existing APIs.
+
+## Previous release: JDistlib 0.9.0
 
 JDistlib 0.9.0 completes the probability-first finance and options roadmap
 without turning the library into a market-data, instrument-management, pricing,

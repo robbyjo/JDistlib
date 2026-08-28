@@ -28,8 +28,8 @@
 
     <section class="guide-section" id="install">
       <p class="eyebrow">One-file installation</p><h2>Download one JAR; let JDistlib detect the machine</h2>
-      <p>The recommended <code>jdistlib-all-0.8.5.jar</code> contains core JDistlib, all three providers, and their Java/JNI dependencies for Windows, Linux, and macOS x86-64. It runs on CPU when no compatible GPU runtime is present.</p>
-      <div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/releases/download/v0.8.5/jdistlib-all-0.8.5.jar">Download the all-in-one JAR ↓</a><a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/tag/v0.8.5">Verify SHA-256 checksum</a></div>
+      <p>The recommended <code>jdistlib-all.jar</code> contains core JDistlib, all three providers, and their Java/JNI dependencies for Windows, Linux, and macOS x86-64. The stable filename always resolves to the newest GitHub release and runs on CPU when no compatible GPU runtime is present.</p>
+      <div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download the latest all-in-one JAR ↓</a><a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/latest">Verify SHA-256 checksum</a></div>
       <aside class="callout"><strong>Dependency-managed alternative:</strong> Gradle/Maven applications can retain the small native-free core and add only <code>jdistlib-cuda</code>, <code>jdistlib-opencl</code>, or <code>jdistlib-vulkan</code>. The provider JARs are add-ons, not standalone JDistlib distributions.</aside>
     </section>
 

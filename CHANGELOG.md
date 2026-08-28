@@ -1,6 +1,10 @@
 What's new:
 
 Unreleased:
+* Removed the homepage's duplicate Start Learning grid, folded distribution,
+  custom-law, multiple-testing, and copula learning links into their matching
+  feature cards, and retained one dedicated MCMC gateway organized around
+  quick-start, pure-Java, example, JDM/Stan, beginner, and diagnostic routes.
 * Added a fully commented, executable CSV-to-JDM MCMC analysis covering model
   compilation, configurable parallel NUTS, comprehensive diagnostics, trace/
   rank/ACF/energy exports, posterior summaries, predictive generation, and a

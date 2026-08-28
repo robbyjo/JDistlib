@@ -11,6 +11,7 @@ import jdistlib.MultivariateLaplace;
 import jdistlib.MultivariatePowerExponential;
 import jdistlib.MultivariateProbabilityResult;
 import jdistlib.Wiener;
+import jdistlib.Wishart;
 import jdistlib.rng.MersenneTwister;
 
 /** Executable tour of exact count and error-reporting continuous probabilities. */
@@ -40,6 +41,16 @@ public final class AdvancedProbabilityExamples {
 		report("power-exponential rectangle",
 				MultivariatePowerExponential.probability(new double[] {-1.0, -0.5},
 						new double[] {0.8, 1.2}, location, scatter, 0.65));
+
+		double[][] wishartScale = {{2.0, 0.3}, {0.3, 1.0}};
+		System.out.println("Wishart directional variance CDF=" +
+				Wishart.quadraticFormCumulative(25.0, new double[] {1.0, -2.0},
+						7.0, wishartScale, true, false));
+		System.out.println("Wishart standardized trace CDF=" +
+				Wishart.standardizedTraceCumulative(18.0, 7.0, wishartScale,
+						true, false));
+		report("Wishart determinant CDF",
+				Wishart.determinantCumulative(90.0, 7.0, wishartScale));
 
 		double logDensity = Wiener.density(0.75, 1.2, 0.18, 0.35, 0.6, true);
 		double conditionalDraw = Wiener.random(1.2, 0.18, 0.35, 0.6,

@@ -1,7 +1,7 @@
 /* Copyright (C) 2026 Roby Joehanes; GPL-2.0-or-later */
 package jdistlib;
 
-/** Result of a numerical multivariate rectangle-probability calculation. */
+/** Result of a numerical multivariate probability calculation. */
 public final class MultivariateProbabilityResult {
 	/** Legacy integer code corresponding to {@link MultivariateProbabilityStatus#SUCCESS}. */
 	public static final int SUCCESS = 0;

@@ -44,14 +44,13 @@ volatility-surface lifecycle management, Greeks, market-data ingestion, and
 execution remain integration-library concerns rather than JDistlib 0.9.0 core
 features.
 
-## Unscheduled
-
-* Define useful, unambiguous probability APIs for the Wishart distribution,
-  favoring named scalar or matrix-order events over an entrywise matrix CDF;
-  implement the events that can be evaluated reliably.
-
 ## Recently completed
 
+* Added named Wishart probability APIs for exact directional quadratic-form and
+  scale-standardized-trace events, plus error-reporting determinant and log-
+  determinant intervals based on Bartlett's independent chi-square factors.
+  The contract explicitly excludes an ambiguous entrywise matrix CDF and an
+  unsupported general Loewner-order CDF.
 * Added the Stan-compatible four-parameter Wiener first-passage density using
   small/large-time series with signed log summation, a bias-conditioned
   inversion RNG without time-discretization error, script likelihood/RNG

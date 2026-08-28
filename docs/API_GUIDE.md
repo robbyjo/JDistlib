@@ -27,6 +27,7 @@ Use the smallest API that expresses the distribution you have.
 | A finite, semi-infinite, or whole-line integral | `Integrate.integrate` with `IntegrationOptions` when defaults are insufficient |
 | A continuous multivariate rectangle probability | The law's `probability` method and `MultivariateProbabilityResult` |
 | An exact multinomial/Dirichlet-multinomial/multivariate-hypergeometric rectangle | The law's inclusive-bound `probability` method |
+| A Wishart directional, standardized-trace, or determinant event | The named methods in `Wishart` and `WISHART_PROBABILITIES.md` |
 | A programmatic Bayesian posterior | `jdistlib.inference.ModelBuilder` and `BayesianModel` |
 | A differentiable continuous posterior | `NoUTurnSampler` with multiple explicit-seed chains |
 | A posterior without gradients or with discrete variables | Metropolis, `SliceSampler`, or composable `GibbsSampler` blocks |
@@ -58,7 +59,9 @@ overload without a random engine for a deterministic midpoint transform, a
 
 See `NUMERICAL_DISTRIBUTIONS.md` for integration and custom-law guarantees and
 `MULTIVARIATE_PROBABILITIES.md` for randomized rectangle probabilities. See
-`COPULAS.md` for dependence families and continuous-marginal composition. See
+`WISHART_PROBABILITIES.md` for the deliberately named Wishart scalar events and
+the matrix-order boundary. See `COPULAS.md` for dependence families and
+continuous-marginal composition. See
 `INFERENCE.md`, `MODELING_LANGUAGE.md`, and `INFERENCE_COMPATIBILITY.md` for
 Bayesian modeling, MCMC, diagnostics, graphing, scripting, and schema guarantees.
 For a guided sequence, start at `inference-tutorial.html`, continue with

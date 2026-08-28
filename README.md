@@ -226,6 +226,10 @@ for statuses, reproducibility, scaling, and difficult cases.
 Multinomial, Dirichlet-multinomial, and multivariate-hypergeometric rectangles
 instead use inclusive integer bounds and an exact sequential-conditional
 dynamic program, so they return a `double` without numerical-error metadata.
+Wishart exposes named directional quadratic-form and standardized-trace CDFs,
+and error-reporting determinant/log-determinant probabilities; it deliberately
+does not label an entrywise matrix event as a generic CDF. See the
+[Wishart probability contract](docs/WISHART_PROBABILITIES.md).
 
 ## Copulas and composed joint distributions
 

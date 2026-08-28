@@ -12,6 +12,11 @@ inclusive integer-bound `probability` and `cumulative` methods. Those three are
 deterministic: a shared sequential-conditional dynamic program sums binomial,
 beta-binomial, or hypergeometric conditional masses without Monte Carlo error.
 
+Wishart probabilities are not rectangles. `Wishart` provides named exact
+directional quadratic-form and standardized-trace CDFs plus numerical
+determinant/log-determinant intervals. See `WISHART_PROBABILITIES.md`; there is
+deliberately no ambiguous entrywise matrix CDF.
+
 ## Distribution-specific transformations
 
 - Dirichlet probabilities use conditional beta stick breaking. At each step,

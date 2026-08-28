@@ -1,42 +1,69 @@
-# JDistlib 0.8.2
+# JDistlib 0.8.3
 
-JDistlib 0.8.2 expands the versioned Stan-inspired model-script frontend and
-its executable learning path while preserving the numerical corrections from
-0.8.1 and the complete 0.8.0 inference API.
+JDistlib 0.8.3 is a broad Stan-compatibility, numerical-modeling, and modern
+inference release. It preserves the complete 0.8 API, deterministic caller-owned
+random streams, the native-free core artifact, and Java 8 bytecode.
 
-Model blocks now support initialized scoped scalar locals, compound assignment,
-comparisons and boolean expressions, `if`/`else`, integer-range `for`, guarded
-`while`, and Stan's vertical-bar probability-function separator. The
-differentiable scalar function catalog now covers stable log-space transforms,
-normal-CDF helpers, special functions, and common elementary functions. More
-than thirty scalar probability families and corresponding generated-quantity
-RNGs are available, including Student-t, lognormal, logistic, Gumbel,
-skew-normal, exponentially modified normal, von Mises, inverse-gamma,
-inverse-chi-square variants, Weibull, Fréchet, Rayleigh, beta-binomial,
-negative-binomial variants, geometric, and Pareto variants.
+The source frontend now accepts arbitrary-rank arrays and slicing, vectors,
+row-vectors, rectangular matrices, complex values, procedural tuples, immutable
+CSR matrices, structured covariance/correlation constraints, and typed
+orientation-aware linear algebra. Forward-declared, overloaded, recursive,
+container-valued, tuple-valued, external Java, and higher-order functions are
+supported within the documented compatibility boundary. Compiled script factors
+lower onto reusable thread-local reverse tapes with specialized probability,
+matrix, distance, external, and numerical-sensitivity kernels.
 
-The release adds a checked CSV dataset and an executable comparison that feeds
-the same observations to Java-built and scripted models. The tutorials now show
-in-memory compilation, SHA-256 keyed JDK compilation caches, generated Java
-source, direct CLI use, sampling, generated quantities, and a dedicated path
-for Stan users with an explicit compatibility boundary.
+Java-native damped-Newton algebraic solving, adaptive Dormand-Prince ODEs,
+stiff BDF integration, implicit index-1 DAEs, projected holonomic index-3
+mechanics, and one-dimensional quadrature have differentiable script bindings.
+Parameter sensitivities propagate through the reusable reverse-mode runtime.
+The checked catalog now contains fifty JDistlib model scripts and forty-one
+ordinary `.stan` fixtures; every release build validates all ninety-one models.
 
-The catalog contains fifty semantically validated `.jdm` programs. Nine focused
-0.8.2 models demonstrate robust Student-t location, Bernoulli-logit regression,
-beta-binomial overdispersion, a negative-binomial log link, scoped piecewise
-control flow, stable contamination mixtures, Weibull lifetimes, von Mises
-directions, and exponentially modified reaction times. A new Java companion
-compares the in-memory, cached-JDK, and generated-source compilation paths.
-Every release build compiles all Java examples and checks every script's finite
-initial density, analytic gradient, and generated quantities.
+The inference layer adds full multi-path Pathfinder with retained L-BFGS
+curvature, ELBO selection, mixture scoring, Pareto-smoothed importance sampling,
+Pareto-k diagnostics, and systematic resampling. Many-short-chain superchains
+include basic, rank-normalized, and folded nested R-hat. Coordinated ChEES or
+SNAPER adaptive static HMC and auditable adjusted-MCLMC pilot tuning add regular
+many-chain and microcanonical alternatives while retaining NUTS as the
+conservative default.
 
-The script language remains a documented Stan-inspired subset rather than a
-claim that arbitrary Stan source is accepted. Arrays, matrices, full
-vectorization, user-defined functions, further transforms, reverse-mode
-autodiff, and differential/algebraic solvers remain roadmap work.
+Workflow additions include checksummed portable checkpoints, fingerprinted
+warmup reuse, arbitrary-function and indicator ESS/MCSE, precision-driven
+continuation, factor cost/nonfinite/heap profiling, geometry advice,
+machine-readable health policies, compressed selected-column storage,
+memory-mapped draws, and generated-quantity sinks.
 
-Release assets include the binary library, sources, JavaDoc, and SHA-256
-checksums. Produced classes remain Java 8 bytecode.
+Optional `jdistlib-cuda` and `jdistlib-opencl` modules provide FP64 vector math,
+AXPY, dot products, dense GEMM, and prepared batched likelihood/gradient
+evaluation behind a Java 8 service-provider interface. `Compute.AUTO` uses
+conservative workload thresholds and deterministic CPU fallback; explicit
+GPU/CUDA/OpenCL requests are strict. Java applications configure
+`SamplingOptions.backend(...)` and `nutsBackend(...)`; embedding command-line
+applications can expose `--compute`, `--nuts-offload`, and `--gpu-nuts`.
+Selection is logged and retained with device provenance in `RunManifest`.
+
+The measured RTX 2080 logistic-regression smoke shows why automatic routing is
+thresholded: one state was slower than CPU, while resident batches of 4, 16, and
+64 reached 3.259x, 7.406x, and 16.665x speedups with maximum likelihood/gradient
+error below 3.1e-11. NUTS tree control remains on CPU; forced target offload is
+available but explicitly warns that it may be slower. Vulkan is recognized as a
+future provider identifier but is not shipped in 0.8.3.
+
+The learning center includes focused container, function, solver, reverse-mode,
+complete CSV/JDM MCMC, inference modernization, and GPU acceleration guides.
+Release assets include binary, source, and JavaDoc JARs for the core, CUDA, and
+OpenCL modules, with SHA-256 checksums.
+
+## Previous release: JDistlib 0.8.2
+
+JDistlib 0.8.2 expanded the versioned Stan-inspired model-script frontend with
+scoped scalar locals, control flow, stable scalar mathematics, more than thirty
+probability families and RNGs, file-backed data examples, and complete
+in-memory, cached, ahead-of-time, and CLI compilation guidance. It added nine
+focused models and brought the JDistlib script catalog to fifty programs while
+preserving the numerical corrections from 0.8.1 and the complete 0.8.0
+inference API.
 
 ## Previous release: JDistlib 0.8.1
 

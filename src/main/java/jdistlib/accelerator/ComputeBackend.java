@@ -4,6 +4,10 @@ package jdistlib.accelerator;
 /** Optional backend for vector, dense-linear-algebra, and batched likelihood work. */
 public interface ComputeBackend extends AutoCloseable {
 	String id();
+	/** Concrete provider used for accelerated work; differs from {@link #id()} for AUTO routing. */
+	default String selectedBackend() { return id(); }
+	/** Whether individual operations may route between CPU and the selected provider. */
+	default boolean automaticRouting() { return false; }
 	boolean available();
 	ComputeCapabilities capabilities();
 	double[] unary(UnaryOperation operation, double[] input);

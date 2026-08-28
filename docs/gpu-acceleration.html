@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="JDistlib 0.8.3 CUDA and OpenCL acceleration: automatic routing, strict selection, Java and command-line configuration, NUTS caveats, and measured performance.">
+  <title>JDistlib GPU acceleration</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">JDistlib</a>
+    <nav aria-label="Primary navigation">
+      <a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a>
+      <a href="inference-guide.html">Inference guide</a>
+      <a aria-current="page" href="gpu-acceleration.html">GPU acceleration</a>
+      <a href="api/">JavaDoc</a><a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
+    </nav>
+  </header>
+  <main class="guide">
+    <section class="guide-hero">
+      <p class="eyebrow">Optional acceleration · 0.8.3</p>
+      <h1>Use the GPU where the workload earns it</h1>
+      <p class="lede">JDistlib can route large vector, dense-linear-algebra, and batched likelihood work through optional CUDA or OpenCL providers. Small operations stay on the deterministic CPU reference path by default.</p>
+      <span class="version-pill">CUDA and OpenCL are available in JDistlib 0.8.3</span>
+    </section>
+    <nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#choices">Choices</a><a href="#java">Java</a><a href="#cli">Command line</a><a href="#nuts">NUTS</a><a href="#measurements">Measurements</a><a href="#requirements">Requirements</a></nav>
+
+    <section class="guide-section" id="choices">
+      <p class="eyebrow">Selection contract</p><h2>Automatic is conservative; explicit choices are strict</h2>
+      <div class="table-wrap"><table class="troubleshooting-table">
+        <thead><tr><th>Compute choice</th><th>Behavior</th><th>If unavailable</th></tr></thead><tbody>
+          <tr><td><code>Compute.AUTO</code></td><td>Detect CUDA, then OpenCL. Route large eligible operations to it and small operations to CPU.</td><td>Use CPU and record the selection.</td></tr>
+          <tr><td><code>Compute.CPU</code></td><td>Use the deterministic CPU reference implementation.</td><td>Always available.</td></tr>
+          <tr><td><code>Compute.GPU</code></td><td>Require any supported GPU provider.</td><td>Fail immediately; never fall back.</td></tr>
+          <tr><td><code>Compute.CUDA</code></td><td>Require CUDA specifically.</td><td>Fail immediately.</td></tr>
+          <tr><td><code>Compute.OPENCL</code></td><td>Require OpenCL specifically.</td><td>Fail immediately.</td></tr>
+          <tr><td><code>Compute.VULKAN</code></td><td>Reserved provider identifier. JDistlib 0.8.3 does not ship a Vulkan provider.</td><td>Fail with an unavailable-backend error.</td></tr>
+        </tbody>
+      </table></div>
+      <p>The current automatic router uses conservative JVM-heap thresholds: 32,768 vector elements and approximately one million multiply/evaluation terms for matrix multiplication or logistic likelihood batches. These are implementation defaults, not performance promises. Prepared inputs remain resident on the selected device, which can make regular batched workflows profitable sooner.</p>
+      <aside class="callout caution"><strong>Backward compatibility:</strong> existing distribution and sampler APIs remain CPU-backed unless they use an accelerator-aware target or call through <code>ComputeBackend</code>. Automatic hardware discovery does not silently replace every legacy floating-point operation.</aside>
+    </section>
+
+    <section class="guide-section" id="java">
+      <p class="eyebrow">Programmatic Java API</p><h2>Put the policy in immutable sampling options</h2>
+      <p><code>SamplingOptions</code> follows the existing builder pattern. The shorter <code>backend</code> method is an alias for <code>computeBackend</code>.</p>
+      <pre><code>SamplingOptions options = SamplingOptions.builder()
+    .warmupIterations(1000)
+    .sampleIterations(2000)
+    .backend(Compute.AUTO)
+    .nutsBackend(ComputeNuts.AUTO)
+    .build();
+
+try (AcceleratedLogisticRegression target =
+        AcceleratedLogisticRegression.forNuts(
+            options, design, outcomes, priorPrecision)) {
+    Fit fit = Inference.fit(
+        new NoUTurnSampler(), target, initialStates,
+        options, 20260828L, 4);
+
+    System.out.println(fit.manifest().computeBackend());
+    System.out.println(fit.manifest().computeDevice());
+}</code></pre>
+      <p>To require CUDA target evaluation for NUTS, replace the two policy lines:</p>
+      <pre><code>.backend(Compute.CUDA)
+.nutsBackend(ComputeNuts.FORCE)</code></pre>
+      <p>A strict policy throws if the provider is missing, the device lacks FP64, or the target is not accelerator-aware. It never quietly changes the request to CPU.</p>
+      <h3>Use numerical primitives directly</h3>
+      <pre><code>try (ComputeSelection selection =
+        ComputeBackends.select(Compute.AUTO)) {
+    ComputeBackend compute = selection.backend();
+    double dot = compute.dot(x, y);
+    double[][] product = compute.matrixMultiply(a, b);
+}</code></pre>
+      <p>The optional modules implement double-precision unary vector functions, AXPY, dot products, dense matrix multiplication, and prepared/batched logistic likelihoods and gradients. The core artifact remains native-free.</p>
+    </section>
+
+    <section class="guide-section" id="cli">
+      <p class="eyebrow">Command-line applications</p><h2>Use reusable switches or JVM properties</h2>
+      <p>Applications embedding JDistlib can pass their argument array through <code>InferenceCliOptions</code>. Unknown arguments are returned to the host application.</p>
+      <pre><code>InferenceCliOptions cli = InferenceCliOptions.parse(args);
+SamplingOptions options = cli.applyTo(
+    SamplingOptions.builder()).build();
+String[] applicationArguments = cli.remainingArguments();</code></pre>
+      <div class="table-wrap"><table class="troubleshooting-table"><thead><tr><th>Switch</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td><code>--compute=auto|cpu|gpu|cuda|opencl|vulkan</code></td><td>Select automatic routing, CPU, any required GPU, or an exact provider.</td></tr>
+        <tr><td><code>--nuts-offload=off|auto|force</code></td><td>Disable, automatically choose, or require accelerated NUTS target evaluation.</td></tr>
+        <tr><td><code>--gpu-nuts</code></td><td>Convenience alias for <code>--compute=gpu --nuts-offload=force</code>.</td></tr>
+      </tbody></table></div>
+      <p>The equivalent JVM properties work even when an application does not expose those switches:</p>
+      <pre><code>java -Djdistlib.compute.backend=cuda \
+     -Djdistlib.compute.nuts=force \
+     -cp "..." your.application.Main</code></pre>
+      <p>Backend selection is emitted once through <code>java.util.logging</code>. Command-line applications normally show it on the console, for example:</p>
+      <pre><code>JDistlib compute: policy=auto, backend=cuda,
+device=NVIDIA GeForce RTX 2080 (sm_75), thresholded CPU fallback enabled</code></pre>
+      <p><code>RunManifest</code> also retains the requested policy, concrete backend, device, and NUTS offload mode so a run does not depend on a transient console message.</p>
+    </section>
+
+    <section class="guide-section" id="nuts">
+      <p class="eyebrow">NUTS boundary</p><h2>Offload target evaluation, not irregular tree control</h2>
+      <p>NUTS tree depths differ by chain and U-turn decisions stop each tree at different times. JDistlib therefore keeps tree construction, adaptation, candidate selection, and U-turn control on CPU. An accelerator-aware target may execute its likelihood, gradient, vector math, and dense linear algebra on a GPU.</p>
+      <div class="table-wrap"><table class="troubleshooting-table"><thead><tr><th>NUTS choice</th><th>Contract</th></tr></thead><tbody>
+        <tr><td><code>ComputeNuts.OFF</code></td><td>Require CPU target evaluation.</td></tr>
+        <tr><td><code>ComputeNuts.AUTO</code></td><td>Use the configured backend and automatic thresholds. This is the default.</td></tr>
+        <tr><td><code>ComputeNuts.FORCE</code></td><td>Require a CUDA, OpenCL, or future Vulkan-backed target and bypass automatic CPU thresholds.</td></tr>
+      </tbody></table></div>
+      <aside class="callout caution"><strong>Forced NUTS may be slower.</strong> Ordinary NUTS evaluates one evolving state at a time. On modest models, dispatch and host/device synchronization can cost more than the GPU work. Forced mode reports a warning and exists for measurement, large resident likelihoods, and deployments where the user intentionally accepts that tradeoff.</aside>
+      <p>The whole-NUTS GPU decision remains provisional until representative end-to-end effective-samples-per-second measurements include warmup, synchronization, divergences, and transfer costs.</p>
+    </section>
+
+    <section class="guide-section" id="measurements">
+      <p class="eyebrow">Measured smoke test · 2026-08-27</p><h2>Batching changes the result</h2>
+      <p>The repeatable CUDA smoke used an NVIDIA GeForce RTX 2080 and an 8,192-row, 32-predictor double-precision logistic regression. Times are five-trial medians after context and NVRTC compilation warmup.</p>
+      <div class="table-wrap"><table class="troubleshooting-table"><thead><tr><th>States</th><th>CPU</th><th>CUDA resident</th><th>Resident speedup</th><th>CUDA with copies</th><th>End-to-end speedup</th></tr></thead><tbody>
+        <tr><td>1</td><td>0.7165 ms</td><td>0.8915 ms</td><td>0.804×</td><td>1.8337 ms</td><td>0.391×</td></tr>
+        <tr><td>4</td><td>2.6209 ms</td><td>0.8043 ms</td><td>3.259×</td><td>1.8411 ms</td><td>1.424×</td></tr>
+        <tr><td>16</td><td>10.6519 ms</td><td>1.4382 ms</td><td>7.406×</td><td>2.3092 ms</td><td>4.613×</td></tr>
+        <tr><td>64</td><td>45.6427 ms</td><td>2.7388 ms</td><td>16.665×</td><td>3.6493 ms</td><td>12.507×</td></tr>
+      </tbody></table></div>
+      <p>The largest CPU/CUDA likelihood or gradient difference was below <code>3.1e-11</code>. These measurements establish a batching boundary on one machine, not a portable speed guarantee. Re-run <code>gradlew :jdistlib-cuda:cudaSmokeBenchmark</code> on the deployment hardware and review the checked-in <a href="https://github.com/robbyjo/JDistlib/blob/master/benchmarks/cuda/RESULTS-2026-08-27.md">benchmark record</a>.</p>
+    </section>
+
+    <section class="guide-section" id="requirements">
+      <p class="eyebrow">Providers and reproducibility</p><h2>Optional artifacts keep core JDistlib portable</h2>
+      <div class="guide-columns">
+        <article><h3>CUDA</h3><p><code>jdistlib-cuda</code> uses JCuda Driver and JNvrtc. NVRTC compiles device code without <code>nvcc</code> or MSVC, but a compatible NVIDIA driver, NVRTC, and <code>nvrtc-builtins</code> are required.</p></article>
+        <article><h3>OpenCL</h3><p><code>jdistlib-opencl</code> uses JOCL and selects an OpenCL GPU with FP64 support. It provides the portable non-CUDA provider in 0.8.3.</p></article>
+      </div>
+      <p>Vulkan is not included in 0.8.3. The service-provider interface permits a future module, but it still needs a SPIR-V pipeline, device management, FP64 validation, and the same CPU-reference tests.</p>
+      <p>Caller-provided random streams remain deterministic. Parallel reductions can differ in their final floating-point bits across hardware and providers, so JDistlib does not promise bit-identical chains across CPU, CUDA, OpenCL, or future Vulkan devices. Use CPU for the cross-machine reference path; for accelerated reproduction, retain the backend/device manifest and use the same software and hardware configuration.</p>
+    </section>
+  </main>
+  <footer><span>JDistlib GPU acceleration guide.</span><span>CUDA/OpenCL behavior for JDistlib 0.8.3.</span></footer>
+</body>
+</html>

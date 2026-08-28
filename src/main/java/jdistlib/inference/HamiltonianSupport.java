@@ -2,11 +2,17 @@
 package jdistlib.inference;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
+import jdistlib.accelerator.Compute;
+import jdistlib.accelerator.ComputeBackend;
 import jdistlib.rng.RandomEngine;
 
 /** Package-private numerical support shared by HMC and NUTS. */
 final class HamiltonianSupport {
+	private static final Logger LOG = Logger.getLogger(HamiltonianSupport.class.getName());
+	private static final AtomicBoolean FORCED_NUTS_WARNING = new AtomicBoolean();
 	private HamiltonianSupport() {}
 
 	static DifferentiableLogDensity gradientTarget(LogDensity target,
@@ -23,6 +29,43 @@ final class HamiltonianSupport {
 		if (!options.allowFiniteDifferences())
 			throw new IllegalArgumentException("HMC/NUTS require DifferentiableLogDensity unless finite differences are explicitly enabled");
 		return Gradients.finiteDifference(target);
+	}
+
+	static void validateNutsComputeTarget(LogDensity target, SamplingOptions options) {
+		ComputeBackend actual = target instanceof ComputeBackedLogDensity
+				? ((ComputeBackedLogDensity) target).computeBackend() : null;
+		String id = actual == null ? "cpu" : actual.id().toLowerCase(java.util.Locale.ROOT);
+		if (options.nutsBackend() == ComputeNuts.OFF) {
+			if (!"cpu".equals(id)) throw new IllegalArgumentException(
+					"NUTS offload is disabled but target uses compute backend " + id);
+			return;
+		}
+		if (options.nutsBackend() == ComputeNuts.FORCE) {
+			if (!hardwareBackend(id)) throw new IllegalArgumentException(
+					"forced NUTS acceleration requires a CUDA, OpenCL, or Vulkan-backed target");
+			validateRequestedBackend(options.computeBackend(), id);
+			if (FORCED_NUTS_WARNING.compareAndSet(false, true)) LOG.warning(
+					"JDistlib NUTS: forced accelerator target evaluation may be slower; tree control remains on CPU");
+			return;
+		}
+		if (options.computeBackend() != Compute.AUTO) {
+			if (actual == null) throw new IllegalArgumentException("requested compute backend "
+					+ options.computeBackend().name().toLowerCase(java.util.Locale.ROOT)
+					+ " but target is not accelerator-aware");
+			validateRequestedBackend(options.computeBackend(), id);
+		}
+	}
+	private static void validateRequestedBackend(Compute requested, String actual) {
+		if (requested == Compute.AUTO) return;
+		if (requested == Compute.CPU && "cpu".equals(actual)) return;
+		if (requested == Compute.GPU && hardwareBackend(actual)) return;
+		if (requested.name().equalsIgnoreCase(actual)) return;
+		throw new IllegalArgumentException("requested compute backend "
+				+ requested.name().toLowerCase(java.util.Locale.ROOT)
+				+ " does not match target backend " + actual);
+	}
+	private static boolean hardwareBackend(String id) {
+		return "cuda".equals(id) || "opencl".equals(id) || "vulkan".equals(id);
 	}
 
 	static final class Point {

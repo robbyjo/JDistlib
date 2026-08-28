@@ -8,14 +8,26 @@ import java.security.NoSuchAlgorithmException;
 /** Immutable provenance record for reproducing one inference run. */
 public final class RunManifest {
 	private final String libraryVersion, sampler, modelHash, optionsHash;
+	private final String computePolicy, computeBackend, computeDevice, nutsOffload;
 	private final long seed, startedEpochMillis, elapsedNanoseconds;
 	private RunManifest(String libraryVersion, String sampler, String modelHash,
-			String optionsHash, long seed, long startedEpochMillis, long elapsedNanoseconds) {
+			String optionsHash, long seed, long startedEpochMillis, long elapsedNanoseconds,
+			String computePolicy, String computeBackend, String computeDevice,
+			String nutsOffload) {
 		this.libraryVersion = libraryVersion; this.sampler = sampler;
 		this.modelHash = modelHash; this.optionsHash = optionsHash; this.seed = seed;
 		this.startedEpochMillis = startedEpochMillis; this.elapsedNanoseconds = elapsedNanoseconds;
+		this.computePolicy = computePolicy; this.computeBackend = computeBackend;
+		this.computeDevice = computeDevice; this.nutsOffload = nutsOffload;
 	}
 	public static RunManifest create(Sampler sampler, String modelIdentity,
+			SamplingOptions options, long seed, long startedEpochMillis,
+			long elapsedNanoseconds) {
+		return create(sampler, null, modelIdentity, options, seed, startedEpochMillis,
+				elapsedNanoseconds);
+	}
+	/** Creates a manifest that records the target's concrete compute backend when available. */
+	public static RunManifest create(Sampler sampler, LogDensity target, String modelIdentity,
 			SamplingOptions options, long seed, long startedEpochMillis,
 			long elapsedNanoseconds) {
 		if (sampler == null || modelIdentity == null || options == null)
@@ -31,9 +43,18 @@ public final class RunManifest {
 				+ ":" + options.stepSizeJitter() + ":" + options.adaptStepSize()
 				+ ":" + options.adaptMassMatrix() + ":" + options.allowFiniteDifferences()
 				+ ":" + options.sliceWidth() + ":" + options.maximumSliceSteps()
-				+ ":" + options.storeDraws();
+				+ ":" + options.storeDraws() + ":" + options.computeBackend()
+				+ ":" + options.nutsBackend();
+		String actual = "cpu", device = System.getProperty("os.arch", "unknown");
+		if (target instanceof ComputeBackedLogDensity) {
+			jdistlib.accelerator.ComputeBackend backend =
+					((ComputeBackedLogDensity) target).computeBackend();
+			actual = backend.selectedBackend(); device = backend.capabilities().device();
+		}
 		return new RunManifest(version, sampler.getClass().getName(), hash(modelIdentity),
-				hash(optionText), seed, startedEpochMillis, elapsedNanoseconds);
+				hash(optionText), seed, startedEpochMillis, elapsedNanoseconds,
+				options.computeBackend().name().toLowerCase(java.util.Locale.ROOT), actual,
+				device, options.nutsBackend().name().toLowerCase(java.util.Locale.ROOT));
 	}
 	public String libraryVersion() { return libraryVersion; }
 	public String sampler() { return sampler; }
@@ -42,6 +63,10 @@ public final class RunManifest {
 	public long seed() { return seed; }
 	public long startedEpochMillis() { return startedEpochMillis; }
 	public long elapsedNanoseconds() { return elapsedNanoseconds; }
+	public String computePolicy() { return computePolicy; }
+	public String computeBackend() { return computeBackend; }
+	public String computeDevice() { return computeDevice; }
+	public String nutsOffload() { return nutsOffload; }
 	private static String hash(String value) {
 		try {
 			byte[] digest = MessageDigest.getInstance("SHA-256")

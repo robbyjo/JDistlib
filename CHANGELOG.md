@@ -1,6 +1,26 @@
 What's new:
 
-Unreleased:
+Version 0.8.3 (August 28, 2026):
+* Added full multi-path Pathfinder with retained L-BFGS curvature, ELBO
+  selection, mixture scoring, PSIS/Pareto-k diagnostics, and systematic
+  resampling; added many-short-chain superchains with robust nested R-hat.
+* Added coordinated ChEES/SNAPER adaptive static HMC and auditable automatic
+  step-size, decorrelation-length, leapfrog-count, and diagonal-mass tuning for
+  adjusted MCLMC.
+* Added optional JCuda/JNvrtc and JOCL accelerator modules behind a Java 8
+  service-provider API, with automatic availability detection, deterministic
+  CPU fallback, vector/linear-algebra primitives, prepared batched likelihoods,
+  and measured RTX 2080 CPU-reference results.
+* Added thresholded `Compute.AUTO`, strict CPU/any-GPU/CUDA/OpenCL selection,
+  programmatic `SamplingOptions` compute and NUTS-offload policies, reusable
+  `--compute`/`--nuts-offload`/`--gpu-nuts` CLI parsing, selection logging, and
+  backend/device provenance in `RunManifest`. Added a complete GPU acceleration
+  webpage; Vulkan is explicitly recognized but not shipped.
+* Added checksummed portable checkpoints, fingerprinted warmup reuse,
+  arbitrary-function ESS/MCSE and precision continuation, factor profiling,
+  geometry and health advice, mapped/compressed draw storage, and generated-
+  quantity sinks. The complete result and release-label rationale are recorded
+  in `docs/INFERENCE_ACCELERATION_RESULT.md`.
 * Removed the homepage's duplicate Start Learning grid, folded distribution,
   custom-law, multiple-testing, and copula learning links into their matching
   feature cards, and retained one dedicated MCMC gateway organized around

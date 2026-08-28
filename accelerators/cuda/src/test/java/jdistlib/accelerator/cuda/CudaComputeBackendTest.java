@@ -9,14 +9,32 @@ import org.junit.Assume;
 import org.junit.Test;
 
 import jdistlib.accelerator.CpuComputeBackend;
+import jdistlib.accelerator.Compute;
+import jdistlib.accelerator.ComputeBackends;
+import jdistlib.accelerator.ComputeSelection;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.UnaryOperation;
 import jdistlib.inference.AcceleratedLogisticRegression;
 import jdistlib.inference.AdaptiveStaticHamiltonianMonteCarlo;
 import jdistlib.inference.AdaptiveStaticHmcOptions;
 import jdistlib.inference.AdaptiveStaticHmcResult;
+import jdistlib.inference.ComputeNuts;
+import jdistlib.inference.SamplingOptions;
 
 public class CudaComputeBackendTest {
+	@Test public void cudaServiceCanBeRequiredBySamplingOptions() {
+		CudaComputeBackend probe = new CudaComputeBackend(); Assume.assumeTrue(probe.available()); probe.close();
+		SamplingOptions options = SamplingOptions.builder().warmupIterations(1).sampleIterations(1)
+				.backend(Compute.CUDA).nutsBackend(ComputeNuts.FORCE).build();
+		double[][] design = {{1, -1}, {1, 0}, {1, 1}}; double[] outcomes = {0, 0, 1};
+		try (AcceleratedLogisticRegression target = AcceleratedLogisticRegression.forNuts(
+				options, design, outcomes, 1.0)) {
+			assertEquals("cuda", target.computeBackend().id());
+		}
+		try (ComputeSelection selection = ComputeBackends.select(Compute.CUDA)) {
+			assertEquals("cuda", selection.selectedBackend());
+		}
+	}
 	@Test public void cudaMatchesCpuReference() {
 		CudaComputeBackend cuda = new CudaComputeBackend();
 		Assume.assumeTrue(cuda.available());

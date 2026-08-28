@@ -28,11 +28,16 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.8.2 is the current stable release. The 0.8.3 development line adds
+Version 0.8.3 is the current stable release. It adds
 Stan complex and tuple values, sparse kernels, external and higher-order
 functions, reusable reverse-tape script execution, sensitivity-aware algebraic/
 ODE/DAE solvers, a stiff BDF path, holonomic index-3 DAE projection, and a much
-larger ordinary-Stan compatibility catalog. Version 0.8.2 expanded the language
+larger ordinary-Stan compatibility catalog. It also adds multi-path Pathfinder,
+many-short-chain and adaptive-static-HMC workflows, automatic adjusted-MCLMC
+tuning, production diagnostics/storage QoL, and optional CUDA/OpenCL compute
+backends. The consolidated [inference and acceleration result](docs/INFERENCE_ACCELERATION_RESULT.md)
+records the delivered surface, validation, and measured accelerator boundary.
+Version 0.8.2 expanded the language
 with scoped scalar locals, control flow, stable scalar math, more than thirty
 probability families and RNGs, file-backed data examples, and complete
 in-memory/cached/ahead-of-time compilation guidance. It retains the 0.8.1
@@ -72,10 +77,11 @@ arbitrage-constrained option-implied and posterior-predictive distributions.
 
 ## Download
 
-The [JDistlib 0.8.2 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.2)
-contains the Java library, source archive, JavaDoc archive, and SHA-256
-checksums. It produces Java 8-compatible bytecode. Download the
-[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.2/jdistlib-0.8.2.jar).
+The [JDistlib 0.8.3 release](https://github.com/robbyjo/JDistlib/releases/tag/v0.8.3)
+contains binary, source, and JavaDoc JARs for core JDistlib and its optional
+CUDA/OpenCL modules, with SHA-256 checksums. It produces Java 8-compatible
+bytecode. Download the
+[binary JAR directly](https://github.com/robbyjo/JDistlib/releases/download/v0.8.3/jdistlib-0.8.3.jar).
 
 ## Building
 
@@ -127,9 +133,12 @@ The website now puts beginner material first:
 * [Modern MCMC API](docs/MCMC_MODERNIZATION.md) — Stan-style warmup, exact
   checkpoints, metrics, adjusted MCLMC, additional samplers, initialization,
   streaming, diagnostics, and SBC.
-* [GPU acceleration and measured smoke](docs/GPU_ACCELERATION.md) — optional
+* [GPU acceleration and measured smoke](docs/gpu-acceleration.html) — optional
   JCuda/NVRTC and JOCL backends, automatic CPU fallback, reproducible RTX 2080
   likelihood numbers, and the still-provisional whole-NUTS decision.
+* [Inference acceleration result](docs/INFERENCE_ACCELERATION_RESULT.md) — the
+  consolidated feature inventory, validation record, benchmark interpretation,
+  compatibility boundary, and v0.8.3 release status.
 * [Post-Stan MCMC roadmap](docs/MCMC_FUTURE_ROADMAP.md) — the design record for
   full Pathfinder, nested R-hat, adaptive static HMC, adjusted-MCLMC tuning,
   workflow QoL, and explicitly experimental algorithms.
@@ -263,7 +272,7 @@ exports, posterior summaries, and a conclusion. The shorter
 [data-ingestion comparison](examples/McmcDataIngestionExamples.java) feeds the
 same observations into both the Java builder and script compiler.
 
-The 0.8.3 development API adds full multi-path Pathfinder with PSIS, many-short-
+The 0.8.3 API adds full multi-path Pathfinder with PSIS, many-short-
 chain superchains and nested R-hat, ChEES/SNAPER adaptive static HMC, automatic
 adjusted-MCLMC step/decorrelation/mass-scale tuning, checksummed portable
 checkpoints, MCSE-driven continuation, factor profiling, safe warmup reuse,
@@ -274,13 +283,17 @@ compressed selected-column draw storage, and machine-readable health advice.
 Core JDistlib remains native-free. The `jdistlib-cuda` module uses JCuda/JNvrtc
 and the `jdistlib-opencl` module uses JOCL; both are discovered through
 `ComputeBackend`, require FP64, and fall back to the deterministic CPU backend
-when absent. They accelerate vector math, dense linear algebra, and prepared
-batched likelihood/gradient evaluation. Select explicitly with
-`-Djdistlib.compute.backend=cuda`, `opencl`, or `cpu`; the default `auto` order is
-CUDA, OpenCL, then CPU. See the [measured GPU guidance](docs/GPU_ACCELERATION.md)
-before offloading a model. Vulkan remains a permitted provider extension but is
-not shipped because OpenCL already covers the portable path with less SPIR-V and
-device-management complexity.
+when absent under `Compute.AUTO`. Automatic routing keeps small heap-backed work
+on CPU and sends sufficiently large vector math, dense linear algebra, and
+prepared batched likelihood/gradient evaluation to CUDA or OpenCL. Java callers
+select through `SamplingOptions.backend(Compute...)` and
+`nutsBackend(ComputeNuts...)`; embedding CLIs can accept `--compute`,
+`--nuts-offload`, or the strict `--gpu-nuts` alias. Explicit GPU/provider
+requests fail rather than silently falling back. See the
+[GPU acceleration webpage](docs/gpu-acceleration.html) for Java and command-line
+examples, measured guidance, logging/provenance, and the warning that forced
+NUTS target offload may be slower. Vulkan remains a recognized provider
+extension but is not shipped in 0.8.3.
 
 ## Multiple testing and false discovery rates
 

@@ -14,4 +14,4 @@ nuts_gradient_smoke 8192 32 100
 
 Transfers and CUDA context creation are excluded. The four batch sizes distinguish
 the common four-chain case from workloads large enough to occupy a GPU. Results and
-the integration decision are recorded in `docs/GPU_ACCELERATION.md`.
+the integration decision are recorded in `docs/gpu-acceleration.html`.

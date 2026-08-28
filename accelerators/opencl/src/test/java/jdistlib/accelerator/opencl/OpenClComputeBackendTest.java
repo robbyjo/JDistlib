@@ -8,10 +8,19 @@ import org.junit.Assume;
 import org.junit.Test;
 
 import jdistlib.accelerator.CpuComputeBackend;
+import jdistlib.accelerator.Compute;
+import jdistlib.accelerator.ComputeBackends;
+import jdistlib.accelerator.ComputeSelection;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.UnaryOperation;
 
 public class OpenClComputeBackendTest {
+	@Test public void openClServiceCanBeRequiredExplicitly() {
+		OpenClComputeBackend probe = new OpenClComputeBackend(); Assume.assumeTrue(probe.available()); probe.close();
+		try (ComputeSelection selection = ComputeBackends.select(Compute.OPENCL)) {
+			assertEquals("opencl", selection.selectedBackend());
+		}
+	}
 	@Test public void matchesCpuReferenceWhenOpenClIsAvailable() {
 		OpenClComputeBackend opencl = new OpenClComputeBackend(); Assume.assumeTrue(opencl.available());
 		CpuComputeBackend cpu = new CpuComputeBackend();

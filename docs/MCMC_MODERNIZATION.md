@@ -1,7 +1,9 @@
 # Modern MCMC API
 
-The current development line keeps the original `Sampler.sample(...)` entry
+JDistlib 0.8.3 keeps the original `Sampler.sample(...)` entry
 point and Java 8 bytecode while adding a composable, restartable inference layer.
+The consolidated [inference acceleration result](INFERENCE_ACCELERATION_RESULT.md)
+records the delivered surface, validation evidence, and measured GPU boundary.
 
 ## What is now available
 
@@ -12,7 +14,7 @@ point and Java 8 bytecode while adding a composable, restartable inference layer
 | exact NUTS restart | `SamplerCheckpoint`, `ResumableSampler`, `Chains.resume` | restores RNG, metric, dual averaging, covariance accumulator, and warmup position |
 | metrics | `MetricConfiguration` | unit, diagonal, dense, block diagonal, supplied, and low-rank-plus-diagonal |
 | trajectory control | `integrationTime`, `stepSizeJitter` | static HMC can use integration time; HMC-family steps can be jittered |
-| result facade | `Inference.fit`, `Fit`, `RunManifest` | chains, diagnostics, elapsed time, version, seed, and SHA-256 option/model identities |
+| result facade | `Inference.fit`, `Fit`, `RunManifest` | chains, diagnostics, elapsed time, version, seed, compute/device provenance, and SHA-256 option/model identities |
 | initialization | `InitialStates`, `PathfinderInitializer`, `LbfgsOptimizer` | named constrained starts, deterministic retry, and quasi-Newton initialization |
 | full approximation | `Pathfinder`, `PathfinderOptions`, `PathfinderFit` | L-BFGS path/ELBO selection, multiple paths, mixture scoring, PSIS resampling, and Pareto-k diagnostics |
 | many short chains | `ManyShortChains`, `ManyShortChainsResult`, `McmcDiagnostics.nestedRankNormalizedRHat` | common-start superchains and robust nested R-hat |
@@ -23,13 +25,18 @@ point and Java 8 bytecode while adding a composable, restartable inference layer
 | scale control | `DrawSink`, `storeDraws(false)`, `ProgressListener` | stream draws without retaining the chain and report/cancel progress |
 | diagnostics | `MonteCarloError`, `EvaluationCounter`, `Divergences`, `WarmupTrace` | MCSE for SD/quantiles, ESS per work/time, evaluation counts, divergence coordinates, and adaptation traces |
 | workflow QoL | `CheckpointIO`, `PrecisionContinuation`, `WarmupBundle`, `FactorProfiler`, `ChunkedDrawSink`, `MappedDrawStore`, `GeneratedQuantitySink`, `InferenceHealth`, `GeometryAdvisor` | portable restart, precision goals, safe warmup reuse, profiling, streaming/mapped output, generated quantities, and actionable health findings |
-| acceleration | `ComputeBackend`, optional `jdistlib-cuda` / `jdistlib-opencl` | detected CPU fallback, JCuda/NVRTC and JOCL providers, device-resident batched likelihoods |
+| acceleration | `Compute`, `ComputeNuts`, `ComputeBackend`, optional `jdistlib-cuda` / `jdistlib-opencl` | thresholded AUTO routing, strict provider selection, forced-NUTS validation, device-resident batched likelihoods |
 | validation | `SimulationBasedCalibration` | deterministic SBC ranks for model/sampler test suites |
 
 The low-rank metric uses deterministic eigendirection extraction so seeded runs
 remain reproducible. Supplied metrics are positive-definiteness checked. Existing
 `denseMassMatrix(boolean)` calls retain their behavior; `metric(...)` is the more
 explicit replacement.
+
+Java callers configure accelerator-aware targets with
+`SamplingOptions.builder().backend(Compute.AUTO).nutsBackend(ComputeNuts.AUTO)`.
+See the [GPU acceleration webpage](gpu-acceleration.html) for strict modes,
+command-line switches, measured thresholds, and reproducibility boundaries.
 
 ## Adjusted MCLMC terminology
 

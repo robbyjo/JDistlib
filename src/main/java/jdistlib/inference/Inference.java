@@ -18,6 +18,6 @@ public final class Inference {
 				seed, parallelism);
 		long elapsed = System.nanoTime() - startedNanos;
 		return new Fit(chains, McmcDiagnostics.analyze(chains), RunManifest.create(
-				sampler, modelIdentity, options, seed, startedMillis, elapsed));
+				sampler, target, modelIdentity, options, seed, startedMillis, elapsed));
 	}
 }

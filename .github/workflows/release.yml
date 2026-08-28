@@ -45,10 +45,21 @@ jobs:
         env:
           VERSION: ${{ steps.release.outputs.version }}
         run: |
-          ./gradlew clean build --no-daemon -PreleaseVersion="$VERSION"
+          ./gradlew clean build :jdistlib-cuda:build :jdistlib-opencl:build \
+            --no-daemon -PreleaseVersion="$VERSION"
           test -f "build/libs/jdistlib-$VERSION.jar"
           unzip -p "build/libs/jdistlib-$VERSION.jar" META-INF/MANIFEST.MF |
             grep -F "Implementation-Version: $VERSION"
+          for MODULE in cuda opencl; do
+            test -f "accelerators/$MODULE/build/libs/jdistlib-$MODULE-$VERSION.jar"
+            unzip -p "accelerators/$MODULE/build/libs/jdistlib-$MODULE-$VERSION.jar" META-INF/MANIFEST.MF |
+              grep -F "Implementation-Version: $VERSION"
+            cp accelerators/$MODULE/build/libs/*.jar build/libs/
+          done
+          if find build/libs -maxdepth 1 -name '*SNAPSHOT*' | grep -q .; then
+            echo "SNAPSHOT artifact found in release output" >&2
+            exit 1
+          fi
       - name: Create SHA-256 checksums
         working-directory: build/libs
         run: sha256sum *.jar > SHA256SUMS

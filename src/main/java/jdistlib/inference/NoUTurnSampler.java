@@ -40,6 +40,7 @@ public final class NoUTurnSampler implements ResumableSampler {
 		if (target == null || initialState == null || initialState.length == 0
 				|| options == null || random == null)
 			throw new IllegalArgumentException("target, state, options and random are required");
+		HamiltonianSupport.validateNutsComputeTarget(target, options);
 		DifferentiableLogDensity differentiable = HamiltonianSupport.gradientTarget(target, options);
 		HamiltonianSupport.Point state = HamiltonianSupport.at(differentiable, initialState);
 		ChainAccumulator output = new ChainAccumulator();

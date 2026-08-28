@@ -7,6 +7,11 @@ repositories { mavenCentral() }
 
 base { archivesName = 'jdistlib-opencl' }
 
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
 dependencies {
     api project(':')
     implementation 'org.jocl:jocl:2.0.6'
@@ -17,6 +22,21 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 8
     options.compilerArgs += ['-Xlint:all,-options,-this-escape', '-Werror']
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+jar {
+    manifest {
+        attributes(
+            'Implementation-Title': 'JDistlib OpenCL accelerator',
+            'Implementation-Version': project.version
+        )
+    }
 }
 
 test { useJUnit() }

@@ -7,6 +7,11 @@ repositories { mavenCentral() }
 
 base { archivesName = 'jdistlib-cuda' }
 
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
 def nativeOs = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win') ? 'windows' :
     (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('linux') ? 'linux' : 'apple')
 def machine = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
@@ -30,6 +35,21 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 8
     options.compilerArgs += ['-Xlint:all,-options,-this-escape', '-Werror']
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+jar {
+    manifest {
+        attributes(
+            'Implementation-Title': 'JDistlib CUDA accelerator',
+            'Implementation-Version': project.version
+        )
+    }
 }
 
 test { useJUnit() }

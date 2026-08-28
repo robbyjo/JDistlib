@@ -67,6 +67,15 @@ features.
 
 ## Recently completed
 
+* Added full multi-path Pathfinder with PSIS, many-short-chain superchains and
+  nested R-hat, coordinated ChEES/SNAPER adaptive static HMC, and auditable
+  automatic adjusted-MCLMC tuning.
+* Added optional CUDA and OpenCL compute providers with automatic detection and
+  thresholded deterministic CPU fallback, strict programmatic/CLI compute and
+  NUTS-offload policies, selection logging and manifest provenance, plus
+  portable checkpoints, precision-driven continuation, scalable draw stores,
+  profiling, geometry advice, and health policies. The measured boundary and
+  release result are consolidated in `docs/INFERENCE_ACCELERATION_RESULT.md`.
 * Added differentiable complex scalars/vectors/matrices, nested tuple values and
   tuple-valued functions, one-based tuple member access/assignment, Java tuple
   adapters, immutable CSR matrices and Stan CSR kernels, Java-bound external

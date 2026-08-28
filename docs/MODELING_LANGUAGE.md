@@ -261,8 +261,8 @@ sample the model. A complete Windows command-line workflow is:
 
 ```text
 gradlew.bat jar
-java -cp build\libs\jdistlib-0.8.3-SNAPSHOT.jar jdistlib.inference.lang.ModelScriptCli examples\models\41-normal-csv-mean.jdm com.example.NormalCsvMean build\generated\com\example\NormalCsvMean.java
-javac -cp build\libs\jdistlib-0.8.3-SNAPSHOT.jar -d build\generated-classes build\generated\com\example\NormalCsvMean.java
+java -cp build\libs\jdistlib-0.8.3.jar jdistlib.inference.lang.ModelScriptCli examples\models\41-normal-csv-mean.jdm com.example.NormalCsvMean build\generated\com\example\NormalCsvMean.java
+javac -cp build\libs\jdistlib-0.8.3.jar -d build\generated-classes build\generated\com\example\NormalCsvMean.java
 ```
 
 Instantiate `com.example.NormalCsvMean` as a `GeneratedModelFactory` and call

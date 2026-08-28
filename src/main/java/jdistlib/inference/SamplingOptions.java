@@ -3,6 +3,8 @@ package jdistlib.inference;
 
 import java.util.function.BooleanSupplier;
 
+import jdistlib.accelerator.Compute;
+
 /** Immutable common MCMC warmup, retention, adaptation, and safety options. */
 public final class SamplingOptions {
 	private final int warmupIterations;
@@ -27,6 +29,8 @@ public final class SamplingOptions {
 	private final DrawSink drawSink;
 	private final boolean storeDraws;
 	private final BooleanSupplier cancellation;
+	private final Compute computeBackend;
+	private final ComputeNuts nutsBackend;
 
 	private SamplingOptions(Builder builder) {
 		warmupIterations = builder.warmupIterations;
@@ -53,6 +57,8 @@ public final class SamplingOptions {
 		drawSink = builder.drawSink;
 		storeDraws = builder.storeDraws;
 		cancellation = builder.cancellation;
+		computeBackend = builder.computeBackend;
+		nutsBackend = builder.nutsBackend;
 	}
 
 	public static Builder builder() { return new Builder(); }
@@ -78,6 +84,10 @@ public final class SamplingOptions {
 	public double integrationTime() { return integrationTime; }
 	public double stepSizeJitter() { return stepSizeJitter; }
 	public boolean storeDraws() { return storeDraws; }
+	/** Compute policy for accelerator-aware numerical targets and operations. */
+	public Compute computeBackend() { return computeBackend; }
+	/** NUTS-specific accelerator policy; tree construction always remains on CPU. */
+	public ComputeNuts nutsBackend() { return nutsBackend; }
 	void progress(int completed, int total, boolean warmup, IterationStats statistics) {
 		if (progressListener != null) progressListener.update(completed, total, warmup, statistics);
 	}
@@ -109,6 +119,10 @@ public final class SamplingOptions {
 		private DrawSink drawSink;
 		private boolean storeDraws = true;
 		private BooleanSupplier cancellation;
+		private Compute computeBackend = Compute.parse(
+				System.getProperty("jdistlib.compute.backend", "auto"));
+		private ComputeNuts nutsBackend = ComputeNuts.parse(
+				System.getProperty("jdistlib.compute.nuts", "auto"));
 		private Builder() {}
 		private Builder(SamplingOptions source) {
 			warmupIterations = source.warmupIterations; sampleIterations = source.sampleIterations;
@@ -121,6 +135,7 @@ public final class SamplingOptions {
 			metricConfiguration = source.metricConfiguration; integrationTime = source.integrationTime;
 			stepSizeJitter = source.stepSizeJitter; progressListener = source.progressListener;
 			drawSink = source.drawSink; storeDraws = source.storeDraws; cancellation = source.cancellation;
+			computeBackend = source.computeBackend; nutsBackend = source.nutsBackend;
 		}
 
 		public Builder warmupIterations(int value) { warmupIterations = value; return this; }
@@ -145,6 +160,12 @@ public final class SamplingOptions {
 		public Builder drawSink(DrawSink value) { drawSink = value; return this; }
 		public Builder storeDraws(boolean value) { storeDraws = value; return this; }
 		public Builder cancellation(BooleanSupplier value) { cancellation = value; return this; }
+		/** Selects automatic, CPU, or a required accelerator backend. */
+		public Builder computeBackend(Compute value) { computeBackend = value; return this; }
+		/** Short alias for {@link #computeBackend(Compute)}. */
+		public Builder backend(Compute value) { return computeBackend(value); }
+		/** Selects off, automatic, or forced NUTS target offload. */
+		public Builder nutsBackend(ComputeNuts value) { nutsBackend = value; return this; }
 
 		public SamplingOptions build() {
 			if (warmupIterations < 0 || sampleIterations < 1 || thinning < 1
@@ -155,7 +176,9 @@ public final class SamplingOptions {
 					|| (!Double.isNaN(integrationTime) && (!(integrationTime > 0.0)
 							|| !Double.isFinite(integrationTime)))
 					|| !(stepSizeJitter >= 0.0 && stepSizeJitter <= 1.0)
-					|| !(sliceWidth > 0.0) || maximumSliceSteps < 1) {
+					|| !(sliceWidth > 0.0) || maximumSliceSteps < 1
+					|| computeBackend == null || nutsBackend == null
+					|| (computeBackend == Compute.CPU && nutsBackend == ComputeNuts.FORCE)) {
 				throw new IllegalArgumentException("invalid sampling options");
 			}
 			return new SamplingOptions(this);

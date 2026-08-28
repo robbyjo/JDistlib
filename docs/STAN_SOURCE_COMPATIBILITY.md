@@ -122,9 +122,10 @@ claimed:
   handling, and general automatic index reduction for arbitrary DAEs;
 * Stan's parallel `reduce_sum`/`map_rect` services and toolchain-specific
   threading semantics;
-* specialized probability laws not listed in `MODELING_LANGUAGE.md`, including
-  the Wiener first-passage law, and complete CDF/CCDF/truncation coverage for
-  every Stan distribution;
+* specialized probability laws not listed in `MODELING_LANGUAGE.md`, and
+  complete CDF/CCDF/truncation coverage for every Stan distribution. The
+  four-parameter Wiener first-passage likelihood is supported; JDistlib also
+  provides a conditional upper-response `wiener_rng` extension;
 * advanced dense/sparse decompositions and specialized functions not listed in
   the supported surface. Unknown functions and incompatible overloads fail
   explicitly; there is no claim that the complete evolving Stan Math catalog

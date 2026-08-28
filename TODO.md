@@ -46,27 +46,23 @@ features.
 
 ## Unscheduled
 
-* Add the specialized Wiener first-passage distribution to the script
-  probability catalog after selecting and validating a stable density and RNG
-  implementation across small-time and extreme-parameter regimes.
-* Add exact lower-orthant CDFs and rectangle probabilities for the multinomial,
-  Dirichlet-multinomial, and multivariate hypergeometric distributions, using a
-  shared sequential-conditional dynamic-programming framework.
-* Add lower-orthant CDFs and rectangle probabilities for the Dirichlet
-  distribution, with numerically stable simplex-aware integration and reported
-  error estimates.
-* Add lower-orthant CDFs and rectangle probabilities for the multivariate
-  Laplace distribution by exploiting its normal scale-mixture representation
-  and the existing multivariate-normal probability machinery.
-* Investigate and implement reliable lower-orthant CDFs and rectangle
-  probabilities for the multivariate power-exponential distribution, including
-  robust treatment of tail events and non-Gaussian shape parameters.
 * Define useful, unambiguous probability APIs for the Wishart distribution,
   favoring named scalar or matrix-order events over an entrywise matrix CDF;
   implement the events that can be evaluated reliably.
 
 ## Recently completed
 
+* Added the Stan-compatible four-parameter Wiener first-passage density using
+  small/large-time series with signed log summation, a bias-conditioned
+  inversion RNG without time-discretization error, script likelihood/RNG
+  bindings, and a checked reaction-time model.
+* Added exact multinomial, Dirichlet-multinomial, and multivariate-
+  hypergeometric lower-orthant/rectangle probabilities through one shared
+  sequential-conditional dynamic program.
+* Added error-reporting Dirichlet, multivariate Laplace, and multivariate
+  power-exponential rectangle probabilities using respectively simplex-aware
+  stick breaking, the normal-exponential mixture, and exact radial conditioning
+  over directions for all positive shape parameters.
 * Added the FP64 LWJGL Vulkan provider with runtime SPIR-V compilation and
   CPU-reference parity tests, plus the self-contained `jdistlib-all` x86-64
   distribution that merges core, CUDA, OpenCL, Vulkan, binding dependencies,

@@ -11,6 +11,8 @@ generated-quantity RNGs. Model 41 is paired with a checked-in CSV and fits the
 same posterior through Java and script frontends. Models 42–50 focus on the
 0.8.2 additions: robust and count likelihoods, logit parameterizations, scalar
 locals and control flow, stable log-space mixtures, and new continuous RNGs.
+Model 51 demonstrates the Wiener first-passage likelihood and its conditional
+upper-response RNG for reaction-time data.
 `./gradlew check` compiles every
 script with representative data through `examples.ModelScriptCatalog`, so a
 syntax or semantic regression fails the build.

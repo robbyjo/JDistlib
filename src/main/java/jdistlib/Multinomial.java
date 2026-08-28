@@ -45,6 +45,31 @@ public final class Multinomial {
 		return giveLog ? result : Math.exp(result);
 	}
 
+	/** Exact inclusive rectangle probability for the category counts. */
+	public static double probability(int[] lower, int[] upper, int size,
+			double[] weights) {
+		final double[] p = probabilities(weights);
+		if (p == null || size < 0) return Double.NaN;
+		final double[] remainingProbability = new double[p.length];
+		double sum = 0.0;
+		for (int i = p.length - 1; i >= 0; i--) {
+			sum += p[i];
+			remainingProbability[i] = sum;
+		}
+		return DiscreteMultivariateProbability.probability(lower, upper, size,
+				p.length, (category, count, remaining) -> {
+				double conditional = remainingProbability[category] == 0.0 ? 0.0 :
+						p[category] / remainingProbability[category];
+				return Binomial.density(count, remaining, conditional, false);
+			});
+	}
+
+	/** Exact lower-orthant probability {@code P(X[i] <= upper[i], all i)}. */
+	public static double cumulative(int[] upper, int size, double[] weights) {
+		return upper == null ? Double.NaN : probability(new int[upper.length],
+				upper, size, weights);
+	}
+
 	public static int[] random(int size, double[] weights, RandomEngine random) {
 		return random(size, weights, random, Binomial.create_random_state());
 	}

@@ -32,6 +32,7 @@ import jdistlib.Poisson;
 import jdistlib.T;
 import jdistlib.Uniform;
 import jdistlib.Weibull;
+import jdistlib.Wiener;
 import jdistlib.inference.BayesianModel;
 import jdistlib.inference.Constraints;
 import jdistlib.inference.DifferentiableModelFactor;
@@ -3156,6 +3157,8 @@ public final class ModelScript {
 	}
 
 	private static Diff logProbability(String distribution, Diff[] x) {
+		if (distribution.equals("wiener") && x.length == 5)
+			return wienerLogProbability(x);
 		if (distribution.equals("std_normal") && x.length == 1)
 			return x[0].multiply(x[0]).multiply(-0.5).add(-0.5 * Math.log(2.0 * Math.PI));
 		if (distribution.equals("normal") && x.length == 3) {
@@ -3461,6 +3464,9 @@ public final class ModelScript {
 			value = x[0].value + Math.floor(context.random.nextDouble() * (x[1].value - x[0].value + 1.0));
 		else if (distribution.equals("cauchy") && x.length == 2)
 			value = Cauchy.random(x[0].value, x[1].value, context.random);
+		else if (distribution.equals("wiener") && x.length == 4)
+			value = Wiener.random(x[0].value, x[1].value, x[2].value,
+					x[3].value, context.random);
 		else throw new IllegalArgumentException("unsupported RNG or arity: " + distribution);
 		return Diff.constant(value, context.dimension);
 	}
@@ -3517,6 +3523,33 @@ public final class ModelScript {
 		double scaledZero = jdistlib.math.Bessel.i(value.value, 0.0, true);
 		double scaledOne = jdistlib.math.Bessel.i(value.value, 1.0, true);
 		return value.scale(Math.log(scaledZero) + value.value, scaledOne / scaledZero);
+	}
+	private static Diff wienerLogProbability(Diff[] x) {
+		if (!(x[0].value > x[2].value) || !positive(x[1]) ||
+				x[2].value < 0.0 || !probability(x[3])) return outside(x);
+		double[] values = new double[x.length];
+		for (int i = 0; i < x.length; i++) values[i] = x[i].value;
+		double value = wienerLogDensity(values);
+		if (!Double.isFinite(value)) return outside(x);
+		double[] partials = new double[x.length];
+		for (int i = 0; i < x.length; i++) {
+			double step = 6e-6 * Math.max(1.0, Math.abs(values[i]));
+			double original = values[i];
+			values[i] = original + step;
+			double plus = wienerLogDensity(values);
+			values[i] = original - step;
+			double minus = wienerLogDensity(values);
+			values[i] = original;
+			if (Double.isFinite(plus) && Double.isFinite(minus))
+				partials[i] = (plus - minus) / (2.0 * step);
+			else if (Double.isFinite(plus)) partials[i] = (plus - value) / step;
+			else if (Double.isFinite(minus)) partials[i] = (value - minus) / step;
+			else partials[i] = 0.0;
+		}
+		return Diff.atomic(value, x, partials);
+	}
+	private static double wienerLogDensity(double[] x) {
+		return Wiener.density(x[0], x[1], x[2], x[3], x[4], true);
 	}
 	private static double vonMisesRandom(double location, double concentration,
 			RandomEngine random) {

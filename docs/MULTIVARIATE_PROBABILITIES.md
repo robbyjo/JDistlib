@@ -1,10 +1,29 @@
 # Multivariate rectangle probabilities
 
-`MultivariateNormal`, `MultivariateStudentT`, `MultivariateCauchy`, and
-`MultivariateLogNormal` expose `probability(lower, upper, ...)` for rectangular
-events. Their `cumulative` methods are lower-orthant conveniences. These are
-randomized numerical calculations except for exact boundary, unrestricted, and
-one-dimensional reductions.
+`MultivariateNormal`, `MultivariateStudentT`, `MultivariateCauchy`,
+`MultivariateLogNormal`, `Dirichlet`, `MultivariateLaplace`, and
+`MultivariatePowerExponential` expose `probability(lower, upper, ...)` for
+rectangular events. Their `cumulative` methods are lower-orthant conveniences.
+These are randomized numerical calculations except for exact boundary,
+unrestricted, one-dimensional, and distribution-specific analytic reductions.
+
+`Multinomial`, `DirichletMultinomial`, and `MultivariateHypergeometric` expose
+inclusive integer-bound `probability` and `cumulative` methods. Those three are
+deterministic: a shared sequential-conditional dynamic program sums binomial,
+beta-binomial, or hypergeometric conditional masses without Monte Carlo error.
+
+## Distribution-specific transformations
+
+- Dirichlet probabilities use conditional beta stick breaking. At each step,
+  future lower and upper sums tighten the admissible interval, so integration
+  never samples a point outside the feasible simplex slice.
+- Multivariate Laplace probabilities integrate the existing sequential-normal
+  rectangle kernel over the law's exponential mixing variable.
+- Multivariate power-exponential probabilities condition on a uniform
+  direction and integrate the exact gamma radial interval. This is valid for
+  every positive shape; the Gaussian shape and centered orthants delegate to
+  the multivariate-normal engine. Gamma tail differences are evaluated in the
+  safer tail to avoid cancellation.
 
 ## Result contract
 

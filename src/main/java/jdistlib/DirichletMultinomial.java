@@ -31,6 +31,30 @@ public final class DirichletMultinomial {
 		return giveLog ? logMass : Math.exp(logMass);
 	}
 
+	/** Exact inclusive rectangle probability for the category counts. */
+	public static double probability(int[] lower, int[] upper, int size,
+			double[] alpha) {
+		if (alpha == null || alpha.length < 2 || size < 0) return Double.NaN;
+		final double[] remainingAlpha = new double[alpha.length];
+		double sum = 0.0;
+		for (int i = alpha.length - 1; i >= 0; i--) {
+			if (!(alpha[i] > 0.0) || !Double.isFinite(alpha[i])) return Double.NaN;
+			sum += alpha[i];
+			remainingAlpha[i] = sum;
+		}
+		return DiscreteMultivariateProbability.probability(lower, upper, size,
+				alpha.length, (category, count, remaining) -> Math.exp(
+						DiscreteMultivariateProbability.logBetaBinomialMass(count,
+								remaining, alpha[category],
+								remainingAlpha[category] - alpha[category])));
+	}
+
+	/** Exact lower-orthant probability {@code P(X[i] <= upper[i], all i)}. */
+	public static double cumulative(int[] upper, int size, double[] alpha) {
+		return upper == null ? Double.NaN : probability(new int[upper.length],
+				upper, size, alpha);
+	}
+
 	public static int[] random(int size, double[] alpha, RandomEngine random) {
 		if (size < 0) return null;
 		double[] probabilities = Dirichlet.random(alpha, random);

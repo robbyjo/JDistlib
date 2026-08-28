@@ -120,7 +120,7 @@ and a gamma-Poisson count-rate model.
   binomial-coefficient scalar functions; see the table below;
 - more than thirty scalar probability families: `std_normal`, `normal`,
   `lognormal`, `student_t`, `cauchy`, `double_exponential`, `logistic`, `gumbel`,
-  `skew_normal`, `exp_mod_normal`, `von_mises`, `exponential`, `gamma`, `inv_gamma`, `chi_square`,
+  `skew_normal`, `exp_mod_normal`, `von_mises`, `wiener`, `exponential`, `gamma`, `inv_gamma`, `chi_square`,
   `inv_chi_square`, `scaled_inv_chi_square`, `weibull`, `frechet`, `rayleigh`,
   `beta`, `beta_proportion`, `uniform`, `pareto`, `pareto_type_2`, `bernoulli`,
   `bernoulli_logit`, `binomial`, `binomial_logit`, `beta_binomial`,
@@ -276,11 +276,12 @@ parameterization changes require a new language version.
 
 ## Example catalog and build gate
 
-`examples/models` contains fifty standalone `.jdm` programs spanning every
+`examples/models` contains fifty-one standalone `.jdm` programs spanning every
 supported declaration, constraint, transformed block, distribution, RNG,
 vectorization/indexing form, and manual-target pattern. Models 42–50 are focused
 0.8.2 examples for the expanded distributions, scalar math, locals, and control
-flow. `examples/stan` adds forty-one ordinary `.stan` fixtures, including
+flow; model 51 adds a Wiener reaction-time likelihood and conditional RNG.
+`examples/stan` adds forty-one ordinary `.stan` fixtures, including
 twenty-nine v0.8.3 examples for literals, forward declarations, complex/tuple
 values, sparse and external functions, container algorithms, matrix pipelines,
 structured types, quadrature, and numerical solvers. Run:

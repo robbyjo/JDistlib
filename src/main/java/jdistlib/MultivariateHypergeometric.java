@@ -35,6 +35,33 @@ public final class MultivariateHypergeometric {
 		return giveLog ? logMass : Math.exp(logMass);
 	}
 
+	/** Exact inclusive rectangle probability for the sampled category counts. */
+	public static double probability(int[] lower, int[] upper, int[] population,
+			int draws) {
+		if (population == null || population.length < 2 || draws < 0)
+			return Double.NaN;
+		final int[] remainingPopulation = new int[population.length];
+		long sum = 0L;
+		for (int i = population.length - 1; i >= 0; i--) {
+			if (population[i] < 0) return Double.NaN;
+			sum += population[i];
+			if (sum > Integer.MAX_VALUE) return Double.NaN;
+			remainingPopulation[i] = (int) sum;
+		}
+		if (draws > sum) return Double.NaN;
+		return DiscreteMultivariateProbability.probability(lower, upper, draws,
+				population.length, (category, count, remaining) ->
+						HyperGeometric.density(count, population[category],
+								remainingPopulation[category] - population[category],
+								remaining, false));
+	}
+
+	/** Exact lower-orthant probability {@code P(X[i] <= upper[i], all i)}. */
+	public static double cumulative(int[] upper, int[] population, int draws) {
+		return upper == null ? Double.NaN : probability(new int[upper.length],
+				upper, population, draws);
+	}
+
 	public static int[] random(int[] population, int draws, RandomEngine random) {
 		if (population == null || population.length < 2 || draws < 0 || random == null)
 			return null;

@@ -3,11 +3,15 @@ package jdistlib;
 
 import static jdistlib.math.MathFunctions.lgammafn;
 
+import java.util.Arrays;
+
 import jdistlib.math.Bessel;
+import jdistlib.rng.MersenneTwister;
 import jdistlib.rng.RandomEngine;
 
 /** Symmetric multivariate Laplace law defined as a normal-exponential mixture. */
 public final class MultivariateLaplace {
+	private static final long PROBABILITY_SEED = 0x4d764c61706c6163L;
 	private MultivariateLaplace() {}
 
 	public static double density(double[] x, double[] location,
@@ -53,5 +57,38 @@ public final class MultivariateLaplace {
 		double[][] result = new double[n][];
 		for (int i = 0; i < n; i++) result[i] = random(location, covariance, random);
 		return result;
+	}
+
+	/** Computes {@code P(lower <= X <= upper)} through the normal-exponential mixture. */
+	public static MultivariateProbabilityResult probability(double[] lower,
+			double[] upper, double[] location, double[][] covariance,
+			MultivariateProbabilityOptions options, RandomEngine random) {
+		return MultivariateProbability.laplace(lower, upper, location, covariance,
+				options, random);
+	}
+
+	public static MultivariateProbabilityResult probability(double[] lower,
+			double[] upper, double[] location, double[][] covariance) {
+		return probability(lower, upper, location, covariance,
+				new MultivariateProbabilityOptions(),
+				new MersenneTwister(PROBABILITY_SEED));
+	}
+
+	/** Computes {@code P(X[i] <= upper[i], all i)}. */
+	public static MultivariateProbabilityResult cumulative(double[] upper,
+			double[] location, double[][] covariance,
+			MultivariateProbabilityOptions options, RandomEngine random) {
+		if (upper == null) return MultivariateProbability.laplace(null, null,
+				location, covariance, options, random);
+		double[] lower = new double[upper.length];
+		Arrays.fill(lower, Double.NEGATIVE_INFINITY);
+		return probability(lower, upper, location, covariance, options, random);
+	}
+
+	public static MultivariateProbabilityResult cumulative(double[] upper,
+			double[] location, double[][] covariance) {
+		return cumulative(upper, location, covariance,
+				new MultivariateProbabilityOptions(),
+				new MersenneTwister(PROBABILITY_SEED));
 	}
 }

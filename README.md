@@ -20,7 +20,7 @@ Makeham, Kumaraswamy, Laplace, Levy, log-logistic, logarithmic,
 Maxwell/Maxwell-Boltzmann, multinomial, Nakagami, negative hypergeometric,
 phase-type, Poisson-binomial, Poisson-inverse-Gaussian, Rice, sinh-arcsinh,
 Skellam, skewed t, slash, triangular, Tukey lambda, Tweedie, Wishart, Zipf,
-and the `jdistlib.evd` package. Vector APIs
+Wiener first-passage, and the `jdistlib.evd` package. Vector APIs
 cover Dirichlet and Dirichlet-multinomial, multivariate hypergeometric,
 bivariate Poisson/logistic, and multivariate normal, Student t, Cauchy,
 lognormal, Laplace, and power-exponential laws. These are first-class JDistlib features
@@ -55,7 +55,7 @@ file-by-file audit from the historical R 3.3.2 baseline to R 4.6.1 is complete.
 R 4.6.1 reference corpus. JDistlib-specific APIs remain separately documented
 and tested.
 
-The executable catalog contains fifty JDistlib model scripts and forty-one
+The executable catalog contains fifty-one JDistlib model scripts and forty-one
 ordinary Stan fixtures, including focused
 examples for multidimensional indexing, matrix probability, container-valued
 functions, complex/tuple values, sparse and external functions, solver
@@ -183,7 +183,7 @@ The website now puts beginner material first:
   [diagnostics vignette](docs/inference-diagnostics-vignette.html) — the full
   0.8.0 learning path, including fifteen executable reference models.
 * [Browse all examples](https://robbyjo.github.io/JDistlib/examples.html) —
-  fifty JDistlib scripts, forty-one ordinary `.stan` compatibility fixtures, and
+  fifty-one JDistlib scripts, forty-one ordinary `.stan` compatibility fixtures, and
   compilable Java workflows for
   copulas, mixtures, transformations, FDR, custom distributions, MCMC, and
   numerical integration.
@@ -200,7 +200,8 @@ double x = Normal.quantile(0.975, 0.0, 1.0, true, false);
 
 Boolean arguments follow R's `lower.tail` and `log.p` conventions.
 
-For multivariate normal, Student t, Cauchy, and log-normal laws, `probability`
+For multivariate normal, Student t, Cauchy, log-normal, Dirichlet, Laplace, and
+power-exponential laws, `probability`
 evaluates an arbitrary rectangular region and `cumulative` uses a lower bound of
 negative infinity in every coordinate. `MultivariateProbabilityResult` reports
 the estimated error, work count, and convergence status. The overloads accepting
@@ -221,6 +222,10 @@ if (!region.isSuccess()) {
 The error field is a replication-based stopping indicator, not a rigorous
 confidence bound. See the [multivariate probability contract](docs/MULTIVARIATE_PROBABILITIES.md)
 for statuses, reproducibility, scaling, and difficult cases.
+
+Multinomial, Dirichlet-multinomial, and multivariate-hypergeometric rectangles
+instead use inclusive integer bounds and an exact sequential-conditional
+dynamic program, so they return a `double` without numerical-error metadata.
 
 ## Copulas and composed joint distributions
 

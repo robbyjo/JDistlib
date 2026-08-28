@@ -1,0 +1,9 @@
+data { int<lower=1> N; vector[N] reaction_time; }
+parameters { real drift; }
+model {
+  drift ~ normal(0,2);
+  for (i in 1:N) reaction_time[i] ~ wiener(1.2,0.18,0.35,drift);
+}
+generated quantities {
+  real upper_reaction_time_rep = wiener_rng(1.2,0.18,0.35,drift);
+}

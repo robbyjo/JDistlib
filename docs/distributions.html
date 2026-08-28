@@ -145,6 +145,7 @@
             <tr><td><a href="api/jdistlib/Tweedie.html"><code>Tweedie</code></a></td><td>family-dependent; mean μ, dispersion φ, power ξ</td><td>\(\operatorname{Var}(X)=\phi\mu^\xi\); exponential-dispersion density via identities, series, or integration</td><td class="methods">DPQR <span title="deviance, loglik, derivative and saddlepoint helpers">likelihood</span></td></tr>
             <tr><td><a href="api/jdistlib/Uniform.html"><code>Uniform</code></a></td><td>a≤x≤b</td><td>\(f(x)=\dfrac{1}{b-a}\)</td><td class="methods">DPQR</td></tr>
             <tr><td><a href="api/jdistlib/Weibull.html"><code>Weibull</code></a></td><td>x≥0; shape k, scale λ</td><td>\(f(x)=\dfrac{k}{\lambda}\left(\dfrac{x}{\lambda}\right)^{k-1}e^{-(x/\lambda)^k}\)</td><td class="methods">DPQR</td></tr>
+            <tr><td><a href="api/jdistlib/Wiener.html"><code>Wiener</code></a></td><td>y&gt;τ; boundary α, nondecision τ, bias β, drift δ</td><td>Stan-compatible upper-response Wiener first-passage component; RNG is conditional on that response</td><td class="methods">DPR</td></tr>
           </tbody>
         </table>
       </div>
@@ -183,24 +184,25 @@
 
       <h3 class="catalog-section" id="multivariate">Multivariate and matrix distributions</h3>
       <p class="section-note">For random vectors there is no canonical scalar quantile.
-        Normal, Student t, Cauchy, and log-normal laws expose rectangular probabilities
-        with numerical error/status results plus explicitly named equicoordinate and
-        radial quantiles.</p>
+        Normal, Student t, Cauchy, log-normal, Dirichlet, Laplace, and
+        power-exponential laws expose rectangular probabilities with numerical
+        error/status results. The three multivariate count laws use exact inclusive
+        rectangle probabilities. Quantiles are explicitly named.</p>
       <div class="table-wrap">
         <table class="distribution-table">
           <thead><tr><th>Distribution</th><th>Support &amp; parameters</th><th>Defining formula</th><th>API</th></tr></thead>
           <tbody>
             <tr><td><a href="api/jdistlib/BivariateLogistic.html"><code>BivariateLogistic</code></a></td><td>(x₁,x₂)∈ℝ²; locations μᵢ, scales sᵢ</td><td>\(F(x_1,x_2)=\left[1+e^{-(x_1-\mu_1)/s_1}+e^{-(x_2-\mu_2)/s_2}\right]^{-1}\)</td><td class="methods">DP–R</td></tr>
             <tr><td><a href="api/jdistlib/BivariatePoisson.html"><code>BivariatePoisson</code></a></td><td>(x,y)∈ℕ₀²; rates λ₁,λ₂,λ₀</td><td>\(X=U+W,\quad Y=V+W,\quad U,V,W\ \text{independent Poisson}(\lambda_1,\lambda_2,\lambda_0)\)</td><td class="methods">DP–R</td></tr>
-            <tr><td><a href="api/jdistlib/Dirichlet.html"><code>Dirichlet</code></a></td><td>xᵢ≥0, Σxᵢ=1; concentrations αᵢ</td><td>\(f(\mathbf x)=\dfrac{\Gamma(\sum_i\alpha_i)}{\prod_i\Gamma(\alpha_i)}\prod_i x_i^{\alpha_i-1}\)</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/DirichletMultinomial.html"><code>DirichletMultinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, αᵢ</td><td>\(\Pr(\mathbf x)=\dfrac{n!}{\prod_i x_i!}\dfrac{\Gamma(\alpha_0)}{\Gamma(n+\alpha_0)}\prod_i\dfrac{\Gamma(x_i+\alpha_i)}{\Gamma(\alpha_i)}\)</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/Multinomial.html"><code>Multinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, weights pᵢ</td><td>\(\Pr(\mathbf x)=\dfrac{n!}{\prod_i x_i!}\prod_i p_i^{x_i}\)</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/Dirichlet.html"><code>Dirichlet</code></a></td><td>xᵢ≥0, Σxᵢ=1; concentrations αᵢ</td><td>\(f(\mathbf x)=\dfrac{\Gamma(\sum_i\alpha_i)}{\prod_i\Gamma(\alpha_i)}\prod_i x_i^{\alpha_i-1}\)</td><td class="methods">DP–R</td></tr>
+            <tr><td><a href="api/jdistlib/DirichletMultinomial.html"><code>DirichletMultinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, αᵢ</td><td>\(\Pr(\mathbf x)=\dfrac{n!}{\prod_i x_i!}\dfrac{\Gamma(\alpha_0)}{\Gamma(n+\alpha_0)}\prod_i\dfrac{\Gamma(x_i+\alpha_i)}{\Gamma(\alpha_i)}\)</td><td class="methods">DP–R</td></tr>
+            <tr><td><a href="api/jdistlib/Multinomial.html"><code>Multinomial</code></a></td><td>xᵢ∈ℕ₀, Σxᵢ=n; size n, weights pᵢ</td><td>\(\Pr(\mathbf x)=\dfrac{n!}{\prod_i x_i!}\prod_i p_i^{x_i}\)</td><td class="methods">DP–R</td></tr>
             <tr><td><a href="api/jdistlib/MultivariateCauchy.html"><code>MultivariateCauchy</code></a></td><td>x∈ℝᵏ; location μ, scale Σ</td><td>\(f(\mathbf x)=\dfrac{\Gamma((k+1)/2)}{\Gamma(1/2)\pi^{k/2}|\Sigma|^{1/2}[1+q(\mathbf x)]^{(k+1)/2}}\)</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateHypergeometric.html"><code>MultivariateHypergeometric</code></a></td><td>xᵢ counts; populations mᵢ, draws n</td><td>\(\Pr(\mathbf x)=\dfrac{\prod_i\binom{m_i}{x_i}}{\binom{\sum_i m_i}{n}},\qquad \sum_i x_i=n\)</td><td class="methods">D––R</td></tr>
-            <tr><td><a href="api/jdistlib/MultivariateLaplace.html"><code>MultivariateLaplace</code></a></td><td>x∈ℝᵏ; location μ, covariance scale Σ</td><td>\(\mathbf X=\boldsymbol\mu+\sqrt{W}\,\mathbf Z,\quad W\sim\operatorname{Exp}(1),\quad \mathbf Z\sim N_k(\mathbf0,\Sigma)\)</td><td class="methods">D––R</td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateHypergeometric.html"><code>MultivariateHypergeometric</code></a></td><td>xᵢ counts; populations mᵢ, draws n</td><td>\(\Pr(\mathbf x)=\dfrac{\prod_i\binom{m_i}{x_i}}{\binom{\sum_i m_i}{n}},\qquad \sum_i x_i=n\)</td><td class="methods">DP–R</td></tr>
+            <tr><td><a href="api/jdistlib/MultivariateLaplace.html"><code>MultivariateLaplace</code></a></td><td>x∈ℝᵏ; location μ, covariance scale Σ</td><td>\(\mathbf X=\boldsymbol\mu+\sqrt{W}\,\mathbf Z,\quad W\sim\operatorname{Exp}(1),\quad \mathbf Z\sim N_k(\mathbf0,\Sigma)\)</td><td class="methods">DP–R</td></tr>
             <tr><td><a href="api/jdistlib/MultivariateLogNormal.html"><code>MultivariateLogNormal</code></a></td><td>xᵢ&gt;0; log-mean μ, log-covariance Σ</td><td>\(\log\mathbf X\sim N_k(\boldsymbol\mu,\Sigma),\qquad f_{\mathbf X}(\mathbf x)=\dfrac{f_N(\log\mathbf x)}{\prod_i x_i}\)</td><td class="methods">DP–R <span title="equicoordinate quantile">Q*</span></td></tr>
             <tr><td><a href="api/jdistlib/MultivariateNormal.html"><code>MultivariateNormal</code></a></td><td>x∈ℝᵏ; mean μ, covariance Σ</td><td>\(f(\mathbf x)=\dfrac{\exp[-q(\mathbf x)/2]}{(2\pi)^{k/2}|\Sigma|^{1/2}}\)</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
-            <tr><td><a href="api/jdistlib/MultivariatePowerExponential.html"><code>MultivariatePowerExponential</code></a></td><td>x∈ℝᵏ; location μ, scatter Σ, shape β</td><td>\(f(\mathbf x)=C(k,\beta)|\Sigma|^{-1/2}\exp\!\left[-\dfrac{q(\mathbf x)^\beta}{2}\right]\)</td><td class="methods">D––R <span title="radial quantile">Q*</span></td></tr>
+            <tr><td><a href="api/jdistlib/MultivariatePowerExponential.html"><code>MultivariatePowerExponential</code></a></td><td>x∈ℝᵏ; location μ, scatter Σ, shape β</td><td>\(f(\mathbf x)=C(k,\beta)|\Sigma|^{-1/2}\exp\!\left[-\dfrac{q(\mathbf x)^\beta}{2}\right]\)</td><td class="methods">DP–R <span title="radial quantile">Q*</span></td></tr>
             <tr><td><a href="api/jdistlib/MultivariateStudentT.html"><code>MultivariateStudentT</code></a></td><td>x∈ℝᵏ; location μ, scale Σ, df ν</td><td>\(f(\mathbf x)=\dfrac{\Gamma((\nu+k)/2)}{\Gamma(\nu/2)(\nu\pi)^{k/2}|\Sigma|^{1/2}}\left[1+\dfrac{q(\mathbf x)}{\nu}\right]^{-(\nu+k)/2}\)</td><td class="methods">DP–R <span title="equicoordinate and radial quantiles">Q*</span></td></tr>
             <tr><td><a href="api/jdistlib/Wishart.html"><code>Wishart</code></a></td><td>positive-definite k×k matrix; df ν, scale Σ or Cholesky L</td><td>\(f(X)=\dfrac{|X|^{(\nu-k-1)/2}e^{-\operatorname{tr}(\Sigma^{-1}X)/2}}{2^{\nu k/2}|\Sigma|^{\nu/2}\Gamma_k(\nu/2)}\)</td><td class="methods">D––R</td></tr>
           </tbody>

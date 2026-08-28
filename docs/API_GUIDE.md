@@ -25,7 +25,8 @@ Use the smallest API that expresses the distribution you have.
 | Test hypotheses arriving sequentially | `jdistlib.disttest.online.LordPlusPlus` or `Saffron` |
 | Exploit known finite discrete null CDFs | `jdistlib.disttest.DiscreteFdr` |
 | A finite, semi-infinite, or whole-line integral | `Integrate.integrate` with `IntegrationOptions` when defaults are insufficient |
-| A multivariate normal/t/Cauchy/log-normal rectangle probability | The law's `probability` method and `MultivariateProbabilityResult` |
+| A continuous multivariate rectangle probability | The law's `probability` method and `MultivariateProbabilityResult` |
+| An exact multinomial/Dirichlet-multinomial/multivariate-hypergeometric rectangle | The law's inclusive-bound `probability` method |
 | A programmatic Bayesian posterior | `jdistlib.inference.ModelBuilder` and `BayesianModel` |
 | A differentiable continuous posterior | `NoUTurnSampler` with multiple explicit-seed chains |
 | A posterior without gradients or with discrete variables | Metropolis, `SliceSampler`, or composable `GibbsSampler` blocks |
@@ -62,7 +63,7 @@ See `NUMERICAL_DISTRIBUTIONS.md` for integration and custom-law guarantees and
 Bayesian modeling, MCMC, diagnostics, graphing, scripting, and schema guarantees.
 For a guided sequence, start at `inference-tutorial.html`, continue with
 `inference-guide.html`, and use `inference-examples.html` as a tested catalog.
-The website's `examples.html` index links fifty JDistlib model scripts, forty-one
+The website's `examples.html` index links fifty-one JDistlib model scripts, forty-one
 ordinary `.stan` compatibility fixtures, and
 feature-focused Java integrations for copulas, composition, FDR, custom laws,
 numerical integration, and MCMC.

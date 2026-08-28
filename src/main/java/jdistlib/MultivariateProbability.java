@@ -61,7 +61,25 @@ final class MultivariateProbability {
 				random);
 	}
 
-	private static MultivariateProbabilityResult integrate(Integrand integrand,
+	static MultivariateProbabilityResult laplace(double[] lower, double[] upper,
+			double[] location, double[][] covariance,
+			MultivariateProbabilityOptions options, RandomEngine random) {
+		Prepared prepared = prepare(lower, upper, location, covariance, false, 0.0);
+		if (prepared.invalid) return invalid();
+		if (prepared.empty) return exact(0.0);
+		if (prepared.unrestricted) return exact(1.0);
+		if (prepared.mean.length == 1) {
+			double scale = prepared.factor.lower[0][0] / Math.sqrt(2.0);
+			double probability = Laplace.cumulative(prepared.upper[0],
+					prepared.mean[0], scale, true, false) -
+					Laplace.cumulative(prepared.lower[0], prepared.mean[0], scale,
+							true, false);
+			return exact(Math.max(0.0, probability));
+		}
+		return integrate(new LaplaceIntegrand(prepared), options, random);
+	}
+
+	static MultivariateProbabilityResult integrate(Integrand integrand,
 			MultivariateProbabilityOptions options, RandomEngine random) {
 		if (options == null || !options.isValid() || random == null) return invalid();
 		int replications = options.replications;
@@ -219,6 +237,19 @@ final class MultivariateProbability {
 					degreesOfFreedom, true, false);
 			double scale = Math.sqrt(chiSquare / degreesOfFreedom);
 			return conditionalNormal(prepared, scale, uniforms, 1);
+		}
+	}
+
+	private static final class LaplaceIntegrand implements Integrand {
+		private final Prepared prepared;
+
+		LaplaceIntegrand(Prepared prepared) { this.prepared = prepared; }
+
+		@Override public int dimension() { return prepared.mean.length; }
+
+		@Override public double value(double[] uniforms) {
+			double mixing = -Math.log1p(-unitOpen(uniforms[0]));
+			return conditionalNormal(prepared, 1.0 / Math.sqrt(mixing), uniforms, 1);
 		}
 	}
 

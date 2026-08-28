@@ -157,6 +157,8 @@ public final class ModelScriptCatalog {
 		case "49": put(result, "angle", 0.6); break;
 		case "50": put(result, "N", 4);
 			result.put("reaction_time", new double[] {0.8, 1.1, 1.6, 2.0}); break;
+		case "51": put(result, "N", 4);
+			result.put("reaction_time", new double[] {0.42, 0.61, 0.85, 1.17}); break;
 		default: throw new IllegalArgumentException("no representative data for " + name);
 		}
 		return result;

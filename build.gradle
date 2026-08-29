@@ -109,6 +109,50 @@ tasks.register('validateReleaseDocumentation') {
     }
 }
 
+def validateDistributionCatalog = tasks.register('validateDistributionCatalog') {
+    group = 'verification'
+    description = 'Checks that every distribution-catalog row has balanced MathJax and current summary counts.'
+    inputs.file('docs/distributions.html')
+    doLast {
+        def catalog = file('docs/distributions.html').getText('UTF-8')
+        def allRows = catalog.readLines().findAll { it.contains('<tr><td><a') }
+        def malformed = []
+        allRows.each { row ->
+            def cells = row.split('</td>', -1)
+            if (cells.length < 4) {
+                malformed << 'unparseable catalog row'
+            } else {
+                def name = (cells[0] =~ /<code>([^<]+)<\/code>/)
+                def label = name.find() ? name.group(1) : 'unnamed row'
+                def formula = cells[2]
+                if (!formula.contains('\\(') || !formula.contains('\\)') ||
+                        formula.count('\\(') != formula.count('\\)'))
+                    malformed << label
+            }
+        }
+        if (!malformed.isEmpty())
+            throw new GradleException("catalog rows need balanced MathJax formulae: ${malformed.join(', ')}")
+
+        def rowsBetween = { start, end ->
+            def from = catalog.indexOf("id=\"${start}\"")
+            def to = end == null ? catalog.length() : catalog.indexOf("id=\"${end}\"", from + 1)
+            catalog.substring(from, to).readLines().findAll { it.contains('<tr><td><a') }
+        }
+        def scalarRows = rowsBetween('continuous', 'discrete') + rowsBetween('discrete', 'multivariate')
+        def fullDpqr = scalarRows.count { it.contains('class="methods">DPQR') }
+        def summaries = [
+            "<strong>${allRows.size()}</strong> documented classes",
+            "<strong>${fullDpqr}</strong> scalar laws with full D/P/Q/R",
+            "<strong>${rowsBetween('multivariate', 'copulas').size()}</strong> vector or matrix laws",
+            "<strong>${rowsBetween('copulas', 'statistics').size()}</strong> copula and joint-law classes"
+        ]
+        summaries.each { summary ->
+            if (!catalog.contains(summary))
+                throw new GradleException("distribution catalog summary is stale: expected ${summary}")
+        }
+    }
+}
+
 def compileDocumentationExamples = tasks.register('compileDocumentationExamples', JavaCompile) {
     dependsOn tasks.named('jar')
     source fileTree('examples') { include '**/*.java' }
@@ -126,6 +170,7 @@ def validateModelScripts = tasks.register('validateModelScripts', JavaExec) {
 
 tasks.named('check') {
     dependsOn compileDocumentationExamples, validateModelScripts, validateReleaseDocumentation,
+        validateDistributionCatalog,
         ':jdistlib-cuda:check', ':jdistlib-opencl:check', ':jdistlib-vulkan:check',
         ':jdistlib-all:check', 'validateModularPoms'
 }

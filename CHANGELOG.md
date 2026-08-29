@@ -1,6 +1,9 @@
 What's new:
 
 Version 0.9.1 (August 28, 2026):
+* Replaced prose-only and malformed formulas in the distribution catalog with
+  rendered definitions for the finance, copula, Wiener, and related laws, and
+  added a build-time catalog validator for formula delimiters and summary counts.
 * Added an arbitrary-candidate sparse subset RJMCMC engine with sorted active
   indices, an explicit active-size cap, exact add/drop/swap proposal accounting,
   residual-informed proposals, online inclusion summaries, and crash-safe tidy

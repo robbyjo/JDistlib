@@ -1,6 +1,9 @@
 /* Copyright (C) 2026 Roby Joehanes; GPL-2.0-or-later */
 package jdistlib.accelerator;
 
+import jdistlib.matrix.CsrMatrix;
+import jdistlib.matrix.FloatCsrMatrix;
+
 /**
  * Size-aware CPU/accelerator router used by {@link Compute#AUTO}.
  * Thresholds are deliberately conservative because inputs originate on the JVM heap.
@@ -21,7 +24,8 @@ final class AutoComputeBackend implements ComputeBackend {
 	@Override public ComputeCapabilities capabilities() {
 		ComputeCapabilities value = accelerator.capabilities();
 		return new ComputeCapabilities("AUTO(" + value.backend() + ")", value.device(),
-				value.doublePrecision(), value.runtimeCompilation(), value.globalMemoryBytes());
+				value.doublePrecision(), value.runtimeCompilation(), value.globalMemoryBytes(),
+				value.denseLinearAlgebra(), value.sparseLinearAlgebra(), value.nativeFactorizations());
 	}
 	@Override public double[] unary(UnaryOperation operation, double[] input) {
 		return route(input == null ? 0 : input.length).unary(operation, input);
@@ -31,6 +35,102 @@ final class AutoComputeBackend implements ComputeBackend {
 	}
 	@Override public double dot(double[] x, double[] y) {
 		return route(x == null ? 0 : x.length).dot(x, y);
+	}
+	@Override public void daxpy(int count, double alpha, double[] x, int xOffset,
+			int xStride, double[] y, int yOffset, int yStride) {
+		route(count).daxpy(count, alpha, x, xOffset, xStride, y, yOffset, yStride);
+	}
+	@Override public double ddot(int count, double[] x, int xOffset, int xStride,
+			double[] y, int yOffset, int yStride) {
+		return route(count).ddot(count, x, xOffset, xStride, y, yOffset, yStride);
+	}
+	@Override public double dnrm2(int count, double[] x, int offset, int stride) {
+		return route(count).dnrm2(count, x, offset, stride);
+	}
+	@Override public void dgemv(MatrixTranspose transpose, int rows, int columns,
+			double alpha, double[] matrix, double[] x, double beta, double[] y) {
+		long work = saturatingProduct(rows, columns, 1);
+		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
+				.dgemv(transpose, rows, columns, alpha, matrix, x, beta, y);
+	}
+	@Override public void dgemm(MatrixTranspose leftTranspose, MatrixTranspose rightTranspose,
+			int rows, int columns, int shared, double alpha, double[] left, double[] right,
+			double beta, double[] result) {
+		long work = saturatingProduct(rows, columns, shared);
+		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu).dgemm(leftTranspose,
+				rightTranspose, rows, columns, shared, alpha, left, right, beta, result);
+	}
+	@Override public void dcsrmv(double alpha, CsrMatrix matrix, double[] x,
+			double beta, double[] y) {
+		long work = matrix == null ? 0L : matrix.nonzeroCount();
+		(work >= VECTOR_THRESHOLD ? accelerator : cpu).dcsrmv(alpha, matrix, x, beta, y);
+	}
+	@Override public void dcsrmm(double alpha, CsrMatrix matrix, double[] right,
+			int rightColumns, double beta, double[] result) {
+		long work = matrix == null ? 0L
+				: saturatingProduct(matrix.nonzeroCount(), rightColumns, 1);
+		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
+				.dcsrmm(alpha, matrix, right, rightColumns, beta, result);
+	}
+	@Override public CholeskyFactor dpotrf(double[] matrix, int dimension) {
+		return decompositionBackend(dimension, dimension, dimension).dpotrf(matrix, dimension);
+	}
+	@Override public PivotedQrFactor dgeqp3(double[] matrix, int rows, int columns) {
+		return decompositionBackend(rows, columns, Math.min(rows, columns)).dgeqp3(matrix, rows, columns);
+	}
+	@Override public SymmetricEigenDecomposition dsyev(double[] matrix, int dimension) {
+		return decompositionBackend(dimension, dimension, dimension).dsyev(matrix, dimension);
+	}
+	@Override public SingularValueDecomposition dgesvd(double[] matrix, int rows, int columns) {
+		return decompositionBackend(rows, columns, Math.min(rows, columns)).dgesvd(matrix, rows, columns);
+	}
+	@Override public void saxpy(int count, float alpha, float[] x, int xOffset,
+			int xStride, float[] y, int yOffset, int yStride) {
+		route(count).saxpy(count, alpha, x, xOffset, xStride, y, yOffset, yStride);
+	}
+	@Override public float sdot(int count, float[] x, int xOffset, int xStride,
+			float[] y, int yOffset, int yStride) {
+		return route(count).sdot(count, x, xOffset, xStride, y, yOffset, yStride);
+	}
+	@Override public float snrm2(int count, float[] x, int offset, int stride) {
+		return route(count).snrm2(count, x, offset, stride);
+	}
+	@Override public void sgemv(MatrixTranspose transpose, int rows, int columns,
+			float alpha, float[] matrix, float[] x, float beta, float[] y) {
+		long work = saturatingProduct(rows, columns, 1);
+		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
+				.sgemv(transpose, rows, columns, alpha, matrix, x, beta, y);
+	}
+	@Override public void sgemm(MatrixTranspose leftTranspose, MatrixTranspose rightTranspose,
+			int rows, int columns, int shared, float alpha, float[] left, float[] right,
+			float beta, float[] result) {
+		long work = saturatingProduct(rows, columns, shared);
+		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu).sgemm(leftTranspose,
+				rightTranspose, rows, columns, shared, alpha, left, right, beta, result);
+	}
+	@Override public void scsrmv(float alpha, FloatCsrMatrix matrix, float[] x,
+			float beta, float[] y) {
+		long work = matrix == null ? 0L : matrix.nonzeroCount();
+		(work >= VECTOR_THRESHOLD ? accelerator : cpu).scsrmv(alpha, matrix, x, beta, y);
+	}
+	@Override public void scsrmm(float alpha, FloatCsrMatrix matrix, float[] right,
+			int rightColumns, float beta, float[] result) {
+		long work = matrix == null ? 0L
+				: saturatingProduct(matrix.nonzeroCount(), rightColumns, 1);
+		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
+				.scsrmm(alpha, matrix, right, rightColumns, beta, result);
+	}
+	@Override public FloatCholeskyFactor spotrf(float[] matrix, int dimension) {
+		return decompositionBackend(dimension, dimension, dimension).spotrf(matrix, dimension);
+	}
+	@Override public FloatPivotedQrFactor sgeqp3(float[] matrix, int rows, int columns) {
+		return decompositionBackend(rows, columns, Math.min(rows, columns)).sgeqp3(matrix, rows, columns);
+	}
+	@Override public FloatSymmetricEigenDecomposition ssyev(float[] matrix, int dimension) {
+		return decompositionBackend(dimension, dimension, dimension).ssyev(matrix, dimension);
+	}
+	@Override public FloatSingularValueDecomposition sgesvd(float[] matrix, int rows, int columns) {
+		return decompositionBackend(rows, columns, Math.min(rows, columns)).sgesvd(matrix, rows, columns);
 	}
 	@Override public double[][] matrixMultiply(double[][] left, double[][] right) {
 		long work = 0L;
@@ -83,6 +183,10 @@ final class AutoComputeBackend implements ComputeBackend {
 	}
 	private ComputeBackend route(int length) {
 		return length >= VECTOR_THRESHOLD ? accelerator : cpu;
+	}
+	private ComputeBackend decompositionBackend(int rows, int columns, int iterations) {
+		return saturatingProduct(rows, columns, iterations) >= MATRIX_MULTIPLY_THRESHOLD
+				? accelerator : cpu;
 	}
 	private static long logisticWork(double[][] design, double[][] states) {
 		return design == null || design.length == 0 || design[0] == null

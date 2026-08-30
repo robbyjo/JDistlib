@@ -54,9 +54,20 @@ import org.lwjgl.vulkan.VkWriteDescriptorSet;
 
 import jdistlib.accelerator.ComputeBackend;
 import jdistlib.accelerator.ComputeCapabilities;
+import jdistlib.accelerator.CholeskyFactor;
+import jdistlib.accelerator.FloatCholeskyFactor;
+import jdistlib.accelerator.FloatPivotedQrFactor;
+import jdistlib.accelerator.FloatSingularValueDecomposition;
+import jdistlib.accelerator.FloatSymmetricEigenDecomposition;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
+import jdistlib.accelerator.MatrixTranspose;
 import jdistlib.accelerator.PreparedLogisticRegression;
+import jdistlib.accelerator.PivotedQrFactor;
+import jdistlib.accelerator.SingularValueDecomposition;
+import jdistlib.accelerator.SymmetricEigenDecomposition;
 import jdistlib.accelerator.UnaryOperation;
+import jdistlib.matrix.CsrMatrix;
+import jdistlib.matrix.FloatCsrMatrix;
 
 /**
  * Optional FP64 Vulkan 1.0 compute backend using LWJGL and runtime GLSL-to-SPIR-V
@@ -65,6 +76,7 @@ import jdistlib.accelerator.UnaryOperation;
  */
 public final class VulkanComputeBackend implements ComputeBackend {
 	private static final int VECTOR_LOCAL_SIZE = 256;
+	private static final String FLOAT_HEADER = "#version 450\n";
 	private static final String HEADER = "#version 450\n"
 			+ "#extension GL_ARB_gpu_shader_fp64 : require\n"
 			+ "double pow2normal(int e){return packDouble2x32(uvec2(0u,uint(e+1023)<<20));}\n"
@@ -116,6 +128,119 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(push_constant) uniform P{int m;int k;int n;}p;\n"
 			+ "void main(){uint row=gl_GlobalInvocationID.y,col=gl_GlobalInvocationID.x;"
 			+ "if(row>=p.m||col>=p.n)return;double s=0.0;for(int q=0;q<p.k;q++)s+=a[row*p.k+q]*b[q*p.n+col];c[row*p.n+col]=s;}\n";
+	private static final String BLAS_NRM2_SHADER = HEADER
+			+ "layout(local_size_x=1) in;\n"
+			+ "layout(std430,binding=0) readonly buffer X{double x[];};\n"
+			+ "layout(std430,binding=1) writeonly buffer O{double outValue[];};\n"
+			+ "layout(push_constant) uniform P{int n;int offset;int stride;}p;\n"
+			+ "void main(){double scale=0.0,s=1.0;for(int i=0;i<p.n;i++){double v=abs(x[p.offset+i*p.stride]);"
+			+ "if(v!=0.0){if(scale<v){double r=scale/v;s=1.0+s*r*r;scale=v;}else{double r=v/scale;s+=r*r;}}}"
+			+ "outValue[0]=scale==0.0?0.0:scale*sqrt(s);}\n";
+	private static final String BLAS_GEMV_SHADER = HEADER
+			+ "layout(local_size_x=256) in;\n"
+			+ "layout(std430,binding=0) readonly buffer A{double a[];};\n"
+			+ "layout(std430,binding=1) readonly buffer X{double x[];};\n"
+			+ "layout(std430,binding=2) buffer Y{double y[];};\n"
+			+ "layout(push_constant) uniform P{double alpha;double beta;int tr;int rows;int cols;}p;\n"
+			+ "void main(){uint i=gl_GlobalInvocationID.x;int outCount=p.tr!=0?p.cols:p.rows,inCount=p.tr!=0?p.rows:p.cols;"
+			+ "if(i>=outCount)return;double s=0.0;for(int j=0;j<inCount;j++)s+=(p.tr!=0?a[j*p.cols+i]:a[i*p.cols+j])*x[j];"
+			+ "y[i]=p.alpha*s+p.beta*y[i];}\n";
+	private static final String BLAS_GEMM_SHADER = HEADER
+			+ "layout(local_size_x=16,local_size_y=16) in;\n"
+			+ "layout(std430,binding=0) readonly buffer A{double a[];};\n"
+			+ "layout(std430,binding=1) readonly buffer B{double b[];};\n"
+			+ "layout(std430,binding=2) buffer C{double c[];};\n"
+			+ "layout(push_constant) uniform P{double alpha;double beta;int ta;int tb;int m;int n;int k;}p;\n"
+			+ "void main(){uint row=gl_GlobalInvocationID.y,col=gl_GlobalInvocationID.x;if(row>=p.m||col>=p.n)return;double s=0.0;"
+			+ "for(int q=0;q<p.k;q++)s+=(p.ta!=0?a[q*p.m+row]:a[row*p.k+q])*(p.tb!=0?b[col*p.k+q]:b[q*p.n+col]);"
+			+ "int z=int(row)*p.n+int(col);c[z]=p.alpha*s+p.beta*c[z];}\n";
+	private static final String CSR_MV_SHADER = HEADER
+			+ "layout(local_size_x=256) in;\n"
+			+ "layout(std430,binding=0) readonly buffer V{double v[];};\n"
+			+ "layout(std430,binding=1) readonly buffer CI{double ci[];};\n"
+			+ "layout(std430,binding=2) readonly buffer RS{double rs[];};\n"
+			+ "layout(std430,binding=3) readonly buffer X{double x[];};\n"
+			+ "layout(std430,binding=4) buffer Y{double y[];};\n"
+			+ "layout(push_constant) uniform P{double alpha;double beta;int rows;}p;\n"
+			+ "void main(){uint row=gl_GlobalInvocationID.x;if(row>=p.rows)return;double s=0.0;"
+			+ "for(int z=int(rs[row])-1;z<int(rs[row+1])-1;z++)s+=v[z]*x[int(ci[z])-1];y[row]=p.alpha*s+p.beta*y[row];}\n";
+	private static final String CSR_MM_SHADER = HEADER
+			+ "layout(local_size_x=256) in;\n"
+			+ "layout(std430,binding=0) readonly buffer V{double v[];};\n"
+			+ "layout(std430,binding=1) readonly buffer CI{double ci[];};\n"
+			+ "layout(std430,binding=2) readonly buffer RS{double rs[];};\n"
+			+ "layout(std430,binding=3) readonly buffer B{double b[];};\n"
+			+ "layout(std430,binding=4) buffer C{double c[];};\n"
+			+ "layout(push_constant) uniform P{double alpha;double beta;int rows;int cols;}p;\n"
+			+ "void main(){uint z=gl_GlobalInvocationID.x;if(z>=p.rows*p.cols)return;int row=int(z)/p.cols,col=int(z)-row*p.cols;double s=0.0;"
+			+ "for(int q=int(rs[row])-1;q<int(rs[row+1])-1;q++)s+=v[q]*b[(int(ci[q])-1)*p.cols+col];c[z]=p.alpha*s+p.beta*c[z];}\n";
+	private static final String FLOAT_AXPY_SHADER = FLOAT_HEADER
+			+ "layout(local_size_x=256) in;\n"
+			+ "layout(std430,binding=0) readonly buffer X{float x[];};\n"
+			+ "layout(std430,binding=1) buffer Y{float y[];};\n"
+			+ "layout(push_constant) uniform P{int n;float alpha;int xo;int xs;int yo;int ys;}p;\n"
+			+ "void main(){uint i=gl_GlobalInvocationID.x;if(i<p.n)y[p.yo+int(i)*p.ys]=p.alpha*x[p.xo+int(i)*p.xs]+y[p.yo+int(i)*p.ys];}\n";
+	private static final String FLOAT_DOT_SHADER = FLOAT_HEADER
+			+ "layout(local_size_x=1) in;\n"
+			+ "layout(std430,binding=0) readonly buffer X{float x[];};\n"
+			+ "layout(std430,binding=1) readonly buffer Y{float y[];};\n"
+			+ "layout(std430,binding=2) writeonly buffer O{float outValue[];};\n"
+			+ "layout(push_constant) uniform P{int n;int xo;int xs;int yo;int ys;}p;\n"
+			+ "void main(){float s=0.0;for(int i=0;i<p.n;i++)s+=x[p.xo+i*p.xs]*y[p.yo+i*p.ys];outValue[0]=s;}\n";
+	private static final String FLOAT_NRM2_SHADER = FLOAT_HEADER
+			+ "layout(local_size_x=1) in;\n"
+			+ "layout(std430,binding=0) readonly buffer X{float x[];};\n"
+			+ "layout(std430,binding=1) writeonly buffer O{float outValue[];};\n"
+			+ "layout(push_constant) uniform P{int n;int offset;int stride;}p;\n"
+			+ "void main(){float scale=0.0,s=1.0;for(int i=0;i<p.n;i++){float v=abs(x[p.offset+i*p.stride]);"
+			+ "if(v!=0.0){if(scale<v){float r=scale/v;s=1.0+s*r*r;scale=v;}else{float r=v/scale;s+=r*r;}}}"
+			+ "outValue[0]=scale==0.0?0.0:scale*sqrt(s);}\n";
+	private static final String FLOAT_GEMV_SHADER = FLOAT_HEADER
+			+ "layout(local_size_x=256) in;\n"
+			+ "layout(std430,binding=0) readonly buffer A{float a[];};\n"
+			+ "layout(std430,binding=1) readonly buffer X{float x[];};\n"
+			+ "layout(std430,binding=2) buffer Y{float y[];};\n"
+			+ "layout(push_constant) uniform P{float alpha;float beta;int tr;int rows;int cols;}p;\n"
+			+ "void main(){uint i=gl_GlobalInvocationID.x;int outCount=p.tr!=0?p.cols:p.rows,inCount=p.tr!=0?p.rows:p.cols;"
+			+ "if(i>=outCount)return;float s=0.0;for(int j=0;j<inCount;j++)s+=(p.tr!=0?a[j*p.cols+i]:a[i*p.cols+j])*x[j];"
+			+ "y[i]=p.alpha*s+p.beta*y[i];}\n";
+	private static final String FLOAT_GEMM_SHADER = FLOAT_HEADER
+			+ "layout(local_size_x=16,local_size_y=16) in;\n"
+			+ "layout(std430,binding=0) readonly buffer A{float a[];};\n"
+			+ "layout(std430,binding=1) readonly buffer B{float b[];};\n"
+			+ "layout(std430,binding=2) buffer C{float c[];};\n"
+			+ "layout(push_constant) uniform P{float alpha;float beta;int ta;int tb;int m;int n;int k;}p;\n"
+			+ "void main(){uint row=gl_GlobalInvocationID.y,col=gl_GlobalInvocationID.x;if(row>=p.m||col>=p.n)return;float s=0.0;"
+			+ "for(int q=0;q<p.k;q++)s+=(p.ta!=0?a[q*p.m+row]:a[row*p.k+q])*(p.tb!=0?b[col*p.k+q]:b[q*p.n+col]);"
+			+ "int z=int(row)*p.n+int(col);c[z]=p.alpha*s+p.beta*c[z];}\n";
+	private static final String FLOAT_CSR_MV_SHADER = FLOAT_HEADER
+			+ "layout(local_size_x=256) in;\n"
+			+ "layout(std430,binding=0) readonly buffer V{float v[];};\n"
+			+ "layout(std430,binding=1) readonly buffer CI{int ci[];};\n"
+			+ "layout(std430,binding=2) readonly buffer RS{int rs[];};\n"
+			+ "layout(std430,binding=3) readonly buffer X{float x[];};\n"
+			+ "layout(std430,binding=4) buffer Y{float y[];};\n"
+			+ "layout(push_constant) uniform P{float alpha;float beta;int rows;}p;\n"
+			+ "void main(){uint row=gl_GlobalInvocationID.x;if(row>=p.rows)return;float s=0.0;"
+			+ "for(int z=rs[row]-1;z<rs[row+1]-1;z++)s+=v[z]*x[ci[z]-1];y[row]=p.alpha*s+p.beta*y[row];}\n";
+	private static final String FLOAT_CSR_MM_SHADER = FLOAT_HEADER
+			+ "layout(local_size_x=256) in;\n"
+			+ "layout(std430,binding=0) readonly buffer V{float v[];};\n"
+			+ "layout(std430,binding=1) readonly buffer CI{int ci[];};\n"
+			+ "layout(std430,binding=2) readonly buffer RS{int rs[];};\n"
+			+ "layout(std430,binding=3) readonly buffer B{float b[];};\n"
+			+ "layout(std430,binding=4) buffer C{float c[];};\n"
+			+ "layout(push_constant) uniform P{float alpha;float beta;int rows;int cols;}p;\n"
+			+ "void main(){uint z=gl_GlobalInvocationID.x;if(z>=p.rows*p.cols)return;int row=int(z)/p.cols,col=int(z)-row*p.cols;float s=0.0;"
+			+ "for(int q=rs[row]-1;q<rs[row+1]-1;q++)s+=v[q]*b[(ci[q]-1)*p.cols+col];c[z]=p.alpha*s+p.beta*c[z];}\n";
+	private static final String DPOTRF_SHADER = choleskyShader(HEADER,"double");
+	private static final String SPOTRF_SHADER = choleskyShader(FLOAT_HEADER,"float");
+	private static final String DGEQP3_SHADER = qrShader(HEADER,"double");
+	private static final String SGEQP3_SHADER = qrShader(FLOAT_HEADER,"float");
+	private static final String DSYEV_SHADER = eigenShader(HEADER,"double");
+	private static final String SSYEV_SHADER = eigenShader(FLOAT_HEADER,"float");
+	private static final String DGESVD_SHADER = svdShader(HEADER,"double");
+	private static final String SGESVD_SHADER = svdShader(FLOAT_HEADER,"float");
 	private static final String LOGISTIC_SHADER = HEADER
 			+ "layout(local_size_x=64) in;\n"
 			+ "layout(std430,binding=0) readonly buffer X{double x[];};\n"
@@ -131,6 +256,26 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "for(int row=0;row<p.rows;row++){double eta=0.0;for(int d=0;d<p.dims;d++)eta+=x[row*p.dims+d]*q[chain*p.dims+d];"
 			+ "lp+=y[row]*eta-l1e(eta);double residual=y[row]-logistic(eta);for(int d=0;d<p.dims;d++)gradient[chain*p.dims+d]+=residual*x[row*p.dims+d];}value[chain]=lp;}\n";
 
+	private static String choleskyShader(String header,String type){return header
+			+"layout(local_size_x=1) in;\nlayout(std430,binding=0) readonly buffer A{"+type+" a[];};\n"
+			+"layout(std430,binding=1) buffer L{"+type+" l[];};\nlayout(std430,binding=2) buffer I{int info[];};\n"
+			+"layout(push_constant) uniform P{int n;}p;\nvoid main(){info[0]=0;for(int i=0;i<p.n*p.n;i++)l[i]=0;for(int r=0;r<p.n;r++)for(int c=0;c<=r;c++){"+type+" s=a[r*p.n+c];for(int k=0;k<c;k++)s-=l[r*p.n+k]*l[c*p.n+k];if(r==c){if(!(s>0)){info[0]=r+1;return;}l[r*p.n+c]=sqrt(s);}else l[r*p.n+c]=s/l[c*p.n+c];}}\n";}
+	private static String qrShader(String header,String type){return header
+			+"layout(local_size_x=1) in;\nlayout(std430,binding=0) buffer Q{"+type+" qr[];};\nlayout(std430,binding=1) buffer T{"+type+" tau[];};\nlayout(std430,binding=2) buffer Piv{int pivot[];};\nlayout(push_constant) uniform P{int rows;int cols;}p;\n"
+			+type+" absv("+type+" x){return x<0?-x:x;}\nvoid swapcols(int first,int second){for(int r=0;r<p.rows;r++){int a=r*p.cols+first,b=r*p.cols+second;"+type+" z=qr[a];qr[a]=qr[b];qr[b]=z;}}\n"
+			+"void main(){int count=min(p.rows,p.cols);for(int i=0;i<p.cols;i++)pivot[i]=i;for(int k=0;k<count;k++){int selected=k;"+type+" best=-1;for(int c=k;c<p.cols;c++){"+type+" norm=0;for(int r=k;r<p.rows;r++){"+type+" v=qr[r*p.cols+c];norm+=v*v;}if(norm>best){best=norm;selected=c;}}if(selected!=k){swapcols(k,selected);int z=pivot[k];pivot[k]=pivot[selected];pivot[selected]=z;}"+type+" scale=0,sum=1;for(int r=k;r<p.rows;r++){"+type+" v=absv(qr[r*p.cols+k]);if(v!=0){if(scale<v){"+type+" z=scale/v;sum=1+sum*z*z;scale=v;}else{"+type+" z=v/scale;sum+=z*z;}}}"+type+" norm=scale==0?0:scale*sqrt(sum);if(norm==0){tau[k]=0;continue;}"+type+" alpha=qr[k*p.cols+k],diagonal=alpha<0?norm:-norm;tau[k]=(diagonal-alpha)/diagonal;"+type+" denominator=alpha-diagonal;qr[k*p.cols+k]=diagonal;for(int r=k+1;r<p.rows;r++)qr[r*p.cols+k]/=denominator;for(int c=k+1;c<p.cols;c++){"+type+" product=qr[k*p.cols+c];for(int r=k+1;r<p.rows;r++)product+=qr[r*p.cols+k]*qr[r*p.cols+c];product*=tau[k];qr[k*p.cols+c]-=product;for(int r=k+1;r<p.rows;r++)qr[r*p.cols+c]-=qr[r*p.cols+k]*product;}}}\n";}
+	private static String eigenShader(String header,String type){return header
+			+"layout(local_size_x=1) in;\nlayout(std430,binding=0) buffer A{"+type+" a[];};\nlayout(std430,binding=1) buffer E{"+type+" eigenvalues[];};\nlayout(std430,binding=2) buffer V{"+type+" vectors[];};\nlayout(std430,binding=3) buffer I{int info[];};\n"
+			+"layout(push_constant) uniform P{"+type+" eps;int n;}p;\n"+type+" absv("+type+" x){return x<0?-x:x;}\nvoid swapcols(int first,int second){for(int r=0;r<p.n;r++){int x=r*p.n+first,y=r*p.n+second;"+type+" z=vectors[x];vectors[x]=vectors[y];vectors[y]=z;}}\n"
+			+"void main(){info[0]=0;for(int i=0;i<p.n*p.n;i++)vectors[i]=0;for(int i=0;i<p.n;i++)vectors[i*p.n+i]=1;int maximum=max(32,8*p.n);for(int sweep=0;sweep<maximum;sweep++){bool changed=false;for(int x=0;x<p.n-1;x++)for(int y=x+1;y<p.n;y++){"+type+" apq=a[x*p.n+y],threshold=p.eps*(absv(a[x*p.n+x])+absv(a[y*p.n+y])+1);if(absv(apq)<=threshold)continue;changed=true;"+type+" app=a[x*p.n+x],aqq=a[y*p.n+y],tau=(aqq-app)/(2*apq),t=(tau<0?-1:1)/(absv(tau)+sqrt(1+tau*tau)),c=1/sqrt(1+t*t),s=t*c;for(int k=0;k<p.n;k++)if(k!=x&&k!=y){"+type+" akp=a[k*p.n+x],akq=a[k*p.n+y],np=c*akp-s*akq,nq=s*akp+c*akq;a[k*p.n+x]=a[x*p.n+k]=np;a[k*p.n+y]=a[y*p.n+k]=nq;}a[x*p.n+x]=c*c*app-2*s*c*apq+s*s*aqq;a[y*p.n+y]=s*s*app+2*s*c*apq+c*c*aqq;a[x*p.n+y]=a[y*p.n+x]=0;for(int r=0;r<p.n;r++){"+type+" vp=vectors[r*p.n+x],vq=vectors[r*p.n+y];vectors[r*p.n+x]=c*vp-s*vq;vectors[r*p.n+y]=s*vp+c*vq;}}if(!changed)break;if(sweep+1==maximum){info[0]=1;return;}}for(int i=0;i<p.n;i++)eigenvalues[i]=a[i*p.n+i];for(int i=0;i<p.n-1;i++){int selected=i;for(int j=i+1;j<p.n;j++)if(eigenvalues[j]<eigenvalues[selected])selected=j;if(selected!=i){"+type+" z=eigenvalues[i];eigenvalues[i]=eigenvalues[selected];eigenvalues[selected]=z;swapcols(i,selected);}}for(int c=0;c<p.n;c++){int largest=0;for(int r=1;r<p.n;r++)if(absv(vectors[r*p.n+c])>absv(vectors[largest*p.n+c]))largest=r;if(vectors[largest*p.n+c]<0)for(int r=0;r<p.n;r++)vectors[r*p.n+c]=-vectors[r*p.n+c];}}\n";}
+	private static String svdShader(String header,String type){return header
+			+"layout(local_size_x=1) in;\nlayout(std430,binding=0) readonly buffer A{"+type+" a[];};\nlayout(std430,binding=1) buffer W{"+type+" work[];};\nlayout(std430,binding=2) buffer U{"+type+" u[];};\nlayout(std430,binding=3) buffer S{"+type+" singular[];};\nlayout(std430,binding=4) buffer VT{"+type+" vt[];};\nlayout(std430,binding=5) buffer I{int info[];};\nlayout(push_constant) uniform P{"+type+" eps;int rows;int cols;}p;\n"
+			+type+" absv("+type+" x){return x<0?-x:x;}\n"+type+" normWork(int rows,int cols,int col){"+type+" scale=0,sum=1;for(int r=0;r<rows;r++){"+type+" v=absv(work[r*cols+col]);if(v!=0){if(scale<v){"+type+" z=scale/v;sum=1+sum*z*z;scale=v;}else{"+type+" z=v/scale;sum+=z*z;}}}return scale==0?0:scale*sqrt(sum);}\n"
+			+"void swapWork(int rows,int cols,int x,int y){for(int r=0;r<rows;r++){int i=r*cols+x,j=r*cols+y;"+type+" z=work[i];work[i]=work[j];work[j]=z;}}\nvoid swapV(bool wide,int n,int x,int y){for(int r=0;r<n;r++){int i=r*n+x,j=r*n+y;"+type+" z=wide?u[i]:vt[i];if(wide){u[i]=u[j];u[j]=z;}else{vt[i]=vt[j];vt[j]=z;}}}\n"
+			+"bool completeU(int rows,int cols,int col){for(int candidate=0;candidate<rows;candidate++){for(int r=0;r<rows;r++)u[r*cols+col]=r==candidate?1:0;for(int q=0;q<col;q++){"+type+" product=0;for(int r=0;r<rows;r++)product+=u[r*cols+q]*u[r*cols+col];for(int r=0;r<rows;r++)u[r*cols+col]-=product*u[r*cols+q];}"+type+" scale=0,sum=1;for(int r=0;r<rows;r++){"+type+" v=absv(u[r*cols+col]);if(v!=0){if(scale<v){"+type+" z=scale/v;sum=1+sum*z*z;scale=v;}else{"+type+" z=v/scale;sum+=z*z;}}}" + type + " norm=scale==0?0:scale*sqrt(sum);if(norm>p.eps){for(int r=0;r<rows;r++)u[r*cols+col]/=norm;return true;}}return false;}\n"
+			+"bool completeWork(int rows,int cols,int col){for(int candidate=0;candidate<rows;candidate++){for(int r=0;r<rows;r++)work[r*cols+col]=r==candidate?1:0;for(int q=0;q<col;q++){"+type+" product=0;for(int r=0;r<rows;r++)product+=work[r*cols+q]*work[r*cols+col];for(int r=0;r<rows;r++)work[r*cols+col]-=product*work[r*cols+q];}"+type+" norm=normWork(rows,cols,col);if(norm>p.eps){for(int r=0;r<rows;r++)work[r*cols+col]/=norm;return true;}}return false;}\n"
+			+"void main(){info[0]=0;bool wide=p.rows<p.cols;int tr=wide?p.cols:p.rows,tc=wide?p.rows:p.cols;for(int r=0;r<tr;r++)for(int c=0;c<tc;c++)work[r*tc+c]=wide?a[c*p.cols+r]:a[r*p.cols+c];for(int i=0;i<tc*tc;i++){if(wide)u[i]=0;else vt[i]=0;}for(int i=0;i<tc;i++){if(wide)u[i*tc+i]=1;else vt[i*tc+i]=1;}int maximum=max(48,12*tc);for(int sweep=0;sweep<maximum;sweep++){bool changed=false;for(int x=0;x<tc-1;x++)for(int y=x+1;y<tc;y++){"+type+" alpha=0,beta=0,gamma=0;for(int r=0;r<tr;r++){"+type+" left=work[r*tc+x],right=work[r*tc+y];alpha+=left*left;beta+=right*right;gamma+=left*right;}if(gamma==0||absv(gamma)<=p.eps*sqrt(alpha*beta))continue;changed=true;"+type+" zeta=(beta-alpha)/(2*gamma),t=(zeta<0?-1:1)/(absv(zeta)+sqrt(1+zeta*zeta)),c=1/sqrt(1+t*t),s=c*t;for(int r=0;r<tr;r++){int i=r*tc+x,j=r*tc+y;"+type+" left=work[i],right=work[j];work[i]=c*left-s*right;work[j]=s*left+c*right;}for(int r=0;r<tc;r++){int i=r*tc+x,j=r*tc+y;"+type+" left=wide?u[i]:vt[i],right=wide?u[j]:vt[j];if(wide){u[i]=c*left-s*right;u[j]=s*left+c*right;}else{vt[i]=c*left-s*right;vt[j]=s*left+c*right;}}}if(!changed)break;if(sweep+1==maximum){info[0]=1;return;}}for(int c=0;c<tc;c++)singular[c]=normWork(tr,tc,c);for(int i=0;i<tc-1;i++){int selected=i;for(int j=i+1;j<tc;j++)if(singular[j]>singular[selected])selected=j;if(selected!=i){"+type+" z=singular[i];singular[i]=singular[selected];singular[selected]=z;swapWork(tr,tc,i,selected);swapV(wide,tc,i,selected);}}"+type+" threshold=max(p.rows,p.cols)*p.eps/16*singular[0];if(!wide){for(int c=0;c<tc;c++){if(singular[c]>threshold)for(int r=0;r<tr;r++)u[r*tc+c]=work[r*tc+c]/singular[c];else if(!completeU(tr,tc,c)){info[0]=2;return;}}for(int c=0;c<tc;c++){int largest=0;for(int r=1;r<tr;r++)if(absv(u[r*tc+c])>absv(u[largest*tc+c]))largest=r;if(u[largest*tc+c]<0){for(int r=0;r<tr;r++)u[r*tc+c]=-u[r*tc+c];for(int r=0;r<tc;r++)vt[r*tc+c]=-vt[r*tc+c];}}for(int r=0;r<tc;r++)for(int c=r+1;c<tc;c++){"+type+" z=vt[r*tc+c];vt[r*tc+c]=vt[c*tc+r];vt[c*tc+r]=z;}}else{for(int c=0;c<tc;c++){if(singular[c]>threshold)for(int r=0;r<tr;r++)work[r*tc+c]/=singular[c];else if(!completeWork(tr,tc,c)){info[0]=2;return;}}for(int c=0;c<tc;c++){int largest=0;for(int r=1;r<tc;r++)if(absv(u[r*tc+c])>absv(u[largest*tc+c]))largest=r;if(u[largest*tc+c]<0){for(int r=0;r<tc;r++)u[r*tc+c]=-u[r*tc+c];for(int r=0;r<tr;r++)work[r*tc+c]=-work[r*tc+c];}}for(int c=0;c<tc;c++)for(int r=0;r<tr;r++)vt[c*tr+r]=work[r*tc+c];}}\n";}
+
 	private VkInstance instance;
 	private VkPhysicalDevice physicalDevice;
 	private VkDevice device;
@@ -138,6 +283,11 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	private int queueFamily = -1;
 	private long commandPool;
 	private Kernel unaryKernel, axpyKernel, dotKernel, gemmKernel, logisticKernel;
+	private Kernel blasNrm2Kernel, blasGemvKernel, blasGemmKernel, csrMvKernel, csrMmKernel;
+	private Kernel floatAxpyKernel, floatDotKernel, floatNrm2Kernel, floatGemvKernel;
+	private Kernel floatGemmKernel, floatCsrMvKernel, floatCsrMmKernel;
+	private Kernel dpotrfKernel, dgeqp3Kernel, dsyevKernel, dgesvdKernel;
+	private Kernel spotrfKernel, sgeqp3Kernel, ssyevKernel, sgesvdKernel;
 	private ComputeCapabilities capabilities;
 	private Throwable unavailableCause;
 
@@ -200,6 +350,203 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			return reshape(out.readDoubles(aShape[0] * bShape[1]), aShape[0], bShape[1]);
 		} finally { out.close(); b.close(); a.close(); }
 	}
+
+	@Override public synchronized void daxpy(int count, double alpha, double[] x,
+			int xOffset, int xStride, double[] y, int yOffset, int yStride) {
+		checkRegion(count, x, xOffset, xStride); checkRegion(count, y, yOffset, yStride);
+		if (count == 0) return; double[] packedX = new double[count], packedY = new double[count];
+		for (int i = 0; i < count; i++) { packedX[i] = x[xOffset + i * xStride]; packedY[i] = y[yOffset + i * yStride]; }
+		double[] updated = axpy(alpha, packedX, packedY);
+		for (int i = 0; i < count; i++) y[yOffset + i * yStride] = updated[i];
+	}
+
+	@Override public synchronized double ddot(int count, double[] x, int xOffset,
+			int xStride, double[] y, int yOffset, int yStride) {
+		checkRegion(count, x, xOffset, xStride); checkRegion(count, y, yOffset, yStride);
+		if (count == 0) return 0.0; double[] packedX = new double[count], packedY = new double[count];
+		for (int i = 0; i < count; i++) { packedX[i] = x[xOffset + i * xStride]; packedY[i] = y[yOffset + i * yStride]; }
+		return dot(packedX, packedY);
+	}
+
+	@Override public synchronized double dnrm2(int count, double[] x, int offset, int stride) {
+		checkRegion(count, x, offset, stride); if (count == 0) return 0.0; ensureAvailable();
+		BufferResource input = create(x), output = createDoubles(1);
+		try {
+			ByteBuffer push = nativeBuffer(12).putInt(0, count).putInt(4, offset).putInt(8, stride);
+			if (blasNrm2Kernel == null) blasNrm2Kernel = new Kernel(BLAS_NRM2_SHADER, 2, 12);
+			execute(blasNrm2Kernel, resources(input, output), push, 1, 1, 1); return output.readDoubles(1)[0];
+		} finally { output.close(); input.close(); }
+	}
+
+	@Override public synchronized void dgemv(MatrixTranspose transpose, int rows, int columns,
+			double alpha, double[] matrix, double[] x, double beta, double[] y) {
+		checkGemv(transpose, rows, columns, matrix, x, y); ensureAvailable();
+		BufferResource a = create(matrix), bx = create(x), by = create(y);
+		try {
+			ByteBuffer push = nativeBuffer(32).putDouble(0, alpha).putDouble(8, beta)
+					.putInt(16, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0).putInt(20, rows).putInt(24, columns);
+			if (blasGemvKernel == null) blasGemvKernel = new Kernel(BLAS_GEMV_SHADER, 3, 32);
+			execute(blasGemvKernel, resources(a, bx, by), push, groups(y.length, VECTOR_LOCAL_SIZE), 1, 1);
+			double[] updated = by.readDoubles(y.length); System.arraycopy(updated, 0, y, 0, y.length);
+		} finally { by.close(); bx.close(); a.close(); }
+	}
+
+	@Override public synchronized void dgemm(MatrixTranspose leftTranspose, MatrixTranspose rightTranspose,
+			int rows, int columns, int shared, double alpha, double[] left, double[] right,
+			double beta, double[] result) {
+		checkGemm(leftTranspose, rightTranspose, rows, columns, shared, left, right, result); ensureAvailable();
+		BufferResource a = create(left), b = create(right), c = create(result);
+		try {
+			ByteBuffer push = nativeBuffer(48).putDouble(0, alpha).putDouble(8, beta)
+					.putInt(16, leftTranspose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(20, rightTranspose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(24, rows).putInt(28, columns).putInt(32, shared);
+			if (blasGemmKernel == null) blasGemmKernel = new Kernel(BLAS_GEMM_SHADER, 3, 48);
+			execute(blasGemmKernel, resources(a, b, c), push, groups(columns, 16), groups(rows, 16), 1);
+			double[] updated = c.readDoubles(result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { c.close(); b.close(); a.close(); }
+	}
+
+	@Override public synchronized void dcsrmv(double alpha, CsrMatrix matrix, double[] x,
+			double beta, double[] y) {
+		checkCsrMv(matrix, x, y); ensureAvailable();
+		if (matrix.nonzeroCount() == 0) { for (int i = 0; i < y.length; i++) y[i] *= beta; return; }
+		BufferResource values = create(matrix.values());
+		BufferResource indices = create(asDoubles(matrix.columnIndices())), starts = create(asDoubles(matrix.rowStarts()));
+		BufferResource bx = create(x), by = create(y);
+		try {
+			ByteBuffer push = nativeBuffer(24).putDouble(0, alpha).putDouble(8, beta).putInt(16, matrix.rows());
+			if (csrMvKernel == null) csrMvKernel = new Kernel(CSR_MV_SHADER, 5, 24);
+			execute(csrMvKernel, resources(values, indices, starts, bx, by), push,
+					groups(matrix.rows(), VECTOR_LOCAL_SIZE), 1, 1);
+			double[] updated = by.readDoubles(y.length); System.arraycopy(updated, 0, y, 0, y.length);
+		} finally { by.close(); bx.close(); starts.close(); indices.close(); values.close(); }
+	}
+
+	@Override public synchronized void dcsrmm(double alpha, CsrMatrix matrix, double[] right,
+			int rightColumns, double beta, double[] result) {
+		checkCsrMm(matrix, right, rightColumns, result); ensureAvailable();
+		if (matrix.nonzeroCount() == 0) { for (int i = 0; i < result.length; i++) result[i] *= beta; return; }
+		BufferResource values = create(matrix.values());
+		BufferResource indices = create(asDoubles(matrix.columnIndices())), starts = create(asDoubles(matrix.rowStarts()));
+		BufferResource b = create(right), c = create(result);
+		try {
+			ByteBuffer push = nativeBuffer(24).putDouble(0, alpha).putDouble(8, beta)
+					.putInt(16, matrix.rows()).putInt(20, rightColumns);
+			if (csrMmKernel == null) csrMmKernel = new Kernel(CSR_MM_SHADER, 5, 24);
+			execute(csrMmKernel, resources(values, indices, starts, b, c), push,
+					groups(result.length, VECTOR_LOCAL_SIZE), 1, 1);
+			double[] updated = c.readDoubles(result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { c.close(); b.close(); starts.close(); indices.close(); values.close(); }
+	}
+
+	@Override public synchronized void saxpy(int count, float alpha, float[] x,
+			int xOffset, int xStride, float[] y, int yOffset, int yStride) {
+		checkRegion(count, x, xOffset, xStride); checkRegion(count, y, yOffset, yStride);
+		if (count == 0) return; ensureAvailable(); BufferResource bx = create(x), by = create(y);
+		try {
+			ByteBuffer push = nativeBuffer(24).putInt(0, count).putFloat(4, alpha)
+					.putInt(8, xOffset).putInt(12, xStride).putInt(16, yOffset).putInt(20, yStride);
+			if (floatAxpyKernel == null) floatAxpyKernel = new Kernel(FLOAT_AXPY_SHADER, 2, 24);
+			execute(floatAxpyKernel, resources(bx, by), push, groups(count, VECTOR_LOCAL_SIZE), 1, 1);
+			float[] updated = by.readFloats(y.length); System.arraycopy(updated, 0, y, 0, y.length);
+		} finally { by.close(); bx.close(); }
+	}
+
+	@Override public synchronized float sdot(int count, float[] x, int xOffset,
+			int xStride, float[] y, int yOffset, int yStride) {
+		checkRegion(count, x, xOffset, xStride); checkRegion(count, y, yOffset, yStride);
+		if (count == 0) return 0.0f; ensureAvailable();
+		BufferResource bx = create(x), by = create(y), out = createFloats(1);
+		try {
+			ByteBuffer push = nativeBuffer(20).putInt(0, count).putInt(4, xOffset)
+					.putInt(8, xStride).putInt(12, yOffset).putInt(16, yStride);
+			if (floatDotKernel == null) floatDotKernel = new Kernel(FLOAT_DOT_SHADER, 3, 20);
+			execute(floatDotKernel, resources(bx, by, out), push, 1, 1, 1);
+			return out.readFloats(1)[0];
+		} finally { out.close(); by.close(); bx.close(); }
+	}
+
+	@Override public synchronized float snrm2(int count, float[] x, int offset, int stride) {
+		checkRegion(count, x, offset, stride); if (count == 0) return 0.0f; ensureAvailable();
+		BufferResource input = create(x), output = createFloats(1);
+		try {
+			ByteBuffer push = nativeBuffer(12).putInt(0, count).putInt(4, offset).putInt(8, stride);
+			if (floatNrm2Kernel == null) floatNrm2Kernel = new Kernel(FLOAT_NRM2_SHADER, 2, 12);
+			execute(floatNrm2Kernel, resources(input, output), push, 1, 1, 1); return output.readFloats(1)[0];
+		} finally { output.close(); input.close(); }
+	}
+
+	@Override public synchronized void sgemv(MatrixTranspose transpose, int rows, int columns,
+			float alpha, float[] matrix, float[] x, float beta, float[] y) {
+		checkGemv(transpose, rows, columns, matrix, x, y); ensureAvailable();
+		BufferResource a = create(matrix), bx = create(x), by = create(y);
+		try {
+			ByteBuffer push = nativeBuffer(20).putFloat(0, alpha).putFloat(4, beta)
+					.putInt(8, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0).putInt(12, rows).putInt(16, columns);
+			if (floatGemvKernel == null) floatGemvKernel = new Kernel(FLOAT_GEMV_SHADER, 3, 20);
+			execute(floatGemvKernel, resources(a, bx, by), push, groups(y.length, VECTOR_LOCAL_SIZE), 1, 1);
+			float[] updated = by.readFloats(y.length); System.arraycopy(updated, 0, y, 0, y.length);
+		} finally { by.close(); bx.close(); a.close(); }
+	}
+
+	@Override public synchronized void sgemm(MatrixTranspose leftTranspose, MatrixTranspose rightTranspose,
+			int rows, int columns, int shared, float alpha, float[] left, float[] right,
+			float beta, float[] result) {
+		checkGemm(leftTranspose, rightTranspose, rows, columns, shared, left, right, result); ensureAvailable();
+		BufferResource a = create(left), b = create(right), c = create(result);
+		try {
+			ByteBuffer push = nativeBuffer(28).putFloat(0, alpha).putFloat(4, beta)
+					.putInt(8, leftTranspose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(12, rightTranspose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(16, rows).putInt(20, columns).putInt(24, shared);
+			if (floatGemmKernel == null) floatGemmKernel = new Kernel(FLOAT_GEMM_SHADER, 3, 28);
+			execute(floatGemmKernel, resources(a, b, c), push, groups(columns, 16), groups(rows, 16), 1);
+			float[] updated = c.readFloats(result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { c.close(); b.close(); a.close(); }
+	}
+
+	@Override public synchronized void scsrmv(float alpha, FloatCsrMatrix matrix, float[] x,
+			float beta, float[] y) {
+		checkCsrMv(matrix, x, y); ensureAvailable();
+		if (matrix.nonzeroCount() == 0) { for (int i = 0; i < y.length; i++) y[i] *= beta; return; }
+		BufferResource values = create(matrix.values());
+		BufferResource indices = create(matrix.columnIndices()), starts = create(matrix.rowStarts());
+		BufferResource bx = create(x), by = create(y);
+		try {
+			ByteBuffer push = nativeBuffer(12).putFloat(0, alpha).putFloat(4, beta).putInt(8, matrix.rows());
+			if (floatCsrMvKernel == null) floatCsrMvKernel = new Kernel(FLOAT_CSR_MV_SHADER, 5, 12);
+			execute(floatCsrMvKernel, resources(values, indices, starts, bx, by), push,
+					groups(matrix.rows(), VECTOR_LOCAL_SIZE), 1, 1);
+			float[] updated = by.readFloats(y.length); System.arraycopy(updated, 0, y, 0, y.length);
+		} finally { by.close(); bx.close(); starts.close(); indices.close(); values.close(); }
+	}
+
+	@Override public synchronized void scsrmm(float alpha, FloatCsrMatrix matrix, float[] right,
+			int rightColumns, float beta, float[] result) {
+		checkCsrMm(matrix, right, rightColumns, result); ensureAvailable();
+		if (matrix.nonzeroCount() == 0) { for (int i = 0; i < result.length; i++) result[i] *= beta; return; }
+		BufferResource values = create(matrix.values());
+		BufferResource indices = create(matrix.columnIndices()), starts = create(matrix.rowStarts());
+		BufferResource b = create(right), c = create(result);
+		try {
+			ByteBuffer push = nativeBuffer(16).putFloat(0, alpha).putFloat(4, beta)
+					.putInt(8, matrix.rows()).putInt(12, rightColumns);
+			if (floatCsrMmKernel == null) floatCsrMmKernel = new Kernel(FLOAT_CSR_MM_SHADER, 5, 16);
+			execute(floatCsrMmKernel, resources(values, indices, starts, b, c), push,
+					groups(result.length, VECTOR_LOCAL_SIZE), 1, 1);
+			float[] updated = c.readFloats(result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { c.close(); b.close(); starts.close(); indices.close(); values.close(); }
+	}
+
+	@Override public synchronized CholeskyFactor dpotrf(double[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);ensureAvailable();BufferResource a=create(matrix),lower=createDoubles(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(4).putInt(0,dimension);if(dpotrfKernel==null)dpotrfKernel=new Kernel(DPOTRF_SHADER,3,4);execute(dpotrfKernel,resources(a,lower,info),push,1,1,1);int status=info.readInts(1)[0];if(status!=0)throw new IllegalArgumentException("matrix is not positive definite at minor "+status);return new CholeskyFactor(dimension,lower.readDoubles(matrix.length));}finally{info.close();lower.close();a.close();}}
+	@Override public synchronized PivotedQrFactor dgeqp3(double[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource qr=create(matrix),tau=createDoubles(count),pivot=createInts(columns);try{ByteBuffer push=nativeBuffer(8).putInt(0,rows).putInt(4,columns);if(dgeqp3Kernel==null)dgeqp3Kernel=new Kernel(DGEQP3_SHADER,3,8);execute(dgeqp3Kernel,resources(qr,tau,pivot),push,1,1,1);return new PivotedQrFactor(rows,columns,qr.readDoubles(matrix.length),tau.readDoubles(count),pivot.readInts(columns));}finally{pivot.close();tau.close();qr.close();}}
+	@Override public synchronized SymmetricEigenDecomposition dsyev(double[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);checkSymmetric(matrix,dimension);ensureAvailable();BufferResource work=create(matrix),values=createDoubles(dimension),vectors=createDoubles(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(16).putDouble(0,16*Math.ulp(1.0)).putInt(8,dimension);if(dsyevKernel==null)dsyevKernel=new Kernel(DSYEV_SHADER,4,16);execute(dsyevKernel,resources(work,values,vectors,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan symmetric eigendecomposition did not converge");return new SymmetricEigenDecomposition(dimension,values.readDoubles(dimension),vectors.readDoubles(matrix.length));}finally{info.close();vectors.close();values.close();work.close();}}
+	@Override public synchronized SingularValueDecomposition dgesvd(double[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource a=create(matrix),work=createDoubles(matrix.length),u=createDoubles(rows*count),singular=createDoubles(count),vt=createDoubles(count*columns),info=createInts(1);try{ByteBuffer push=nativeBuffer(16).putDouble(0,16*Math.ulp(1.0)).putInt(8,rows).putInt(12,columns);if(dgesvdKernel==null)dgesvdKernel=new Kernel(DGESVD_SHADER,6,16);execute(dgesvdKernel,resources(a,work,u,singular,vt,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan SVD did not converge");return new SingularValueDecomposition(rows,columns,singular.readDoubles(count),u.readDoubles(rows*count),vt.readDoubles(count*columns));}finally{info.close();vt.close();singular.close();u.close();work.close();a.close();}}
+	@Override public synchronized FloatCholeskyFactor spotrf(float[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);ensureAvailable();BufferResource a=create(matrix),lower=createFloats(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(4).putInt(0,dimension);if(spotrfKernel==null)spotrfKernel=new Kernel(SPOTRF_SHADER,3,4);execute(spotrfKernel,resources(a,lower,info),push,1,1,1);int status=info.readInts(1)[0];if(status!=0)throw new IllegalArgumentException("matrix is not positive definite at minor "+status);return new FloatCholeskyFactor(dimension,lower.readFloats(matrix.length));}finally{info.close();lower.close();a.close();}}
+	@Override public synchronized FloatPivotedQrFactor sgeqp3(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource qr=create(matrix),tau=createFloats(count),pivot=createInts(columns);try{ByteBuffer push=nativeBuffer(8).putInt(0,rows).putInt(4,columns);if(sgeqp3Kernel==null)sgeqp3Kernel=new Kernel(SGEQP3_SHADER,3,8);execute(sgeqp3Kernel,resources(qr,tau,pivot),push,1,1,1);return new FloatPivotedQrFactor(rows,columns,qr.readFloats(matrix.length),tau.readFloats(count),pivot.readInts(columns));}finally{pivot.close();tau.close();qr.close();}}
+	@Override public synchronized FloatSymmetricEigenDecomposition ssyev(float[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);checkSymmetric(matrix,dimension);ensureAvailable();BufferResource work=create(matrix),values=createFloats(dimension),vectors=createFloats(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(8).putFloat(0,16*Math.ulp(1.0f)).putInt(4,dimension);if(ssyevKernel==null)ssyevKernel=new Kernel(SSYEV_SHADER,4,8);execute(ssyevKernel,resources(work,values,vectors,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan FP32 symmetric eigendecomposition did not converge");return new FloatSymmetricEigenDecomposition(dimension,values.readFloats(dimension),vectors.readFloats(matrix.length));}finally{info.close();vectors.close();values.close();work.close();}}
+	@Override public synchronized FloatSingularValueDecomposition sgesvd(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource a=create(matrix),work=createFloats(matrix.length),u=createFloats(rows*count),singular=createFloats(count),vt=createFloats(count*columns),info=createInts(1);try{ByteBuffer push=nativeBuffer(12).putFloat(0,16*Math.ulp(1.0f)).putInt(4,rows).putInt(8,columns);if(sgesvdKernel==null)sgesvdKernel=new Kernel(SGESVD_SHADER,6,12);execute(sgesvdKernel,resources(a,work,u,singular,vt,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan FP32 SVD did not converge");return new FloatSingularValueDecomposition(rows,columns,singular.readFloats(count),u.readFloats(rows*count),vt.readFloats(count*columns));}finally{info.close();vt.close();singular.close();u.close();work.close();a.close();}}
 
 	@Override public synchronized LogisticRegressionBatchResult logisticRegression(double[][] design,
 			double[] outcomes, double[][] states, double priorPrecision) {
@@ -282,7 +629,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			VkPhysicalDeviceProperties properties = VkPhysicalDeviceProperties.calloc(stack);
 			vkGetPhysicalDeviceProperties(physicalDevice, properties);
 			capabilities = new ComputeCapabilities("VULKAN", properties.deviceNameString(), true, true,
-					deviceLocalMemory(physicalDevice, stack));
+					deviceLocalMemory(physicalDevice, stack), true, true, true);
 		}
 	}
 
@@ -309,10 +656,26 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	private BufferResource create(double[] values) {
 		BufferResource resource = createDoubles(values.length); resource.write(values); return resource;
 	}
+	private BufferResource create(float[] values) {
+		BufferResource resource = createFloats(values.length); resource.write(values); return resource;
+	}
+	private BufferResource create(int[] values) {
+		if (values.length <= 0) throw new IllegalArgumentException("buffer must be nonempty");
+		BufferResource resource = new BufferResource(Math.multiplyExact((long) values.length, 4L));
+		resource.write(values); return resource;
+	}
 
 	private BufferResource createDoubles(int length) {
 		if (length <= 0) throw new IllegalArgumentException("buffer must be nonempty");
 		return new BufferResource(Math.multiplyExact((long) length, 8L));
+	}
+	private BufferResource createFloats(int length) {
+		if (length <= 0) throw new IllegalArgumentException("buffer must be nonempty");
+		return new BufferResource(Math.multiplyExact((long) length, 4L));
+	}
+	private BufferResource createInts(int length) {
+		if (length <= 0) throw new IllegalArgumentException("buffer must be nonempty");
+		return new BufferResource(Math.multiplyExact((long) length, 4L));
 	}
 
 	private final class BufferResource implements AutoCloseable {
@@ -337,10 +700,28 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			if ((long) values.length * 8L > size) throw new IllegalArgumentException("buffer overflow");
 			ByteBuffer mapped = map(); try { mapped.asDoubleBuffer().put(values); } finally { unmap(); }
 		}
+		void write(float[] values) {
+			if ((long) values.length * 4L > size) throw new IllegalArgumentException("buffer overflow");
+			ByteBuffer mapped = map(); try { mapped.asFloatBuffer().put(values); } finally { unmap(); }
+		}
+		void write(int[] values) {
+			if ((long) values.length * 4L > size) throw new IllegalArgumentException("buffer overflow");
+			ByteBuffer mapped = map(); try { mapped.asIntBuffer().put(values); } finally { unmap(); }
+		}
 		double[] readDoubles(int count) {
 			if ((long) count * 8L > size) throw new IllegalArgumentException("buffer overflow");
 			double[] values = new double[count]; ByteBuffer mapped = map();
 			try { mapped.asDoubleBuffer().get(values); } finally { unmap(); } return values;
+		}
+		float[] readFloats(int count) {
+			if ((long) count * 4L > size) throw new IllegalArgumentException("buffer overflow");
+			float[] values = new float[count]; ByteBuffer mapped = map();
+			try { mapped.asFloatBuffer().get(values); } finally { unmap(); } return values;
+		}
+		int[] readInts(int count) {
+			if ((long) count * 4L > size) throw new IllegalArgumentException("buffer overflow");
+			int[] values = new int[count]; ByteBuffer mapped = map();
+			try { mapped.asIntBuffer().get(values); } finally { unmap(); } return values;
 		}
 		private ByteBuffer map() {
 			try (MemoryStack stack = stackPush()) {
@@ -494,8 +875,20 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	@Override public synchronized void close() {
 		if (device != null) {
 			try { vkDeviceWaitIdle(device); } catch (Throwable ignored) {}
+			closeKernel(sgesvdKernel); closeKernel(ssyevKernel); closeKernel(sgeqp3Kernel); closeKernel(spotrfKernel);
+			closeKernel(dgesvdKernel); closeKernel(dsyevKernel); closeKernel(dgeqp3Kernel); closeKernel(dpotrfKernel);
+			closeKernel(floatCsrMmKernel); closeKernel(floatCsrMvKernel); closeKernel(floatGemmKernel);
+			closeKernel(floatGemvKernel); closeKernel(floatNrm2Kernel); closeKernel(floatDotKernel);
+			closeKernel(floatAxpyKernel);
+			closeKernel(csrMmKernel); closeKernel(csrMvKernel); closeKernel(blasGemmKernel);
+			closeKernel(blasGemvKernel); closeKernel(blasNrm2Kernel);
 			closeKernel(logisticKernel); closeKernel(gemmKernel); closeKernel(dotKernel);
 			closeKernel(axpyKernel); closeKernel(unaryKernel);
+			csrMmKernel = csrMvKernel = blasGemmKernel = blasGemvKernel = blasNrm2Kernel = null;
+			floatCsrMmKernel = floatCsrMvKernel = floatGemmKernel = floatGemvKernel = null;
+			floatNrm2Kernel = floatDotKernel = floatAxpyKernel = null;
+			sgesvdKernel = ssyevKernel = sgeqp3Kernel = spotrfKernel = null;
+			dgesvdKernel = dsyevKernel = dgeqp3Kernel = dpotrfKernel = null;
 			logisticKernel = gemmKernel = dotKernel = axpyKernel = unaryKernel = null;
 			if (commandPool != NULL) vkDestroyCommandPool(device, commandPool, null);
 			vkDestroyDevice(device, null); device = null; queue = null; commandPool = NULL;
@@ -521,6 +914,67 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	private static void checkVectors(double[] x, double[] y) {
 		if (x == null || y == null || x.length == 0 || x.length != y.length)
 			throw new IllegalArgumentException("vector lengths must match and be nonzero");
+	}
+	private static void checkRegion(int count, double[] values, int offset, int stride) {
+		if (count < 0 || values == null || offset < 0 || stride < 1
+				|| (count > 0 && (long) offset + (long) (count - 1) * stride >= values.length))
+			throw new IllegalArgumentException("invalid strided vector region");
+	}
+	private static void checkRegion(int count, float[] values, int offset, int stride) {
+		if (count < 0 || values == null || offset < 0 || stride < 1
+				|| (count > 0 && (long) offset + (long) (count - 1) * stride >= values.length))
+			throw new IllegalArgumentException("invalid strided vector region");
+	}
+	private static void checkGemv(MatrixTranspose transpose, int rows, int columns,
+			double[] matrix, double[] x, double[] y) {
+		if (transpose == null || rows < 1 || columns < 1 || matrix == null || matrix.length != rows * columns
+				|| x == null || x.length != (transpose == MatrixTranspose.NONE ? columns : rows)
+				|| y == null || y.length != (transpose == MatrixTranspose.NONE ? rows : columns))
+			throw new IllegalArgumentException("GEMV dimensions do not conform");
+	}
+	private static void checkGemv(MatrixTranspose transpose, int rows, int columns,
+			float[] matrix, float[] x, float[] y) {
+		if (transpose == null || rows < 1 || columns < 1 || matrix == null || matrix.length != rows * columns
+				|| x == null || x.length != (transpose == MatrixTranspose.NONE ? columns : rows)
+				|| y == null || y.length != (transpose == MatrixTranspose.NONE ? rows : columns))
+			throw new IllegalArgumentException("GEMV dimensions do not conform");
+	}
+	private static void checkGemm(MatrixTranspose ta, MatrixTranspose tb, int m, int n, int k,
+			double[] a, double[] b, double[] c) {
+		if (ta == null || tb == null || m < 1 || n < 1 || k < 1 || a == null || b == null || c == null
+				|| a.length != m * k || b.length != k * n || c.length != m * n)
+			throw new IllegalArgumentException("GEMM dimensions do not conform");
+	}
+	private static void checkGemm(MatrixTranspose ta, MatrixTranspose tb, int m, int n, int k,
+			float[] a, float[] b, float[] c) {
+		if (ta == null || tb == null || m < 1 || n < 1 || k < 1 || a == null || b == null || c == null
+				|| a.length != m * k || b.length != k * n || c.length != m * n)
+			throw new IllegalArgumentException("GEMM dimensions do not conform");
+	}
+	private static void checkCsrMv(CsrMatrix matrix, double[] x, double[] y) {
+		if (matrix == null || x == null || x.length != matrix.columns() || y == null || y.length != matrix.rows())
+			throw new IllegalArgumentException("CSR matrix-vector dimensions do not conform");
+	}
+	private static void checkCsrMm(CsrMatrix matrix, double[] right, int columns, double[] result) {
+		if (matrix == null || columns < 1 || right == null || right.length != matrix.columns() * columns
+				|| result == null || result.length != matrix.rows() * columns)
+			throw new IllegalArgumentException("CSR matrix-matrix dimensions do not conform");
+	}
+	private static void checkCsrMv(FloatCsrMatrix matrix, float[] x, float[] y) {
+		if (matrix == null || x == null || x.length != matrix.columns() || y == null || y.length != matrix.rows())
+			throw new IllegalArgumentException("CSR matrix-vector dimensions do not conform");
+	}
+	private static void checkCsrMm(FloatCsrMatrix matrix, float[] right, int columns, float[] result) {
+		if (matrix == null || columns < 1 || right == null || right.length != matrix.columns() * columns
+				|| result == null || result.length != matrix.rows() * columns)
+			throw new IllegalArgumentException("CSR matrix-matrix dimensions do not conform");
+	}
+	private static void checkDecompositionMatrix(double[]matrix,int rows,int columns){if(rows<1||columns<1||matrix==null||matrix.length!=rows*columns)throw new IllegalArgumentException("invalid decomposition matrix dimensions");for(double value:matrix)if(!Double.isFinite(value))throw new IllegalArgumentException("decomposition matrix must be finite");}
+	private static void checkDecompositionMatrix(float[]matrix,int rows,int columns){if(rows<1||columns<1||matrix==null||matrix.length!=rows*columns)throw new IllegalArgumentException("invalid FP32 decomposition matrix dimensions");for(float value:matrix)if(!Float.isFinite(value))throw new IllegalArgumentException("FP32 decomposition matrix must be finite");}
+	private static void checkSymmetric(double[]matrix,int n){double scale=1;for(double value:matrix)scale=Math.max(scale,Math.abs(value));double tolerance=64*Math.ulp(1.0)*scale;for(int r=0;r<n;r++)for(int c=r+1;c<n;c++)if(Math.abs(matrix[r*n+c]-matrix[c*n+r])>tolerance)throw new IllegalArgumentException("eigenvalue matrix must be symmetric");}
+	private static void checkSymmetric(float[]matrix,int n){float scale=1;for(float value:matrix)scale=Math.max(scale,Math.abs(value));float tolerance=64*Math.ulp(1.0f)*scale;for(int r=0;r<n;r++)for(int c=r+1;c<n;c++)if(Math.abs(matrix[r*n+c]-matrix[c*n+r])>tolerance)throw new IllegalArgumentException("FP32 eigenvalue matrix must be symmetric");}
+	private static double[] asDoubles(int[] values) {
+		double[] result = new double[values.length]; for (int i = 0; i < values.length; i++) result[i] = values[i]; return result;
 	}
 	private static int[] shape(double[][] matrix) {
 		if (matrix == null || matrix.length == 0 || matrix[0] == null || matrix[0].length == 0)

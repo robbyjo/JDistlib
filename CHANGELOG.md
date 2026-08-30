@@ -1,5 +1,26 @@
 What's new:
 
+Development after 0.9.1:
+* Added FP64/FP32 symmetric eigendecomposition (`dsyev`/`ssyev`) and thin SVD
+  (`dgesvd`/`sgesvd`) for tall, square, and wide row-major matrices. Cholesky,
+  pivoted QR, eigen, and SVD now execute on CPU, CUDA, OpenCL, and Vulkan;
+  AUTO routes them from a cubic work estimate and capabilities report native
+  device factorization support.
+* Added a parallel FP32 linear-algebra API (`saxpy`, `sdot`, `snrm2`, `sgemv`,
+  `sgemm`, FP32 CSR operations, Cholesky, and pivoted QR). CUDA, OpenCL, and
+  Vulkan provide native float dense/CSR kernels; factorizations retain the
+  deterministic CPU fallback and AUTO uses the same routing contract as FP64.
+* Exposed a backend-neutral FP64 linear-algebra contract with strided DAXPY,
+  dot products and stable norms; row-major GEMV/GEMM with explicit transpose
+  and alpha/beta semantics; and CSR matrix-vector/matrix-matrix operations.
+  The deterministic CPU reference and CUDA, OpenCL, and Vulkan providers share
+  the same API and tolerance-checked behavior, with thresholded AUTO routing.
+* Added reusable lower-Cholesky and column-pivoted Householder-QR factor
+  objects with SPD solves, log determinants, numerical-rank reporting, and
+  least-squares solutions. Provider capabilities distinguish accelerated dense
+  and sparse kernels from native factorization support, leaving room for
+  optional oneMKL or OpenBLAS CPU providers without a mandatory dependency.
+
 Version 0.9.1 (August 28, 2026):
 * Replaced prose-only and malformed formulas in the distribution catalog with
   rendered definitions for the finance, copula, Wiener, and related laws, and

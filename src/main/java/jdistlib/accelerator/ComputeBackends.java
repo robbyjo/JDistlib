@@ -24,7 +24,9 @@ public final class ComputeBackends {
 		return Collections.unmodifiableList(result);
 	}
 	public static ComputeBackend preferred() {
-		return select(Compute.parse(System.getProperty("jdistlib.compute.backend", "auto"))).backend();
+		String configured = System.getProperty("jdistlib.compute.backend", "auto");
+		try { return select(Compute.parse(configured)).backend(); }
+		catch (IllegalArgumentException customProvider) { return byId(configured); }
 	}
 	/** Selects and reports an owned backend according to the requested policy. */
 	public static ComputeSelection select(Compute requested) {

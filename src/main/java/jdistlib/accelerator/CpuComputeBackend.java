@@ -7,7 +7,7 @@ public final class CpuComputeBackend implements ComputeBackend {
 	@Override public boolean available() { return true; }
 	@Override public ComputeCapabilities capabilities() {
 		return new ComputeCapabilities("CPU", System.getProperty("os.arch", "unknown"),
-				true, false, 0L);
+				true, false, 0L, true, true, true);
 	}
 	@Override public double[] unary(UnaryOperation operation, double[] input) {
 		if (operation == null || input == null) throw new IllegalArgumentException("operation and input required");

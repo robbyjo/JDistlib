@@ -178,6 +178,10 @@ The website now puts beginner material first:
   OpenCL, and Vulkan backends, automatic CPU fallback, the unified download,
   reproducible RTX 2080 likelihood numbers, and the still-provisional
   whole-NUTS decision.
+* [Unified dense and sparse linear algebra](docs/LINEAR_ALGEBRA_ACCELERATION.md) —
+  parallel FP64/FP32 BLAS operations, CSR kernels, and reusable Cholesky,
+  symmetric-eigen, pivoted-QR, and thin-SVD decompositions,
+  backend capabilities, routing, and numerical semantics.
 * [Inference acceleration result](docs/INFERENCE_ACCELERATION_RESULT.md) — the
   consolidated feature inventory, validation record, benchmark interpretation,
   compatibility boundary, and v0.8.4 packaging/provider status.
@@ -363,6 +367,11 @@ requests fail rather than silently falling back. See the
 examples, measured guidance, logging/provenance, and the warning that forced
 NUTS target offload may be slower. Direct-download users should use
 `jdistlib-all`; modular artifacts are intended for dependency-managed builds.
+The same providers expose public row-major FP64 and FP32 linear-algebra surfaces
+with standard `d*` and `s*` BLAS/LAPACK names, CPU/GPU CSR matrix-vector and
+matrix-matrix products, and FP64/FP32 Cholesky, symmetric-eigen, pivoted-QR,
+and thin-SVD decompositions on CPU, CUDA, OpenCL, and Vulkan. See the
+[linear-algebra contract](docs/LINEAR_ALGEBRA_ACCELERATION.md).
 CUDA and OpenCL additionally implement a resident prepared transpose product
 for repeated high-dimensional score calculations; Vulkan currently uses its
 CPU fallback for that primitive.

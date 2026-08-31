@@ -64,6 +64,10 @@ public class AutoComputeBackendTest {
 			assertEquals("cuda", large.backendId());
 			assertEquals(ExecutionKind.GPU_PARALLEL, large.kind());
 			assertTrue(large.accelerated());
+			ExecutionPlan sparse = automatic.plan(LinearAlgebraOperation.CSR_POTRF,
+					NumericPrecision.FP64, 100000, 500000);
+			assertEquals("cpu", sparse.backendId());
+			assertEquals(ExecutionKind.JAVA_REFERENCE, sparse.kind());
 			assertEquals(ComputeApi.AUTOMATIC, automatic.deviceInfo().api());
 		} finally { automatic.close(); }
 	}

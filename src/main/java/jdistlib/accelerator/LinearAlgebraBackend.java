@@ -67,6 +67,16 @@ public interface LinearAlgebraBackend {
 		CpuLinearAlgebra.dcsrmm(alpha, matrix, right, rightColumns, beta, result);
 	}
 
+	/** Computes a reusable sparse Cholesky factor from one authoritative triangle. */
+	default SparseCholeskyFactor dcsrpotrf(CsrMatrix matrix, MatrixTriangle triangle,
+			SparseOrdering ordering) {
+		return CpuSparseCholesky.factor(matrix, triangle, ordering);
+	}
+	/** Computes a minimum-degree sparse Cholesky factor from one authoritative triangle. */
+	default SparseCholeskyFactor dcsrpotrf(CsrMatrix matrix, MatrixTriangle triangle) {
+		return dcsrpotrf(matrix, triangle, SparseOrdering.MINIMUM_DEGREE);
+	}
+
 	/** Computes a reusable lower Cholesky factor of a row-major SPD matrix. */
 	default CholeskyFactor dpotrf(double[] matrix, int dimension) {
 		return CpuLinearAlgebra.dpotrf(matrix, dimension);

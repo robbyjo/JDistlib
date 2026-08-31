@@ -180,7 +180,7 @@ The website now puts beginner material first:
   reproducible RTX 2080 likelihood numbers, and the still-provisional
   whole-NUTS decision.
 * [Unified dense and sparse linear algebra](docs/LINEAR_ALGEBRA_ACCELERATION.md) —
-  parallel FP64/FP32 BLAS operations, CSR kernels, and reusable Cholesky,
+  parallel FP64/FP32 BLAS operations, CSR kernels, sparse Cholesky, and reusable dense Cholesky,
   symmetric-eigen, pivoted-QR, and thin-SVD decompositions,
   backend capabilities, routing, and numerical semantics.
 * [Inference acceleration result](docs/INFERENCE_ACCELERATION_RESULT.md) — the
@@ -376,6 +376,10 @@ and thin-SVD decompositions on CPU, CUDA, OpenCL, and Vulkan. See the
 That contract also includes symmetric rank-k updates, triangular vector and
 multi-RHS solves, prepared Cholesky handles, execution/device identification,
 and strict optional `Compute.ONEMKL` and `Compute.OPENBLAS` CPU choices.
+Reusable FP64/FP32 sparse Cholesky factors add minimum-degree or natural
+ordering, log determinants, and original-coordinate solves. Sparse
+factorization currently uses the portable Java CPU baseline and reports that
+fallback explicitly even when a GPU or native CPU backend is selected.
 CUDA and OpenCL additionally implement a resident prepared transpose product
 for repeated high-dimensional score calculations; Vulkan currently uses its
 CPU fallback for that primitive.

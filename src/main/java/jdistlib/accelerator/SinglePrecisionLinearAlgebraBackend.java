@@ -44,6 +44,14 @@ public interface SinglePrecisionLinearAlgebraBackend {
 		CpuSinglePrecisionLinearAlgebra.scsrmm(alpha, matrix, right, rightColumns,
 				beta, result);
 	}
+	default FloatSparseCholeskyFactor scsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return CpuSparseCholesky.factor(matrix, triangle, ordering);
+	}
+	default FloatSparseCholeskyFactor scsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle) {
+		return scsrpotrf(matrix, triangle, SparseOrdering.MINIMUM_DEGREE);
+	}
 	default FloatCholeskyFactor spotrf(float[] matrix, int dimension) {
 		return CpuSinglePrecisionLinearAlgebra.spotrf(matrix, dimension);
 	}

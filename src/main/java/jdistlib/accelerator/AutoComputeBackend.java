@@ -42,7 +42,9 @@ final class AutoComputeBackend implements ComputeBackend {
 			throw new IllegalArgumentException("operation dimensions must be nonnegative");
 		ComputeBackend selected = backendFor(operation, dimensions);
 		ExecutionPlan concrete = selected.plan(operation, precision, dimensions);
-		String reason = selected == accelerator ? "work estimate reached AUTO threshold"
+		String reason = operation == LinearAlgebraOperation.CSR_POTRF
+				? "sparse-direct factorization uses portable CPU baseline"
+				: selected == accelerator ? "work estimate reached AUTO threshold"
 				: "work estimate below AUTO threshold";
 		return new ExecutionPlan(operation, precision, concrete.kind(), concrete.backendId(),
 				concrete.device(), reason);
@@ -109,6 +111,10 @@ final class AutoComputeBackend implements ComputeBackend {
 		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
 				.dcsrmm(alpha, matrix, right, rightColumns, beta, result);
 	}
+	@Override public SparseCholeskyFactor dcsrpotrf(CsrMatrix matrix, MatrixTriangle triangle,
+			SparseOrdering ordering) {
+		return cpu.dcsrpotrf(matrix, triangle, ordering);
+	}
 	@Override public CholeskyFactor dpotrf(double[] matrix, int dimension) {
 		return decompositionBackend(dimension, dimension, dimension).dpotrf(matrix, dimension);
 	}
@@ -173,6 +179,10 @@ final class AutoComputeBackend implements ComputeBackend {
 				: saturatingProduct(matrix.nonzeroCount(), rightColumns, 1);
 		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
 				.scsrmm(alpha, matrix, right, rightColumns, beta, result);
+	}
+	@Override public FloatSparseCholeskyFactor scsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return cpu.scsrpotrf(matrix, triangle, ordering);
 	}
 	@Override public FloatCholeskyFactor spotrf(float[] matrix, int dimension) {
 		return decompositionBackend(dimension, dimension, dimension).spotrf(matrix, dimension);
@@ -253,6 +263,8 @@ final class AutoComputeBackend implements ComputeBackend {
 	private ComputeBackend backendFor(LinearAlgebraOperation operation, int... dimensions) {
 		long work;
 		switch (operation) {
+		case CSR_POTRF:
+			return cpu;
 		case AXPY: case DOT: case NRM2:
 			work = dimensions.length == 0 ? 0L : dimensions[0];
 			return work >= VECTOR_THRESHOLD ? accelerator : cpu;

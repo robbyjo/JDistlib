@@ -38,6 +38,7 @@ outputs:
 | `dtrsm` | `strsm` | in-place left/right triangular multi-RHS solve |
 | `dcsrmv` | `scsrmv` | CSR matrix times dense vector |
 | `dcsrmm` | `scsrmm` | CSR matrix times row-major dense matrix |
+| `dcsrpotrf` | `scsrpotrf` | reusable sparse SPD Cholesky factorization |
 | `dpotrf` | `spotrf` | lower Cholesky factorization |
 | `dgeqp3` | `sgeqp3` | column-pivoted Householder QR |
 | `dsyev` | `ssyev` | symmetric eigenvalues and eigenvectors |
@@ -64,6 +65,12 @@ double[] result = new double[rows];
 blas.dcsrmv(1.0, matrix, vector, 0.0, result);
 ```
 
+Sparse Cholesky reads only the triangle named by `MatrixTriangle`, so callers
+may supply lower-only, upper-only, or fully stored symmetric input without
+double-counting mirrored entries. The default `SparseOrdering.MINIMUM_DEGREE`
+reduces fill; `SparseOrdering.NATURAL` preserves input order. Duplicate entries
+within the authoritative triangle are summed.
+
 ## Reusable decompositions
 
 `dpotrf`/`spotrf` compute lower Cholesky factors with repeated vector/matrix
@@ -76,6 +83,19 @@ never expose a mutable internal array.
 ```java
 CholeskyFactor factor = blas.dpotrf(covariance, dimension);
 double[] solution = factor.solve(rightHandSide);
+double logDeterminant = factor.logDeterminant();
+```
+
+`dcsrpotrf` and `scsrpotrf` return `SparseCholeskyFactor` and
+`FloatSparseCholeskyFactor`. They retain a CSR lower factor in permuted
+coordinates, expose the new-to-original permutation and factor nonzero count,
+and solve vectors or row-major multi-RHS matrices in the caller's original
+coordinates:
+
+```java
+SparseCholeskyFactor factor = blas.dcsrpotrf(relationship,
+    MatrixTriangle.LOWER);
+double[] coefficients = factor.solve(rightHandSide);
 double logDeterminant = factor.logDeterminant();
 ```
 
@@ -100,6 +120,12 @@ portable correctness baseline and avoiding host-side factorization; large-scale
 tiled or vendor-library implementations can replace those kernels behind the
 same API. `Compute.AUTO` uses a cubic work estimate to keep small decompositions
 on CPU and route sufficiently large ones to the selected accelerator.
+
+Sparse Cholesky currently uses the deterministic Java CPU implementation for
+every selection. Explicit GPU, oneMKL, and OpenBLAS providers therefore report
+`PORTABLE_FALLBACK` with concrete backend `cpu` for `CSR_POTRF`; they do not
+claim a vendor sparse-direct call. This keeps the API usable now and leaves a
+stable boundary for later PARDISO or cuSOLVER-backed factors.
 
 ## Native CPU providers
 
@@ -138,12 +164,14 @@ System.out.println(selection.plan(LinearAlgebraOperation.SYRK,
 For linear models and REML, `SYRK`, `GEMM`, `GEMV`, `TRSM`, prepared Cholesky,
 and symmetric eigendecomposition cover the principal cross-product, covariance
 solve, log-determinant, and spectral steps. Pedigree relationship matrices can
-use the CSR operations, but sparse factorization is not yet part of this API.
+use CSR matrix-vector/matrix products and reusable sparse Cholesky solves without
+dense materialization. Record the `CSR_POTRF` execution plan separately from
+the plans for accelerated CSR products.
 
 ## Provider and numerical contract
 
 `ComputeCapabilities` separately reports dense BLAS, sparse BLAS, and native
-factorization support. CUDA, OpenCL, and Vulkan currently accelerate both FP64
+dense-factorization support. CUDA, OpenCL, and Vulkan currently accelerate both FP64
 and FP32 dense and CSR operations with native precision buffers and kernels.
 Reduction order and final rounding can differ across providers, so callers
 should compare numerical tolerances rather than bits and record the selected

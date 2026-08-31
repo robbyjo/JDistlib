@@ -76,6 +76,16 @@ public class SinglePrecisionLinearAlgebraBackendTest {
 		assertEquals(1, backend.sgesvd(matrices[2], 3, 2).rank());
 	}
 	@Test public void fp32SymmetricTriangularAndPreparedSolvesWork(){float[]a={1,2,3,4,5,6},c=new float[4];backend.ssyrk(MatrixTranspose.NONE,2,3,1,a,0,c);assertArrayEquals(new float[]{14,32,32,77},c,TOLERANCE);float[]lower={2,0,1,3},x={2,7};backend.strsv(MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,lower,x);assertArrayEquals(new float[]{1,2},x,TOLERANCE);float[]right={2,4,7,11};backend.strsm(MatrixSide.LEFT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,lower,right);assertArrayEquals(new float[]{1,2,2,3},right,TOLERANCE);try(PreparedFloatCholesky factor=backend.prepareSpotrf(new float[]{4,2,2,3},2)){float[]rhs={1,1,2,1};factor.solveInPlace(rhs,2);assertArrayEquals(new float[]{-.125f,.125f,.75f,.25f},rhs,TOLERANCE);}}
+	@Test public void fp32SparseCholeskySolvesInOriginalCoordinates() {
+		FloatCsrMatrix matrix = new FloatCsrMatrix(5, 5,
+				new float[] {4, 1,4, 1,4, 1,4, 1,1,4},
+				new int[] {1, 1,2, 2,3, 3,4, 1,4,5},
+				new int[] {1,2,4,6,8,11});
+		FloatSparseCholeskyFactor factor = backend.scsrpotrf(matrix, MatrixTriangle.LOWER);
+		assertArrayEquals(new float[] {1,2,3,4,5},
+				factor.solve(new float[] {11,12,18,24,25}), 2e-5f);
+		assertEquals(5, factor.lower().rows());
+	}
 
 	private static float[] reconstructEigen(FloatSymmetricEigenDecomposition decomposition) {
 		int n=decomposition.dimension();float[]values=decomposition.eigenvalues(),vectors=decomposition.eigenvectors(),result=new float[n*n];

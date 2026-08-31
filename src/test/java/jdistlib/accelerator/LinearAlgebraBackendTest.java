@@ -5,6 +5,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Random;
+
 import org.junit.Test;
 
 import jdistlib.matrix.CsrMatrix;
@@ -102,6 +104,77 @@ public class LinearAlgebraBackendTest {
 		assertEquals(1, backend.dgesvd(matrices[2], 3, 2).rank());
 	}
 	@Test public void symmetricAndTriangularBlasSupportRemlBuildingBlocks(){double[]a={1,2,3,4,5,6},c=new double[4];backend.dsyrk(MatrixTranspose.NONE,2,3,1,a,0,c);assertArrayEquals(new double[]{14,32,32,77},c,1e-15);double[]lower={2,0,1,3},x={2,7};backend.dtrsv(MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,lower,x);assertArrayEquals(new double[]{1,2},x,1e-15);double[]right={2,4,7,11};backend.dtrsm(MatrixSide.LEFT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,lower,right);assertArrayEquals(new double[]{1,2,2,3},right,1e-15);double[]rightSide={4,8,7,11};backend.dtrsm(MatrixSide.RIGHT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,lower,rightSide);assertArrayEquals(new double[]{2.0/3,8.0/3,5.0/3,11.0/3},rightSide,1e-15);try(PreparedCholesky factor=backend.prepareDpotrf(new double[]{4,2,2,3},2)){double[]rhs={1,1,2,1};factor.solveInPlace(rhs,2);assertArrayEquals(new double[]{-0.125,0.125,0.75,0.25},rhs,1e-15);assertEquals(Math.log(8),factor.logDeterminant(),1e-15);}}
+
+	@Test public void sparseCholeskyOrdersFactorsAndSolvesWithoutDenseInput() {
+		CsrMatrix matrix = new CsrMatrix(5, 5,
+				new double[] {4, 1,4, 1,4, 1,4, 1,1,4},
+				new int[] {1, 1,2, 2,3, 3,4, 1,4,5},
+				new int[] {1,2,4,6,8,11});
+		SparseCholeskyFactor factor = backend.dcsrpotrf(matrix, MatrixTriangle.LOWER);
+		assertEquals(5, factor.dimension()); assertTrue(factor.nonzeroCount() < 15);
+		assertArrayEquals(new double[] {1,2,3,4,5},
+				factor.solve(new double[] {11,12,18,24,25}), 2e-14);
+		double[] multiple = {11,25, 12,24, 18,18, 24,12, 25,11};
+		factor.solveInPlace(multiple, 2);
+		assertArrayEquals(new double[] {1,5,2,4,3,3,4,2,5,1}, multiple, 3e-14);
+		double[] dense = {4,1,0,0,1, 1,4,1,0,0, 0,1,4,1,0,
+				0,0,1,4,1, 1,0,0,1,4};
+		assertEquals(backend.dpotrf(dense, 5).logDeterminant(), factor.logDeterminant(), 2e-14);
+		assertEquals(ExecutionKind.PORTABLE_FALLBACK, new StubGpuBackend().plan(
+				LinearAlgebraOperation.CSR_POTRF, NumericPrecision.FP64, 5, 10).kind());
+	}
+
+	@Test public void sparseCholeskyAcceptsUpperTriangleAndNaturalOrdering() {
+		CsrMatrix matrix = new CsrMatrix(5, 5,
+				new double[] {4,1,1, 4,1, 4,1, 4,1, 4},
+				new int[] {1,2,5, 2,3, 3,4, 4,5, 5},
+				new int[] {1,4,6,8,10,11});
+		SparseCholeskyFactor factor = backend.dcsrpotrf(matrix, MatrixTriangle.UPPER,
+				SparseOrdering.NATURAL);
+		assertArrayEquals(new int[] {0,1,2,3,4}, factor.permutation());
+		assertArrayEquals(new double[] {1,2,3,4,5},
+				factor.solve(new double[] {11,12,18,24,25}), 2e-14);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void sparseCholeskyRejectsNonPositiveDefiniteInput() {
+		backend.dcsrpotrf(new CsrMatrix(1, 1, new double[] {-1},
+				new int[] {1}, new int[] {1,2}), MatrixTriangle.LOWER);
+	}
+
+	@Test public void sparseCholeskyMatchesDenseReferenceAcrossSparsePatterns() {
+		Random random = new Random(421L); int n = 8;
+		for (int sample = 0; sample < 8; sample++) {
+			double[] matrix = new double[n * n], rowSums = new double[n];
+			for (int row = 1; row < n; row++) for (int column = 0; column < row; column++)
+				if (random.nextDouble() < 0.3) {
+					double value = random.nextDouble() - 0.5;
+					matrix[row * n + column] = value; matrix[column * n + row] = value;
+					rowSums[row] += Math.abs(value); rowSums[column] += Math.abs(value);
+				}
+			for (int row = 0; row < n; row++) matrix[row * n + row] = rowSums[row] + 1.0;
+			double[] expected = new double[n], right = new double[n];
+			for (int row = 0; row < n; row++) expected[row] = random.nextDouble() - 0.5;
+			for (int row = 0; row < n; row++) for (int column = 0; column < n; column++)
+				right[row] += matrix[row * n + column] * expected[column];
+			CsrMatrix sparse = CsrMatrix.fromDense(n, n, matrix, 0.0);
+			for (SparseOrdering ordering : SparseOrdering.values()) {
+				SparseCholeskyFactor factor = backend.dcsrpotrf(sparse,
+						MatrixTriangle.LOWER, ordering);
+				assertArrayEquals(expected, factor.solve(right), 2e-14);
+				assertEquals(backend.dpotrf(matrix, n).logDeterminant(),
+						factor.logDeterminant(), 2e-14);
+			}
+		}
+	}
+	private static final class StubGpuBackend implements ComputeBackend {
+		@Override public String id() { return "cuda"; }
+		@Override public boolean available() { return true; }
+		@Override public ComputeCapabilities capabilities() {
+			return new ComputeCapabilities("CUDA", "test", true, false, 1L);
+		}
+		@Override public void close() {}
+	}
 
 	private static double[] reconstructEigen(SymmetricEigenDecomposition decomposition) {
 		int n = decomposition.dimension(); double[] values = decomposition.eigenvalues();

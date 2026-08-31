@@ -39,6 +39,10 @@ public interface ComputeBackend extends LinearAlgebraBackend,
 				|| operation == LinearAlgebraOperation.SYEV
 				|| operation == LinearAlgebraOperation.GESVD
 				|| operation == LinearAlgebraOperation.TRSV;
+		if (operation == LinearAlgebraOperation.CSR_POTRF && !"cpu".equals(id()))
+			return new ExecutionPlan(operation, precision, ExecutionKind.PORTABLE_FALLBACK,
+					"cpu", System.getProperty("os.arch", "unknown"),
+					"provider has no sparse-direct factorization");
 		ExecutionKind kind = gpu ? (serial ? ExecutionKind.GPU_SERIAL
 				: ExecutionKind.GPU_PARALLEL) : ("cpu".equals(id())
 						? ExecutionKind.JAVA_REFERENCE : ExecutionKind.NATIVE_CPU);

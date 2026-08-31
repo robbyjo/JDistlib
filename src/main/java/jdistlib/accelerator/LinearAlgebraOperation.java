@@ -4,5 +4,5 @@ package jdistlib.accelerator;
 /** Backend-neutral operation identifiers used for capability and routing inspection. */
 public enum LinearAlgebraOperation {
 	AXPY, DOT, NRM2, GEMV, GEMM, SYRK, TRSV, TRSM,
-	CSR_MV, CSR_MM, POTRF, GEQP3, SYEV, GESVD, PREPARED_CHOLESKY
+	CSR_MV, CSR_MM, CSR_POTRF, POTRF, GEQP3, SYEV, GESVD, PREPARED_CHOLESKY
 }

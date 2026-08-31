@@ -13,10 +13,14 @@ import jdistlib.accelerator.FloatSingularValueDecomposition;
 import jdistlib.accelerator.FloatSymmetricEigenDecomposition;
 import jdistlib.accelerator.Compute;
 import jdistlib.accelerator.ComputeBackend;
+import jdistlib.accelerator.ComputeApi;
 import jdistlib.accelerator.ComputeBackends;
 import jdistlib.accelerator.ComputeSelection;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.MatrixTranspose;
+import jdistlib.accelerator.MatrixTriangle;
+import jdistlib.accelerator.MatrixDiagonal;
+import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.SingularValueDecomposition;
 import jdistlib.accelerator.SymmetricEigenDecomposition;
@@ -29,6 +33,8 @@ public class OpenClComputeBackendTest {
 		OpenClComputeBackend probe = new OpenClComputeBackend(); Assume.assumeTrue(probe.available()); probe.close();
 		try (ComputeSelection selection = ComputeBackends.select(Compute.OPENCL)) {
 			assertEquals("opencl", selection.selectedBackend());
+			assertEquals(ComputeApi.OPENCL, selection.deviceInfo().api());
+			assertTrue(!"unknown".equals(selection.deviceInfo().driverVersion()));
 		}
 	}
 	@Test public void matchesCpuReferenceWhenOpenClIsAvailable() {
@@ -74,6 +80,10 @@ public class OpenClComputeBackendTest {
 		cpu.dgemm(MatrixTranspose.TRANSPOSE,MatrixTranspose.NONE,2,2,3,1,storedTranspose,ordinaryRight,0,expectedTranspose);
 		actual.dgemm(MatrixTranspose.TRANSPOSE,MatrixTranspose.NONE,2,2,3,1,storedTranspose,ordinaryRight,0,observedTranspose);
 		assertArrayEquals(expectedTranspose,observedTranspose,tolerance);
+		double[] expectedRank=new double[4],observedRank=new double[4];cpu.dsyrk(MatrixTranspose.NONE,2,3,1,matrix,0,expectedRank);actual.dsyrk(MatrixTranspose.NONE,2,3,1,matrix,0,observedRank);assertArrayEquals(expectedRank,observedRank,tolerance);
+		double[] triangular={2,0,1,3},expectedSolve={2,10},observedSolve=expectedSolve.clone();cpu.dtrsv(MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,triangular,expectedSolve);actual.dtrsv(MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,triangular,observedSolve);assertArrayEquals(expectedSolve,observedSolve,tolerance);
+		double[] expectedMulti={2,4,10,14},observedMulti=expectedMulti.clone();cpu.dtrsm(MatrixSide.LEFT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,triangular,expectedMulti);actual.dtrsm(MatrixSide.LEFT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,triangular,observedMulti);assertArrayEquals(expectedMulti,observedMulti,tolerance);
+		double[] expectedRight={2,10,4,14},observedRight=expectedRight.clone();cpu.dtrsm(MatrixSide.RIGHT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,triangular,expectedRight);actual.dtrsm(MatrixSide.RIGHT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,triangular,observedRight);assertArrayEquals(expectedRight,observedRight,tolerance);
 		CsrMatrix sparse=new CsrMatrix(3,3,new double[]{2,-1,3,4},new int[]{1,3,2,3},new int[]{1,3,4,5});
 		double[] expectedSparse={1,1,1},observedSparse=expectedSparse.clone();
 		cpu.dcsrmv(1.3,sparse,new double[]{3,5,7},0.2,expectedSparse);
@@ -100,6 +110,9 @@ public class OpenClComputeBackendTest {
 		cpu.sgemm(MatrixTranspose.NONE,MatrixTranspose.TRANSPOSE,2,2,3,0.7f,matrix,right,-0.2f,expectedDense);
 		actual.sgemm(MatrixTranspose.NONE,MatrixTranspose.TRANSPOSE,2,2,3,0.7f,matrix,right,-0.2f,observedDense);
 		assertArrayEquals(expectedDense,observedDense,tolerance);
+		float[] expectedRank=new float[4],observedRank=new float[4];cpu.ssyrk(MatrixTranspose.NONE,2,3,1,matrix,0,expectedRank);actual.ssyrk(MatrixTranspose.NONE,2,3,1,matrix,0,observedRank);assertArrayEquals(expectedRank,observedRank,tolerance);
+		float[] triangular={2,0,1,3},expectedSolve={2,10},observedSolve=expectedSolve.clone();cpu.strsv(MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,triangular,expectedSolve);actual.strsv(MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,triangular,observedSolve);assertArrayEquals(expectedSolve,observedSolve,tolerance);
+		float[] expectedMulti={2,4,10,14},observedMulti=expectedMulti.clone();cpu.strsm(MatrixSide.LEFT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,triangular,expectedMulti);actual.strsm(MatrixSide.LEFT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,triangular,observedMulti);assertArrayEquals(expectedMulti,observedMulti,tolerance);
 		FloatCsrMatrix sparse=new FloatCsrMatrix(3,3,new float[]{2,-1,3,4},new int[]{1,3,2,3},new int[]{1,3,4,5});
 		float[] expectedSparse={1,1,1},observedSparse=expectedSparse.clone();
 		cpu.scsrmv(1.3f,sparse,new float[]{3,5,7},0.2f,expectedSparse);

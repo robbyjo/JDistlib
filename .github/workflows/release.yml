@@ -45,13 +45,13 @@ jobs:
         env:
           VERSION: ${{ steps.release.outputs.version }}
         run: |
-          ./gradlew clean build :jdistlib-cuda:build :jdistlib-opencl:build \
+          ./gradlew clean build :jdistlib-nativecpu:build :jdistlib-cuda:build :jdistlib-opencl:build \
             :jdistlib-vulkan:build :jdistlib-all:build \
             --no-daemon -PreleaseVersion="$VERSION"
           test -f "build/libs/jdistlib-$VERSION.jar"
           unzip -p "build/libs/jdistlib-$VERSION.jar" META-INF/MANIFEST.MF |
             grep -F "Implementation-Version: $VERSION"
-          for MODULE in cuda opencl vulkan; do
+          for MODULE in nativecpu cuda opencl vulkan; do
             test -f "accelerators/$MODULE/build/libs/jdistlib-$MODULE-$VERSION.jar"
             unzip -p "accelerators/$MODULE/build/libs/jdistlib-$MODULE-$VERSION.jar" META-INF/MANIFEST.MF |
               grep -F "Implementation-Version: $VERSION"
@@ -66,6 +66,10 @@ jobs:
             grep -F 'jdistlib.accelerator.opencl.OpenClComputeBackend'
           unzip -p "$ALL_JAR" META-INF/services/jdistlib.accelerator.ComputeBackend |
             grep -F 'jdistlib.accelerator.vulkan.VulkanComputeBackend'
+          unzip -p "$ALL_JAR" META-INF/services/jdistlib.accelerator.ComputeBackend |
+            grep -F 'jdistlib.accelerator.nativecpu.OneMklComputeBackend'
+          unzip -p "$ALL_JAR" META-INF/services/jdistlib.accelerator.ComputeBackend |
+            grep -F 'jdistlib.accelerator.nativecpu.OpenBlasComputeBackend'
           mkdir -p build/release-assets
           cp "$ALL_JAR" build/release-assets/
           cp "$ALL_JAR" build/release-assets/jdistlib-all.jar

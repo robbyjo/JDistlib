@@ -8,6 +8,7 @@ import static jcuda.driver.JCudaDriver.cuDeviceGet;
 import static jcuda.driver.JCudaDriver.cuDeviceGetAttribute;
 import static jcuda.driver.JCudaDriver.cuDeviceGetName;
 import static jcuda.driver.JCudaDriver.cuDeviceTotalMem;
+import static jcuda.driver.JCudaDriver.cuDriverGetVersion;
 import static jcuda.driver.JCudaDriver.cuInit;
 import static jcuda.driver.JCudaDriver.cuLaunchKernel;
 import static jcuda.driver.JCudaDriver.cuMemAlloc;
@@ -40,6 +41,8 @@ import jcuda.nvrtc.JNvrtc;
 import jcuda.nvrtc.nvrtcProgram;
 import jdistlib.accelerator.ComputeBackend;
 import jdistlib.accelerator.ComputeCapabilities;
+import jdistlib.accelerator.ComputeApi;
+import jdistlib.accelerator.ComputeDeviceInfo;
 import jdistlib.accelerator.CholeskyFactor;
 import jdistlib.accelerator.FloatCholeskyFactor;
 import jdistlib.accelerator.FloatPivotedQrFactor;
@@ -47,6 +50,9 @@ import jdistlib.accelerator.FloatSingularValueDecomposition;
 import jdistlib.accelerator.FloatSymmetricEigenDecomposition;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.MatrixTranspose;
+import jdistlib.accelerator.MatrixTriangle;
+import jdistlib.accelerator.MatrixDiagonal;
+import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.PivotedQrFactor;
@@ -87,6 +93,9 @@ public final class CudaComputeBackend implements ComputeBackend {
 			+ "extern \"C\" __global__ void blas_gemm(int ta,int tb,int m,int n,int k,double alpha,const double*a,const double*b,double beta,double*c){"
 			+ "int row=blockIdx.y*blockDim.y+threadIdx.y,col=blockIdx.x*blockDim.x+threadIdx.x;if(row<m&&col<n){double s=0;"
 			+ "for(int q=0;q<k;q++)s+=(ta?a[q*m+row]:a[row*k+q])*(tb?b[col*k+q]:b[q*n+col]);int z=row*n+col;c[z]=alpha*s+beta*c[z];}}"
+			+ "extern \"C\" __global__ void blas_syrk(int tr,int n,int k,double alpha,const double*a,double beta,double*c){int row=blockIdx.y*blockDim.y+threadIdx.y,col=blockIdx.x*blockDim.x+threadIdx.x;if(row<n&&col<n){double s=0;for(int q=0;q<k;q++)s+=(tr?a[q*n+row]:a[row*k+q])*(tr?a[q*n+col]:a[col*k+q]);c[row*n+col]=alpha*s+beta*c[row*n+col];}}"
+			+ "extern \"C\" __global__ void blas_trsv(int lower,int tr,int unit,int n,const double*a,double*x){if(blockIdx.x||threadIdx.x)return;int effective=tr?!lower:lower;for(int step=0;step<n;step++){int i=effective?step:n-1-step;double v=x[i];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*x[j];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*x[j];}x[i]=unit?v:v/a[i*n+i];}}"
+			+ "extern \"C\" __global__ void blas_trsm(int side,int lower,int tr,int unit,int rows,int cols,double alpha,const double*a,double*b){int vector=blockIdx.x*blockDim.x+threadIdx.x,count=side?rows:cols,n=side?cols:rows;if(vector>=count)return;if(!side){int effective=tr?!lower:lower;for(int i=0;i<n;i++)b[i*cols+vector]*=alpha;for(int step=0;step<n;step++){int i=effective?step:n-1-step;double v=b[i*cols+vector];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}b[i*cols+vector]=unit?v:v/a[i*n+i];}}else{int effective=tr?!lower:lower;for(int j=0;j<n;j++)b[vector*cols+j]*=alpha;for(int step=0;step<n;step++){int j=effective?n-1-step:step;double v=b[vector*cols+j];if(effective){for(int k=j+1;k<n;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}else{for(int k=0;k<j;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}b[vector*cols+j]=unit?v:v/a[j*n+j];}}}"
 			+ "extern \"C\" __global__ void csr_mv(int rows,double alpha,const double*v,const int*ci,const int*rs,const double*x,double beta,double*y){"
 			+ "int row=blockIdx.x*blockDim.x+threadIdx.x;if(row<rows){double s=0;for(int z=rs[row]-1;z<rs[row+1]-1;z++)s+=v[z]*x[ci[z]-1];y[row]=alpha*s+beta*y[row];}}"
 			+ "extern \"C\" __global__ void csr_mm(int rows,int outcols,double alpha,const double*v,const int*ci,const int*rs,const double*b,double beta,double*c){"
@@ -105,6 +114,9 @@ public final class CudaComputeBackend implements ComputeBackend {
 			+ "extern \"C\" __global__ void float_blas_gemm(int ta,int tb,int m,int n,int k,float alpha,const float*a,const float*b,float beta,float*c){"
 			+ "int row=blockIdx.y*blockDim.y+threadIdx.y,col=blockIdx.x*blockDim.x+threadIdx.x;if(row<m&&col<n){float s=0;"
 			+ "for(int q=0;q<k;q++)s+=(ta?a[q*m+row]:a[row*k+q])*(tb?b[col*k+q]:b[q*n+col]);int z=row*n+col;c[z]=alpha*s+beta*c[z];}}"
+			+ "extern \"C\" __global__ void float_blas_syrk(int tr,int n,int k,float alpha,const float*a,float beta,float*c){int row=blockIdx.y*blockDim.y+threadIdx.y,col=blockIdx.x*blockDim.x+threadIdx.x;if(row<n&&col<n){float s=0;for(int q=0;q<k;q++)s+=(tr?a[q*n+row]:a[row*k+q])*(tr?a[q*n+col]:a[col*k+q]);c[row*n+col]=alpha*s+beta*c[row*n+col];}}"
+			+ "extern \"C\" __global__ void float_blas_trsv(int lower,int tr,int unit,int n,const float*a,float*x){if(blockIdx.x||threadIdx.x)return;int effective=tr?!lower:lower;for(int step=0;step<n;step++){int i=effective?step:n-1-step;float v=x[i];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*x[j];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*x[j];}x[i]=unit?v:v/a[i*n+i];}}"
+			+ "extern \"C\" __global__ void float_blas_trsm(int side,int lower,int tr,int unit,int rows,int cols,float alpha,const float*a,float*b){int vector=blockIdx.x*blockDim.x+threadIdx.x,count=side?rows:cols,n=side?cols:rows;if(vector>=count)return;if(!side){int effective=tr?!lower:lower;for(int i=0;i<n;i++)b[i*cols+vector]*=alpha;for(int step=0;step<n;step++){int i=effective?step:n-1-step;float v=b[i*cols+vector];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}b[i*cols+vector]=unit?v:v/a[i*n+i];}}else{int effective=tr?!lower:lower;for(int j=0;j<n;j++)b[vector*cols+j]*=alpha;for(int step=0;step<n;step++){int j=effective?n-1-step:step;float v=b[vector*cols+j];if(effective){for(int k=j+1;k<n;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}else{for(int k=0;k<j;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}b[vector*cols+j]=unit?v:v/a[j*n+j];}}}"
 			+ "extern \"C\" __global__ void float_csr_mv(int rows,float alpha,const float*v,const int*ci,const int*rs,const float*x,float beta,float*y){"
 			+ "int row=blockIdx.x*blockDim.x+threadIdx.x;if(row<rows){float s=0;for(int z=rs[row]-1;z<rs[row+1]-1;z++)s+=v[z]*x[ci[z]-1];y[row]=alpha*s+beta*y[row];}}"
 			+ "extern \"C\" __global__ void float_csr_mm(int rows,int outcols,float alpha,const float*v,const int*ci,const int*rs,const float*b,float beta,float*c){"
@@ -146,6 +158,7 @@ public final class CudaComputeBackend implements ComputeBackend {
 	private CUcontext context;
 	private CUmodule module;
 	private ComputeCapabilities capabilities;
+	private ComputeDeviceInfo deviceInfo;
 	private Throwable unavailableCause;
 
 	/** Detects device zero and makes this instance unavailable if CUDA or NVRTC cannot initialize. */
@@ -155,6 +168,7 @@ public final class CudaComputeBackend implements ComputeBackend {
 	@Override public String id() { return "cuda"; }
 	@Override public boolean available() { return unavailableCause == null && context != null; }
 	@Override public ComputeCapabilities capabilities() { ensureAvailable(); return capabilities; }
+	@Override public ComputeDeviceInfo deviceInfo() { ensureAvailable(); return deviceInfo; }
 	/** Reports why optional CUDA initialization failed.
 	 * @return the initialization failure, or {@code null} when available
 	 */
@@ -264,6 +278,47 @@ public final class CudaComputeBackend implements ComputeBackend {
 			double[] updated = copy(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
 		} finally { cuMemFree(a); cuMemFree(b); cuMemFree(c); }
 	}
+	@Override public synchronized void dsyrk(MatrixTranspose transpose, int dimension, int shared,
+			double alpha, double[] matrix, double beta, double[] result) {
+		checkSyrk(transpose, dimension, shared, matrix, result); ensureAvailable(); setCurrent();
+		CUdeviceptr a = allocate(matrix), c = allocate(result);
+		try {
+			launch("blas_syrk", (dimension + 15) / 16, (dimension + 15) / 16, 1,
+					16, 16, 1, Pointer.to(Pointer.to(new int[] {transpose == MatrixTranspose.TRANSPOSE ? 1 : 0}),
+					Pointer.to(new int[] {dimension}), Pointer.to(new int[] {shared}),
+					Pointer.to(new double[] {alpha}), Pointer.to(a), Pointer.to(new double[] {beta}), Pointer.to(c)));
+			double[] updated = copy(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { cuMemFree(a); cuMemFree(c); }
+	}
+	@Override public synchronized void dtrsv(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
+		checkTriangular(triangle, transpose, diagonal, dimension, matrix, vector); ensureAvailable(); setCurrent();
+		CUdeviceptr a = allocate(matrix), x = allocate(vector);
+		try {
+			launch("blas_trsv", 1, 1, 1, 1, 1, 1, Pointer.to(
+					Pointer.to(new int[] {triangle == MatrixTriangle.LOWER ? 1 : 0}),
+					Pointer.to(new int[] {transpose == MatrixTranspose.TRANSPOSE ? 1 : 0}),
+					Pointer.to(new int[] {diagonal == MatrixDiagonal.UNIT ? 1 : 0}),
+					Pointer.to(new int[] {dimension}), Pointer.to(a), Pointer.to(x)));
+			double[] updated = copy(x, vector.length); System.arraycopy(updated, 0, vector, 0, vector.length);
+		} finally { cuMemFree(a); cuMemFree(x); }
+	}
+	@Override public synchronized void dtrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			double alpha, double[] matrix, double[] right) {
+		checkTrsm(side, triangle, transpose, diagonal, rows, columns, matrix, right); ensureAvailable(); setCurrent();
+		CUdeviceptr a = allocate(matrix), b = allocate(right); int count = side == MatrixSide.LEFT ? columns : rows;
+		try {
+			launch("blas_trsm", grid(count), 1, 1, BLOCK, 1, 1, Pointer.to(
+					Pointer.to(new int[] {side == MatrixSide.RIGHT ? 1 : 0}),
+					Pointer.to(new int[] {triangle == MatrixTriangle.LOWER ? 1 : 0}),
+					Pointer.to(new int[] {transpose == MatrixTranspose.TRANSPOSE ? 1 : 0}),
+					Pointer.to(new int[] {diagonal == MatrixDiagonal.UNIT ? 1 : 0}),
+					Pointer.to(new int[] {rows}), Pointer.to(new int[] {columns}),
+					Pointer.to(new double[] {alpha}), Pointer.to(a), Pointer.to(b)));
+			double[] updated = copy(b, right.length); System.arraycopy(updated, 0, right, 0, right.length);
+		} finally { cuMemFree(a); cuMemFree(b); }
+	}
 	@Override public synchronized void dcsrmv(double alpha, CsrMatrix matrix, double[] x,
 			double beta, double[] y) {
 		checkCsrMv(matrix, x, y); ensureAvailable(); setCurrent();
@@ -351,6 +406,47 @@ public final class CudaComputeBackend implements ComputeBackend {
 					Pointer.to(new float[] {alpha}), Pointer.to(a), Pointer.to(b), Pointer.to(new float[] {beta}), Pointer.to(c)));
 			float[] updated = copyFloats(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
 		} finally { cuMemFree(a); cuMemFree(b); cuMemFree(c); }
+	}
+	@Override public synchronized void ssyrk(MatrixTranspose transpose, int dimension, int shared,
+			float alpha, float[] matrix, float beta, float[] result) {
+		checkSyrk(transpose, dimension, shared, matrix, result); ensureAvailable(); setCurrent();
+		CUdeviceptr a = allocate(matrix), c = allocate(result);
+		try {
+			launch("float_blas_syrk", (dimension + 15) / 16, (dimension + 15) / 16, 1,
+					16, 16, 1, Pointer.to(Pointer.to(new int[] {transpose == MatrixTranspose.TRANSPOSE ? 1 : 0}),
+					Pointer.to(new int[] {dimension}), Pointer.to(new int[] {shared}),
+					Pointer.to(new float[] {alpha}), Pointer.to(a), Pointer.to(new float[] {beta}), Pointer.to(c)));
+			float[] updated = copyFloats(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { cuMemFree(a); cuMemFree(c); }
+	}
+	@Override public synchronized void strsv(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
+		checkTriangular(triangle, transpose, diagonal, dimension, matrix, vector); ensureAvailable(); setCurrent();
+		CUdeviceptr a = allocate(matrix), x = allocate(vector);
+		try {
+			launch("float_blas_trsv", 1, 1, 1, 1, 1, 1, Pointer.to(
+					Pointer.to(new int[] {triangle == MatrixTriangle.LOWER ? 1 : 0}),
+					Pointer.to(new int[] {transpose == MatrixTranspose.TRANSPOSE ? 1 : 0}),
+					Pointer.to(new int[] {diagonal == MatrixDiagonal.UNIT ? 1 : 0}),
+					Pointer.to(new int[] {dimension}), Pointer.to(a), Pointer.to(x)));
+			float[] updated = copyFloats(x, vector.length); System.arraycopy(updated, 0, vector, 0, vector.length);
+		} finally { cuMemFree(a); cuMemFree(x); }
+	}
+	@Override public synchronized void strsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			float alpha, float[] matrix, float[] right) {
+		checkTrsm(side, triangle, transpose, diagonal, rows, columns, matrix, right); ensureAvailable(); setCurrent();
+		CUdeviceptr a = allocate(matrix), b = allocate(right); int count = side == MatrixSide.LEFT ? columns : rows;
+		try {
+			launch("float_blas_trsm", grid(count), 1, 1, BLOCK, 1, 1, Pointer.to(
+					Pointer.to(new int[] {side == MatrixSide.RIGHT ? 1 : 0}),
+					Pointer.to(new int[] {triangle == MatrixTriangle.LOWER ? 1 : 0}),
+					Pointer.to(new int[] {transpose == MatrixTranspose.TRANSPOSE ? 1 : 0}),
+					Pointer.to(new int[] {diagonal == MatrixDiagonal.UNIT ? 1 : 0}),
+					Pointer.to(new int[] {rows}), Pointer.to(new int[] {columns}),
+					Pointer.to(new float[] {alpha}), Pointer.to(a), Pointer.to(b)));
+			float[] updated = copyFloats(b, right.length); System.arraycopy(updated, 0, right, 0, right.length);
+		} finally { cuMemFree(a); cuMemFree(b); }
 	}
 	@Override public synchronized void scsrmv(float alpha, FloatCsrMatrix matrix, float[] x,
 			float beta, float[] y) {
@@ -525,8 +621,18 @@ public final class CudaComputeBackend implements ComputeBackend {
 		cuDeviceGetAttribute(minor, CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
 		capabilities = new ComputeCapabilities("CUDA", name + " (sm_" + major[0] + minor[0] + ")",
 				major[0] >= 2, true, memory[0], true, true, true);
+		int[] driver = new int[1]; cuDriverGetVersion(driver);
+		String driverVersion = version(driver[0]); Package pkg = getClass().getPackage();
+		String backendVersion = pkg == null || pkg.getImplementationVersion() == null
+				? "development" : pkg.getImplementationVersion();
+		deviceInfo = new ComputeDeviceInfo(id(), backendVersion, ComputeApi.CUDA,
+				"CUDA " + driverVersion, driverVersion, "NVIDIA", name,
+				"sm_" + major[0] + minor[0], "0", memory[0]);
 		String ptx = compile(SOURCE, "--std=c++11", "--gpu-architecture=compute_" + major[0] + minor[0]);
 		module = new CUmodule(); cuModuleLoadData(module, ptx);
+	}
+	private static String version(int encoded) {
+		return encoded / 1000 + "." + (encoded % 1000) / 10;
 	}
 	private static String compile(String source, String... options) {
 		nvrtcProgram program = new nvrtcProgram(); nvrtcCreateProgram(program, source, "jdistlib.cu", 0, null, null);
@@ -617,6 +723,50 @@ public final class CudaComputeBackend implements ComputeBackend {
 		if (ta == null || tb == null || m < 1 || n < 1 || k < 1 || a == null || b == null || c == null
 				|| a.length != m * k || b.length != k * n || c.length != m * n)
 			throw new IllegalArgumentException("GEMM dimensions do not conform");
+	}
+	private static void checkSyrk(MatrixTranspose transpose, int dimension, int shared,
+			double[] matrix, double[] result) {
+		if (transpose == null || dimension < 1 || shared < 1 || matrix == null
+				|| matrix.length != dimension * shared || result == null
+				|| result.length != dimension * dimension)
+			throw new IllegalArgumentException("SYRK dimensions do not conform");
+	}
+	private static void checkSyrk(MatrixTranspose transpose, int dimension, int shared,
+			float[] matrix, float[] result) {
+		if (transpose == null || dimension < 1 || shared < 1 || matrix == null
+				|| matrix.length != dimension * shared || result == null
+				|| result.length != dimension * dimension)
+			throw new IllegalArgumentException("SYRK dimensions do not conform");
+	}
+	private static void checkTriangular(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
+		if (triangle == null || transpose == null || diagonal == null || dimension < 1
+				|| matrix == null || matrix.length != dimension * dimension || vector == null
+				|| vector.length != dimension) throw new IllegalArgumentException("TRSV dimensions do not conform");
+	}
+	private static void checkTriangular(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
+		if (triangle == null || transpose == null || diagonal == null || dimension < 1
+				|| matrix == null || matrix.length != dimension * dimension || vector == null
+				|| vector.length != dimension) throw new IllegalArgumentException("TRSV dimensions do not conform");
+	}
+	private static void checkTrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			double[] matrix, double[] right) {
+		int order = side == MatrixSide.LEFT ? rows : columns;
+		if (side == null || triangle == null || transpose == null || diagonal == null
+				|| rows < 1 || columns < 1 || matrix == null || matrix.length != order * order
+				|| right == null || right.length != rows * columns)
+			throw new IllegalArgumentException("TRSM dimensions do not conform");
+	}
+	private static void checkTrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			float[] matrix, float[] right) {
+		int order = side == MatrixSide.LEFT ? rows : columns;
+		if (side == null || triangle == null || transpose == null || diagonal == null
+				|| rows < 1 || columns < 1 || matrix == null || matrix.length != order * order
+				|| right == null || right.length != rows * columns)
+			throw new IllegalArgumentException("TRSM dimensions do not conform");
 	}
 	private static void checkCsrMv(CsrMatrix matrix, double[] x, double[] y) {
 		if (matrix == null || x == null || x.length != matrix.columns() || y == null || y.length != matrix.rows())

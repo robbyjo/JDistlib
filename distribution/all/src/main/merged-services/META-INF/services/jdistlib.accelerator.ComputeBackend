@@ -1,3 +1,5 @@
 jdistlib.accelerator.cuda.CudaComputeBackend
 jdistlib.accelerator.opencl.OpenClComputeBackend
 jdistlib.accelerator.vulkan.VulkanComputeBackend
+jdistlib.accelerator.nativecpu.OneMklComputeBackend
+jdistlib.accelerator.nativecpu.OpenBlasComputeBackend

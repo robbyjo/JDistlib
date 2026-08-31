@@ -29,6 +29,12 @@ public interface SinglePrecisionLinearAlgebraBackend {
 		CpuSinglePrecisionLinearAlgebra.sgemm(leftTranspose, rightTranspose, rows,
 				columns, shared, alpha, left, right, beta, result);
 	}
+	default void ssyrk(MatrixTranspose transpose,int dimension,int shared,float alpha,
+			float[]matrix,float beta,float[]result){CpuSinglePrecisionLinearAlgebra.ssyrk(transpose,dimension,shared,alpha,matrix,beta,result);}
+	default void strsv(MatrixTriangle triangle,MatrixTranspose transpose,MatrixDiagonal diagonal,
+			int dimension,float[]matrix,float[]vector){CpuSinglePrecisionLinearAlgebra.strsv(triangle,transpose,diagonal,dimension,matrix,vector);}
+	default void strsm(MatrixSide side,MatrixTriangle triangle,MatrixTranspose transpose,
+			MatrixDiagonal diagonal,int rows,int columns,float alpha,float[]matrix,float[]right){CpuSinglePrecisionLinearAlgebra.strsm(side,triangle,transpose,diagonal,rows,columns,alpha,matrix,right);}
 	default void scsrmv(float alpha, FloatCsrMatrix matrix, float[] x, float beta,
 			float[] y) {
 		CpuSinglePrecisionLinearAlgebra.scsrmv(alpha, matrix, x, beta, y);

@@ -39,6 +39,21 @@ public interface LinearAlgebraBackend {
 		CpuLinearAlgebra.dgemm(leftTranspose, rightTranspose, rows, columns, shared,
 				alpha, left, right, beta, result);
 	}
+	/** Performs full row-major {@code C := alpha*op(A)*op(A)' + beta*C}. */
+	default void dsyrk(MatrixTranspose transpose,int dimension,int shared,double alpha,
+			double[]matrix,double beta,double[]result){
+		CpuLinearAlgebra.dsyrk(transpose,dimension,shared,alpha,matrix,beta,result);
+	}
+	/** Solves a triangular system in place. */
+	default void dtrsv(MatrixTriangle triangle,MatrixTranspose transpose,MatrixDiagonal diagonal,
+			int dimension,double[]matrix,double[]vector){
+		CpuLinearAlgebra.dtrsv(triangle,transpose,diagonal,dimension,matrix,vector);
+	}
+	/** Solves a triangular matrix system with row-major multiple right sides in place. */
+	default void dtrsm(MatrixSide side,MatrixTriangle triangle,MatrixTranspose transpose,
+			MatrixDiagonal diagonal,int rows,int columns,double alpha,double[]matrix,double[]right){
+		CpuLinearAlgebra.dtrsm(side,triangle,transpose,diagonal,rows,columns,alpha,matrix,right);
+	}
 
 	/** Performs {@code y := alpha*A*x + beta*y} for a CSR matrix. */
 	default void dcsrmv(double alpha, CsrMatrix matrix, double[] x, double beta,

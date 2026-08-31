@@ -2,6 +2,8 @@
 package jdistlib.accelerator;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -44,6 +46,26 @@ public class AutoComputeBackendTest {
 			double[] large=new double[10000];for(int i=0;i<100;i++)large[i*100+i]=2;
 			automatic.dpotrf(large,100);assertEquals(1,cpu.choleskyCalls);assertEquals(1,gpu.choleskyCalls);
 		}finally{automatic.close();}
+	}
+	@Test public void identificationAndPlansExposeConcreteExecution() {
+		CpuComputeBackend cpu = new CpuComputeBackend();
+		assertEquals(ComputeApi.JAVA_CPU, cpu.deviceInfo().api());
+		assertFalse(cpu.deviceInfo().apiVersion().isEmpty());
+		assertEquals(ExecutionKind.JAVA_REFERENCE,
+				cpu.plan(LinearAlgebraOperation.SYRK, NumericPrecision.FP64, 10, 10, 10).kind());
+		AutoComputeBackend automatic = new AutoComputeBackend(new CountingBackend("cpu"),
+				new CountingBackend("cuda"));
+		try {
+			ExecutionPlan small = automatic.plan(LinearAlgebraOperation.GEMM,
+					NumericPrecision.FP64, 2, 2, 2);
+			ExecutionPlan large = automatic.plan(LinearAlgebraOperation.GEMM,
+					NumericPrecision.FP64, 100, 100, 100);
+			assertEquals("cpu", small.backendId());
+			assertEquals("cuda", large.backendId());
+			assertEquals(ExecutionKind.GPU_PARALLEL, large.kind());
+			assertTrue(large.accelerated());
+			assertEquals(ComputeApi.AUTOMATIC, automatic.deviceInfo().api());
+		} finally { automatic.close(); }
 	}
 
 	private static final class CountingBackend implements ComputeBackend {

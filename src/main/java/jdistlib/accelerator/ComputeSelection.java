@@ -18,6 +18,11 @@ public final class ComputeSelection implements AutoCloseable {
 	/** Returns the concrete provider used for accelerated work, or {@code cpu}. */
 	public String selectedBackend() { return selectedBackend; }
 	public String device() { return backend.capabilities().device(); }
+	/** Returns detailed runtime, driver, API, and device identification. */
+	public ComputeDeviceInfo deviceInfo() { return backend.deviceInfo(); }
+	/** Predicts the concrete execution route for an operation without running it. */
+	public ExecutionPlan plan(LinearAlgebraOperation operation, NumericPrecision precision,
+			int... dimensions) { return backend.plan(operation, precision, dimensions); }
 	public boolean accelerated() { return !"cpu".equals(selectedBackend); }
 	public boolean automaticRouting() { return automaticRouting; }
 	public String description() {

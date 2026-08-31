@@ -9,6 +9,10 @@ public enum Compute {
 	AUTO,
 	/** Always use the deterministic CPU reference implementation. */
 	CPU,
+	/** Require the optional Intel oneMKL native CPU provider. */
+	ONEMKL,
+	/** Require the optional OpenBLAS native CPU provider. */
+	OPENBLAS,
 	/** Require any available hardware accelerator. */
 	GPU,
 	/** Require the optional CUDA provider. */
@@ -24,7 +28,7 @@ public enum Compute {
 		try { return valueOf(value.trim().toUpperCase(Locale.ROOT)); }
 		catch (IllegalArgumentException exception) {
 			throw new IllegalArgumentException("unknown compute backend: " + value
-					+ " (expected auto, cpu, gpu, cuda, opencl, or vulkan)", exception);
+					+ " (expected auto, cpu, onemkl, openblas, gpu, cuda, opencl, or vulkan)", exception);
 		}
 	}
 }

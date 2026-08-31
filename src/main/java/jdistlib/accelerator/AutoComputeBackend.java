@@ -27,6 +27,26 @@ final class AutoComputeBackend implements ComputeBackend {
 				value.doublePrecision(), value.runtimeCompilation(), value.globalMemoryBytes(),
 				value.denseLinearAlgebra(), value.sparseLinearAlgebra(), value.nativeFactorizations());
 	}
+	@Override public ComputeDeviceInfo deviceInfo() {
+		ComputeDeviceInfo value = accelerator.deviceInfo();
+		return new ComputeDeviceInfo(id(), value.backendVersion(), ComputeApi.AUTOMATIC,
+				value.api().name().toLowerCase(java.util.Locale.ROOT) + " " + value.apiVersion(),
+				value.driverVersion(), value.vendor(), value.device(), value.architecture(),
+				value.deviceId(), value.globalMemoryBytes());
+	}
+	@Override public ExecutionPlan plan(LinearAlgebraOperation operation,
+			NumericPrecision precision, int... dimensions) {
+		if (operation == null || precision == null || dimensions == null)
+			throw new IllegalArgumentException("operation, precision, and dimensions are required");
+		for (int dimension : dimensions) if (dimension < 0)
+			throw new IllegalArgumentException("operation dimensions must be nonnegative");
+		ComputeBackend selected = backendFor(operation, dimensions);
+		ExecutionPlan concrete = selected.plan(operation, precision, dimensions);
+		String reason = selected == accelerator ? "work estimate reached AUTO threshold"
+				: "work estimate below AUTO threshold";
+		return new ExecutionPlan(operation, precision, concrete.kind(), concrete.backendId(),
+				concrete.device(), reason);
+	}
 	@Override public double[] unary(UnaryOperation operation, double[] input) {
 		return route(input == null ? 0 : input.length).unary(operation, input);
 	}
@@ -59,6 +79,23 @@ final class AutoComputeBackend implements ComputeBackend {
 		long work = saturatingProduct(rows, columns, shared);
 		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu).dgemm(leftTranspose,
 				rightTranspose, rows, columns, shared, alpha, left, right, beta, result);
+	}
+	@Override public void dsyrk(MatrixTranspose transpose, int dimension, int shared,
+			double alpha, double[] matrix, double beta, double[] result) {
+		backendFor(LinearAlgebraOperation.SYRK, dimension, dimension, shared)
+				.dsyrk(transpose, dimension, shared, alpha, matrix, beta, result);
+	}
+	@Override public void dtrsv(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
+		backendFor(LinearAlgebraOperation.TRSV, dimension)
+				.dtrsv(triangle, transpose, diagonal, dimension, matrix, vector);
+	}
+	@Override public void dtrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			double alpha, double[] matrix, double[] right) {
+		backendFor(LinearAlgebraOperation.TRSM, rows, columns,
+				side == MatrixSide.LEFT ? rows : columns).dtrsm(side, triangle, transpose,
+						diagonal, rows, columns, alpha, matrix, right);
 	}
 	@Override public void dcsrmv(double alpha, CsrMatrix matrix, double[] x,
 			double beta, double[] y) {
@@ -108,6 +145,23 @@ final class AutoComputeBackend implements ComputeBackend {
 		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu).sgemm(leftTranspose,
 				rightTranspose, rows, columns, shared, alpha, left, right, beta, result);
 	}
+	@Override public void ssyrk(MatrixTranspose transpose, int dimension, int shared,
+			float alpha, float[] matrix, float beta, float[] result) {
+		backendFor(LinearAlgebraOperation.SYRK, dimension, dimension, shared)
+				.ssyrk(transpose, dimension, shared, alpha, matrix, beta, result);
+	}
+	@Override public void strsv(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
+		backendFor(LinearAlgebraOperation.TRSV, dimension)
+				.strsv(triangle, transpose, diagonal, dimension, matrix, vector);
+	}
+	@Override public void strsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			float alpha, float[] matrix, float[] right) {
+		backendFor(LinearAlgebraOperation.TRSM, rows, columns,
+				side == MatrixSide.LEFT ? rows : columns).strsm(side, triangle, transpose,
+						diagonal, rows, columns, alpha, matrix, right);
+	}
 	@Override public void scsrmv(float alpha, FloatCsrMatrix matrix, float[] x,
 			float beta, float[] y) {
 		long work = matrix == null ? 0L : matrix.nonzeroCount();
@@ -131,6 +185,14 @@ final class AutoComputeBackend implements ComputeBackend {
 	}
 	@Override public FloatSingularValueDecomposition sgesvd(float[] matrix, int rows, int columns) {
 		return decompositionBackend(rows, columns, Math.min(rows, columns)).sgesvd(matrix, rows, columns);
+	}
+	@Override public PreparedCholesky prepareDpotrf(double[] matrix, int dimension) {
+		return decompositionBackend(dimension, dimension, dimension)
+				.prepareDpotrf(matrix, dimension);
+	}
+	@Override public PreparedFloatCholesky prepareSpotrf(float[] matrix, int dimension) {
+		return decompositionBackend(dimension, dimension, dimension)
+				.prepareSpotrf(matrix, dimension);
 	}
 	@Override public double[][] matrixMultiply(double[][] left, double[][] right) {
 		long work = 0L;
@@ -187,6 +249,24 @@ final class AutoComputeBackend implements ComputeBackend {
 	private ComputeBackend decompositionBackend(int rows, int columns, int iterations) {
 		return saturatingProduct(rows, columns, iterations) >= MATRIX_MULTIPLY_THRESHOLD
 				? accelerator : cpu;
+	}
+	private ComputeBackend backendFor(LinearAlgebraOperation operation, int... dimensions) {
+		long work;
+		switch (operation) {
+		case AXPY: case DOT: case NRM2:
+			work = dimensions.length == 0 ? 0L : dimensions[0];
+			return work >= VECTOR_THRESHOLD ? accelerator : cpu;
+		case GEMV: case TRSV: case CSR_MV:
+			work = dimensions.length > 1 ? saturatingProduct(dimensions[0], dimensions[1], 1)
+					: dimensions.length == 1 ? saturatingProduct(dimensions[0], dimensions[0], 1) : 0L;
+			return work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu;
+		default:
+			work = dimensions.length >= 3
+					? saturatingProduct(dimensions[0], dimensions[1], dimensions[2])
+					: dimensions.length == 2 ? saturatingProduct(dimensions[0], dimensions[1], 1)
+					: dimensions.length == 1 ? saturatingProduct(dimensions[0], dimensions[0], dimensions[0]) : 0L;
+			return work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu;
+		}
 	}
 	private static long logisticWork(double[][] design, double[][] states) {
 		return design == null || design.length == 0 || design[0] == null

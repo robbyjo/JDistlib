@@ -9,6 +9,16 @@ public final class CpuComputeBackend implements ComputeBackend {
 		return new ComputeCapabilities("CPU", System.getProperty("os.arch", "unknown"),
 				true, false, 0L, true, true, true);
 	}
+	@Override public ComputeDeviceInfo deviceInfo() {
+		Package pkg = getClass().getPackage();
+		String version = pkg == null || pkg.getImplementationVersion() == null
+				? "development" : pkg.getImplementationVersion();
+		return new ComputeDeviceInfo(id(), version, ComputeApi.JAVA_CPU,
+				System.getProperty("java.version", "unknown"), "n/a",
+				System.getProperty("java.vendor", "unknown"),
+				System.getProperty("os.name", "unknown"),
+				System.getProperty("os.arch", "unknown"), "host", 0L);
+	}
 	@Override public double[] unary(UnaryOperation operation, double[] input) {
 		if (operation == null || input == null) throw new IllegalArgumentException("operation and input required");
 		double[] result = new double[input.length];

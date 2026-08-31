@@ -12,6 +12,7 @@ configurations { bundledNatives }
 
 dependencies {
     implementation project(':')
+    implementation project(':jdistlib-nativecpu')
     implementation project(':jdistlib-cuda')
     implementation project(':jdistlib-opencl')
     implementation project(':jdistlib-vulkan')

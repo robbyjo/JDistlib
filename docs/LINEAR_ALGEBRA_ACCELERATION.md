@@ -1,8 +1,9 @@
 # Unified dense and sparse linear algebra
 
-JDistlib exposes parallel FP64 and FP32 linear-algebra contracts across its
-deterministic CPU reference and optional CUDA, OpenCL, and Vulkan providers. Select and own a
-backend through the existing compute policy:
+JDistlib exposes FP64 and FP32 linear-algebra contracts across its deterministic
+Java CPU reference, optional oneMKL/OpenBLAS native CPU providers, and optional
+CUDA, OpenCL, and Vulkan providers. Select and own a backend through the
+existing compute policy:
 
 ```java
 try (ComputeSelection selection = ComputeBackends.select(Compute.AUTO)) {
@@ -32,6 +33,9 @@ outputs:
 | `dnrm2` | `snrm2` | scaled Euclidean norm |
 | `dgemv` | `sgemv` | `y := alpha*op(A)*x + beta*y` |
 | `dgemm` | `sgemm` | `C := alpha*op(A)*op(B) + beta*C` |
+| `dsyrk` | `ssyrk` | symmetric rank-k update, returned as a full matrix |
+| `dtrsv` | `strsv` | in-place triangular vector solve |
+| `dtrsm` | `strsm` | in-place left/right triangular multi-RHS solve |
 | `dcsrmv` | `scsrmv` | CSR matrix times dense vector |
 | `dcsrmm` | `scsrmm` | CSR matrix times row-major dense matrix |
 | `dpotrf` | `spotrf` | lower Cholesky factorization |
@@ -39,7 +43,8 @@ outputs:
 | `dsyev` | `ssyev` | symmetric eigenvalues and eigenvectors |
 | `dgesvd` | `sgesvd` | thin singular-value decomposition |
 
-`MatrixTranspose` makes every transpose explicit. The older allocating
+`MatrixTranspose`, `MatrixTriangle`, `MatrixDiagonal`, and `MatrixSide` make
+transpose and triangular conventions explicit. The older allocating
 `axpy`, `dot`, and `matrixMultiply(double[][], double[][])` methods remain
 available and compatible.
 
@@ -74,6 +79,11 @@ double[] solution = factor.solve(rightHandSide);
 double logDeterminant = factor.logDeterminant();
 ```
 
+For repeated REML/GLS solves, `prepareDpotrf` and `prepareSpotrf` return owned
+`PreparedCholesky` handles with in-place multi-RHS solves and a cached log
+determinant. This avoids refactorizing the same covariance or mixed-model
+coefficient matrix at every likelihood evaluation.
+
 `dsyev`/`ssyev` accept a fully stored real symmetric matrix and return ascending
 eigenvalues plus a row-major orthogonal eigenvector matrix whose columns are the
 corresponding eigenvectors. `dgesvd`/`sgesvd` work for tall, square, and wide
@@ -81,13 +91,54 @@ matrices and return the thin decomposition `A = U*S*Vt`, with singular values
 in descending order. Thin `U` has shape `rows` by `min(rows,columns)` and thin
 `Vt` has shape `min(rows,columns)` by `columns`.
 
-The deterministic Java CPU algorithms are the reference. CUDA, OpenCL, and
+The deterministic Java CPU algorithms are the reference. oneMKL uses LAPACKE
+when the installed runtime exports it; OpenBLAS does likewise and otherwise
+uses the Java decomposition fallback. CUDA, OpenCL, and
 Vulkan execute all four decomposition families natively for FP64 and FP32.
 Their initial device implementation uses serial device kernels optimized for a
 portable correctness baseline and avoiding host-side factorization; large-scale
 tiled or vendor-library implementations can replace those kernels behind the
 same API. `Compute.AUTO` uses a cubic work estimate to keep small decompositions
 on CPU and route sufficiently large ones to the selected accelerator.
+
+## Native CPU providers
+
+Add `jdistlib-nativecpu` (or use `jdistlib-all`) and select an installed runtime
+strictly:
+
+```java
+try (ComputeSelection selection = ComputeBackends.select(Compute.ONEMKL)) {
+    ComputeBackend blas = selection.backend();
+    // CBLAS/LAPACKE calls use the system oneMKL runtime.
+}
+```
+
+Use `Compute.OPENBLAS` for OpenBLAS. The module uses JNA but deliberately does
+not redistribute either native library. It searches ordinary loader paths;
+oneMKL also searches `ONEAPI_ROOT`. Explicit paths can be supplied with
+`-Djdistlib.onemkl.library=...` or `-Djdistlib.openblas.library=...`. Native CPU
+choices are strict and fail if the requested runtime is absent. `Compute.CPU`
+always remains the portable Java reference.
+
+## Execution identification
+
+`ComputeSelection.deviceInfo()` reports provider version, API/runtime version,
+driver version, vendor, device, architecture, device identifier, and visible
+memory. `selection.plan(operation, precision, dimensions...)` reports whether
+an operation is expected to run as Java reference code, native CPU code, a
+parallel GPU kernel, or a serial GPU factorization/triangular kernel. Under
+`Compute.AUTO`, the plan includes the threshold decision and concrete backend.
+
+```java
+System.out.println(selection.deviceInfo().description());
+System.out.println(selection.plan(LinearAlgebraOperation.SYRK,
+    NumericPrecision.FP64, markers, markers, samples).description());
+```
+
+For linear models and REML, `SYRK`, `GEMM`, `GEMV`, `TRSM`, prepared Cholesky,
+and symmetric eigendecomposition cover the principal cross-product, covariance
+solve, log-determinant, and spectral steps. Pedigree relationship matrices can
+use the CSR operations, but sparse factorization is not yet part of this API.
 
 ## Provider and numerical contract
 
@@ -106,11 +157,8 @@ operations normally favor CPU. Prepared or resident matrix APIs remain the
 appropriate future extension for repeated large operations such as mixed-model
 solves and fine-mapping residual updates.
 
-The contract permits a future oneMKL or OpenBLAS `ComputeBackend` provider
-without changing callers. Legacy convenience operations and the statistical
-kernel have portable defaults, so such a provider can focus on the BLAS and
-factorization methods. Service-loaded providers can be selected by their exact
-identifier through `ComputeBackends.byId` or the
-`jdistlib.compute.backend` system property. No native CPU BLAS is bundled yet;
-adding one should remain optional, preserve the Java CPU reference, and publish
-its threading and library-loading behavior explicitly.
+Service-loaded providers can also be selected by exact identifier through
+`ComputeBackends.byId` or the `jdistlib.compute.backend` system property.
+Thread counts and affinity remain settings of the installed oneMKL/OpenBLAS
+runtime so applications can coordinate BLAS threads with model-level
+parallelism.

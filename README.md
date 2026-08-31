@@ -106,7 +106,8 @@ laws, and Lévy-process increment composition. See the compiled
 
 The [latest JDistlib release](https://github.com/robbyjo/JDistlib/releases/latest)
 provides one recommended, self-contained `jdistlib-all` JAR with SHA-256
-checksums. It contains core JDistlib, CUDA, OpenCL, Vulkan, and the required
+checksums. It contains core JDistlib, the optional oneMKL/OpenBLAS adapter,
+CUDA, OpenCL, Vulkan, and the required
 Java/JNI libraries for Windows, Linux, and macOS x86-64. It produces Java
 8-compatible bytecode. Download the
 [all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar).
@@ -115,7 +116,7 @@ GPU vendor runtimes remain system components: CUDA requires a compatible
 NVIDIA driver and NVRTC, OpenCL requires an installed OpenCL implementation,
 and Vulkan requires a Vulkan driver. With none present, the same JAR uses the
 CPU backend. Gradle/Maven users who prefer small dependency-managed artifacts
-can use the core, `jdistlib-cuda`, `jdistlib-opencl`, or `jdistlib-vulkan`
+can use the core, `jdistlib-nativecpu`, `jdistlib-cuda`, `jdistlib-opencl`, or `jdistlib-vulkan`
 modules instead.
 
 ## Building
@@ -372,6 +373,9 @@ with standard `d*` and `s*` BLAS/LAPACK names, CPU/GPU CSR matrix-vector and
 matrix-matrix products, and FP64/FP32 Cholesky, symmetric-eigen, pivoted-QR,
 and thin-SVD decompositions on CPU, CUDA, OpenCL, and Vulkan. See the
 [linear-algebra contract](docs/LINEAR_ALGEBRA_ACCELERATION.md).
+That contract also includes symmetric rank-k updates, triangular vector and
+multi-RHS solves, prepared Cholesky handles, execution/device identification,
+and strict optional `Compute.ONEMKL` and `Compute.OPENBLAS` CPU choices.
 CUDA and OpenCL additionally implement a resident prepared transpose product
 for repeated high-dimensional score calculations; Vulkan currently uses its
 CPU fallback for that primitive.

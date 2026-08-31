@@ -31,8 +31,9 @@ public final class AcceleratedLogisticRegression implements BatchedDifferentiabl
 		Compute policy = options.computeBackend();
 		if (options.nutsBackend() == ComputeNuts.OFF) policy = Compute.CPU;
 		else if (options.nutsBackend() == ComputeNuts.FORCE) {
-			if (policy == Compute.CPU) throw new IllegalArgumentException(
-					"forced NUTS acceleration conflicts with the CPU compute policy");
+			if (policy == Compute.CPU || policy == Compute.ONEMKL || policy == Compute.OPENBLAS)
+				throw new IllegalArgumentException(
+						"forced NUTS acceleration requires a GPU compute policy");
 			if (policy == Compute.AUTO) policy = Compute.GPU;
 		}
 		ComputeSelection selection = ComputeBackends.select(policy);

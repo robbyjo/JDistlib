@@ -1,5 +1,6 @@
 rootProject.name = 'JDistlib'
-include 'jdistlib-cuda', 'jdistlib-opencl', 'jdistlib-vulkan', 'jdistlib-all'
+include 'jdistlib-nativecpu', 'jdistlib-cuda', 'jdistlib-opencl', 'jdistlib-vulkan', 'jdistlib-all'
+project(':jdistlib-nativecpu').projectDir = file('accelerators/nativecpu')
 project(':jdistlib-cuda').projectDir = file('accelerators/cuda')
 project(':jdistlib-opencl').projectDir = file('accelerators/opencl')
 project(':jdistlib-vulkan').projectDir = file('accelerators/vulkan')

@@ -171,6 +171,7 @@ def validateModelScripts = tasks.register('validateModelScripts', JavaExec) {
 tasks.named('check') {
     dependsOn compileDocumentationExamples, validateModelScripts, validateReleaseDocumentation,
         validateDistributionCatalog,
+        ':jdistlib-nativecpu:check',
         ':jdistlib-cuda:check', ':jdistlib-opencl:check', ':jdistlib-vulkan:check',
         ':jdistlib-all:check', 'validateModularPoms'
 }
@@ -179,12 +180,14 @@ tasks.register('validateModularPoms') {
     group = 'verification'
     description = 'Checks portable Maven coordinates and rejects maintainer-platform native classifiers.'
     dependsOn 'generatePomFileForMavenJavaPublication',
+        ':jdistlib-nativecpu:generatePomFileForMavenJavaPublication',
         ':jdistlib-cuda:generatePomFileForMavenJavaPublication',
         ':jdistlib-opencl:generatePomFileForMavenJavaPublication',
         ':jdistlib-vulkan:generatePomFileForMavenJavaPublication'
     doLast {
         def expected = [
             'build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib</artifactId>',
+            'accelerators/nativecpu/build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib-nativecpu</artifactId>',
             'accelerators/cuda/build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib-cuda</artifactId>',
             'accelerators/opencl/build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib-opencl</artifactId>',
             'accelerators/vulkan/build/publications/mavenJava/pom-default.xml': '<artifactId>jdistlib-vulkan</artifactId>'

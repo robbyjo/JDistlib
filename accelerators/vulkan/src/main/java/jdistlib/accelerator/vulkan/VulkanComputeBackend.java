@@ -54,6 +54,8 @@ import org.lwjgl.vulkan.VkWriteDescriptorSet;
 
 import jdistlib.accelerator.ComputeBackend;
 import jdistlib.accelerator.ComputeCapabilities;
+import jdistlib.accelerator.ComputeApi;
+import jdistlib.accelerator.ComputeDeviceInfo;
 import jdistlib.accelerator.CholeskyFactor;
 import jdistlib.accelerator.FloatCholeskyFactor;
 import jdistlib.accelerator.FloatPivotedQrFactor;
@@ -61,6 +63,9 @@ import jdistlib.accelerator.FloatSingularValueDecomposition;
 import jdistlib.accelerator.FloatSymmetricEigenDecomposition;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.MatrixTranspose;
+import jdistlib.accelerator.MatrixTriangle;
+import jdistlib.accelerator.MatrixDiagonal;
+import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
 import jdistlib.accelerator.PivotedQrFactor;
 import jdistlib.accelerator.SingularValueDecomposition;
@@ -233,6 +238,12 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(push_constant) uniform P{float alpha;float beta;int rows;int cols;}p;\n"
 			+ "void main(){uint z=gl_GlobalInvocationID.x;if(z>=p.rows*p.cols)return;int row=int(z)/p.cols,col=int(z)-row*p.cols;float s=0.0;"
 			+ "for(int q=rs[row]-1;q<rs[row+1]-1;q++)s+=v[q]*b[(ci[q]-1)*p.cols+col];c[z]=p.alpha*s+p.beta*c[z];}\n";
+	private static final String BLAS_SYRK_SHADER = syrkShader(HEADER, "double");
+	private static final String BLAS_TRSV_SHADER = trsvShader(HEADER, "double");
+	private static final String BLAS_TRSM_SHADER = trsmShader(HEADER, "double");
+	private static final String FLOAT_SYRK_SHADER = syrkShader(FLOAT_HEADER, "float");
+	private static final String FLOAT_TRSV_SHADER = trsvShader(FLOAT_HEADER, "float");
+	private static final String FLOAT_TRSM_SHADER = trsmShader(FLOAT_HEADER, "float");
 	private static final String DPOTRF_SHADER = choleskyShader(HEADER,"double");
 	private static final String SPOTRF_SHADER = choleskyShader(FLOAT_HEADER,"float");
 	private static final String DGEQP3_SHADER = qrShader(HEADER,"double");
@@ -255,6 +266,35 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "for(int d=0;d<p.dims;d++){double state=q[chain*p.dims+d];lp-=0.5*p.prior*state*state;gradient[chain*p.dims+d]=-p.prior*state;}"
 			+ "for(int row=0;row<p.rows;row++){double eta=0.0;for(int d=0;d<p.dims;d++)eta+=x[row*p.dims+d]*q[chain*p.dims+d];"
 			+ "lp+=y[row]*eta-l1e(eta);double residual=y[row]-logistic(eta);for(int d=0;d<p.dims;d++)gradient[chain*p.dims+d]+=residual*x[row*p.dims+d];}value[chain]=lp;}\n";
+
+	private static String syrkShader(String header, String type) { return header
+			+ "layout(local_size_x=16,local_size_y=16) in;\n"
+			+ "layout(std430,binding=0) readonly buffer A{" + type + " a[];};\n"
+			+ "layout(std430,binding=1) buffer C{" + type + " c[];};\n"
+			+ "layout(push_constant) uniform P{" + type + " alpha;" + type + " beta;int tr;int n;int k;}p;\n"
+			+ "void main(){uint row=gl_GlobalInvocationID.y,col=gl_GlobalInvocationID.x;if(row>=p.n||col>=p.n)return;"
+			+ type + " s=0;for(int q=0;q<p.k;q++)s+=(p.tr!=0?a[q*p.n+row]:a[row*p.k+q])*(p.tr!=0?a[q*p.n+col]:a[col*p.k+q]);"
+			+ "c[row*p.n+col]=p.alpha*s+p.beta*c[row*p.n+col];}\n"; }
+	private static String trsvShader(String header, String type) { return header
+			+ "layout(local_size_x=1) in;\nlayout(std430,binding=0) readonly buffer A{" + type + " a[];};\n"
+			+ "layout(std430,binding=1) buffer X{" + type + " x[];};\n"
+			+ "layout(push_constant) uniform P{int lower;int tr;int unit;int n;}p;\n"
+			+ "void main(){bool effective=p.tr!=0?p.lower==0:p.lower!=0;for(int step=0;step<p.n;step++){int i=effective?step:p.n-1-step;"
+			+ type + " v=x[i];if(effective){for(int j=0;j<i;j++)v-=(p.tr!=0?a[j*p.n+i]:a[i*p.n+j])*x[j];}"
+			+ "else{for(int j=i+1;j<p.n;j++)v-=(p.tr!=0?a[j*p.n+i]:a[i*p.n+j])*x[j];}x[i]=p.unit!=0?v:v/a[i*p.n+i];}}\n"; }
+	private static String trsmShader(String header, String type) { return header
+			+ "layout(local_size_x=256) in;\nlayout(std430,binding=0) readonly buffer A{" + type + " a[];};\n"
+			+ "layout(std430,binding=1) buffer B{" + type + " b[];};\n"
+			+ "layout(push_constant) uniform P{" + type + " alpha;int side;int lower;int tr;int unit;int rows;int cols;}p;\n"
+			+ "void main(){int vector=int(gl_GlobalInvocationID.x),count=p.side!=0?p.rows:p.cols,n=p.side!=0?p.cols:p.rows;if(vector>=count)return;"
+			+ "if(p.side==0){bool effective=p.tr!=0?p.lower==0:p.lower!=0;for(int i=0;i<n;i++)b[i*p.cols+vector]*=p.alpha;"
+			+ "for(int step=0;step<n;step++){int i=effective?step:n-1-step;" + type + " v=b[i*p.cols+vector];"
+			+ "if(effective){for(int j=0;j<i;j++)v-=(p.tr!=0?a[j*n+i]:a[i*n+j])*b[j*p.cols+vector];}"
+			+ "else{for(int j=i+1;j<n;j++)v-=(p.tr!=0?a[j*n+i]:a[i*n+j])*b[j*p.cols+vector];}b[i*p.cols+vector]=p.unit!=0?v:v/a[i*n+i];}}"
+			+ "else{bool effective=p.tr!=0?p.lower==0:p.lower!=0;for(int j=0;j<n;j++)b[vector*p.cols+j]*=p.alpha;"
+			+ "for(int step=0;step<n;step++){int j=effective?n-1-step:step;" + type + " v=b[vector*p.cols+j];"
+			+ "if(effective){for(int k=j+1;k<n;k++)v-=b[vector*p.cols+k]*(p.tr!=0?a[j*n+k]:a[k*n+j]);}"
+			+ "else{for(int k=0;k<j;k++)v-=b[vector*p.cols+k]*(p.tr!=0?a[j*n+k]:a[k*n+j]);}b[vector*p.cols+j]=p.unit!=0?v:v/a[j*n+j];}}}\n"; }
 
 	private static String choleskyShader(String header,String type){return header
 			+"layout(local_size_x=1) in;\nlayout(std430,binding=0) readonly buffer A{"+type+" a[];};\n"
@@ -283,12 +323,15 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	private int queueFamily = -1;
 	private long commandPool;
 	private Kernel unaryKernel, axpyKernel, dotKernel, gemmKernel, logisticKernel;
-	private Kernel blasNrm2Kernel, blasGemvKernel, blasGemmKernel, csrMvKernel, csrMmKernel;
+	private Kernel blasNrm2Kernel, blasGemvKernel, blasGemmKernel, blasSyrkKernel;
+	private Kernel blasTrsvKernel, blasTrsmKernel, csrMvKernel, csrMmKernel;
 	private Kernel floatAxpyKernel, floatDotKernel, floatNrm2Kernel, floatGemvKernel;
-	private Kernel floatGemmKernel, floatCsrMvKernel, floatCsrMmKernel;
+	private Kernel floatGemmKernel, floatSyrkKernel, floatTrsvKernel, floatTrsmKernel;
+	private Kernel floatCsrMvKernel, floatCsrMmKernel;
 	private Kernel dpotrfKernel, dgeqp3Kernel, dsyevKernel, dgesvdKernel;
 	private Kernel spotrfKernel, sgeqp3Kernel, ssyevKernel, sgesvdKernel;
 	private ComputeCapabilities capabilities;
+	private ComputeDeviceInfo deviceInfo;
 	private Throwable unavailableCause;
 
 	/** Detects the first compute-capable FP64 Vulkan device. */
@@ -304,6 +347,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	@Override public String id() { return "vulkan"; }
 	@Override public boolean available() { return unavailableCause == null && device != null; }
 	@Override public ComputeCapabilities capabilities() { ensureAvailable(); return capabilities; }
+	@Override public ComputeDeviceInfo deviceInfo() { ensureAvailable(); return deviceInfo; }
 	/** @return the initialization failure, or {@code null} when Vulkan is available */
 	public Throwable unavailableCause() { return unavailableCause; }
 
@@ -406,6 +450,50 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			double[] updated = c.readDoubles(result.length); System.arraycopy(updated, 0, result, 0, result.length);
 		} finally { c.close(); b.close(); a.close(); }
 	}
+	@Override public synchronized void dsyrk(MatrixTranspose transpose, int dimension, int shared,
+			double alpha, double[] matrix, double beta, double[] result) {
+		checkSyrk(transpose, dimension, shared, matrix, result); ensureAvailable();
+		BufferResource a = create(matrix), c = create(result);
+		try {
+			ByteBuffer push = nativeBuffer(32).putDouble(0, alpha).putDouble(8, beta)
+					.putInt(16, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(20, dimension).putInt(24, shared);
+			if (blasSyrkKernel == null) blasSyrkKernel = new Kernel(BLAS_SYRK_SHADER, 2, 32);
+			execute(blasSyrkKernel, resources(a, c), push, groups(dimension, 16), groups(dimension, 16), 1);
+			double[] updated = c.readDoubles(result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { c.close(); a.close(); }
+	}
+	@Override public synchronized void dtrsv(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
+		checkTriangular(triangle, transpose, diagonal, dimension, matrix, vector); ensureAvailable();
+		BufferResource a = create(matrix), x = create(vector);
+		try {
+			ByteBuffer push = nativeBuffer(16).putInt(0, triangle == MatrixTriangle.LOWER ? 1 : 0)
+					.putInt(4, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(8, diagonal == MatrixDiagonal.UNIT ? 1 : 0).putInt(12, dimension);
+			if (blasTrsvKernel == null) blasTrsvKernel = new Kernel(BLAS_TRSV_SHADER, 2, 16);
+			execute(blasTrsvKernel, resources(a, x), push, 1, 1, 1);
+			double[] updated = x.readDoubles(vector.length); System.arraycopy(updated, 0, vector, 0, vector.length);
+		} finally { x.close(); a.close(); }
+	}
+	@Override public synchronized void dtrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			double alpha, double[] matrix, double[] right) {
+		checkTrsm(side, triangle, transpose, diagonal, rows, columns, matrix, right); ensureAvailable();
+		BufferResource a = create(matrix), b = create(right);
+		try {
+			ByteBuffer push = nativeBuffer(32).putDouble(0, alpha)
+					.putInt(8, side == MatrixSide.RIGHT ? 1 : 0)
+					.putInt(12, triangle == MatrixTriangle.LOWER ? 1 : 0)
+					.putInt(16, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(20, diagonal == MatrixDiagonal.UNIT ? 1 : 0)
+					.putInt(24, rows).putInt(28, columns);
+			if (blasTrsmKernel == null) blasTrsmKernel = new Kernel(BLAS_TRSM_SHADER, 2, 32);
+			int count = side == MatrixSide.LEFT ? columns : rows;
+			execute(blasTrsmKernel, resources(a, b), push, groups(count, VECTOR_LOCAL_SIZE), 1, 1);
+			double[] updated = b.readDoubles(right.length); System.arraycopy(updated, 0, right, 0, right.length);
+		} finally { b.close(); a.close(); }
+	}
 
 	@Override public synchronized void dcsrmv(double alpha, CsrMatrix matrix, double[] x,
 			double beta, double[] y) {
@@ -504,6 +592,50 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			execute(floatGemmKernel, resources(a, b, c), push, groups(columns, 16), groups(rows, 16), 1);
 			float[] updated = c.readFloats(result.length); System.arraycopy(updated, 0, result, 0, result.length);
 		} finally { c.close(); b.close(); a.close(); }
+	}
+	@Override public synchronized void ssyrk(MatrixTranspose transpose, int dimension, int shared,
+			float alpha, float[] matrix, float beta, float[] result) {
+		checkSyrk(transpose, dimension, shared, matrix, result); ensureAvailable();
+		BufferResource a = create(matrix), c = create(result);
+		try {
+			ByteBuffer push = nativeBuffer(20).putFloat(0, alpha).putFloat(4, beta)
+					.putInt(8, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(12, dimension).putInt(16, shared);
+			if (floatSyrkKernel == null) floatSyrkKernel = new Kernel(FLOAT_SYRK_SHADER, 2, 20);
+			execute(floatSyrkKernel, resources(a, c), push, groups(dimension, 16), groups(dimension, 16), 1);
+			float[] updated = c.readFloats(result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { c.close(); a.close(); }
+	}
+	@Override public synchronized void strsv(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
+		checkTriangular(triangle, transpose, diagonal, dimension, matrix, vector); ensureAvailable();
+		BufferResource a = create(matrix), x = create(vector);
+		try {
+			ByteBuffer push = nativeBuffer(16).putInt(0, triangle == MatrixTriangle.LOWER ? 1 : 0)
+					.putInt(4, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(8, diagonal == MatrixDiagonal.UNIT ? 1 : 0).putInt(12, dimension);
+			if (floatTrsvKernel == null) floatTrsvKernel = new Kernel(FLOAT_TRSV_SHADER, 2, 16);
+			execute(floatTrsvKernel, resources(a, x), push, 1, 1, 1);
+			float[] updated = x.readFloats(vector.length); System.arraycopy(updated, 0, vector, 0, vector.length);
+		} finally { x.close(); a.close(); }
+	}
+	@Override public synchronized void strsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			float alpha, float[] matrix, float[] right) {
+		checkTrsm(side, triangle, transpose, diagonal, rows, columns, matrix, right); ensureAvailable();
+		BufferResource a = create(matrix), b = create(right);
+		try {
+			ByteBuffer push = nativeBuffer(28).putFloat(0, alpha)
+					.putInt(4, side == MatrixSide.RIGHT ? 1 : 0)
+					.putInt(8, triangle == MatrixTriangle.LOWER ? 1 : 0)
+					.putInt(12, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0)
+					.putInt(16, diagonal == MatrixDiagonal.UNIT ? 1 : 0)
+					.putInt(20, rows).putInt(24, columns);
+			if (floatTrsmKernel == null) floatTrsmKernel = new Kernel(FLOAT_TRSM_SHADER, 2, 28);
+			int count = side == MatrixSide.LEFT ? columns : rows;
+			execute(floatTrsmKernel, resources(a, b), push, groups(count, VECTOR_LOCAL_SIZE), 1, 1);
+			float[] updated = b.readFloats(right.length); System.arraycopy(updated, 0, right, 0, right.length);
+		} finally { b.close(); a.close(); }
 	}
 
 	@Override public synchronized void scsrmv(float alpha, FloatCsrMatrix matrix, float[] x,
@@ -630,7 +762,27 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			vkGetPhysicalDeviceProperties(physicalDevice, properties);
 			capabilities = new ComputeCapabilities("VULKAN", properties.deviceNameString(), true, true,
 					deviceLocalMemory(physicalDevice, stack), true, true, true);
+			Package pkg = getClass().getPackage(); String backendVersion = pkg == null
+					|| pkg.getImplementationVersion() == null ? "development" : pkg.getImplementationVersion();
+			deviceInfo = new ComputeDeviceInfo(id(), backendVersion, ComputeApi.VULKAN,
+					vulkanVersion(properties.apiVersion()), Integer.toUnsignedString(properties.driverVersion()),
+					vendor(properties.vendorID()), properties.deviceNameString(),
+					deviceType(properties.deviceType()), Integer.toHexString(properties.deviceID()),
+					capabilities.globalMemoryBytes());
 		}
+	}
+	private static String vulkanVersion(int version) {
+		return (version >>> 22) + "." + ((version >>> 12) & 0x3ff) + "." + (version & 0xfff);
+	}
+	private static String vendor(int id) {
+		switch (id) { case 0x10de: return "NVIDIA"; case 0x1002: return "AMD";
+		case 0x8086: return "Intel"; default: return "0x" + Integer.toHexString(id); }
+	}
+	private static String deviceType(int type) {
+		switch (type) { case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: return "discrete GPU";
+		case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: return "integrated GPU";
+		case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: return "virtual GPU";
+		case VK_PHYSICAL_DEVICE_TYPE_CPU: return "CPU"; default: return "other"; }
 	}
 
 	private int computeQueueFamily(VkPhysicalDevice candidate, MemoryStack stack) {
@@ -877,14 +1029,19 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			try { vkDeviceWaitIdle(device); } catch (Throwable ignored) {}
 			closeKernel(sgesvdKernel); closeKernel(ssyevKernel); closeKernel(sgeqp3Kernel); closeKernel(spotrfKernel);
 			closeKernel(dgesvdKernel); closeKernel(dsyevKernel); closeKernel(dgeqp3Kernel); closeKernel(dpotrfKernel);
-			closeKernel(floatCsrMmKernel); closeKernel(floatCsrMvKernel); closeKernel(floatGemmKernel);
+			closeKernel(floatCsrMmKernel); closeKernel(floatCsrMvKernel); closeKernel(floatTrsmKernel);
+			closeKernel(floatTrsvKernel); closeKernel(floatSyrkKernel); closeKernel(floatGemmKernel);
 			closeKernel(floatGemvKernel); closeKernel(floatNrm2Kernel); closeKernel(floatDotKernel);
 			closeKernel(floatAxpyKernel);
-			closeKernel(csrMmKernel); closeKernel(csrMvKernel); closeKernel(blasGemmKernel);
+			closeKernel(csrMmKernel); closeKernel(csrMvKernel); closeKernel(blasTrsmKernel);
+			closeKernel(blasTrsvKernel); closeKernel(blasSyrkKernel); closeKernel(blasGemmKernel);
 			closeKernel(blasGemvKernel); closeKernel(blasNrm2Kernel);
 			closeKernel(logisticKernel); closeKernel(gemmKernel); closeKernel(dotKernel);
 			closeKernel(axpyKernel); closeKernel(unaryKernel);
-			csrMmKernel = csrMvKernel = blasGemmKernel = blasGemvKernel = blasNrm2Kernel = null;
+			csrMmKernel = csrMvKernel = blasTrsmKernel = blasTrsvKernel = blasSyrkKernel = null;
+			blasGemmKernel = blasGemvKernel = blasNrm2Kernel = null;
+			floatCsrMmKernel = floatCsrMvKernel = floatTrsmKernel = floatTrsvKernel = null;
+			floatSyrkKernel = floatGemmKernel = null;
 			floatCsrMmKernel = floatCsrMvKernel = floatGemmKernel = floatGemvKernel = null;
 			floatNrm2Kernel = floatDotKernel = floatAxpyKernel = null;
 			sgesvdKernel = ssyevKernel = sgeqp3Kernel = spotrfKernel = null;
@@ -950,6 +1107,50 @@ public final class VulkanComputeBackend implements ComputeBackend {
 		if (ta == null || tb == null || m < 1 || n < 1 || k < 1 || a == null || b == null || c == null
 				|| a.length != m * k || b.length != k * n || c.length != m * n)
 			throw new IllegalArgumentException("GEMM dimensions do not conform");
+	}
+	private static void checkSyrk(MatrixTranspose transpose, int dimension, int shared,
+			double[] matrix, double[] result) {
+		if (transpose == null || dimension < 1 || shared < 1 || matrix == null
+				|| matrix.length != dimension * shared || result == null
+				|| result.length != dimension * dimension)
+			throw new IllegalArgumentException("SYRK dimensions do not conform");
+	}
+	private static void checkSyrk(MatrixTranspose transpose, int dimension, int shared,
+			float[] matrix, float[] result) {
+		if (transpose == null || dimension < 1 || shared < 1 || matrix == null
+				|| matrix.length != dimension * shared || result == null
+				|| result.length != dimension * dimension)
+			throw new IllegalArgumentException("SYRK dimensions do not conform");
+	}
+	private static void checkTriangular(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
+		if (triangle == null || transpose == null || diagonal == null || dimension < 1
+				|| matrix == null || matrix.length != dimension * dimension || vector == null
+				|| vector.length != dimension) throw new IllegalArgumentException("TRSV dimensions do not conform");
+	}
+	private static void checkTriangular(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
+		if (triangle == null || transpose == null || diagonal == null || dimension < 1
+				|| matrix == null || matrix.length != dimension * dimension || vector == null
+				|| vector.length != dimension) throw new IllegalArgumentException("TRSV dimensions do not conform");
+	}
+	private static void checkTrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			double[] matrix, double[] right) {
+		int order = side == MatrixSide.LEFT ? rows : columns;
+		if (side == null || triangle == null || transpose == null || diagonal == null
+				|| rows < 1 || columns < 1 || matrix == null || matrix.length != order * order
+				|| right == null || right.length != rows * columns)
+			throw new IllegalArgumentException("TRSM dimensions do not conform");
+	}
+	private static void checkTrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			float[] matrix, float[] right) {
+		int order = side == MatrixSide.LEFT ? rows : columns;
+		if (side == null || triangle == null || transpose == null || diagonal == null
+				|| rows < 1 || columns < 1 || matrix == null || matrix.length != order * order
+				|| right == null || right.length != rows * columns)
+			throw new IllegalArgumentException("TRSM dimensions do not conform");
 	}
 	private static void checkCsrMv(CsrMatrix matrix, double[] x, double[] y) {
 		if (matrix == null || x == null || x.length != matrix.columns() || y == null || y.length != matrix.rows())

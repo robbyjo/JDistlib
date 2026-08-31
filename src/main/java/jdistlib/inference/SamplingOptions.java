@@ -178,7 +178,9 @@ public final class SamplingOptions {
 					|| !(stepSizeJitter >= 0.0 && stepSizeJitter <= 1.0)
 					|| !(sliceWidth > 0.0) || maximumSliceSteps < 1
 					|| computeBackend == null || nutsBackend == null
-					|| (computeBackend == Compute.CPU && nutsBackend == ComputeNuts.FORCE)) {
+					|| ((computeBackend == Compute.CPU || computeBackend == Compute.ONEMKL
+							|| computeBackend == Compute.OPENBLAS)
+							&& nutsBackend == ComputeNuts.FORCE)) {
 				throw new IllegalArgumentException("invalid sampling options");
 			}
 			return new SamplingOptions(this);

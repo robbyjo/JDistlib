@@ -101,6 +101,7 @@ public class LinearAlgebraBackendTest {
 		}
 		assertEquals(1, backend.dgesvd(matrices[2], 3, 2).rank());
 	}
+	@Test public void symmetricAndTriangularBlasSupportRemlBuildingBlocks(){double[]a={1,2,3,4,5,6},c=new double[4];backend.dsyrk(MatrixTranspose.NONE,2,3,1,a,0,c);assertArrayEquals(new double[]{14,32,32,77},c,1e-15);double[]lower={2,0,1,3},x={2,7};backend.dtrsv(MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,lower,x);assertArrayEquals(new double[]{1,2},x,1e-15);double[]right={2,4,7,11};backend.dtrsm(MatrixSide.LEFT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,lower,right);assertArrayEquals(new double[]{1,2,2,3},right,1e-15);double[]rightSide={4,8,7,11};backend.dtrsm(MatrixSide.RIGHT,MatrixTriangle.LOWER,MatrixTranspose.NONE,MatrixDiagonal.NON_UNIT,2,2,1,lower,rightSide);assertArrayEquals(new double[]{2.0/3,8.0/3,5.0/3,11.0/3},rightSide,1e-15);try(PreparedCholesky factor=backend.prepareDpotrf(new double[]{4,2,2,3},2)){double[]rhs={1,1,2,1};factor.solveInPlace(rhs,2);assertArrayEquals(new double[]{-0.125,0.125,0.75,0.25},rhs,1e-15);assertEquals(Math.log(8),factor.logDeterminant(),1e-15);}}
 
 	private static double[] reconstructEigen(SymmetricEigenDecomposition decomposition) {
 		int n = decomposition.dimension(); double[] values = decomposition.eigenvalues();

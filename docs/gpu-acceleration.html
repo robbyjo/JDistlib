@@ -30,7 +30,7 @@
       <p class="eyebrow">One-file installation</p><h2>Download one JAR; let JDistlib detect the machine</h2>
       <p>The recommended <code>jdistlib-all.jar</code> contains core JDistlib, all three providers, and their Java/JNI dependencies for Windows, Linux, and macOS x86-64. The stable filename always resolves to the newest GitHub release and runs on CPU when no compatible GPU runtime is present.</p>
       <div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download the latest all-in-one JAR ↓</a><a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/latest">Verify SHA-256 checksum</a></div>
-      <aside class="callout"><strong>Dependency-managed alternative:</strong> Gradle/Maven applications can retain the small native-free core and add only <code>jdistlib-cuda</code>, <code>jdistlib-opencl</code>, or <code>jdistlib-vulkan</code>. The provider JARs are add-ons, not standalone JDistlib distributions.</aside>
+      <aside class="callout"><strong>Dependency-managed alternative:</strong> Gradle/Maven applications can retain the small native-free core and add only <code>jdistlib-nativecpu</code>, <code>jdistlib-cuda</code>, <code>jdistlib-opencl</code>, or <code>jdistlib-vulkan</code>. The provider JARs are add-ons, not standalone JDistlib distributions.</aside>
     </section>
 
     <section class="guide-section" id="choices">
@@ -39,6 +39,8 @@
         <thead><tr><th>Compute choice</th><th>Behavior</th><th>If unavailable</th></tr></thead><tbody>
           <tr><td><code>Compute.AUTO</code></td><td>Detect CUDA, then OpenCL. Route large eligible operations to it and small operations to CPU.</td><td>Use CPU and record the selection.</td></tr>
           <tr><td><code>Compute.CPU</code></td><td>Use the deterministic CPU reference implementation.</td><td>Always available.</td></tr>
+          <tr><td><code>Compute.ONEMKL</code></td><td>Require the system Intel oneMKL CBLAS/LAPACKE runtime.</td><td>Fail immediately.</td></tr>
+          <tr><td><code>Compute.OPENBLAS</code></td><td>Require the system OpenBLAS CBLAS/LAPACKE runtime.</td><td>Fail immediately.</td></tr>
           <tr><td><code>Compute.GPU</code></td><td>Require any supported GPU provider.</td><td>Fail immediately; never fall back.</td></tr>
           <tr><td><code>Compute.CUDA</code></td><td>Require CUDA specifically.</td><td>Fail immediately.</td></tr>
           <tr><td><code>Compute.OPENCL</code></td><td>Require OpenCL specifically.</td><td>Fail immediately.</td></tr>
@@ -79,6 +81,9 @@ try (AcceleratedLogisticRegression target =
     ComputeBackend compute = selection.backend();
     double dot = compute.dot(x, y);
     double[][] product = compute.matrixMultiply(a, b);
+    System.out.println(selection.deviceInfo().description());
+    System.out.println(selection.plan(LinearAlgebraOperation.GEMM,
+        NumericPrecision.FP64, rows, columns, shared).description());
     try (PreparedTransposeProduct scores =
             compute.prepareTransposeProduct(design)) {
         double[][] xtResidual = scores.multiply(residualBatches);
@@ -95,7 +100,7 @@ SamplingOptions options = cli.applyTo(
     SamplingOptions.builder()).build();
 String[] applicationArguments = cli.remainingArguments();</code></pre>
       <div class="table-wrap"><table class="troubleshooting-table"><thead><tr><th>Switch</th><th>Meaning</th></tr></thead><tbody>
-        <tr><td><code>--compute=auto|cpu|gpu|cuda|opencl|vulkan</code></td><td>Select automatic routing, CPU, any required GPU, or an exact provider.</td></tr>
+        <tr><td><code>--compute=auto|cpu|onemkl|openblas|gpu|cuda|opencl|vulkan</code></td><td>Select automatic routing, Java CPU, a native CPU runtime, any required GPU, or an exact GPU provider.</td></tr>
         <tr><td><code>--nuts-offload=off|auto|force</code></td><td>Disable, automatically choose, or require accelerated NUTS target evaluation.</td></tr>
         <tr><td><code>--gpu-nuts</code></td><td>Convenience alias for <code>--compute=gpu --nuts-offload=force</code>.</td></tr>
       </tbody></table></div>
@@ -139,6 +144,7 @@ device=NVIDIA GeForce RTX 2080 (sm_75), thresholded CPU fallback enabled</code><
         <article><h3>CUDA</h3><p><code>jdistlib-cuda</code> uses JCuda Driver and JNvrtc. NVRTC compiles device code without <code>nvcc</code> or MSVC, but a compatible NVIDIA driver, NVRTC, and <code>nvrtc-builtins</code> are required.</p></article>
         <article><h3>OpenCL</h3><p><code>jdistlib-opencl</code> uses JOCL and selects an OpenCL GPU with FP64 support.</p></article>
         <article><h3>Vulkan</h3><p><code>jdistlib-vulkan</code> uses LWJGL Vulkan and shaderc, selects a compute queue with <code>shaderFloat64</code>, and compiles maintained GLSL kernels to cached SPIR-V pipelines at runtime. Version 0.8.4 uses portable host-visible storage rather than promising resident prepared inputs. It passed CPU-reference parity on the RTX 2080 release machine.</p></article>
+        <article><h3>Native CPU</h3><p><code>jdistlib-nativecpu</code> dynamically loads a system oneMKL or OpenBLAS runtime through JNA. The all-in-one JAR includes the adapter, not Intel or OpenBLAS binaries. Use <code>Compute.ONEMKL</code> or <code>Compute.OPENBLAS</code> for a strict choice.</p></article>
       </div>
       <p>The unified JAR carries the x86-64 JNI bindings, but it cannot carry vendor drivers. CUDA still needs an NVIDIA driver plus NVRTC, OpenCL needs a vendor OpenCL implementation, and Vulkan needs a Vulkan loader/driver (MoltenVK is bundled through LWJGL on x86-64 macOS). On other architectures, use the modular artifacts so the dependency manager can select matching natives.</p>
       <p>Caller-provided random streams remain deterministic. Parallel reductions can differ in their final floating-point bits across hardware and providers, so JDistlib does not promise bit-identical chains across CPU, CUDA, OpenCL, or Vulkan devices. Use CPU for the cross-machine reference path; for accelerated reproduction, retain the backend/device manifest and use the same software and hardware configuration.</p>

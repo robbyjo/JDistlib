@@ -13,10 +13,14 @@ import jdistlib.accelerator.FloatSingularValueDecomposition;
 import jdistlib.accelerator.FloatSymmetricEigenDecomposition;
 import jdistlib.accelerator.Compute;
 import jdistlib.accelerator.ComputeBackend;
+import jdistlib.accelerator.ComputeApi;
 import jdistlib.accelerator.ComputeBackends;
 import jdistlib.accelerator.ComputeSelection;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.MatrixTranspose;
+import jdistlib.accelerator.MatrixTriangle;
+import jdistlib.accelerator.MatrixDiagonal;
+import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.SingularValueDecomposition;
 import jdistlib.accelerator.SymmetricEigenDecomposition;
@@ -42,6 +46,8 @@ public class CudaComputeBackendTest {
 		}
 		try (ComputeSelection selection = ComputeBackends.select(Compute.CUDA)) {
 			assertEquals("cuda", selection.selectedBackend());
+			assertEquals(ComputeApi.CUDA, selection.deviceInfo().api());
+			assertTrue(!"unknown".equals(selection.deviceInfo().driverVersion()));
 		}
 	}
 	@Test public void cudaMatchesCpuReference() {
@@ -131,6 +137,26 @@ public class CudaComputeBackendTest {
 				1.0, storedTranspose, ordinaryRight, 0.0, expectedMt);
 		actual.dgemm(MatrixTranspose.TRANSPOSE, MatrixTranspose.NONE, 2, 2, 3,
 				1.0, storedTranspose, ordinaryRight, 0.0, actualMt); assertArrayEquals(expectedMt, actualMt, tolerance);
+		double[] expectedRank = new double[4], actualRank = new double[4];
+		cpu.dsyrk(MatrixTranspose.NONE, 2, 3, 1.0, matrix, 0.0, expectedRank);
+		actual.dsyrk(MatrixTranspose.NONE, 2, 3, 1.0, matrix, 0.0, actualRank);
+		assertArrayEquals(expectedRank, actualRank, tolerance);
+		double[] triangular = {2,0,1,3}, expectedSolve = {2,10}, actualSolve = expectedSolve.clone();
+		cpu.dtrsv(MatrixTriangle.LOWER, MatrixTranspose.NONE, MatrixDiagonal.NON_UNIT, 2, triangular, expectedSolve);
+		actual.dtrsv(MatrixTriangle.LOWER, MatrixTranspose.NONE, MatrixDiagonal.NON_UNIT, 2, triangular, actualSolve);
+		assertArrayEquals(expectedSolve, actualSolve, tolerance);
+		double[] expectedMulti = {2,4,10,14}, actualMulti = expectedMulti.clone();
+		cpu.dtrsm(MatrixSide.LEFT, MatrixTriangle.LOWER, MatrixTranspose.NONE,
+				MatrixDiagonal.NON_UNIT, 2, 2, 1.0, triangular, expectedMulti);
+		actual.dtrsm(MatrixSide.LEFT, MatrixTriangle.LOWER, MatrixTranspose.NONE,
+				MatrixDiagonal.NON_UNIT, 2, 2, 1.0, triangular, actualMulti);
+		assertArrayEquals(expectedMulti, actualMulti, tolerance);
+		double[] expectedRight = {2,10,4,14}, actualRight = expectedRight.clone();
+		cpu.dtrsm(MatrixSide.RIGHT, MatrixTriangle.LOWER, MatrixTranspose.NONE,
+				MatrixDiagonal.NON_UNIT, 2, 2, 1.0, triangular, expectedRight);
+		actual.dtrsm(MatrixSide.RIGHT, MatrixTriangle.LOWER, MatrixTranspose.NONE,
+				MatrixDiagonal.NON_UNIT, 2, 2, 1.0, triangular, actualRight);
+		assertArrayEquals(expectedRight, actualRight, tolerance);
 		CsrMatrix sparse = new CsrMatrix(3, 3, new double[] {2, -1, 3, 4},
 				new int[] {1, 3, 2, 3}, new int[] {1, 3, 4, 5});
 		double[] expectedS = {1, 1, 1}, actualS = expectedS.clone();
@@ -164,6 +190,20 @@ public class CudaComputeBackendTest {
 				0.7f, matrix, right, -0.2f, expectedM);
 		actual.sgemm(MatrixTranspose.NONE, MatrixTranspose.TRANSPOSE, 2, 2, 3,
 				0.7f, matrix, right, -0.2f, actualM); assertArrayEquals(expectedM, actualM, tolerance);
+		float[] expectedRank = new float[4], actualRank = new float[4];
+		cpu.ssyrk(MatrixTranspose.NONE, 2, 3, 1.0f, matrix, 0.0f, expectedRank);
+		actual.ssyrk(MatrixTranspose.NONE, 2, 3, 1.0f, matrix, 0.0f, actualRank);
+		assertArrayEquals(expectedRank, actualRank, tolerance);
+		float[] triangular = {2,0,1,3}, expectedSolve = {2,10}, actualSolve = expectedSolve.clone();
+		cpu.strsv(MatrixTriangle.LOWER, MatrixTranspose.NONE, MatrixDiagonal.NON_UNIT, 2, triangular, expectedSolve);
+		actual.strsv(MatrixTriangle.LOWER, MatrixTranspose.NONE, MatrixDiagonal.NON_UNIT, 2, triangular, actualSolve);
+		assertArrayEquals(expectedSolve, actualSolve, tolerance);
+		float[] expectedMulti = {2,4,10,14}, actualMulti = expectedMulti.clone();
+		cpu.strsm(MatrixSide.LEFT, MatrixTriangle.LOWER, MatrixTranspose.NONE,
+				MatrixDiagonal.NON_UNIT, 2, 2, 1.0f, triangular, expectedMulti);
+		actual.strsm(MatrixSide.LEFT, MatrixTriangle.LOWER, MatrixTranspose.NONE,
+				MatrixDiagonal.NON_UNIT, 2, 2, 1.0f, triangular, actualMulti);
+		assertArrayEquals(expectedMulti, actualMulti, tolerance);
 		FloatCsrMatrix sparse = new FloatCsrMatrix(3, 3, new float[] {2, -1, 3, 4},
 				new int[] {1, 3, 2, 3}, new int[] {1, 3, 4, 5});
 		float[] expectedS = {1, 1, 1}, actualS = expectedS.clone();

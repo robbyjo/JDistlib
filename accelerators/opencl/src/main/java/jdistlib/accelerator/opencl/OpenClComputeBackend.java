@@ -19,6 +19,8 @@ import org.jocl.cl_queue_properties;
 
 import jdistlib.accelerator.ComputeBackend;
 import jdistlib.accelerator.ComputeCapabilities;
+import jdistlib.accelerator.ComputeApi;
+import jdistlib.accelerator.ComputeDeviceInfo;
 import jdistlib.accelerator.CholeskyFactor;
 import jdistlib.accelerator.FloatCholeskyFactor;
 import jdistlib.accelerator.FloatPivotedQrFactor;
@@ -26,6 +28,9 @@ import jdistlib.accelerator.FloatSingularValueDecomposition;
 import jdistlib.accelerator.FloatSymmetricEigenDecomposition;
 import jdistlib.accelerator.LogisticRegressionBatchResult;
 import jdistlib.accelerator.MatrixTranspose;
+import jdistlib.accelerator.MatrixTriangle;
+import jdistlib.accelerator.MatrixDiagonal;
+import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.PivotedQrFactor;
@@ -62,6 +67,9 @@ public final class OpenClComputeBackend implements ComputeBackend {
 			+ "__kernel void blas_nrm2(int n,__global const double*x,int xo,int xs,__global double*out){if(get_global_id(0)==0){double scale=0,sum=1;for(int i=0;i<n;i++){double v=fabs(x[xo+i*xs]);if(v!=0){if(scale<v){double r=scale/v;sum=1+sum*r*r;scale=v;}else{double r=v/scale;sum+=r*r;}}}out[0]=scale==0?0:scale*sqrt(sum);}}\n"
 			+ "__kernel void blas_gemv(int tr,int rows,int cols,double alpha,__global const double*a,__global const double*x,double beta,__global double*y){int i=get_global_id(0),output=tr?cols:rows,input=tr?rows:cols;if(i<output){double s=0;for(int j=0;j<input;j++)s+=(tr?a[j*cols+i]:a[i*cols+j])*x[j];y[i]=alpha*s+beta*y[i];}}\n"
 			+ "__kernel void blas_gemm(int ta,int tb,int m,int n,int k,double alpha,__global const double*a,__global const double*b,double beta,__global double*c){int row=get_global_id(1),col=get_global_id(0);if(row<m&&col<n){double s=0;for(int q=0;q<k;q++)s+=(ta?a[q*m+row]:a[row*k+q])*(tb?b[col*k+q]:b[q*n+col]);int z=row*n+col;c[z]=alpha*s+beta*c[z];}}\n"
+			+ "__kernel void blas_syrk(int tr,int n,int k,double alpha,__global const double*a,double beta,__global double*c){int row=get_global_id(1),col=get_global_id(0);if(row<n&&col<n){double s=0;for(int q=0;q<k;q++)s+=(tr?a[q*n+row]:a[row*k+q])*(tr?a[q*n+col]:a[col*k+q]);c[row*n+col]=alpha*s+beta*c[row*n+col];}}\n"
+			+ "__kernel void blas_trsv(int lower,int tr,int unit,int n,__global const double*a,__global double*x){if(get_global_id(0))return;int effective=tr?!lower:lower;for(int step=0;step<n;step++){int i=effective?step:n-1-step;double v=x[i];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*x[j];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*x[j];}x[i]=unit?v:v/a[i*n+i];}}\n"
+			+ "__kernel void blas_trsm(int side,int lower,int tr,int unit,int rows,int cols,double alpha,__global const double*a,__global double*b){int vector=get_global_id(0),count=side?rows:cols,n=side?cols:rows;if(vector>=count)return;if(!side){int effective=tr?!lower:lower;for(int i=0;i<n;i++)b[i*cols+vector]*=alpha;for(int step=0;step<n;step++){int i=effective?step:n-1-step;double v=b[i*cols+vector];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}b[i*cols+vector]=unit?v:v/a[i*n+i];}}else{int effective=tr?!lower:lower;for(int j=0;j<n;j++)b[vector*cols+j]*=alpha;for(int step=0;step<n;step++){int j=effective?n-1-step:step;double v=b[vector*cols+j];if(effective){for(int k=j+1;k<n;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}else{for(int k=0;k<j;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}b[vector*cols+j]=unit?v:v/a[j*n+j];}}}\n"
 			+ "__kernel void csr_mv(int rows,double alpha,__global const double*v,__global const int*ci,__global const int*rs,__global const double*x,double beta,__global double*y){int row=get_global_id(0);if(row<rows){double s=0;for(int z=rs[row]-1;z<rs[row+1]-1;z++)s+=v[z]*x[ci[z]-1];y[row]=alpha*s+beta*y[row];}}\n"
 			+ "__kernel void csr_mm(int rows,int outcols,double alpha,__global const double*v,__global const int*ci,__global const int*rs,__global const double*b,double beta,__global double*c){int z=get_global_id(0);if(z<rows*outcols){int row=z/outcols,col=z-row*outcols;double s=0;for(int q=rs[row]-1;q<rs[row+1]-1;q++)s+=v[q]*b[(ci[q]-1)*outcols+col];c[z]=alpha*s+beta*c[z];}}\n"
 			+ "__kernel void float_blas_axpy(int n,float alpha,__global const float*x,int xo,int xs,__global float*y,int yo,int ys){int i=get_global_id(0);if(i<n)y[yo+i*ys]=alpha*x[xo+i*xs]+y[yo+i*ys];}\n"
@@ -69,6 +77,9 @@ public final class OpenClComputeBackend implements ComputeBackend {
 			+ "__kernel void float_blas_nrm2(int n,__global const float*x,int xo,int xs,__global float*out){if(get_global_id(0)==0){float scale=0,sum=1;for(int i=0;i<n;i++){float v=fabs(x[xo+i*xs]);if(v!=0){if(scale<v){float r=scale/v;sum=1+sum*r*r;scale=v;}else{float r=v/scale;sum+=r*r;}}}out[0]=scale==0?0:scale*sqrt(sum);}}\n"
 			+ "__kernel void float_blas_gemv(int tr,int rows,int cols,float alpha,__global const float*a,__global const float*x,float beta,__global float*y){int i=get_global_id(0),output=tr?cols:rows,input=tr?rows:cols;if(i<output){float s=0;for(int j=0;j<input;j++)s+=(tr?a[j*cols+i]:a[i*cols+j])*x[j];y[i]=alpha*s+beta*y[i];}}\n"
 			+ "__kernel void float_blas_gemm(int ta,int tb,int m,int n,int k,float alpha,__global const float*a,__global const float*b,float beta,__global float*c){int row=get_global_id(1),col=get_global_id(0);if(row<m&&col<n){float s=0;for(int q=0;q<k;q++)s+=(ta?a[q*m+row]:a[row*k+q])*(tb?b[col*k+q]:b[q*n+col]);int z=row*n+col;c[z]=alpha*s+beta*c[z];}}\n"
+			+ "__kernel void float_blas_syrk(int tr,int n,int k,float alpha,__global const float*a,float beta,__global float*c){int row=get_global_id(1),col=get_global_id(0);if(row<n&&col<n){float s=0;for(int q=0;q<k;q++)s+=(tr?a[q*n+row]:a[row*k+q])*(tr?a[q*n+col]:a[col*k+q]);c[row*n+col]=alpha*s+beta*c[row*n+col];}}\n"
+			+ "__kernel void float_blas_trsv(int lower,int tr,int unit,int n,__global const float*a,__global float*x){if(get_global_id(0))return;int effective=tr?!lower:lower;for(int step=0;step<n;step++){int i=effective?step:n-1-step;float v=x[i];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*x[j];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*x[j];}x[i]=unit?v:v/a[i*n+i];}}\n"
+			+ "__kernel void float_blas_trsm(int side,int lower,int tr,int unit,int rows,int cols,float alpha,__global const float*a,__global float*b){int vector=get_global_id(0),count=side?rows:cols,n=side?cols:rows;if(vector>=count)return;if(!side){int effective=tr?!lower:lower;for(int i=0;i<n;i++)b[i*cols+vector]*=alpha;for(int step=0;step<n;step++){int i=effective?step:n-1-step;float v=b[i*cols+vector];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}b[i*cols+vector]=unit?v:v/a[i*n+i];}}else{int effective=tr?!lower:lower;for(int j=0;j<n;j++)b[vector*cols+j]*=alpha;for(int step=0;step<n;step++){int j=effective?n-1-step:step;float v=b[vector*cols+j];if(effective){for(int k=j+1;k<n;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}else{for(int k=0;k<j;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}b[vector*cols+j]=unit?v:v/a[j*n+j];}}}\n"
 			+ "__kernel void float_csr_mv(int rows,float alpha,__global const float*v,__global const int*ci,__global const int*rs,__global const float*x,float beta,__global float*y){int row=get_global_id(0);if(row<rows){float s=0;for(int z=rs[row]-1;z<rs[row+1]-1;z++)s+=v[z]*x[ci[z]-1];y[row]=alpha*s+beta*y[row];}}\n"
 			+ "__kernel void float_csr_mm(int rows,int outcols,float alpha,__global const float*v,__global const int*ci,__global const int*rs,__global const float*b,float beta,__global float*c){int z=get_global_id(0);if(z<rows*outcols){int row=z/outcols,col=z-row*outcols;float s=0;for(int q=rs[row]-1;q<rs[row+1]-1;q++)s+=v[q]*b[(ci[q]-1)*outcols+col];c[z]=alpha*s+beta*c[z];}}\n"
 			+ decompositionSource("double","d") + decompositionSource("float","s")
@@ -81,6 +92,7 @@ public final class OpenClComputeBackend implements ComputeBackend {
 	private cl_command_queue queue;
 	private cl_program program;
 	private ComputeCapabilities capabilities;
+	private ComputeDeviceInfo deviceInfo;
 	private Throwable unavailableCause;
 
 	/** Detects the first FP64 GPU and makes this instance unavailable when none can initialize. */
@@ -90,6 +102,7 @@ public final class OpenClComputeBackend implements ComputeBackend {
 	@Override public String id() { return "opencl"; }
 	@Override public boolean available() { return unavailableCause == null && context != null; }
 	@Override public ComputeCapabilities capabilities() { ensureAvailable(); return capabilities; }
+	@Override public ComputeDeviceInfo deviceInfo() { ensureAvailable(); return deviceInfo; }
 	/** Reports why optional OpenCL initialization failed.
 	 * @return the initialization failure, or {@code null} when available
 	 */
@@ -190,6 +203,44 @@ public final class OpenClComputeBackend implements ComputeBackend {
 			double[] updated = read(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
 		} finally { clReleaseKernel(operation); clReleaseMemObject(a); clReleaseMemObject(b); clReleaseMemObject(c); }
 	}
+	@Override public synchronized void dsyrk(MatrixTranspose transpose, int dimension, int shared,
+			double alpha, double[] matrix, double beta, double[] result) {
+		checkSyrk(transpose, dimension, shared, matrix, result); ensureAvailable();
+		cl_mem a = input(matrix), c = inputReadWrite(result); cl_kernel operation = kernel("blas_syrk");
+		try {
+			arg(operation, 0, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0); arg(operation, 1, dimension);
+			arg(operation, 2, shared); arg(operation, 3, alpha); arg(operation, 4, a); arg(operation, 5, beta); arg(operation, 6, c);
+			check(clEnqueueNDRangeKernel(queue, operation, 2, null, new long[] {round16(dimension), round16(dimension)},
+					new long[] {16, 16}, 0, null, null));
+			double[] updated = read(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { clReleaseKernel(operation); clReleaseMemObject(a); clReleaseMemObject(c); }
+	}
+	@Override public synchronized void dtrsv(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
+		checkTriangular(triangle, transpose, diagonal, dimension, matrix, vector); ensureAvailable();
+		cl_mem a = input(matrix), x = inputReadWrite(vector); cl_kernel operation = kernel("blas_trsv");
+		try {
+			arg(operation, 0, triangle == MatrixTriangle.LOWER ? 1 : 0);
+			arg(operation, 1, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0);
+			arg(operation, 2, diagonal == MatrixDiagonal.UNIT ? 1 : 0); arg(operation, 3, dimension);
+			arg(operation, 4, a); arg(operation, 5, x); run1d(operation, 1);
+			double[] updated = read(x, vector.length); System.arraycopy(updated, 0, vector, 0, vector.length);
+		} finally { clReleaseKernel(operation); clReleaseMemObject(a); clReleaseMemObject(x); }
+	}
+	@Override public synchronized void dtrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			double alpha, double[] matrix, double[] right) {
+		checkTrsm(side, triangle, transpose, diagonal, rows, columns, matrix, right); ensureAvailable();
+		cl_mem a = input(matrix), b = inputReadWrite(right); cl_kernel operation = kernel("blas_trsm");
+		try {
+			arg(operation, 0, side == MatrixSide.RIGHT ? 1 : 0); arg(operation, 1, triangle == MatrixTriangle.LOWER ? 1 : 0);
+			arg(operation, 2, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0);
+			arg(operation, 3, diagonal == MatrixDiagonal.UNIT ? 1 : 0); arg(operation, 4, rows); arg(operation, 5, columns);
+			arg(operation, 6, alpha); arg(operation, 7, a); arg(operation, 8, b);
+			run1d(operation, side == MatrixSide.LEFT ? columns : rows);
+			double[] updated = read(b, right.length); System.arraycopy(updated, 0, right, 0, right.length);
+		} finally { clReleaseKernel(operation); clReleaseMemObject(a); clReleaseMemObject(b); }
+	}
 	@Override public synchronized void dcsrmv(double alpha, CsrMatrix matrix, double[] x,
 			double beta, double[] y) {
 		checkCsrMv(matrix, x, y); ensureAvailable();
@@ -275,6 +326,44 @@ public final class OpenClComputeBackend implements ComputeBackend {
 					new long[] {round16(columns), round16(rows)}, new long[] {16, 16}, 0, null, null));
 			float[] updated = readFloats(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
 		} finally { clReleaseKernel(operation); clReleaseMemObject(a); clReleaseMemObject(b); clReleaseMemObject(c); }
+	}
+	@Override public synchronized void ssyrk(MatrixTranspose transpose, int dimension, int shared,
+			float alpha, float[] matrix, float beta, float[] result) {
+		checkSyrk(transpose, dimension, shared, matrix, result); ensureAvailable();
+		cl_mem a = input(matrix), c = inputReadWrite(result); cl_kernel operation = kernel("float_blas_syrk");
+		try {
+			arg(operation, 0, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0); arg(operation, 1, dimension);
+			arg(operation, 2, shared); arg(operation, 3, alpha); arg(operation, 4, a); arg(operation, 5, beta); arg(operation, 6, c);
+			check(clEnqueueNDRangeKernel(queue, operation, 2, null, new long[] {round16(dimension), round16(dimension)},
+					new long[] {16, 16}, 0, null, null));
+			float[] updated = readFloats(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
+		} finally { clReleaseKernel(operation); clReleaseMemObject(a); clReleaseMemObject(c); }
+	}
+	@Override public synchronized void strsv(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
+		checkTriangular(triangle, transpose, diagonal, dimension, matrix, vector); ensureAvailable();
+		cl_mem a = input(matrix), x = inputReadWrite(vector); cl_kernel operation = kernel("float_blas_trsv");
+		try {
+			arg(operation, 0, triangle == MatrixTriangle.LOWER ? 1 : 0);
+			arg(operation, 1, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0);
+			arg(operation, 2, diagonal == MatrixDiagonal.UNIT ? 1 : 0); arg(operation, 3, dimension);
+			arg(operation, 4, a); arg(operation, 5, x); run1d(operation, 1);
+			float[] updated = readFloats(x, vector.length); System.arraycopy(updated, 0, vector, 0, vector.length);
+		} finally { clReleaseKernel(operation); clReleaseMemObject(a); clReleaseMemObject(x); }
+	}
+	@Override public synchronized void strsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			float alpha, float[] matrix, float[] right) {
+		checkTrsm(side, triangle, transpose, diagonal, rows, columns, matrix, right); ensureAvailable();
+		cl_mem a = input(matrix), b = inputReadWrite(right); cl_kernel operation = kernel("float_blas_trsm");
+		try {
+			arg(operation, 0, side == MatrixSide.RIGHT ? 1 : 0); arg(operation, 1, triangle == MatrixTriangle.LOWER ? 1 : 0);
+			arg(operation, 2, transpose == MatrixTranspose.TRANSPOSE ? 1 : 0);
+			arg(operation, 3, diagonal == MatrixDiagonal.UNIT ? 1 : 0); arg(operation, 4, rows); arg(operation, 5, columns);
+			arg(operation, 6, alpha); arg(operation, 7, a); arg(operation, 8, b);
+			run1d(operation, side == MatrixSide.LEFT ? columns : rows);
+			float[] updated = readFloats(b, right.length); System.arraycopy(updated, 0, right, 0, right.length);
+		} finally { clReleaseKernel(operation); clReleaseMemObject(a); clReleaseMemObject(b); }
 	}
 	@Override public synchronized void scsrmv(float alpha, FloatCsrMatrix matrix, float[] x,
 			float beta, float[] y) {
@@ -419,6 +508,15 @@ public final class OpenClComputeBackend implements ComputeBackend {
 				extensions.contains("cl_khr_fp64") || extensions.contains("cl_amd_fp64"), true,
 				memory[0], true, true, true);
 		if (!capabilities.doublePrecision()) throw new IllegalStateException("OpenCL device lacks FP64");
+		long[] vendorId = new long[1]; int[] numericVendor = new int[1];
+		check(clGetDeviceInfo(device, CL_DEVICE_VENDOR_ID, Sizeof.cl_uint, Pointer.to(numericVendor), null));
+		vendorId[0] = numericVendor[0] & 0xffffffffL;
+		Package pkg = getClass().getPackage(); String backendVersion = pkg == null
+				|| pkg.getImplementationVersion() == null ? "development" : pkg.getImplementationVersion();
+		deviceInfo = new ComputeDeviceInfo(id(), backendVersion, ComputeApi.OPENCL,
+				deviceString(device, CL_DEVICE_VERSION), deviceString(device, CL_DRIVER_VERSION),
+				deviceString(device, CL_DEVICE_VENDOR), deviceString(device, CL_DEVICE_NAME),
+				System.getProperty("os.arch", "unknown"), Long.toHexString(vendorId[0]), memory[0]);
 	}
 	private cl_kernel kernel(String name) { int[] status = new int[1]; cl_kernel result = clCreateKernel(program, name, status); check(status[0]); return result; }
 	private cl_mem input(double[] values) { int[] status = new int[1]; cl_mem result = clCreateBuffer(context,
@@ -505,6 +603,50 @@ public final class OpenClComputeBackend implements ComputeBackend {
 		if (ta == null || tb == null || m < 1 || n < 1 || k < 1 || a == null || b == null || c == null
 				|| a.length != m * k || b.length != k * n || c.length != m * n)
 			throw new IllegalArgumentException("GEMM dimensions do not conform");
+	}
+	private static void checkSyrk(MatrixTranspose transpose, int dimension, int shared,
+			double[] matrix, double[] result) {
+		if (transpose == null || dimension < 1 || shared < 1 || matrix == null
+				|| matrix.length != dimension * shared || result == null
+				|| result.length != dimension * dimension)
+			throw new IllegalArgumentException("SYRK dimensions do not conform");
+	}
+	private static void checkSyrk(MatrixTranspose transpose, int dimension, int shared,
+			float[] matrix, float[] result) {
+		if (transpose == null || dimension < 1 || shared < 1 || matrix == null
+				|| matrix.length != dimension * shared || result == null
+				|| result.length != dimension * dimension)
+			throw new IllegalArgumentException("SYRK dimensions do not conform");
+	}
+	private static void checkTriangular(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
+		if (triangle == null || transpose == null || diagonal == null || dimension < 1
+				|| matrix == null || matrix.length != dimension * dimension || vector == null
+				|| vector.length != dimension) throw new IllegalArgumentException("TRSV dimensions do not conform");
+	}
+	private static void checkTriangular(MatrixTriangle triangle, MatrixTranspose transpose,
+			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
+		if (triangle == null || transpose == null || diagonal == null || dimension < 1
+				|| matrix == null || matrix.length != dimension * dimension || vector == null
+				|| vector.length != dimension) throw new IllegalArgumentException("TRSV dimensions do not conform");
+	}
+	private static void checkTrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			double[] matrix, double[] right) {
+		int order = side == MatrixSide.LEFT ? rows : columns;
+		if (side == null || triangle == null || transpose == null || diagonal == null
+				|| rows < 1 || columns < 1 || matrix == null || matrix.length != order * order
+				|| right == null || right.length != rows * columns)
+			throw new IllegalArgumentException("TRSM dimensions do not conform");
+	}
+	private static void checkTrsm(MatrixSide side, MatrixTriangle triangle,
+			MatrixTranspose transpose, MatrixDiagonal diagonal, int rows, int columns,
+			float[] matrix, float[] right) {
+		int order = side == MatrixSide.LEFT ? rows : columns;
+		if (side == null || triangle == null || transpose == null || diagonal == null
+				|| rows < 1 || columns < 1 || matrix == null || matrix.length != order * order
+				|| right == null || right.length != rows * columns)
+			throw new IllegalArgumentException("TRSM dimensions do not conform");
 	}
 	private static void checkCsrMv(CsrMatrix matrix, double[] x, double[] y) {
 		if (matrix == null || x == null || x.length != matrix.columns() || y == null || y.length != matrix.rows())

@@ -1,0 +1,2 @@
+jdistlib.accelerator.nativecpu.OneMklComputeBackend
+jdistlib.accelerator.nativecpu.OpenBlasComputeBackend

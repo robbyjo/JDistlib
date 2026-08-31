@@ -11,6 +11,66 @@ public interface ComputeBackend extends LinearAlgebraBackend,
 	default boolean automaticRouting() { return false; }
 	boolean available();
 	ComputeCapabilities capabilities();
+	/** Returns stable backend, runtime, driver, and device provenance where available. */
+	default ComputeDeviceInfo deviceInfo() {
+		ComputeCapabilities value = capabilities(); Package pkg = getClass().getPackage();
+		String version = pkg == null || pkg.getImplementationVersion() == null
+				? "development" : pkg.getImplementationVersion();
+		ComputeApi api = "cpu".equals(id()) ? ComputeApi.JAVA_CPU
+				: "cuda".equals(id()) ? ComputeApi.CUDA
+				: "opencl".equals(id()) ? ComputeApi.OPENCL
+				: "vulkan".equals(id()) ? ComputeApi.VULKAN : ComputeApi.AUTOMATIC;
+		return new ComputeDeviceInfo(id(), version, api, "unknown", "unknown", "unknown",
+				value.device(), System.getProperty("os.arch", "unknown"), "unknown",
+				value.globalMemoryBytes());
+	}
+	/** Predicts execution for the supplied operation and dimensions without running it. */
+	default ExecutionPlan plan(LinearAlgebraOperation operation, NumericPrecision precision,
+			int... dimensions) {
+		if (operation == null || precision == null || dimensions == null)
+			throw new IllegalArgumentException("operation, precision, and dimensions are required");
+		for (int dimension : dimensions) if (dimension < 0)
+			throw new IllegalArgumentException("operation dimensions must be nonnegative");
+		ComputeApi api = deviceInfo().api();
+		boolean gpu = api == ComputeApi.CUDA || api == ComputeApi.OPENCL
+				|| api == ComputeApi.VULKAN;
+		boolean serial = operation == LinearAlgebraOperation.POTRF
+				|| operation == LinearAlgebraOperation.GEQP3
+				|| operation == LinearAlgebraOperation.SYEV
+				|| operation == LinearAlgebraOperation.GESVD
+				|| operation == LinearAlgebraOperation.TRSV;
+		ExecutionKind kind = gpu ? (serial ? ExecutionKind.GPU_SERIAL
+				: ExecutionKind.GPU_PARALLEL) : ("cpu".equals(id())
+						? ExecutionKind.JAVA_REFERENCE : ExecutionKind.NATIVE_CPU);
+		return new ExecutionPlan(operation, precision, kind, id(), capabilities().device(),
+				"explicit backend");
+	}
+	/** Prepares a reusable FP64 Cholesky factor and solve handle. */
+	default PreparedCholesky prepareDpotrf(double[] matrix, int dimension) {
+		final CholeskyFactor factor = dpotrf(matrix, dimension);
+		return new PreparedCholesky() {
+			@Override public int dimension() { return factor.dimension(); }
+			@Override public double logDeterminant() { return factor.logDeterminant(); }
+			@Override public void solveInPlace(double[] right, int columns) {
+				double[] result = factor.solve(right, columns);
+				System.arraycopy(result, 0, right, 0, result.length);
+			}
+			@Override public void close() {}
+		};
+	}
+	/** Prepares a reusable FP32 Cholesky factor and solve handle. */
+	default PreparedFloatCholesky prepareSpotrf(float[] matrix, int dimension) {
+		final FloatCholeskyFactor factor = spotrf(matrix, dimension);
+		return new PreparedFloatCholesky() {
+			@Override public int dimension() { return factor.dimension(); }
+			@Override public float logDeterminant() { return factor.logDeterminant(); }
+			@Override public void solveInPlace(float[] right, int columns) {
+				float[] result = factor.solve(right, columns);
+				System.arraycopy(result, 0, right, 0, result.length);
+			}
+			@Override public void close() {}
+		};
+	}
 	default double[] unary(UnaryOperation operation, double[] input) {
 		return new CpuComputeBackend().unary(operation, input);
 	}

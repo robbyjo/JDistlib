@@ -32,6 +32,8 @@ import jdistlib.accelerator.MatrixTriangle;
 import jdistlib.accelerator.MatrixDiagonal;
 import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
+import jdistlib.accelerator.PreparedDenseMatrix;
+import jdistlib.accelerator.PreparedFloatDenseMatrix;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.PivotedQrFactor;
 import jdistlib.accelerator.SingularValueDecomposition;
@@ -411,6 +413,22 @@ public final class OpenClComputeBackend implements ComputeBackend {
 		int[] matrixShape = shape(matrix); ensureAvailable();
 		return new PreparedTranspose(matrix, matrixShape[0], matrixShape[1]);
 	}
+	@Override public synchronized PreparedDenseMatrix prepareDge(double[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();return new PreparedDoubleDense(matrix,rows,columns);}
+	@Override public synchronized PreparedFloatDenseMatrix prepareSge(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();return new PreparedFloatDense(matrix,rows,columns);}
+	private final class PreparedDoubleDense implements PreparedDenseMatrix{
+		private final int rows,columns;private cl_mem matrix;
+		PreparedDoubleDense(double[]source,int rows,int columns){this.rows=rows;this.columns=columns;matrix=input(source);}
+		public int rows(){checkOpen();return rows;}public int columns(){checkOpen();return columns;}
+		public void multiply(MatrixTranspose transpose,double alpha,double[]right,int rightColumns,double beta,double[]result){if(transpose==null||rightColumns<1)throw new IllegalArgumentException("prepared OpenCL dense dimensions do not conform");int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;if(right==null||right.length!=shared*rightColumns||result==null||result.length!=output*rightColumns)throw new IllegalArgumentException("prepared OpenCL dense dimensions do not conform");synchronized(OpenClComputeBackend.this){checkOpen();cl_mem b=input(right),c=inputReadWrite(result);cl_kernel operation=kernel("blas_gemm");try{arg(operation,0,transpose==MatrixTranspose.TRANSPOSE?1:0);arg(operation,1,0);arg(operation,2,output);arg(operation,3,rightColumns);arg(operation,4,shared);arg(operation,5,alpha);arg(operation,6,matrix);arg(operation,7,b);arg(operation,8,beta);arg(operation,9,c);check(clEnqueueNDRangeKernel(queue,operation,2,null,new long[]{round16(rightColumns),round16(output)},new long[]{16,16},0,null,null));double[]updated=read(c,result.length);System.arraycopy(updated,0,result,0,result.length);}finally{clReleaseKernel(operation);clReleaseMemObject(b);clReleaseMemObject(c);}}}
+		public void close(){synchronized(OpenClComputeBackend.this){if(matrix!=null){clReleaseMemObject(matrix);matrix=null;}}}private void checkOpen(){if(matrix==null)throw new IllegalStateException("prepared OpenCL dense matrix is closed");}
+	}
+	private final class PreparedFloatDense implements PreparedFloatDenseMatrix{
+		private final int rows,columns;private cl_mem matrix;
+		PreparedFloatDense(float[]source,int rows,int columns){this.rows=rows;this.columns=columns;matrix=input(source);}
+		public int rows(){checkOpen();return rows;}public int columns(){checkOpen();return columns;}
+		public void multiply(MatrixTranspose transpose,float alpha,float[]right,int rightColumns,float beta,float[]result){if(transpose==null||rightColumns<1)throw new IllegalArgumentException("prepared OpenCL FP32 dense dimensions do not conform");int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;if(right==null||right.length!=shared*rightColumns||result==null||result.length!=output*rightColumns)throw new IllegalArgumentException("prepared OpenCL FP32 dense dimensions do not conform");synchronized(OpenClComputeBackend.this){checkOpen();cl_mem b=input(right),c=inputReadWrite(result);cl_kernel operation=kernel("float_blas_gemm");try{arg(operation,0,transpose==MatrixTranspose.TRANSPOSE?1:0);arg(operation,1,0);arg(operation,2,output);arg(operation,3,rightColumns);arg(operation,4,shared);arg(operation,5,alpha);arg(operation,6,matrix);arg(operation,7,b);arg(operation,8,beta);arg(operation,9,c);check(clEnqueueNDRangeKernel(queue,operation,2,null,new long[]{round16(rightColumns),round16(output)},new long[]{16,16},0,null,null));float[]updated=readFloats(c,result.length);System.arraycopy(updated,0,result,0,result.length);}finally{clReleaseKernel(operation);clReleaseMemObject(b);clReleaseMemObject(c);}}}
+		public void close(){synchronized(OpenClComputeBackend.this){if(matrix!=null){clReleaseMemObject(matrix);matrix=null;}}}private void checkOpen(){if(matrix==null)throw new IllegalStateException("prepared OpenCL FP32 dense matrix is closed");}
+	}
 
 	private final class PreparedTranspose implements PreparedTransposeProduct {
 		private final int rows, columns; private cl_mem matrix;
@@ -506,7 +524,7 @@ public final class OpenClComputeBackend implements ComputeBackend {
 		String extensions = deviceString(device, CL_DEVICE_EXTENSIONS);
 		capabilities = new ComputeCapabilities("OpenCL", deviceString(device, CL_DEVICE_NAME),
 				extensions.contains("cl_khr_fp64") || extensions.contains("cl_amd_fp64"), true,
-				memory[0], true, true, true);
+				memory[0], true, true, true, false, false, true, true, true);
 		if (!capabilities.doublePrecision()) throw new IllegalStateException("OpenCL device lacks FP64");
 		long[] vendorId = new long[1]; int[] numericVendor = new int[1];
 		check(clGetDeviceInfo(device, CL_DEVICE_VENDOR_ID, Sizeof.cl_uint, Pointer.to(numericVendor), null));

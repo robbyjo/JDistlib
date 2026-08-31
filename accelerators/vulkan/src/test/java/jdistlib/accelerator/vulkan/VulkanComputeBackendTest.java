@@ -154,4 +154,5 @@ public class VulkanComputeBackendTest {
 		cpu.scsrmm(0.8f,sparse,dense,2,0,expectedProduct);actual.scsrmm(0.8f,sparse,dense,2,0,observedProduct);
 		assertArrayEquals(expectedProduct,observedProduct,tolerance);
 	}
+	@Test public void preparedDenseMatricesRemainInVulkanBuffers(){VulkanComputeBackend backend=new VulkanComputeBackend();Assume.assumeTrue(backend.available());try{try(jdistlib.accelerator.PreparedDenseMatrix prepared=backend.prepareDge(new double[]{1,2,3,4,5,6},2,3)){double[]result=new double[4];prepared.multiply(MatrixTranspose.NONE,1,new double[]{1,0,0,1,1,1},2,0,result);assertArrayEquals(new double[]{4,5,10,11},result,1e-12);}try(jdistlib.accelerator.PreparedFloatDenseMatrix prepared=backend.prepareSge(new float[]{1,2,3,4},2,2)){float[]result=new float[2];prepared.multiply(MatrixTranspose.NONE,1,new float[]{1,1},1,0,result);assertArrayEquals(new float[]{3,7},result,2e-5f);}assertTrue(backend.capabilities().preparedDenseMatrices());}finally{backend.close();}}
 }

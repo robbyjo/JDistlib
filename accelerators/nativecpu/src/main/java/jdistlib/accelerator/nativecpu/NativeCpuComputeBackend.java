@@ -15,6 +15,7 @@ import jdistlib.accelerator.ComputeBackend;
 import jdistlib.accelerator.ComputeCapabilities;
 import jdistlib.accelerator.ComputeDeviceInfo;
 import jdistlib.accelerator.FloatCholeskyFactor;
+import jdistlib.accelerator.FloatLuFactor;
 import jdistlib.accelerator.FloatPivotedQrFactor;
 import jdistlib.accelerator.FloatSingularValueDecomposition;
 import jdistlib.accelerator.FloatSymmetricEigenDecomposition;
@@ -22,8 +23,11 @@ import jdistlib.accelerator.MatrixDiagonal;
 import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.MatrixTranspose;
 import jdistlib.accelerator.MatrixTriangle;
+import jdistlib.accelerator.LuFactor;
 import jdistlib.accelerator.PivotedQrFactor;
 import jdistlib.accelerator.PreparedFloatSparseCholesky;
+import jdistlib.accelerator.PreparedDenseMatrix;
+import jdistlib.accelerator.PreparedFloatDenseMatrix;
 import jdistlib.accelerator.PreparedSparseCholesky;
 import jdistlib.accelerator.SingularValueDecomposition;
 import jdistlib.accelerator.SparseOrdering;
@@ -71,7 +75,7 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 		ensureAvailable();
 		return new ComputeCapabilities(displayName(), System.getProperty("os.arch", "unknown"),
 				true, false, 0L, true, false, lapacke, preparedSparseMatrices(),
-				nativeSparseFactorizations(), true);
+				nativeSparseFactorizations(), true, true, true);
 	}
 	@Override public final ComputeDeviceInfo deviceInfo() {
 		ensureAvailable();
@@ -92,6 +96,14 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 		}
 		function("cblas_daxpy").invokeVoid(new Object[] {count, alpha, x, xStride, y, yStride});
 	}
+	@Override public final void dscal(int count, double alpha, double[] x, int offset, int stride) {
+		checkRegion(count, x, offset, stride); if (offset != 0) { ComputeBackend.super.dscal(count, alpha, x, offset, stride); return; }
+		function("cblas_dscal").invokeVoid(new Object[]{count, alpha, x, stride});
+	}
+	@Override public final void dcopy(int count,double[]x,int xo,int xs,double[]y,int yo,int ys){checkRegion(count,x,xo,xs);checkRegion(count,y,yo,ys);if(xo!=0||yo!=0||x==y){ComputeBackend.super.dcopy(count,x,xo,xs,y,yo,ys);return;}function("cblas_dcopy").invokeVoid(new Object[]{count,x,xs,y,ys});}
+	@Override public final void dswap(int count,double[]x,int xo,int xs,double[]y,int yo,int ys){checkRegion(count,x,xo,xs);checkRegion(count,y,yo,ys);if(xo!=0||yo!=0){ComputeBackend.super.dswap(count,x,xo,xs,y,yo,ys);return;}function("cblas_dswap").invokeVoid(new Object[]{count,x,xs,y,ys});}
+	@Override public final double dasum(int count,double[]x,int offset,int stride){checkRegion(count,x,offset,stride);return offset==0?function("cblas_dasum").invokeDouble(new Object[]{count,x,stride}):ComputeBackend.super.dasum(count,x,offset,stride);}
+	@Override public final int idamax(int count,double[]x,int offset,int stride){checkRegion(count,x,offset,stride);if(count==0)return-1;return offset==0?function("cblas_idamax").invokeInt(new Object[]{count,x,stride}):ComputeBackend.super.idamax(count,x,offset,stride);}
 	@Override public final double ddot(int count, double[] x, int xOffset, int xStride,
 			double[] y, int yOffset, int yStride) {
 		checkRegion(count, x, xOffset, xStride); checkRegion(count, y, yOffset, yStride);
@@ -128,6 +140,11 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 				dimension, shared, alpha, matrix, lda, beta, result, dimension});
 		mirrorLower(result, dimension);
 	}
+	@Override public final void dger(int rows,int columns,double alpha,double[]x,int xo,int xs,double[]y,int yo,int ys,double[]matrix){if(xo!=0||yo!=0){ComputeBackend.super.dger(rows,columns,alpha,x,xo,xs,y,yo,ys,matrix);return;}checkRegion(rows,x,xo,xs);checkRegion(columns,y,yo,ys);checkMatrix(matrix,rows,columns);function("cblas_dger").invokeVoid(new Object[]{ROW_MAJOR,rows,columns,alpha,x,xs,y,ys,matrix,columns});}
+	@Override public final void dsyr(MatrixTriangle triangle,int dimension,double alpha,double[]x,int offset,int stride,double[]matrix){if(offset!=0){ComputeBackend.super.dsyr(triangle,dimension,alpha,x,offset,stride,matrix);return;}checkRegion(dimension,x,offset,stride);checkSquare(matrix,dimension);function("cblas_dsyr").invokeVoid(new Object[]{ROW_MAJOR,triangle(triangle),dimension,alpha,x,stride,matrix,dimension});mirrorTriangle(matrix,dimension,triangle);}
+	@Override public final void dsyr2(MatrixTriangle triangle,int dimension,double alpha,double[]x,int xo,int xs,double[]y,int yo,int ys,double[]matrix){if(xo!=0||yo!=0){ComputeBackend.super.dsyr2(triangle,dimension,alpha,x,xo,xs,y,yo,ys,matrix);return;}checkRegion(dimension,x,xo,xs);checkRegion(dimension,y,yo,ys);checkSquare(matrix,dimension);function("cblas_dsyr2").invokeVoid(new Object[]{ROW_MAJOR,triangle(triangle),dimension,alpha,x,xs,y,ys,matrix,dimension});mirrorTriangle(matrix,dimension,triangle);}
+	@Override public final void dsymm(MatrixSide side,MatrixTriangle triangle,int rows,int columns,double alpha,double[]symmetric,double[]right,double beta,double[]result){int order=side==MatrixSide.LEFT?rows:columns;checkSquare(symmetric,order);checkMatrix(right,rows,columns);checkMatrix(result,rows,columns);function("cblas_dsymm").invokeVoid(new Object[]{ROW_MAJOR,side(side),triangle(triangle),rows,columns,alpha,symmetric,order,right,columns,beta,result,columns});}
+	@Override public final void dsyr2k(MatrixTriangle triangle,MatrixTranspose transpose,int dimension,int shared,double alpha,double[]left,double[]right,double beta,double[]result){int rows=transpose==MatrixTranspose.NONE?dimension:shared,columns=transpose==MatrixTranspose.NONE?shared:dimension;checkMatrix(left,rows,columns);checkMatrix(right,rows,columns);checkSquare(result,dimension);int lda=transpose==MatrixTranspose.NONE?shared:dimension;function("cblas_dsyr2k").invokeVoid(new Object[]{ROW_MAJOR,triangle(triangle),trans(transpose),dimension,shared,alpha,left,lda,right,lda,beta,result,dimension});mirrorTriangle(result,dimension,triangle);}
 	@Override public final void dtrsv(MatrixTriangle triangle, MatrixTranspose transpose,
 			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
 		checkTriangular(triangle, transpose, diagonal, dimension, matrix, vector, dimension);
@@ -153,6 +170,11 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 		}
 		function("cblas_saxpy").invokeVoid(new Object[] {count, alpha, x, xStride, y, yStride});
 	}
+	@Override public final void sscal(int count,float alpha,float[]x,int offset,int stride){checkRegion(count,x,offset,stride);if(offset!=0){ComputeBackend.super.sscal(count,alpha,x,offset,stride);return;}function("cblas_sscal").invokeVoid(new Object[]{count,alpha,x,stride});}
+	@Override public final void scopy(int count,float[]x,int xo,int xs,float[]y,int yo,int ys){checkRegion(count,x,xo,xs);checkRegion(count,y,yo,ys);if(xo!=0||yo!=0||x==y){ComputeBackend.super.scopy(count,x,xo,xs,y,yo,ys);return;}function("cblas_scopy").invokeVoid(new Object[]{count,x,xs,y,ys});}
+	@Override public final void sswap(int count,float[]x,int xo,int xs,float[]y,int yo,int ys){checkRegion(count,x,xo,xs);checkRegion(count,y,yo,ys);if(xo!=0||yo!=0){ComputeBackend.super.sswap(count,x,xo,xs,y,yo,ys);return;}function("cblas_sswap").invokeVoid(new Object[]{count,x,xs,y,ys});}
+	@Override public final float sasum(int count,float[]x,int offset,int stride){checkRegion(count,x,offset,stride);return offset==0?function("cblas_sasum").invokeFloat(new Object[]{count,x,stride}):ComputeBackend.super.sasum(count,x,offset,stride);}
+	@Override public final int isamax(int count,float[]x,int offset,int stride){checkRegion(count,x,offset,stride);if(count==0)return-1;return offset==0?function("cblas_isamax").invokeInt(new Object[]{count,x,stride}):ComputeBackend.super.isamax(count,x,offset,stride);}
 	@Override public final float sdot(int count, float[] x, int xOffset, int xStride,
 			float[] y, int yOffset, int yStride) {
 		checkRegion(count, x, xOffset, xStride); checkRegion(count, y, yOffset, yStride);
@@ -189,6 +211,11 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 				dimension, shared, alpha, matrix, lda, beta, result, dimension});
 		mirrorLower(result, dimension);
 	}
+	@Override public final void sger(int rows,int columns,float alpha,float[]x,int xo,int xs,float[]y,int yo,int ys,float[]matrix){if(xo!=0||yo!=0){ComputeBackend.super.sger(rows,columns,alpha,x,xo,xs,y,yo,ys,matrix);return;}checkRegion(rows,x,xo,xs);checkRegion(columns,y,yo,ys);checkMatrix(matrix,rows,columns);function("cblas_sger").invokeVoid(new Object[]{ROW_MAJOR,rows,columns,alpha,x,xs,y,ys,matrix,columns});}
+	@Override public final void ssyr(MatrixTriangle triangle,int dimension,float alpha,float[]x,int offset,int stride,float[]matrix){if(offset!=0){ComputeBackend.super.ssyr(triangle,dimension,alpha,x,offset,stride,matrix);return;}checkRegion(dimension,x,offset,stride);checkSquare(matrix,dimension);function("cblas_ssyr").invokeVoid(new Object[]{ROW_MAJOR,triangle(triangle),dimension,alpha,x,stride,matrix,dimension});mirrorTriangle(matrix,dimension,triangle);}
+	@Override public final void ssyr2(MatrixTriangle triangle,int dimension,float alpha,float[]x,int xo,int xs,float[]y,int yo,int ys,float[]matrix){if(xo!=0||yo!=0){ComputeBackend.super.ssyr2(triangle,dimension,alpha,x,xo,xs,y,yo,ys,matrix);return;}checkRegion(dimension,x,xo,xs);checkRegion(dimension,y,yo,ys);checkSquare(matrix,dimension);function("cblas_ssyr2").invokeVoid(new Object[]{ROW_MAJOR,triangle(triangle),dimension,alpha,x,xs,y,ys,matrix,dimension});mirrorTriangle(matrix,dimension,triangle);}
+	@Override public final void ssymm(MatrixSide side,MatrixTriangle triangle,int rows,int columns,float alpha,float[]symmetric,float[]right,float beta,float[]result){int order=side==MatrixSide.LEFT?rows:columns;checkSquare(symmetric,order);checkMatrix(right,rows,columns);checkMatrix(result,rows,columns);function("cblas_ssymm").invokeVoid(new Object[]{ROW_MAJOR,side(side),triangle(triangle),rows,columns,alpha,symmetric,order,right,columns,beta,result,columns});}
+	@Override public final void ssyr2k(MatrixTriangle triangle,MatrixTranspose transpose,int dimension,int shared,float alpha,float[]left,float[]right,float beta,float[]result){int rows=transpose==MatrixTranspose.NONE?dimension:shared,columns=transpose==MatrixTranspose.NONE?shared:dimension;checkMatrix(left,rows,columns);checkMatrix(right,rows,columns);checkSquare(result,dimension);int lda=transpose==MatrixTranspose.NONE?shared:dimension;function("cblas_ssyr2k").invokeVoid(new Object[]{ROW_MAJOR,triangle(triangle),trans(transpose),dimension,shared,alpha,left,lda,right,lda,beta,result,dimension});mirrorTriangle(result,dimension,triangle);}
 	@Override public final void strsv(MatrixTriangle triangle, MatrixTranspose transpose,
 			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
 		checkTriangular(triangle, transpose, diagonal, dimension, matrix, vector, dimension);
@@ -220,6 +247,22 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 				Byte.valueOf((byte) 'L'), dimension, factor, dimension});
 		checkInfo("spotrf", info); clearUpper(factor, dimension);
 		return new FloatCholeskyFactor(dimension, factor);
+	}
+	@Override public final LuFactor dgetrf(double[] matrix, int dimension) {
+		Function operation = optional("LAPACKE_dgetrf");
+		if (operation == null) return ComputeBackend.super.dgetrf(matrix, dimension);
+		checkSquare(matrix, dimension); double[] packed = matrix.clone(); int[] pivots = new int[dimension];
+		int info = operation.invokeInt(new Object[]{ROW_MAJOR,dimension,dimension,packed,dimension,pivots});
+		checkInfo("dgetrf", info); int[] permutation = pivotPermutation(pivots); int sign = pivotSign(pivots);
+		return new LuFactor(dimension, packed, permutation, sign);
+	}
+	@Override public final FloatLuFactor sgetrf(float[] matrix, int dimension) {
+		Function operation = optional("LAPACKE_sgetrf");
+		if (operation == null) return ComputeBackend.super.sgetrf(matrix, dimension);
+		checkSquare(matrix, dimension); float[] packed = matrix.clone(); int[] pivots = new int[dimension];
+		int info = operation.invokeInt(new Object[]{ROW_MAJOR,dimension,dimension,packed,dimension,pivots});
+		checkInfo("sgetrf", info); int[] permutation = pivotPermutation(pivots); int sign = pivotSign(pivots);
+		return new FloatLuFactor(dimension, packed, permutation, sign);
 	}
 	@Override public final PivotedQrFactor dgeqp3(double[] matrix, int rows, int columns) {
 		if (!lapacke) return ComputeBackend.super.dgeqp3(matrix, rows, columns);
@@ -259,6 +302,8 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 		checkInfo("ssyev", info);
 		return new FloatSymmetricEigenDecomposition(dimension, values, vectors);
 	}
+	@Override public final SymmetricEigenDecomposition dsygvd(double[] matrix,double[] metric,int dimension){Function operation=optional("LAPACKE_dsygvd");if(operation==null)return ComputeBackend.super.dsygvd(matrix,metric,dimension);checkSquare(matrix,dimension);checkSquare(metric,dimension);double[]vectors=matrix.clone(),workMetric=metric.clone(),values=new double[dimension];int info=operation.invokeInt(new Object[]{ROW_MAJOR,1,Byte.valueOf((byte)'V'),Byte.valueOf((byte)'L'),dimension,vectors,dimension,workMetric,dimension,values});checkInfo("dsygvd",info);return new SymmetricEigenDecomposition(dimension,values,vectors);}
+	@Override public final FloatSymmetricEigenDecomposition ssygvd(float[] matrix,float[] metric,int dimension){Function operation=optional("LAPACKE_ssygvd");if(operation==null)return ComputeBackend.super.ssygvd(matrix,metric,dimension);checkSquare(matrix,dimension);checkSquare(metric,dimension);float[]vectors=matrix.clone(),workMetric=metric.clone(),values=new float[dimension];int info=operation.invokeInt(new Object[]{ROW_MAJOR,1,Byte.valueOf((byte)'V'),Byte.valueOf((byte)'L'),dimension,vectors,dimension,workMetric,dimension,values});checkInfo("ssygvd",info);return new FloatSymmetricEigenDecomposition(dimension,values,vectors);}
 	@Override public final SingularValueDecomposition dgesvd(double[] matrix, int rows,
 			int columns) {
 		if (!lapacke) return ComputeBackend.super.dgesvd(matrix, rows, columns);
@@ -293,6 +338,8 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 			MatrixTriangle triangle, SparseOrdering ordering) {
 		return ComputeBackend.super.prepareScsrpotrf(matrix, triangle, ordering);
 	}
+	@Override public PreparedDenseMatrix prepareDge(double[] matrix,int rows,int columns){checkMatrix(matrix,rows,columns);final double[]retained=matrix.clone();return new PreparedDenseMatrix(){private boolean closed;public int rows(){check();return rows;}public int columns(){check();return columns;}public void multiply(MatrixTranspose transpose,double alpha,double[]right,int rightColumns,double beta,double[]result){check();int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;NativeCpuComputeBackend.this.dgemm(transpose,MatrixTranspose.NONE,output,rightColumns,shared,alpha,retained,right,beta,result);}public void close(){closed=true;}private void check(){if(closed)throw new IllegalStateException("prepared native dense matrix is closed");}};}
+	@Override public PreparedFloatDenseMatrix prepareSge(float[] matrix,int rows,int columns){checkMatrix(matrix,rows,columns);final float[]retained=matrix.clone();return new PreparedFloatDenseMatrix(){private boolean closed;public int rows(){check();return rows;}public int columns(){check();return columns;}public void multiply(MatrixTranspose transpose,float alpha,float[]right,int rightColumns,float beta,float[]result){check();int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;NativeCpuComputeBackend.this.sgemm(transpose,MatrixTranspose.NONE,output,rightColumns,shared,alpha,retained,right,beta,result);}public void close(){closed=true;}private void check(){if(closed)throw new IllegalStateException("prepared native FP32 dense matrix is closed");}};}
 
 	final Function optional(String name) {
 		try { return library == null ? null : library.getFunction(name); }
@@ -456,6 +503,8 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 				column < dimension; column++) matrix[row * dimension + column]
 					= matrix[column * dimension + row];
 	}
+	private static void mirrorTriangle(double[] matrix,int dimension,MatrixTriangle triangle){if(triangle==MatrixTriangle.LOWER)mirrorLower(matrix,dimension);else for(int row=1;row<dimension;row++)for(int column=0;column<row;column++)matrix[row*dimension+column]=matrix[column*dimension+row];}
+	private static void mirrorTriangle(float[] matrix,int dimension,MatrixTriangle triangle){if(triangle==MatrixTriangle.LOWER)mirrorLower(matrix,dimension);else for(int row=1;row<dimension;row++)for(int column=0;column<row;column++)matrix[row*dimension+column]=matrix[column*dimension+row];}
 	private static void clearUpper(double[] matrix, int dimension) {
 		for (int row = 0; row < dimension; row++) for (int column = row + 1;
 				column < dimension; column++) matrix[row * dimension + column] = 0.0;
@@ -467,6 +516,8 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 	private static void zeroBase(int[] pivot) {
 		for (int i = 0; i < pivot.length; i++) pivot[i]--;
 	}
+	private static int[] pivotPermutation(int[] pivots){int[]result=new int[pivots.length];for(int i=0;i<result.length;i++)result[i]=i;for(int i=0;i<pivots.length;i++){int other=pivots[i]-1,value=result[i];result[i]=result[other];result[other]=value;}return result;}
+	private static int pivotSign(int[] pivots){int sign=1;for(int i=0;i<pivots.length;i++)if(pivots[i]-1!=i)sign=-sign;return sign;}
 	private static void checkInfo(String operation, int info) {
 		if (info < 0) throw new IllegalArgumentException(operation + " rejected argument " + -info);
 		if (info > 0) throw new ArithmeticException(operation + " failed to converge/factor at " + info);

@@ -35,13 +35,37 @@ public interface ComputeBackend extends LinearAlgebraBackend,
 		boolean gpu = api == ComputeApi.CUDA || api == ComputeApi.OPENCL
 				|| api == ComputeApi.VULKAN;
 		boolean serial = operation == LinearAlgebraOperation.POTRF
+				|| operation == LinearAlgebraOperation.GETRF
+				|| operation == LinearAlgebraOperation.SYTRF
 				|| operation == LinearAlgebraOperation.GEQP3
 				|| operation == LinearAlgebraOperation.SYEV
+				|| operation == LinearAlgebraOperation.SYGVD
 				|| operation == LinearAlgebraOperation.GESVD
 				|| operation == LinearAlgebraOperation.TRSV;
 		boolean sparseFactor = operation == LinearAlgebraOperation.CSR_ANALYZE
 				|| operation == LinearAlgebraOperation.CSR_REFACTOR
 				|| operation == LinearAlgebraOperation.CSR_SOLVE;
+		boolean gpuProvider = api == ComputeApi.CUDA || api == ComputeApi.OPENCL
+				|| api == ComputeApi.VULKAN;
+		boolean portableOnly = operation == LinearAlgebraOperation.CSR_GEMM
+				|| operation == LinearAlgebraOperation.CSR_TRSV
+				|| operation == LinearAlgebraOperation.SYTRF
+				|| (gpuProvider && (operation == LinearAlgebraOperation.SCAL
+						|| operation == LinearAlgebraOperation.COPY
+						|| operation == LinearAlgebraOperation.SWAP
+						|| operation == LinearAlgebraOperation.ASUM
+						|| operation == LinearAlgebraOperation.IAMAX
+						|| operation == LinearAlgebraOperation.GER
+						|| operation == LinearAlgebraOperation.SYR
+						|| operation == LinearAlgebraOperation.SYR2
+						|| operation == LinearAlgebraOperation.SYR2K
+						|| operation == LinearAlgebraOperation.SYMM
+						|| operation == LinearAlgebraOperation.GETRF
+						|| operation == LinearAlgebraOperation.SYGVD));
+		if (portableOnly && !"cpu".equals(id()))
+			return new ExecutionPlan(operation, precision, ExecutionKind.PORTABLE_FALLBACK,
+					"cpu", System.getProperty("os.arch", "unknown"),
+					"operation uses the portable reference on this provider");
 		if (operation == LinearAlgebraOperation.CSR_POTRF && !"cpu".equals(id()))
 			return new ExecutionPlan(operation, precision, ExecutionKind.PORTABLE_FALLBACK,
 					"cpu", System.getProperty("os.arch", "unknown"),

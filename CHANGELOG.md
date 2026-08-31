@@ -1,6 +1,19 @@
 What's new:
 
 Development after 0.9.1:
+* Completed the FP64/FP32 BLAS surface needed by downstream linear-algebra
+  libraries: scaling, copying, swapping, absolute reductions, rank-one/rank-two
+  updates, symmetric multiplication and rank-2k updates; no-copy GEMV/GEMM/
+  SYRK/TRSM regions; and batched GEMM, Cholesky, and LU entry points.
+* Added reusable partial-pivoted LU and pivoted symmetric-indefinite LDL'
+  factors with determinant metadata and multi-RHS solves, plus generalized
+  symmetric eigendecomposition for SPD metrics. oneMKL/OpenBLAS use LAPACKE LU
+  and generalized eigen exports when present; every provider has a deterministic
+  portable fallback for the new decompositions.
+* Added canonical CSR-by-CSR multiplication and transposed/unit-diagonal CSR
+  triangular solves. Prepared FP64/FP32 dense handles retain their fixed operand
+  in native CPU storage or CUDA/OpenCL/Vulkan device buffers, accept repeated or
+  batched products, and are covered by expanded capability/execution reporting.
 * Added FP64/FP32 symmetric eigendecomposition (`dsyev`/`ssyev`) and thin SVD
   (`dgesvd`/`sgesvd`) for tall, square, and wide row-major matrices. Cholesky,
   pivoted QR, eigen, and SVD now execute on CPU, CUDA, OpenCL, and Vulkan;

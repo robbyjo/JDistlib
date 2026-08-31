@@ -370,12 +370,17 @@ NUTS target offload may be slower. Direct-download users should use
 `jdistlib-all`; modular artifacts are intended for dependency-managed builds.
 The same providers expose public row-major FP64 and FP32 linear-algebra surfaces
 with standard `d*` and `s*` BLAS/LAPACK names, CPU/GPU CSR matrix-vector and
-matrix-matrix products, and FP64/FP32 Cholesky, symmetric-eigen, pivoted-QR,
-and thin-SVD decompositions on CPU, CUDA, OpenCL, and Vulkan. See the
+matrix-matrix products, rank updates, triangular solves, and FP64/FP32
+Cholesky, LU, symmetric-indefinite LDL', ordinary/generalized symmetric eigen,
+pivoted-QR, and thin-SVD decompositions. See the
 [linear-algebra contract](docs/LINEAR_ALGEBRA_ACCELERATION.md).
 That contract also includes symmetric rank-k updates, triangular vector and
 multi-RHS solves, prepared Cholesky handles, execution/device identification,
 and strict optional `Compute.ONEMKL` and `Compute.OPENBLAS` CPU choices.
+No-copy matrix-region overloads, batched GEMM/Cholesky/LU calls, and prepared
+dense handles support reusable work arrays; CUDA, OpenCL, and Vulkan retain a
+prepared dense operand in device storage. CSR also supports sparse-sparse
+products and sparse triangular solves through the portable contract.
 Reusable FP64/FP32 sparse Cholesky factors add minimum-degree or natural
 ordering, log determinants, and original-coordinate solves. Sparse
 factorization supports prepared symbolic reuse and numeric refactorization;

@@ -67,6 +67,8 @@ import jdistlib.accelerator.MatrixTriangle;
 import jdistlib.accelerator.MatrixDiagonal;
 import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
+import jdistlib.accelerator.PreparedDenseMatrix;
+import jdistlib.accelerator.PreparedFloatDenseMatrix;
 import jdistlib.accelerator.PivotedQrFactor;
 import jdistlib.accelerator.SingularValueDecomposition;
 import jdistlib.accelerator.SymmetricEigenDecomposition;
@@ -679,6 +681,20 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	@Override public synchronized FloatPivotedQrFactor sgeqp3(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource qr=create(matrix),tau=createFloats(count),pivot=createInts(columns);try{ByteBuffer push=nativeBuffer(8).putInt(0,rows).putInt(4,columns);if(sgeqp3Kernel==null)sgeqp3Kernel=new Kernel(SGEQP3_SHADER,3,8);execute(sgeqp3Kernel,resources(qr,tau,pivot),push,1,1,1);return new FloatPivotedQrFactor(rows,columns,qr.readFloats(matrix.length),tau.readFloats(count),pivot.readInts(columns));}finally{pivot.close();tau.close();qr.close();}}
 	@Override public synchronized FloatSymmetricEigenDecomposition ssyev(float[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);checkSymmetric(matrix,dimension);ensureAvailable();BufferResource work=create(matrix),values=createFloats(dimension),vectors=createFloats(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(8).putFloat(0,16*Math.ulp(1.0f)).putInt(4,dimension);if(ssyevKernel==null)ssyevKernel=new Kernel(SSYEV_SHADER,4,8);execute(ssyevKernel,resources(work,values,vectors,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan FP32 symmetric eigendecomposition did not converge");return new FloatSymmetricEigenDecomposition(dimension,values.readFloats(dimension),vectors.readFloats(matrix.length));}finally{info.close();vectors.close();values.close();work.close();}}
 	@Override public synchronized FloatSingularValueDecomposition sgesvd(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource a=create(matrix),work=createFloats(matrix.length),u=createFloats(rows*count),singular=createFloats(count),vt=createFloats(count*columns),info=createInts(1);try{ByteBuffer push=nativeBuffer(12).putFloat(0,16*Math.ulp(1.0f)).putInt(4,rows).putInt(8,columns);if(sgesvdKernel==null)sgesvdKernel=new Kernel(SGESVD_SHADER,6,12);execute(sgesvdKernel,resources(a,work,u,singular,vt,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan FP32 SVD did not converge");return new FloatSingularValueDecomposition(rows,columns,singular.readFloats(count),u.readFloats(rows*count),vt.readFloats(count*columns));}finally{info.close();vt.close();singular.close();u.close();work.close();a.close();}}
+	@Override public synchronized PreparedDenseMatrix prepareDge(double[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();return new PreparedDoubleDense(matrix,rows,columns);}
+	@Override public synchronized PreparedFloatDenseMatrix prepareSge(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();return new PreparedFloatDense(matrix,rows,columns);}
+	private final class PreparedDoubleDense implements PreparedDenseMatrix{
+		private final int rows,columns;private BufferResource matrix;
+		PreparedDoubleDense(double[]source,int rows,int columns){this.rows=rows;this.columns=columns;matrix=create(source);}public int rows(){checkOpen();return rows;}public int columns(){checkOpen();return columns;}
+		public void multiply(MatrixTranspose transpose,double alpha,double[]right,int rightColumns,double beta,double[]result){if(transpose==null||rightColumns<1)throw new IllegalArgumentException("prepared Vulkan dense dimensions do not conform");int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;if(right==null||right.length!=shared*rightColumns||result==null||result.length!=output*rightColumns)throw new IllegalArgumentException("prepared Vulkan dense dimensions do not conform");synchronized(VulkanComputeBackend.this){checkOpen();BufferResource b=create(right),c=create(result);try{ByteBuffer push=nativeBuffer(48).putDouble(0,alpha).putDouble(8,beta).putInt(16,transpose==MatrixTranspose.TRANSPOSE?1:0).putInt(20,0).putInt(24,output).putInt(28,rightColumns).putInt(32,shared);if(blasGemmKernel==null)blasGemmKernel=new Kernel(BLAS_GEMM_SHADER,3,48);execute(blasGemmKernel,resources(matrix,b,c),push,groups(rightColumns,16),groups(output,16),1);double[]updated=c.readDoubles(result.length);System.arraycopy(updated,0,result,0,result.length);}finally{c.close();b.close();}}}
+		public void close(){synchronized(VulkanComputeBackend.this){if(matrix!=null){matrix.close();matrix=null;}}}private void checkOpen(){if(matrix==null)throw new IllegalStateException("prepared Vulkan dense matrix is closed");}
+	}
+	private final class PreparedFloatDense implements PreparedFloatDenseMatrix{
+		private final int rows,columns;private BufferResource matrix;
+		PreparedFloatDense(float[]source,int rows,int columns){this.rows=rows;this.columns=columns;matrix=create(source);}public int rows(){checkOpen();return rows;}public int columns(){checkOpen();return columns;}
+		public void multiply(MatrixTranspose transpose,float alpha,float[]right,int rightColumns,float beta,float[]result){if(transpose==null||rightColumns<1)throw new IllegalArgumentException("prepared Vulkan FP32 dense dimensions do not conform");int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;if(right==null||right.length!=shared*rightColumns||result==null||result.length!=output*rightColumns)throw new IllegalArgumentException("prepared Vulkan FP32 dense dimensions do not conform");synchronized(VulkanComputeBackend.this){checkOpen();BufferResource b=create(right),c=create(result);try{ByteBuffer push=nativeBuffer(28).putFloat(0,alpha).putFloat(4,beta).putInt(8,transpose==MatrixTranspose.TRANSPOSE?1:0).putInt(12,0).putInt(16,output).putInt(20,rightColumns).putInt(24,shared);if(floatGemmKernel==null)floatGemmKernel=new Kernel(FLOAT_GEMM_SHADER,3,28);execute(floatGemmKernel,resources(matrix,b,c),push,groups(rightColumns,16),groups(output,16),1);float[]updated=c.readFloats(result.length);System.arraycopy(updated,0,result,0,result.length);}finally{c.close();b.close();}}}
+		public void close(){synchronized(VulkanComputeBackend.this){if(matrix!=null){matrix.close();matrix=null;}}}private void checkOpen(){if(matrix==null)throw new IllegalStateException("prepared Vulkan FP32 dense matrix is closed");}
+	}
 
 	@Override public synchronized LogisticRegressionBatchResult logisticRegression(double[][] design,
 			double[] outcomes, double[][] states, double priorPrecision) {
@@ -761,7 +777,8 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			VkPhysicalDeviceProperties properties = VkPhysicalDeviceProperties.calloc(stack);
 			vkGetPhysicalDeviceProperties(physicalDevice, properties);
 			capabilities = new ComputeCapabilities("VULKAN", properties.deviceNameString(), true, true,
-					deviceLocalMemory(physicalDevice, stack), true, true, true);
+					deviceLocalMemory(physicalDevice, stack), true, true, true,
+					false, false, true, true, true);
 			Package pkg = getClass().getPackage(); String backendVersion = pkg == null
 					|| pkg.getImplementationVersion() == null ? "development" : pkg.getImplementationVersion();
 			deviceInfo = new ComputeDeviceInfo(id(), backendVersion, ComputeApi.VULKAN,

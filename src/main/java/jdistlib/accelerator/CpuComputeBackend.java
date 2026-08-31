@@ -7,7 +7,7 @@ public final class CpuComputeBackend implements ComputeBackend {
 	@Override public boolean available() { return true; }
 	@Override public ComputeCapabilities capabilities() {
 		return new ComputeCapabilities("CPU", System.getProperty("os.arch", "unknown"),
-				true, false, 0L, true, true, true, true, false, true);
+				true, false, 0L, true, true, true, true, false, true, true, true);
 	}
 	@Override public ComputeDeviceInfo deviceInfo() {
 		Package pkg = getClass().getPackage();

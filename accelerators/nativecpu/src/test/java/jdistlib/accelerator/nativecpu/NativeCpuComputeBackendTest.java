@@ -69,6 +69,12 @@ public class NativeCpuComputeBackendTest {
 			backend.strsm(MatrixSide.LEFT, MatrixTriangle.LOWER, MatrixTranspose.NONE,
 					MatrixDiagonal.NON_UNIT, 2, 2, 1.0f, new float[] {2,0,1,3}, floatRight);
 			assertArrayEquals(new float[] {1,2,3,4}, floatRight, 1e-5f);
+			double[] scaled={1,-2,3};backend.dscal(3,2,scaled,0,1);assertArrayEquals(new double[]{2,-4,6},scaled,0);
+			assertEquals(12,backend.dasum(3,scaled,0,1),0);assertEquals(2,backend.idamax(3,scaled,0,1));
+			assertArrayEquals(new double[]{1,2,-1},backend.dgetrf(new double[]{0,2,1,1,-2,-3,2,3,1},3).solve(new double[]{3,0,7}),1e-11);
+			assertArrayEquals(new double[]{2,3},backend.dsygvd(new double[]{4,0,0,3},new double[]{2,0,0,1},2).eigenvalues(),1e-11);
+			try(jdistlib.accelerator.PreparedDenseMatrix prepared=backend.prepareDge(new double[]{1,2,3,4},2,2)){double[]preparedResult=new double[2];prepared.multiply(MatrixTranspose.NONE,1,new double[]{1,1},1,0,preparedResult);assertArrayEquals(new double[]{3,7},preparedResult,1e-12);}
+			assertTrue(backend.capabilities().preparedDenseMatrices());assertTrue(backend.capabilities().batchedLinearAlgebra());
 		}
 	}
 

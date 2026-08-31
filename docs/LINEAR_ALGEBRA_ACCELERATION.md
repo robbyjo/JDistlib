@@ -28,26 +28,48 @@ outputs:
 
 | FP64 | FP32 | Operation |
 | --- | --- | --- |
+| `dscal` | `sscal` | strided in-place scaling |
+| `dcopy` | `scopy` | alias-safe strided copy |
+| `dswap` | `sswap` | strided exchange |
+| `dasum` | `sasum` | absolute sum |
+| `idamax` | `isamax` | zero-based index of the first absolute maximum |
 | `daxpy` | `saxpy` | strided `y := alpha*x + y` |
 | `ddot` | `sdot` | strided dot product |
 | `dnrm2` | `snrm2` | scaled Euclidean norm |
 | `dgemv` | `sgemv` | `y := alpha*op(A)*x + beta*y` |
 | `dgemm` | `sgemm` | `C := alpha*op(A)*op(B) + beta*C` |
+| `dger` | `sger` | general rank-one update |
+| `dsyr`/`dsyr2` | `ssyr`/`ssyr2` | symmetric rank-one/rank-two updates |
 | `dsyrk` | `ssyrk` | symmetric rank-k update, returned as a full matrix |
+| `dsyr2k` | `ssyr2k` | symmetric rank-2k update, returned as a full matrix |
+| `dsymm` | `ssymm` | left/right symmetric matrix multiplication |
 | `dtrsv` | `strsv` | in-place triangular vector solve |
 | `dtrsm` | `strsm` | in-place left/right triangular multi-RHS solve |
 | `dcsrmv` | `scsrmv` | CSR matrix times dense vector |
 | `dcsrmm` | `scsrmm` | CSR matrix times row-major dense matrix |
+| `dcsrgemm` | `scsrgemm` | canonical CSR times CSR product |
+| `dcsrsv` | `scsrsv` | in-place CSR triangular vector solve |
 | `dcsrpotrf` | `scsrpotrf` | reusable sparse SPD Cholesky factorization |
 | `dpotrf` | `spotrf` | lower Cholesky factorization |
+| `dgetrf` | `sgetrf` | partial-pivoted LU factorization |
+| `dsytrf` | `ssytrf` | pivoted symmetric-indefinite LDL' factorization |
 | `dgeqp3` | `sgeqp3` | column-pivoted Householder QR |
 | `dsyev` | `ssyev` | symmetric eigenvalues and eigenvectors |
+| `dsygvd` | `ssygvd` | generalized symmetric eigenproblem with an SPD metric |
 | `dgesvd` | `sgesvd` | thin singular-value decomposition |
 
 `MatrixTranspose`, `MatrixTriangle`, `MatrixDiagonal`, and `MatrixSide` make
 transpose and triangular conventions explicit. The older allocating
 `axpy`, `dot`, and `matrixMultiply(double[][], double[][])` methods remain
 available and compatible.
+
+GEMV, GEMM, SYRK, and TRSM also have no-copy overloads with array offsets,
+row-major leading dimensions, and vector strides. These operate directly on
+submatrices in larger work arrays. `dgemmBatched`/`sgemmBatched`,
+`dpotrfBatched`/`spotrfBatched`, and `dgetrfBatched`/`sgetrfBatched` accept
+independent same-shaped jobs. Batches preserve provider execution but do not
+promise a single fused kernel; measure the selected provider for the matrix
+sizes used by the application.
 
 ## Sparse storage
 
@@ -71,6 +93,13 @@ double-counting mirrored entries. The default `SparseOrdering.MINIMUM_DEGREE`
 reduces fill; `SparseOrdering.NATURAL` preserves input order. Duplicate entries
 within the authoritative triangle are summed.
 
+`dcsrgemm`/`scsrgemm` multiply two sparse matrices without dense
+materialization, combine duplicate contributions, remove exact zeros, and
+return sorted one-based CSR. `dcsrsv`/`scsrsv` solve lower or upper CSR
+triangular systems, including transposed and unit-diagonal forms. These two
+operations currently use the portable sparse implementation on every provider;
+execution planning reports that fallback explicitly.
+
 `prepareDcsr` and `prepareScsr` return owned CSR handles for repeated products.
 The portable implementation retains immutable CSR storage and dispatches each
 product through the selected provider. `ComputeCapabilities.preparedSparseMatrices()`
@@ -80,6 +109,12 @@ and row starts in device memory while each dense vector or right side remains a
 per-call transfer; OpenCL and Vulkan currently use the compatible non-resident
 handle.
 
+`prepareDge` and `prepareSge` retain a general dense left operand for repeated
+GEMM-family products. CUDA, OpenCL, and Vulkan keep that operand in a device
+buffer; oneMKL and OpenBLAS retain host storage and dispatch repeated products
+through CBLAS. The prepared handles also accept batches. AUTO selects a
+provider-resident handle above its conservative preparation threshold.
+
 ## Reusable decompositions
 
 `dpotrf`/`spotrf` compute lower Cholesky factors with repeated vector/matrix
@@ -88,6 +123,13 @@ Householder QR with rank reporting and a full-rank least-squares solve. The
 results are `CholeskyFactor`/`FloatCholeskyFactor` and
 `PivotedQrFactor`/`FloatPivotedQrFactor`. Factor objects own their storage and
 never expose a mutable internal array.
+
+`dgetrf`/`sgetrf` return `LuFactor`/`FloatLuFactor` with the final row
+permutation, determinant sign, log absolute determinant, and vector or
+multi-right-side solves. `dsytrf`/`ssytrf` return pivoted LDL' factors whose D
+storage supports both 1x1 and 2x2 blocks, so zero-diagonal indefinite matrices
+do not require artificial regularization. Their solves permute inputs and
+outputs back to original coordinates.
 
 ```java
 CholeskyFactor factor = blas.dpotrf(covariance, dimension);
@@ -134,6 +176,11 @@ matrices and return the thin decomposition `A = U*S*Vt`, with singular values
 in descending order. Thin `U` has shape `rows` by `min(rows,columns)` and thin
 `Vt` has shape `min(rows,columns)` by `columns`.
 
+`dsygvd`/`ssygvd` solve `A*x = lambda*B*x` for symmetric A and SPD B. Returned
+eigenvectors are columns and are B-orthonormal. This directly supports spectral
+REML, genomic relationship transformations, and other generalized Rayleigh
+problems without exposing temporary Cholesky transformations.
+
 The deterministic Java CPU algorithms are the reference. oneMKL uses LAPACKE
 when the installed runtime exports it; OpenBLAS does likewise and otherwise
 uses the Java decomposition fallback. CUDA, OpenCL, and
@@ -143,6 +190,13 @@ portable correctness baseline and avoiding host-side factorization; large-scale
 tiled or vendor-library implementations can replace those kernels behind the
 same API. `Compute.AUTO` uses a cubic work estimate to keep small decompositions
 on CPU and route sufficiently large ones to the selected accelerator.
+
+oneMKL/OpenBLAS use LAPACKE GETRF and SYGVD when the installed runtime exports
+them. The Java reference provides LU, LDL', and generalized eigen on every
+platform. CUDA, OpenCL, and Vulkan currently use that portable implementation
+for those three newly added factorization families while retaining native
+Cholesky, QR, ordinary symmetric eigen, and SVD kernels; execution plans expose
+the boundary rather than describing a host fallback as device work.
 
 Immutable sparse factors continue to use the deterministic Java representation.
 Prepared oneMKL factors use PARDISO when the installed runtime exports
@@ -198,7 +252,8 @@ the plans for accelerated CSR products.
 
 `ComputeCapabilities` separately reports dense BLAS, sparse BLAS, native dense
 factorizations, provider-prepared sparse matrices, native sparse factorization,
-and reusable sparse analysis. CUDA, OpenCL, and Vulkan currently accelerate both FP64
+reusable sparse analysis, prepared dense storage, and batched API support.
+CUDA, OpenCL, and Vulkan currently accelerate both FP64
 and FP32 dense and CSR operations with native precision buffers and kernels.
 Reduction order and final rounding can differ across providers, so callers
 should compare numerical tolerances rather than bits and record the selected
@@ -208,9 +263,10 @@ storage and potentially higher device throughput; it is never silently used
 for an FP64 call.
 
 Heap-backed calls include host/device transfer and synchronization. Small
-operations normally favor CPU. Prepared or resident matrix APIs remain the
-appropriate future extension for repeated large operations such as mixed-model
-solves and fine-mapping residual updates.
+operations normally favor CPU. Prepared dense and sparse handles amortize the
+fixed operand transfer for repeated large operations such as mixed-model solves
+and fine-mapping residual updates; per-call right sides and results still cross
+the JVM/provider boundary.
 
 Service-loaded providers can also be selected by exact identifier through
 `ComputeBackends.byId` or the `jdistlib.compute.backend` system property.

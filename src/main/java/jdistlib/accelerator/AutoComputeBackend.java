@@ -27,7 +27,8 @@ final class AutoComputeBackend implements ComputeBackend {
 				value.doublePrecision(), value.runtimeCompilation(), value.globalMemoryBytes(),
 				value.denseLinearAlgebra(), value.sparseLinearAlgebra(), value.nativeFactorizations(),
 				value.preparedSparseMatrices(), value.nativeSparseFactorizations(),
-				value.reusableSparseFactorizations());
+				value.reusableSparseFactorizations(), value.preparedDenseMatrices(),
+				value.batchedLinearAlgebra());
 	}
 	@Override public ComputeDeviceInfo deviceInfo() {
 		ComputeDeviceInfo value = accelerator.deviceInfo();
@@ -77,6 +78,11 @@ final class AutoComputeBackend implements ComputeBackend {
 	@Override public double dnrm2(int count, double[] x, int offset, int stride) {
 		return route(count).dnrm2(count, x, offset, stride);
 	}
+	@Override public void dscal(int count,double alpha,double[]x,int offset,int stride){route(count).dscal(count,alpha,x,offset,stride);}
+	@Override public void dcopy(int count,double[]x,int xo,int xs,double[]y,int yo,int ys){route(count).dcopy(count,x,xo,xs,y,yo,ys);}
+	@Override public void dswap(int count,double[]x,int xo,int xs,double[]y,int yo,int ys){route(count).dswap(count,x,xo,xs,y,yo,ys);}
+	@Override public double dasum(int count,double[]x,int offset,int stride){return route(count).dasum(count,x,offset,stride);}
+	@Override public int idamax(int count,double[]x,int offset,int stride){return route(count).idamax(count,x,offset,stride);}
 	@Override public void dgemv(MatrixTranspose transpose, int rows, int columns,
 			double alpha, double[] matrix, double[] x, double beta, double[] y) {
 		long work = saturatingProduct(rows, columns, 1);
@@ -95,6 +101,11 @@ final class AutoComputeBackend implements ComputeBackend {
 		backendFor(LinearAlgebraOperation.SYRK, dimension, dimension, shared)
 				.dsyrk(transpose, dimension, shared, alpha, matrix, beta, result);
 	}
+	@Override public void dger(int rows,int columns,double alpha,double[]x,int xo,int xs,double[]y,int yo,int ys,double[]matrix){advancedBlasBackend(saturatingProduct(rows,columns,1)).dger(rows,columns,alpha,x,xo,xs,y,yo,ys,matrix);}
+	@Override public void dsyr(MatrixTriangle triangle,int dimension,double alpha,double[]x,int offset,int stride,double[]matrix){advancedBlasBackend(saturatingProduct(dimension,dimension,1)).dsyr(triangle,dimension,alpha,x,offset,stride,matrix);}
+	@Override public void dsyr2(MatrixTriangle triangle,int dimension,double alpha,double[]x,int xo,int xs,double[]y,int yo,int ys,double[]matrix){advancedBlasBackend(saturatingProduct(dimension,dimension,1)).dsyr2(triangle,dimension,alpha,x,xo,xs,y,yo,ys,matrix);}
+	@Override public void dsymm(MatrixSide side,MatrixTriangle triangle,int rows,int columns,double alpha,double[]symmetric,double[]right,double beta,double[]result){advancedBlasBackend(saturatingProduct(rows,columns,side==MatrixSide.LEFT?rows:columns)).dsymm(side,triangle,rows,columns,alpha,symmetric,right,beta,result);}
+	@Override public void dsyr2k(MatrixTriangle triangle,MatrixTranspose transpose,int dimension,int shared,double alpha,double[]left,double[]right,double beta,double[]result){advancedBlasBackend(saturatingProduct(dimension,dimension,shared)).dsyr2k(triangle,transpose,dimension,shared,alpha,left,right,beta,result);}
 	@Override public void dtrsv(MatrixTriangle triangle, MatrixTranspose transpose,
 			MatrixDiagonal diagonal, int dimension, double[] matrix, double[] vector) {
 		backendFor(LinearAlgebraOperation.TRSV, dimension)
@@ -123,6 +134,9 @@ final class AutoComputeBackend implements ComputeBackend {
 		long work = matrix == null ? 0L : matrix.nonzeroCount();
 		return (work >= VECTOR_THRESHOLD ? accelerator : cpu).prepareDcsr(matrix);
 	}
+	@Override public CsrMatrix dcsrgemm(CsrMatrix left,CsrMatrix right){return cpu.dcsrgemm(left,right);}
+	@Override public void dcsrsv(MatrixTriangle triangle,MatrixTranspose transpose,MatrixDiagonal diagonal,CsrMatrix matrix,double[]vector){cpu.dcsrsv(triangle,transpose,diagonal,matrix,vector);}
+	@Override public PreparedDenseMatrix prepareDge(double[]matrix,int rows,int columns){long work=saturatingProduct(rows,columns,1);return(work>=VECTOR_THRESHOLD&&accelerator.capabilities().preparedDenseMatrices()?accelerator:cpu).prepareDge(matrix,rows,columns);}
 	@Override public SparseCholeskyFactor dcsrpotrf(CsrMatrix matrix, MatrixTriangle triangle,
 			SparseOrdering ordering) {
 		return cpu.dcsrpotrf(matrix, triangle, ordering);
@@ -134,6 +148,9 @@ final class AutoComputeBackend implements ComputeBackend {
 	@Override public CholeskyFactor dpotrf(double[] matrix, int dimension) {
 		return decompositionBackend(dimension, dimension, dimension).dpotrf(matrix, dimension);
 	}
+	@Override public LuFactor dgetrf(double[]matrix,int dimension){return advancedDecompositionBackend(dimension).dgetrf(matrix,dimension);}
+	@Override public SymmetricIndefiniteFactor dsytrf(double[]matrix,int dimension){return advancedDecompositionBackend(dimension).dsytrf(matrix,dimension);}
+	@Override public SymmetricEigenDecomposition dsygvd(double[]matrix,double[]metric,int dimension){return advancedDecompositionBackend(dimension).dsygvd(matrix,metric,dimension);}
 	@Override public PivotedQrFactor dgeqp3(double[] matrix, int rows, int columns) {
 		return decompositionBackend(rows, columns, Math.min(rows, columns)).dgeqp3(matrix, rows, columns);
 	}
@@ -154,6 +171,11 @@ final class AutoComputeBackend implements ComputeBackend {
 	@Override public float snrm2(int count, float[] x, int offset, int stride) {
 		return route(count).snrm2(count, x, offset, stride);
 	}
+	@Override public void sscal(int count,float alpha,float[]x,int offset,int stride){route(count).sscal(count,alpha,x,offset,stride);}
+	@Override public void scopy(int count,float[]x,int xo,int xs,float[]y,int yo,int ys){route(count).scopy(count,x,xo,xs,y,yo,ys);}
+	@Override public void sswap(int count,float[]x,int xo,int xs,float[]y,int yo,int ys){route(count).sswap(count,x,xo,xs,y,yo,ys);}
+	@Override public float sasum(int count,float[]x,int offset,int stride){return route(count).sasum(count,x,offset,stride);}
+	@Override public int isamax(int count,float[]x,int offset,int stride){return route(count).isamax(count,x,offset,stride);}
 	@Override public void sgemv(MatrixTranspose transpose, int rows, int columns,
 			float alpha, float[] matrix, float[] x, float beta, float[] y) {
 		long work = saturatingProduct(rows, columns, 1);
@@ -172,6 +194,11 @@ final class AutoComputeBackend implements ComputeBackend {
 		backendFor(LinearAlgebraOperation.SYRK, dimension, dimension, shared)
 				.ssyrk(transpose, dimension, shared, alpha, matrix, beta, result);
 	}
+	@Override public void sger(int rows,int columns,float alpha,float[]x,int xo,int xs,float[]y,int yo,int ys,float[]matrix){advancedBlasBackend(saturatingProduct(rows,columns,1)).sger(rows,columns,alpha,x,xo,xs,y,yo,ys,matrix);}
+	@Override public void ssyr(MatrixTriangle triangle,int dimension,float alpha,float[]x,int offset,int stride,float[]matrix){advancedBlasBackend(saturatingProduct(dimension,dimension,1)).ssyr(triangle,dimension,alpha,x,offset,stride,matrix);}
+	@Override public void ssyr2(MatrixTriangle triangle,int dimension,float alpha,float[]x,int xo,int xs,float[]y,int yo,int ys,float[]matrix){advancedBlasBackend(saturatingProduct(dimension,dimension,1)).ssyr2(triangle,dimension,alpha,x,xo,xs,y,yo,ys,matrix);}
+	@Override public void ssymm(MatrixSide side,MatrixTriangle triangle,int rows,int columns,float alpha,float[]symmetric,float[]right,float beta,float[]result){advancedBlasBackend(saturatingProduct(rows,columns,side==MatrixSide.LEFT?rows:columns)).ssymm(side,triangle,rows,columns,alpha,symmetric,right,beta,result);}
+	@Override public void ssyr2k(MatrixTriangle triangle,MatrixTranspose transpose,int dimension,int shared,float alpha,float[]left,float[]right,float beta,float[]result){advancedBlasBackend(saturatingProduct(dimension,dimension,shared)).ssyr2k(triangle,transpose,dimension,shared,alpha,left,right,beta,result);}
 	@Override public void strsv(MatrixTriangle triangle, MatrixTranspose transpose,
 			MatrixDiagonal diagonal, int dimension, float[] matrix, float[] vector) {
 		backendFor(LinearAlgebraOperation.TRSV, dimension)
@@ -200,6 +227,9 @@ final class AutoComputeBackend implements ComputeBackend {
 		long work = matrix == null ? 0L : matrix.nonzeroCount();
 		return (work >= VECTOR_THRESHOLD ? accelerator : cpu).prepareScsr(matrix);
 	}
+	@Override public FloatCsrMatrix scsrgemm(FloatCsrMatrix left,FloatCsrMatrix right){return cpu.scsrgemm(left,right);}
+	@Override public void scsrsv(MatrixTriangle triangle,MatrixTranspose transpose,MatrixDiagonal diagonal,FloatCsrMatrix matrix,float[]vector){cpu.scsrsv(triangle,transpose,diagonal,matrix,vector);}
+	@Override public PreparedFloatDenseMatrix prepareSge(float[]matrix,int rows,int columns){long work=saturatingProduct(rows,columns,1);return(work>=VECTOR_THRESHOLD&&accelerator.capabilities().preparedDenseMatrices()?accelerator:cpu).prepareSge(matrix,rows,columns);}
 	@Override public FloatSparseCholeskyFactor scsrpotrf(FloatCsrMatrix matrix,
 			MatrixTriangle triangle, SparseOrdering ordering) {
 		return cpu.scsrpotrf(matrix, triangle, ordering);
@@ -211,6 +241,9 @@ final class AutoComputeBackend implements ComputeBackend {
 	@Override public FloatCholeskyFactor spotrf(float[] matrix, int dimension) {
 		return decompositionBackend(dimension, dimension, dimension).spotrf(matrix, dimension);
 	}
+	@Override public FloatLuFactor sgetrf(float[]matrix,int dimension){return advancedDecompositionBackend(dimension).sgetrf(matrix,dimension);}
+	@Override public FloatSymmetricIndefiniteFactor ssytrf(float[]matrix,int dimension){return advancedDecompositionBackend(dimension).ssytrf(matrix,dimension);}
+	@Override public FloatSymmetricEigenDecomposition ssygvd(float[]matrix,float[]metric,int dimension){return advancedDecompositionBackend(dimension).ssygvd(matrix,metric,dimension);}
 	@Override public FloatPivotedQrFactor sgeqp3(float[] matrix, int rows, int columns) {
 		return decompositionBackend(rows, columns, Math.min(rows, columns)).sgeqp3(matrix, rows, columns);
 	}
@@ -284,6 +317,8 @@ final class AutoComputeBackend implements ComputeBackend {
 		return saturatingProduct(rows, columns, iterations) >= MATRIX_MULTIPLY_THRESHOLD
 				? accelerator : cpu;
 	}
+	private ComputeBackend advancedBlasBackend(long work){ComputeApi api=accelerator.deviceInfo().api();boolean nativeCpu=api==ComputeApi.ONEMKL||api==ComputeApi.OPENBLAS;return nativeCpu&&work>=VECTOR_THRESHOLD?accelerator:cpu;}
+	private ComputeBackend advancedDecompositionBackend(int dimension){ComputeApi api=accelerator.deviceInfo().api();boolean nativeCpu=api==ComputeApi.ONEMKL||api==ComputeApi.OPENBLAS;return nativeCpu&&saturatingProduct(dimension,dimension,dimension)>=MATRIX_MULTIPLY_THRESHOLD?accelerator:cpu;}
 	private ComputeBackend backendFor(LinearAlgebraOperation operation, int... dimensions) {
 		long work;
 		switch (operation) {
@@ -291,6 +326,12 @@ final class AutoComputeBackend implements ComputeBackend {
 			return cpu;
 		case CSR_ANALYZE: case CSR_REFACTOR: case CSR_SOLVE:
 			return sparseFactorizationBackend();
+		case PREPARED_CSR: case PREPARED_DENSE:
+			work = dimensions.length >= 2
+					? saturatingProduct(dimensions[0], dimensions[1], 1)
+					: dimensions.length == 1 ? dimensions[0] : 0L;
+			return work >= VECTOR_THRESHOLD ? accelerator : cpu;
+		case SCAL: case COPY: case SWAP: case ASUM: case IAMAX:
 		case AXPY: case DOT: case NRM2:
 			work = dimensions.length == 0 ? 0L : dimensions[0];
 			return work >= VECTOR_THRESHOLD ? accelerator : cpu;

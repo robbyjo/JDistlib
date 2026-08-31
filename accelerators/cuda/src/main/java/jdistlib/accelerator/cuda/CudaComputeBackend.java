@@ -55,7 +55,9 @@ import jdistlib.accelerator.MatrixDiagonal;
 import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
 import jdistlib.accelerator.PreparedCsrMatrix;
+import jdistlib.accelerator.PreparedDenseMatrix;
 import jdistlib.accelerator.PreparedFloatCsrMatrix;
+import jdistlib.accelerator.PreparedFloatDenseMatrix;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.PivotedQrFactor;
 import jdistlib.accelerator.SingularValueDecomposition;
@@ -352,6 +354,9 @@ public final class CudaComputeBackend implements ComputeBackend {
 		if (matrix == null) throw new IllegalArgumentException("CSR matrix is required");
 		return new PreparedDoubleCsr(matrix);
 	}
+	@Override public PreparedDenseMatrix prepareDge(double[] matrix,int rows,int columns){
+		checkDecompositionMatrix(matrix,rows,columns);return new PreparedDoubleDense(matrix,rows,columns);
+	}
 	@Override public synchronized void saxpy(int count, float alpha, float[] x,
 			int xOffset, int xStride, float[] y, int yOffset, int yStride) {
 		checkRegion(count, x, xOffset, xStride); checkRegion(count, y, yOffset, yStride);
@@ -484,6 +489,45 @@ public final class CudaComputeBackend implements ComputeBackend {
 	@Override public PreparedFloatCsrMatrix prepareScsr(FloatCsrMatrix matrix) {
 		if (matrix == null) throw new IllegalArgumentException("FP32 CSR matrix is required");
 		return new PreparedFloatCsr(matrix);
+	}
+	@Override public PreparedFloatDenseMatrix prepareSge(float[] matrix,int rows,int columns){
+		checkDecompositionMatrix(matrix,rows,columns);return new PreparedFloatDense(matrix,rows,columns);
+	}
+	private final class PreparedDoubleDense implements PreparedDenseMatrix {
+		private final int rows,columns;private CUdeviceptr matrix;private boolean closed;
+		PreparedDoubleDense(double[]source,int rows,int columns){this.rows=rows;this.columns=columns;synchronized(CudaComputeBackend.this){ensureAvailable();setCurrent();matrix=allocate(source);}}
+		@Override public int rows(){checkOpen();return rows;}@Override public int columns(){checkOpen();return columns;}
+		@Override public void multiply(MatrixTranspose transpose,double alpha,double[]right,int rightColumns,double beta,double[]result){
+			if(transpose==null||rightColumns<1)throw new IllegalArgumentException("prepared CUDA dense dimensions do not conform");
+			int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;
+			if(right==null||right.length!=shared*rightColumns||result==null||result.length!=output*rightColumns)throw new IllegalArgumentException("prepared CUDA dense dimensions do not conform");
+			synchronized(CudaComputeBackend.this){checkOpen();setCurrent();CUdeviceptr b=allocate(right),c=allocate(result);try{
+				launch("blas_gemm",(rightColumns+15)/16,(output+15)/16,1,16,16,1,Pointer.to(
+					Pointer.to(new int[]{transpose==MatrixTranspose.TRANSPOSE?1:0}),Pointer.to(new int[]{0}),
+					Pointer.to(new int[]{output}),Pointer.to(new int[]{rightColumns}),Pointer.to(new int[]{shared}),
+					Pointer.to(new double[]{alpha}),Pointer.to(matrix),Pointer.to(b),Pointer.to(new double[]{beta}),Pointer.to(c)));
+				double[]updated=copy(c,result.length);System.arraycopy(updated,0,result,0,result.length);
+			}finally{cuMemFree(b);cuMemFree(c);}}}
+		@Override public void close(){synchronized(CudaComputeBackend.this){if(matrix!=null){setCurrent();cuMemFree(matrix);matrix=null;}closed=true;}}
+		private void checkOpen(){if(closed||matrix==null)throw new IllegalStateException("prepared CUDA dense matrix is closed");}
+	}
+	private final class PreparedFloatDense implements PreparedFloatDenseMatrix {
+		private final int rows,columns;private CUdeviceptr matrix;private boolean closed;
+		PreparedFloatDense(float[]source,int rows,int columns){this.rows=rows;this.columns=columns;synchronized(CudaComputeBackend.this){ensureAvailable();setCurrent();matrix=allocate(source);}}
+		@Override public int rows(){checkOpen();return rows;}@Override public int columns(){checkOpen();return columns;}
+		@Override public void multiply(MatrixTranspose transpose,float alpha,float[]right,int rightColumns,float beta,float[]result){
+			if(transpose==null||rightColumns<1)throw new IllegalArgumentException("prepared CUDA FP32 dense dimensions do not conform");
+			int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;
+			if(right==null||right.length!=shared*rightColumns||result==null||result.length!=output*rightColumns)throw new IllegalArgumentException("prepared CUDA FP32 dense dimensions do not conform");
+			synchronized(CudaComputeBackend.this){checkOpen();setCurrent();CUdeviceptr b=allocate(right),c=allocate(result);try{
+				launch("float_blas_gemm",(rightColumns+15)/16,(output+15)/16,1,16,16,1,Pointer.to(
+					Pointer.to(new int[]{transpose==MatrixTranspose.TRANSPOSE?1:0}),Pointer.to(new int[]{0}),
+					Pointer.to(new int[]{output}),Pointer.to(new int[]{rightColumns}),Pointer.to(new int[]{shared}),
+					Pointer.to(new float[]{alpha}),Pointer.to(matrix),Pointer.to(b),Pointer.to(new float[]{beta}),Pointer.to(c)));
+				float[]updated=copyFloats(c,result.length);System.arraycopy(updated,0,result,0,result.length);
+			}finally{cuMemFree(b);cuMemFree(c);}}}
+		@Override public void close(){synchronized(CudaComputeBackend.this){if(matrix!=null){setCurrent();cuMemFree(matrix);matrix=null;}closed=true;}}
+		private void checkOpen(){if(closed||matrix==null)throw new IllegalStateException("prepared CUDA FP32 dense matrix is closed");}
 	}
 	private final class PreparedDoubleCsr implements PreparedCsrMatrix {
 		private final int rows, columns, nonzeros; private CUdeviceptr values, indices, starts;
@@ -721,7 +765,7 @@ public final class CudaComputeBackend implements ComputeBackend {
 		cuDeviceGetAttribute(major, CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device);
 		cuDeviceGetAttribute(minor, CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
 		capabilities = new ComputeCapabilities("CUDA", name + " (sm_" + major[0] + minor[0] + ")",
-				major[0] >= 2, true, memory[0], true, true, true, true, false, true);
+				major[0] >= 2, true, memory[0], true, true, true, true, false, true, true, true);
 		int[] driver = new int[1]; cuDriverGetVersion(driver);
 		String driverVersion = version(driver[0]); Package pkg = getClass().getPackage();
 		String backendVersion = pkg == null || pkg.getImplementationVersion() == null

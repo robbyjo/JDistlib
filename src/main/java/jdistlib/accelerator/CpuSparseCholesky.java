@@ -20,6 +20,20 @@ final class CpuSparseCholesky {
 		check(matrix, triangle, ordering); int n = matrix.rows();
 		Map<Integer, Double>[] input = doubleTriangle(matrix, triangle);
 		Symbolic symbolic = symbolic(n, graph(input, n), ordering);
+		return doubleFactor(input, symbolic, n);
+	}
+
+	static PreparedSparseCholesky prepare(CsrMatrix matrix, MatrixTriangle triangle,
+			SparseOrdering ordering) {
+		check(matrix, triangle, ordering); int n = matrix.rows();
+		Map<Integer, Double>[] input = doubleTriangle(matrix, triangle);
+		Symbolic symbolic = symbolic(n, graph(input, n), ordering);
+		return new DoublePrepared(n, triangle, structure(input, n), symbolic,
+				doubleFactor(input, symbolic, n));
+	}
+
+	private static SparseCholeskyFactor doubleFactor(Map<Integer, Double>[] input,
+			Symbolic symbolic, int n) {
 		Map<Integer, Double>[] permuted = permute(input, symbolic.inverse, n);
 		Map<Integer, Double>[] lower = doubleNumeric(permuted, symbolic.pattern, n);
 		int count = count(symbolic.pattern), offset = 0;
@@ -39,6 +53,20 @@ final class CpuSparseCholesky {
 		check(matrix, triangle, ordering); int n = matrix.rows();
 		Map<Integer, Float>[] input = floatTriangle(matrix, triangle);
 		Symbolic symbolic = symbolic(n, graphFloat(input, n), ordering);
+		return floatFactor(input, symbolic, n);
+	}
+
+	static PreparedFloatSparseCholesky prepare(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		check(matrix, triangle, ordering); int n = matrix.rows();
+		Map<Integer, Float>[] input = floatTriangle(matrix, triangle);
+		Symbolic symbolic = symbolic(n, graphFloat(input, n), ordering);
+		return new FloatPrepared(n, triangle, structureFloat(input, n), symbolic,
+				floatFactor(input, symbolic, n));
+	}
+
+	private static FloatSparseCholeskyFactor floatFactor(Map<Integer, Float>[] input,
+			Symbolic symbolic, int n) {
 		Map<Integer, Float>[] permuted = permuteFloat(input, symbolic.inverse, n);
 		Map<Integer, Float>[] lower = floatNumeric(permuted, symbolic.pattern, n);
 		int count = count(symbolic.pattern), offset = 0;
@@ -116,7 +144,7 @@ final class CpuSparseCholesky {
 		Set<Integer>[] result = (Set<Integer>[]) new Set<?>[n];
 		for (int row = 0; row < n; row++) result[row] = new HashSet<Integer>();
 		for (int row = 0; row < n; row++) for (Map.Entry<Integer, Double> entry
-				: triangle[row].entrySet()) if (entry.getKey() != row && entry.getValue() != 0.0) {
+				: triangle[row].entrySet()) if (entry.getKey() != row) {
 			result[row].add(entry.getKey()); result[entry.getKey()].add(row);
 		}
 		return result;
@@ -126,7 +154,7 @@ final class CpuSparseCholesky {
 		Set<Integer>[] result = (Set<Integer>[]) new Set<?>[n];
 		for (int row = 0; row < n; row++) result[row] = new HashSet<Integer>();
 		for (int row = 0; row < n; row++) for (Map.Entry<Integer, Float> entry
-				: triangle[row].entrySet()) if (entry.getKey() != row && entry.getValue() != 0.0f) {
+				: triangle[row].entrySet()) if (entry.getKey() != row) {
 			result[row].add(entry.getKey()); result[entry.getKey()].add(row);
 		}
 		return result;
@@ -249,6 +277,81 @@ final class CpuSparseCholesky {
 
 	private static int count(TreeSet<Integer>[] pattern) {
 		int result = 0; for (TreeSet<Integer> row : pattern) result += row.size(); return result;
+	}
+	@SuppressWarnings("unchecked")
+	private static Set<Integer>[] structure(Map<Integer, Double>[] input, int n) {
+		Set<Integer>[] result = (Set<Integer>[]) new Set<?>[n];
+		for (int row = 0; row < n; row++) result[row] = new HashSet<Integer>(input[row].keySet());
+		return result;
+	}
+	@SuppressWarnings("unchecked")
+	private static Set<Integer>[] structureFloat(Map<Integer, Float>[] input, int n) {
+		Set<Integer>[] result = (Set<Integer>[]) new Set<?>[n];
+		for (int row = 0; row < n; row++) result[row] = new HashSet<Integer>(input[row].keySet());
+		return result;
+	}
+	private static int count(Set<Integer>[] structure) {
+		int result = 0; for (Set<Integer> row : structure) result += row.size(); return result;
+	}
+	private static boolean sameStructure(Map<Integer, ?>[] values, Set<Integer>[] expected) {
+		if (values.length != expected.length) return false;
+		for (int row = 0; row < values.length; row++)
+			if (!values[row].keySet().equals(expected[row])) return false;
+		return true;
+	}
+	private static final class DoublePrepared implements PreparedSparseCholesky {
+		private final int dimension; private final MatrixTriangle triangle;
+		private final Set<Integer>[] structure; private final Symbolic symbolic;
+		private SparseCholeskyFactor factor; private boolean closed;
+		DoublePrepared(int dimension, MatrixTriangle triangle, Set<Integer>[] structure,
+				Symbolic symbolic, SparseCholeskyFactor factor) {
+			this.dimension = dimension; this.triangle = triangle; this.structure = structure;
+			this.symbolic = symbolic; this.factor = factor;
+		}
+		@Override public int dimension() { checkOpen(); return dimension; }
+		@Override public int structuralNonzeroCount() { checkOpen(); return count(structure); }
+		@Override public int factorNonzeroCount() { checkOpen(); return factor.nonzeroCount(); }
+		@Override public int[] permutation() { checkOpen(); return factor.permutation(); }
+		@Override public double logDeterminant() { checkOpen(); return factor.logDeterminant(); }
+		@Override public void refactor(CsrMatrix matrix) {
+			checkOpen(); check(matrix, triangle, SparseOrdering.NATURAL);
+			Map<Integer, Double>[] input = doubleTriangle(matrix, triangle);
+			if (!sameStructure(input, structure))
+				throw new IllegalArgumentException("sparse refactorization structure differs from analysis");
+			factor = doubleFactor(input, symbolic, dimension);
+		}
+		@Override public void solveInPlace(double[] right, int columns) {
+			checkOpen(); factor.solveInPlace(right, columns);
+		}
+		@Override public void close() { closed = true; factor = null; }
+		private void checkOpen() { if (closed) throw new IllegalStateException("prepared sparse Cholesky is closed"); }
+	}
+	private static final class FloatPrepared implements PreparedFloatSparseCholesky {
+		private final int dimension; private final MatrixTriangle triangle;
+		private final Set<Integer>[] structure; private final Symbolic symbolic;
+		private FloatSparseCholeskyFactor factor; private boolean closed;
+		FloatPrepared(int dimension, MatrixTriangle triangle, Set<Integer>[] structure,
+				Symbolic symbolic, FloatSparseCholeskyFactor factor) {
+			this.dimension = dimension; this.triangle = triangle; this.structure = structure;
+			this.symbolic = symbolic; this.factor = factor;
+		}
+		@Override public int dimension() { checkOpen(); return dimension; }
+		@Override public int structuralNonzeroCount() { checkOpen(); return count(structure); }
+		@Override public int factorNonzeroCount() { checkOpen(); return factor.nonzeroCount(); }
+		@Override public int[] permutation() { checkOpen(); return factor.permutation(); }
+		@Override public float logDeterminant() { checkOpen(); return factor.logDeterminant(); }
+		@Override public void refactor(FloatCsrMatrix matrix) {
+			checkOpen(); check(matrix, triangle, SparseOrdering.NATURAL);
+			Map<Integer, Float>[] input = floatTriangle(matrix, triangle);
+			if (!sameStructure(input, structure))
+				throw new IllegalArgumentException("FP32 sparse refactorization structure differs from analysis");
+			factor = floatFactor(input, symbolic, dimension);
+		}
+		@Override public void solveInPlace(float[] right, int columns) {
+			checkOpen(); factor.solveInPlace(right, columns);
+		}
+		@Override public void close() { closed = true; factor = null; }
+		private void checkOpen() { if (closed) throw new IllegalStateException("prepared FP32 sparse Cholesky is closed"); }
 	}
 	private static final class Symbolic {
 		final int[] permutation, inverse; final TreeSet<Integer>[] pattern;

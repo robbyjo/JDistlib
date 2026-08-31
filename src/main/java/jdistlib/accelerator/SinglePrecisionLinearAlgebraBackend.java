@@ -44,9 +44,20 @@ public interface SinglePrecisionLinearAlgebraBackend {
 		CpuSinglePrecisionLinearAlgebra.scsrmm(alpha, matrix, right, rightColumns,
 				beta, result);
 	}
+	default PreparedFloatCsrMatrix prepareScsr(FloatCsrMatrix matrix) {
+		return CpuPreparedSparse.matrix(this, matrix);
+	}
 	default FloatSparseCholeskyFactor scsrpotrf(FloatCsrMatrix matrix,
 			MatrixTriangle triangle, SparseOrdering ordering) {
 		return CpuSparseCholesky.factor(matrix, triangle, ordering);
+	}
+	default PreparedFloatSparseCholesky prepareScsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return CpuSparseCholesky.prepare(matrix, triangle, ordering);
+	}
+	default PreparedFloatSparseCholesky prepareScsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle) {
+		return prepareScsrpotrf(matrix, triangle, SparseOrdering.MINIMUM_DEGREE);
 	}
 	default FloatSparseCholeskyFactor scsrpotrf(FloatCsrMatrix matrix,
 			MatrixTriangle triangle) {

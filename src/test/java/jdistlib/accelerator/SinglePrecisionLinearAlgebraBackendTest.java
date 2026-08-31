@@ -86,6 +86,22 @@ public class SinglePrecisionLinearAlgebraBackendTest {
 				factor.solve(new float[] {11,12,18,24,25}), 2e-5f);
 		assertEquals(5, factor.lower().rows());
 	}
+	@Test public void fp32PreparedSparseHandlesRefactorAndSolve() {
+		FloatCsrMatrix matrix = new FloatCsrMatrix(2, 2, new float[] {4,1,3},
+				new int[] {1,1,2}, new int[] {1,2,4});
+		try (PreparedFloatCsrMatrix prepared = backend.prepareScsr(matrix)) {
+			float[] result = new float[2];
+			prepared.multiply(1.0f, new float[] {2,3}, 0.0f, result);
+			assertArrayEquals(new float[] {8,11}, result, 0.0f);
+		}
+		try (PreparedFloatSparseCholesky factor = backend.prepareScsrpotrf(matrix,
+				MatrixTriangle.LOWER)) {
+			assertArrayEquals(new float[] {1,2}, factor.solve(new float[] {6,7}), 2e-5f);
+			factor.refactor(new FloatCsrMatrix(2, 2, new float[] {5,1,4},
+					new int[] {1,1,2}, new int[] {1,2,4}));
+			assertArrayEquals(new float[] {1,2}, factor.solve(new float[] {7,9}), 2e-5f);
+		}
+	}
 
 	private static float[] reconstructEigen(FloatSymmetricEigenDecomposition decomposition) {
 		int n=decomposition.dimension();float[]values=decomposition.eigenvalues(),vectors=decomposition.eigenvectors(),result=new float[n*n];

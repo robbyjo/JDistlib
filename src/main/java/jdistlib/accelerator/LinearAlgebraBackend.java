@@ -66,6 +66,10 @@ public interface LinearAlgebraBackend {
 			int rightColumns, double beta, double[] result) {
 		CpuLinearAlgebra.dcsrmm(alpha, matrix, right, rightColumns, beta, result);
 	}
+	/** Prepares a CSR matrix for repeated matrix-vector or matrix-matrix products. */
+	default PreparedCsrMatrix prepareDcsr(CsrMatrix matrix) {
+		return CpuPreparedSparse.matrix(this, matrix);
+	}
 
 	/** Computes a reusable sparse Cholesky factor from one authoritative triangle. */
 	default SparseCholeskyFactor dcsrpotrf(CsrMatrix matrix, MatrixTriangle triangle,
@@ -75,6 +79,15 @@ public interface LinearAlgebraBackend {
 	/** Computes a minimum-degree sparse Cholesky factor from one authoritative triangle. */
 	default SparseCholeskyFactor dcsrpotrf(CsrMatrix matrix, MatrixTriangle triangle) {
 		return dcsrpotrf(matrix, triangle, SparseOrdering.MINIMUM_DEGREE);
+	}
+	/** Analyzes and factorizes a sparse SPD matrix for repeated refactors and solves. */
+	default PreparedSparseCholesky prepareDcsrpotrf(CsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return CpuSparseCholesky.prepare(matrix, triangle, ordering);
+	}
+	default PreparedSparseCholesky prepareDcsrpotrf(CsrMatrix matrix,
+			MatrixTriangle triangle) {
+		return prepareDcsrpotrf(matrix, triangle, SparseOrdering.MINIMUM_DEGREE);
 	}
 
 	/** Computes a reusable lower Cholesky factor of a row-major SPD matrix. */

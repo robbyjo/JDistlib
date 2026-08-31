@@ -25,7 +25,9 @@ final class AutoComputeBackend implements ComputeBackend {
 		ComputeCapabilities value = accelerator.capabilities();
 		return new ComputeCapabilities("AUTO(" + value.backend() + ")", value.device(),
 				value.doublePrecision(), value.runtimeCompilation(), value.globalMemoryBytes(),
-				value.denseLinearAlgebra(), value.sparseLinearAlgebra(), value.nativeFactorizations());
+				value.denseLinearAlgebra(), value.sparseLinearAlgebra(), value.nativeFactorizations(),
+				value.preparedSparseMatrices(), value.nativeSparseFactorizations(),
+				value.reusableSparseFactorizations());
 	}
 	@Override public ComputeDeviceInfo deviceInfo() {
 		ComputeDeviceInfo value = accelerator.deviceInfo();
@@ -42,8 +44,14 @@ final class AutoComputeBackend implements ComputeBackend {
 			throw new IllegalArgumentException("operation dimensions must be nonnegative");
 		ComputeBackend selected = backendFor(operation, dimensions);
 		ExecutionPlan concrete = selected.plan(operation, precision, dimensions);
+		boolean preparedSparseFactor = operation == LinearAlgebraOperation.CSR_ANALYZE
+				|| operation == LinearAlgebraOperation.CSR_REFACTOR
+				|| operation == LinearAlgebraOperation.CSR_SOLVE;
 		String reason = operation == LinearAlgebraOperation.CSR_POTRF
 				? "sparse-direct factorization uses portable CPU baseline"
+				: preparedSparseFactor && selected == accelerator
+				? "selected provider supports native reusable sparse factorization"
+				: preparedSparseFactor ? "provider lacks native reusable sparse factorization"
 				: selected == accelerator ? "work estimate reached AUTO threshold"
 				: "work estimate below AUTO threshold";
 		return new ExecutionPlan(operation, precision, concrete.kind(), concrete.backendId(),
@@ -111,9 +119,17 @@ final class AutoComputeBackend implements ComputeBackend {
 		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
 				.dcsrmm(alpha, matrix, right, rightColumns, beta, result);
 	}
+	@Override public PreparedCsrMatrix prepareDcsr(CsrMatrix matrix) {
+		long work = matrix == null ? 0L : matrix.nonzeroCount();
+		return (work >= VECTOR_THRESHOLD ? accelerator : cpu).prepareDcsr(matrix);
+	}
 	@Override public SparseCholeskyFactor dcsrpotrf(CsrMatrix matrix, MatrixTriangle triangle,
 			SparseOrdering ordering) {
 		return cpu.dcsrpotrf(matrix, triangle, ordering);
+	}
+	@Override public PreparedSparseCholesky prepareDcsrpotrf(CsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return sparseFactorizationBackend().prepareDcsrpotrf(matrix, triangle, ordering);
 	}
 	@Override public CholeskyFactor dpotrf(double[] matrix, int dimension) {
 		return decompositionBackend(dimension, dimension, dimension).dpotrf(matrix, dimension);
@@ -180,9 +196,17 @@ final class AutoComputeBackend implements ComputeBackend {
 		(work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu)
 				.scsrmm(alpha, matrix, right, rightColumns, beta, result);
 	}
+	@Override public PreparedFloatCsrMatrix prepareScsr(FloatCsrMatrix matrix) {
+		long work = matrix == null ? 0L : matrix.nonzeroCount();
+		return (work >= VECTOR_THRESHOLD ? accelerator : cpu).prepareScsr(matrix);
+	}
 	@Override public FloatSparseCholeskyFactor scsrpotrf(FloatCsrMatrix matrix,
 			MatrixTriangle triangle, SparseOrdering ordering) {
 		return cpu.scsrpotrf(matrix, triangle, ordering);
+	}
+	@Override public PreparedFloatSparseCholesky prepareScsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return sparseFactorizationBackend().prepareScsrpotrf(matrix, triangle, ordering);
 	}
 	@Override public FloatCholeskyFactor spotrf(float[] matrix, int dimension) {
 		return decompositionBackend(dimension, dimension, dimension).spotrf(matrix, dimension);
@@ -265,6 +289,8 @@ final class AutoComputeBackend implements ComputeBackend {
 		switch (operation) {
 		case CSR_POTRF:
 			return cpu;
+		case CSR_ANALYZE: case CSR_REFACTOR: case CSR_SOLVE:
+			return sparseFactorizationBackend();
 		case AXPY: case DOT: case NRM2:
 			work = dimensions.length == 0 ? 0L : dimensions[0];
 			return work >= VECTOR_THRESHOLD ? accelerator : cpu;
@@ -279,6 +305,9 @@ final class AutoComputeBackend implements ComputeBackend {
 					: dimensions.length == 1 ? saturatingProduct(dimensions[0], dimensions[0], dimensions[0]) : 0L;
 			return work >= MATRIX_MULTIPLY_THRESHOLD ? accelerator : cpu;
 		}
+	}
+	private ComputeBackend sparseFactorizationBackend() {
+		return accelerator.capabilities().nativeSparseFactorizations() ? accelerator : cpu;
 	}
 	private static long logisticWork(double[][] design, double[][] states) {
 		return design == null || design.length == 0 || design[0] == null

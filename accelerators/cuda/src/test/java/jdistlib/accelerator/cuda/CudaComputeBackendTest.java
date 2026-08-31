@@ -22,6 +22,8 @@ import jdistlib.accelerator.MatrixTriangle;
 import jdistlib.accelerator.MatrixDiagonal;
 import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedTransposeProduct;
+import jdistlib.accelerator.PreparedCsrMatrix;
+import jdistlib.accelerator.PreparedFloatCsrMatrix;
 import jdistlib.accelerator.SingularValueDecomposition;
 import jdistlib.accelerator.SymmetricEigenDecomposition;
 import jdistlib.accelerator.UnaryOperation;
@@ -166,11 +168,20 @@ public class CudaComputeBackendTest {
 		double[] dense = {1, 2, 3, 4, 5, 6}, expectedSm = new double[6], actualSm = new double[6];
 		cpu.dcsrmm(0.8, sparse, dense, 2, 0.0, expectedSm);
 		actual.dcsrmm(0.8, sparse, dense, 2, 0.0, actualSm); assertArrayEquals(expectedSm, actualSm, tolerance);
+		try (PreparedCsrMatrix prepared = actual.prepareDcsr(sparse)) {
+			double[] preparedVector = {1,1,1};
+			prepared.multiply(1.3, new double[] {3,5,7}, 0.2, preparedVector);
+			assertArrayEquals(expectedS, preparedVector, tolerance);
+			double[] preparedMatrix = new double[6];
+			prepared.multiply(0.8, dense, 2, 0.0, preparedMatrix);
+			assertArrayEquals(expectedSm, preparedMatrix, tolerance);
+		}
 		CsrMatrix empty = new CsrMatrix(2, 3, new double[0], new int[0], new int[] {1,1,1});
 		double[] emptyResult = {2,3}; actual.dcsrmv(1.0, empty, new double[3], 0.5, emptyResult);
 		assertArrayEquals(new double[] {1,1.5}, emptyResult, 0.0);
 		assertTrue(actual.capabilities().denseLinearAlgebra());
 		assertTrue(actual.capabilities().sparseLinearAlgebra());
+		assertTrue(actual.capabilities().preparedSparseMatrices());
 	}
 	private static void assertPortableSinglePrecision(ComputeBackend cpu,
 			ComputeBackend actual, float tolerance) {
@@ -214,5 +225,13 @@ public class CudaComputeBackendTest {
 		cpu.scsrmm(0.8f, sparse, dense, 2, 0.0f, expectedSm);
 		actual.scsrmm(0.8f, sparse, dense, 2, 0.0f, actualSm);
 		assertArrayEquals(expectedSm, actualSm, tolerance);
+		try (PreparedFloatCsrMatrix prepared = actual.prepareScsr(sparse)) {
+			float[] preparedVector = {1,1,1};
+			prepared.multiply(1.3f, new float[] {3,5,7}, 0.2f, preparedVector);
+			assertArrayEquals(expectedS, preparedVector, tolerance);
+			float[] preparedMatrix = new float[6];
+			prepared.multiply(0.8f, dense, 2, 0.0f, preparedMatrix);
+			assertArrayEquals(expectedSm, preparedMatrix, tolerance);
+		}
 	}
 }

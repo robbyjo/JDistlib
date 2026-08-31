@@ -71,6 +71,15 @@ double-counting mirrored entries. The default `SparseOrdering.MINIMUM_DEGREE`
 reduces fill; `SparseOrdering.NATURAL` preserves input order. Duplicate entries
 within the authoritative triangle are summed.
 
+`prepareDcsr` and `prepareScsr` return owned CSR handles for repeated products.
+The portable implementation retains immutable CSR storage and dispatches each
+product through the selected provider. `ComputeCapabilities.preparedSparseMatrices()`
+distinguishes providers that keep a provider-optimal prepared representation
+from this compatible heap-backed behavior. CUDA retains values, column indices,
+and row starts in device memory while each dense vector or right side remains a
+per-call transfer; OpenCL and Vulkan currently use the compatible non-resident
+handle.
+
 ## Reusable decompositions
 
 `dpotrf`/`spotrf` compute lower Cholesky factors with repeated vector/matrix
@@ -99,6 +108,20 @@ double[] coefficients = factor.solve(rightHandSide);
 double logDeterminant = factor.logDeterminant();
 ```
 
+For changing coefficients with a fixed sparsity pattern, use
+`prepareDcsrpotrf` or `prepareScsrpotrf`. The initial call performs symbolic
+analysis and numerical factorization. `refactor` then reuses that analysis,
+rejecting any change to the authoritative-triangle structure; solves and log
+determinants always refer to the latest successful numeric factor.
+
+```java
+try (PreparedSparseCholesky factor = blas.prepareDcsrpotrf(
+        relationship, MatrixTriangle.LOWER)) {
+    factor.refactor(updatedRelationship);
+    factor.solveInPlace(rightHandSides, columns);
+}
+```
+
 For repeated REML/GLS solves, `prepareDpotrf` and `prepareSpotrf` return owned
 `PreparedCholesky` handles with in-place multi-RHS solves and a cached log
 determinant. This avoids refactorizing the same covariance or mixed-model
@@ -121,11 +144,14 @@ tiled or vendor-library implementations can replace those kernels behind the
 same API. `Compute.AUTO` uses a cubic work estimate to keep small decompositions
 on CPU and route sufficiently large ones to the selected accelerator.
 
-Sparse Cholesky currently uses the deterministic Java CPU implementation for
-every selection. Explicit GPU, oneMKL, and OpenBLAS providers therefore report
-`PORTABLE_FALLBACK` with concrete backend `cpu` for `CSR_POTRF`; they do not
-claim a vendor sparse-direct call. This keeps the API usable now and leaves a
-stable boundary for later PARDISO or cuSOLVER-backed factors.
+Immutable sparse factors continue to use the deterministic Java representation.
+Prepared oneMKL factors use PARDISO when the installed runtime exports
+`pardiso`, `pardisoinit`, and `pardiso_getdiag`: phase 11 performs analysis,
+phase 22 performs the initial and subsequent numeric factorizations, phase 33
+solves one or more right sides, and close releases PARDISO state. Natural
+ordering requests retain the portable implementation; minimum-degree requests
+allow PARDISO to own its fill-reducing permutation. OpenBLAS and GPU providers
+currently retain the portable prepared-factor fallback.
 
 ## Native CPU providers
 
@@ -170,8 +196,9 @@ the plans for accelerated CSR products.
 
 ## Provider and numerical contract
 
-`ComputeCapabilities` separately reports dense BLAS, sparse BLAS, and native
-dense-factorization support. CUDA, OpenCL, and Vulkan currently accelerate both FP64
+`ComputeCapabilities` separately reports dense BLAS, sparse BLAS, native dense
+factorizations, provider-prepared sparse matrices, native sparse factorization,
+and reusable sparse analysis. CUDA, OpenCL, and Vulkan currently accelerate both FP64
 and FP32 dense and CSR operations with native precision buffers and kernels.
 Reduction order and final rounding can differ across providers, so callers
 should compare numerical tolerances rather than bits and record the selected
@@ -190,3 +217,10 @@ Service-loaded providers can also be selected by exact identifier through
 Thread counts and affinity remain settings of the installed oneMKL/OpenBLAS
 runtime so applications can coordinate BLAS threads with model-level
 parallelism.
+
+Run `gradlew :jdistlib-nativecpu:nativeSparseBenchmark` for a reproducible
+prepared-CSR and sparse analysis/refactor/solve comparison. Override its size
+with `-Djdistlib.benchmark.dimension=...` and repetitions with
+`-Djdistlib.benchmark.repetitions=...`; benchmark numbers are measurements of
+the current machine, runtime, and matrix pattern rather than performance
+guarantees.

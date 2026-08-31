@@ -12,10 +12,17 @@ import jdistlib.accelerator.Compute;
 import jdistlib.accelerator.ComputeApi;
 import jdistlib.accelerator.ComputeBackends;
 import jdistlib.accelerator.ComputeSelection;
+import jdistlib.accelerator.ExecutionKind;
+import jdistlib.accelerator.LinearAlgebraOperation;
 import jdistlib.accelerator.MatrixDiagonal;
 import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.MatrixTranspose;
 import jdistlib.accelerator.MatrixTriangle;
+import jdistlib.accelerator.PreparedFloatSparseCholesky;
+import jdistlib.accelerator.PreparedSparseCholesky;
+import jdistlib.accelerator.NumericPrecision;
+import jdistlib.matrix.CsrMatrix;
+import jdistlib.matrix.FloatCsrMatrix;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -77,9 +84,41 @@ public class NativeCpuComputeBackendTest {
 		}
 	}
 
+	@Test public void oneMklPardisoReusesAnalysisForFp64AndFp32WhenExported() {
+		try (OneMklComputeBackend backend = new OneMklComputeBackend()) {
+			Assume.assumeTrue("system oneMKL is optional", backend.available());
+			Assume.assumeTrue("installed oneMKL does not export PARDISO diagonal access",
+					backend.capabilities().nativeSparseFactorizations());
+			assertEquals(ExecutionKind.NATIVE_CPU, backend.plan(
+					LinearAlgebraOperation.CSR_ANALYZE, NumericPrecision.FP64, 2, 3).kind());
+			CsrMatrix matrix = new CsrMatrix(2, 2, new double[] {4,1,3},
+					new int[] {1,1,2}, new int[] {1,2,4});
+			try (PreparedSparseCholesky factor = backend.prepareDcsrpotrf(matrix,
+					MatrixTriangle.LOWER)) {
+				assertArrayEquals(new double[] {1,2}, factor.solve(new double[] {6,7}), 1e-12);
+				assertArrayEquals(new double[] {1,3,2,4},
+						factor.solve(new double[] {6,16,7,15}, 2), 1e-12);
+				assertEquals(Math.log(11.0), factor.logDeterminant(), 1e-12);
+				assertEquals(0, factor.permutation().length);
+				factor.refactor(new CsrMatrix(2, 2, new double[] {5,1,4},
+						new int[] {1,1,2}, new int[] {1,2,4}));
+				assertArrayEquals(new double[] {1,2}, factor.solve(new double[] {7,9}), 1e-12);
+				assertEquals(Math.log(19.0), factor.logDeterminant(), 1e-12);
+			}
+			FloatCsrMatrix floats = new FloatCsrMatrix(2, 2, new float[] {4,1,3},
+					new int[] {1,1,2}, new int[] {1,2,4});
+			try (PreparedFloatSparseCholesky factor = backend.prepareScsrpotrf(floats,
+					MatrixTriangle.LOWER)) {
+				assertArrayEquals(new float[] {1,2}, factor.solve(new float[] {6,7}), 2e-5f);
+				assertEquals((float) Math.log(11.0), factor.logDeterminant(), 2e-5f);
+			}
+		}
+	}
+
 	@Test public void absentOpenBlasIsReportedWithoutBreakingCoreDiscovery() {
 		try (OpenBlasComputeBackend backend = new OpenBlasComputeBackend()) {
 			if (!backend.available()) assertTrue(backend.unavailableCause() != null);
+			else assertTrue(!backend.capabilities().nativeSparseFactorizations());
 		}
 		assertTrue(Arrays.asList(Compute.values()).contains(Compute.OPENBLAS));
 	}

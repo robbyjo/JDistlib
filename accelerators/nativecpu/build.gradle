@@ -43,6 +43,16 @@ jar {
 
 test { useJUnit() }
 
+tasks.register('nativeSparseBenchmark', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'jdistlib.accelerator.nativecpu.NativeSparseBenchmark'
+    systemProperty 'jdistlib.benchmark.dimension',
+        System.getProperty('jdistlib.benchmark.dimension', '4000')
+    systemProperty 'jdistlib.benchmark.repetitions',
+        System.getProperty('jdistlib.benchmark.repetitions', '20')
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

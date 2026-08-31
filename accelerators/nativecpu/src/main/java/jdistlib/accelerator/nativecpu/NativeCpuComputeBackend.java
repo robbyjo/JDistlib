@@ -23,8 +23,13 @@ import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.MatrixTranspose;
 import jdistlib.accelerator.MatrixTriangle;
 import jdistlib.accelerator.PivotedQrFactor;
+import jdistlib.accelerator.PreparedFloatSparseCholesky;
+import jdistlib.accelerator.PreparedSparseCholesky;
 import jdistlib.accelerator.SingularValueDecomposition;
+import jdistlib.accelerator.SparseOrdering;
 import jdistlib.accelerator.SymmetricEigenDecomposition;
+import jdistlib.matrix.CsrMatrix;
+import jdistlib.matrix.FloatCsrMatrix;
 
 /** Shared dynamic CBLAS/LAPACKE adapter. Native libraries remain system dependencies. */
 abstract class NativeCpuComputeBackend implements ComputeBackend {
@@ -56,6 +61,8 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 	abstract ComputeApi api();
 	abstract String detectRuntimeVersion(NativeLibrary loaded);
 	List<File> installedLibraries() { return Collections.emptyList(); }
+	boolean nativeSparseFactorizations() { return false; }
+	boolean preparedSparseMatrices() { return false; }
 
 	@Override public final boolean available() { return unavailableCause == null && library != null; }
 	/** Returns the dynamic-loader failure when this optional provider is unavailable. */
@@ -63,7 +70,8 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 	@Override public final ComputeCapabilities capabilities() {
 		ensureAvailable();
 		return new ComputeCapabilities(displayName(), System.getProperty("os.arch", "unknown"),
-				true, false, 0L, true, false, lapacke);
+				true, false, 0L, true, false, lapacke, preparedSparseMatrices(),
+				nativeSparseFactorizations(), true);
 	}
 	@Override public final ComputeDeviceInfo deviceInfo() {
 		ensureAvailable();
@@ -277,6 +285,14 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 		checkInfo("sgesvd", info);
 		return new FloatSingularValueDecomposition(rows, columns, values, left, right);
 	}
+	@Override public PreparedSparseCholesky prepareDcsrpotrf(CsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return ComputeBackend.super.prepareDcsrpotrf(matrix, triangle, ordering);
+	}
+	@Override public PreparedFloatSparseCholesky prepareScsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return ComputeBackend.super.prepareScsrpotrf(matrix, triangle, ordering);
+	}
 
 	final Function optional(String name) {
 		try { return library == null ? null : library.getFunction(name); }
@@ -287,7 +303,7 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 		Pointer value = (Pointer) function.invoke(Pointer.class, new Object[0]);
 		return value == null ? "unknown" : value.getString(0L);
 	}
-	private Function function(String name) {
+	final Function function(String name) {
 		ensureAvailable(); Function value = optional(name);
 		if (value == null) throw new UnsupportedOperationException(displayName()
 				+ " does not export " + name);

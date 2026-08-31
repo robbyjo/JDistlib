@@ -378,8 +378,9 @@ multi-RHS solves, prepared Cholesky handles, execution/device identification,
 and strict optional `Compute.ONEMKL` and `Compute.OPENBLAS` CPU choices.
 Reusable FP64/FP32 sparse Cholesky factors add minimum-degree or natural
 ordering, log determinants, and original-coordinate solves. Sparse
-factorization currently uses the portable Java CPU baseline and reports that
-fallback explicitly even when a GPU or native CPU backend is selected.
+factorization supports prepared symbolic reuse and numeric refactorization;
+oneMKL selections use native PARDISO when its required exports are available,
+while OpenBLAS and GPU selections report their portable factor fallback.
 CUDA and OpenCL additionally implement a resident prepared transpose product
 for repeated high-dimensional score calculations; Vulkan currently uses its
 CPU fallback for that primitive.

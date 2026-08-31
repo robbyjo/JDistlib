@@ -6,6 +6,8 @@ public final class ComputeCapabilities {
 	private final String backend, device;
 	private final boolean doublePrecision, runtimeCompilation;
 	private final boolean denseLinearAlgebra, sparseLinearAlgebra, nativeFactorizations;
+	private final boolean preparedSparseMatrices, nativeSparseFactorizations;
+	private final boolean reusableSparseFactorizations;
 	private final long globalMemoryBytes;
 	public ComputeCapabilities(String backend, String device, boolean doublePrecision,
 			boolean runtimeCompilation, long globalMemoryBytes) {
@@ -15,6 +17,15 @@ public final class ComputeCapabilities {
 	public ComputeCapabilities(String backend, String device, boolean doublePrecision,
 			boolean runtimeCompilation, long globalMemoryBytes, boolean denseLinearAlgebra,
 			boolean sparseLinearAlgebra, boolean nativeFactorizations) {
+		this(backend, device, doublePrecision, runtimeCompilation, globalMemoryBytes,
+				denseLinearAlgebra, sparseLinearAlgebra, nativeFactorizations,
+				false, false, true);
+	}
+	public ComputeCapabilities(String backend, String device, boolean doublePrecision,
+			boolean runtimeCompilation, long globalMemoryBytes, boolean denseLinearAlgebra,
+			boolean sparseLinearAlgebra, boolean nativeFactorizations,
+			boolean preparedSparseMatrices, boolean nativeSparseFactorizations,
+			boolean reusableSparseFactorizations) {
 		if (backend == null || device == null || globalMemoryBytes < 0L)
 			throw new IllegalArgumentException("invalid compute capabilities");
 		this.backend = backend; this.device = device;
@@ -23,6 +34,9 @@ public final class ComputeCapabilities {
 		this.denseLinearAlgebra = denseLinearAlgebra;
 		this.sparseLinearAlgebra = sparseLinearAlgebra;
 		this.nativeFactorizations = nativeFactorizations;
+		this.preparedSparseMatrices = preparedSparseMatrices;
+		this.nativeSparseFactorizations = nativeSparseFactorizations;
+		this.reusableSparseFactorizations = reusableSparseFactorizations;
 		this.globalMemoryBytes = globalMemoryBytes;
 	}
 	public String backend() { return backend; }
@@ -35,5 +49,11 @@ public final class ComputeCapabilities {
 	public boolean sparseLinearAlgebra() { return sparseLinearAlgebra; }
 	/** Whether factorization methods execute natively on this provider. */
 	public boolean nativeFactorizations() { return nativeFactorizations; }
+	/** Whether prepared CSR handles retain provider-optimal storage between calls. */
+	public boolean preparedSparseMatrices() { return preparedSparseMatrices; }
+	/** Whether sparse Cholesky analysis, factorization, and solves execute natively. */
+	public boolean nativeSparseFactorizations() { return nativeSparseFactorizations; }
+	/** Whether sparse symbolic analysis is reusable when only numerical values change. */
+	public boolean reusableSparseFactorizations() { return reusableSparseFactorizations; }
 	public long globalMemoryBytes() { return globalMemoryBytes; }
 }

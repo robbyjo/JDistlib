@@ -39,7 +39,15 @@ public interface ComputeBackend extends LinearAlgebraBackend,
 				|| operation == LinearAlgebraOperation.SYEV
 				|| operation == LinearAlgebraOperation.GESVD
 				|| operation == LinearAlgebraOperation.TRSV;
+		boolean sparseFactor = operation == LinearAlgebraOperation.CSR_ANALYZE
+				|| operation == LinearAlgebraOperation.CSR_REFACTOR
+				|| operation == LinearAlgebraOperation.CSR_SOLVE;
 		if (operation == LinearAlgebraOperation.CSR_POTRF && !"cpu".equals(id()))
+			return new ExecutionPlan(operation, precision, ExecutionKind.PORTABLE_FALLBACK,
+					"cpu", System.getProperty("os.arch", "unknown"),
+					"immutable sparse factor uses portable representation");
+		if (sparseFactor && !"cpu".equals(id())
+				&& !capabilities().nativeSparseFactorizations())
 			return new ExecutionPlan(operation, precision, ExecutionKind.PORTABLE_FALLBACK,
 					"cpu", System.getProperty("os.arch", "unknown"),
 					"provider has no sparse-direct factorization");

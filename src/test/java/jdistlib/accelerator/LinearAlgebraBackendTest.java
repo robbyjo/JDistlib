@@ -167,6 +167,39 @@ public class LinearAlgebraBackendTest {
 			}
 		}
 	}
+	@Test public void preparedCsrAndSparseRefactorizationReuseOwnedStructures() {
+		CsrMatrix matrix = new CsrMatrix(5, 5,
+				new double[] {4, 1,4, 1,4, 1,4, 1,1,4},
+				new int[] {1, 1,2, 2,3, 3,4, 1,4,5},
+				new int[] {1,2,4,6,8,11});
+		try (PreparedCsrMatrix prepared = backend.prepareDcsr(matrix)) {
+			double[] product = new double[5];
+			prepared.multiply(1.0, new double[] {1,2,3,4,5}, 0.0, product);
+			assertArrayEquals(new double[] {4,9,14,19,25}, product, 0.0);
+			double[] multiple = new double[10];
+			prepared.multiply(1.0, new double[] {1,5,2,4,3,3,4,2,5,1}, 2,
+					0.0, multiple);
+			assertArrayEquals(new double[] {4,20,9,21,14,16,19,11,25,11}, multiple, 0.0);
+		}
+		try (PreparedSparseCholesky prepared = backend.prepareDcsrpotrf(matrix,
+				MatrixTriangle.LOWER)) {
+			assertEquals(10, prepared.structuralNonzeroCount());
+			assertArrayEquals(new double[] {1,2,3,4,5},
+					prepared.solve(new double[] {11,12,18,24,25}), 2e-14);
+			CsrMatrix changed = new CsrMatrix(5, 5,
+					new double[] {5, 1,5, 1,5, 1,5, 1,1,5},
+					new int[] {1, 1,2, 2,3, 3,4, 1,4,5},
+					new int[] {1,2,4,6,8,11});
+			prepared.refactor(changed);
+			assertArrayEquals(new double[] {1,2,3,4,5},
+					prepared.solve(new double[] {12,14,21,28,30}), 2e-14);
+			assertEquals(backend.dpotrf(new double[] {5,1,0,0,1, 1,5,1,0,0,
+					0,1,5,1,0, 0,0,1,5,1, 1,0,0,1,5}, 5).logDeterminant(),
+					prepared.logDeterminant(), 2e-14);
+		}
+		assertTrue(backend.capabilities().preparedSparseMatrices());
+		assertTrue(backend.capabilities().reusableSparseFactorizations());
+	}
 	private static final class StubGpuBackend implements ComputeBackend {
 		@Override public String id() { return "cuda"; }
 		@Override public boolean available() { return true; }

@@ -54,6 +54,8 @@ import jdistlib.accelerator.MatrixTriangle;
 import jdistlib.accelerator.MatrixDiagonal;
 import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
+import jdistlib.accelerator.PreparedCsrMatrix;
+import jdistlib.accelerator.PreparedFloatCsrMatrix;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.PivotedQrFactor;
 import jdistlib.accelerator.SingularValueDecomposition;
@@ -346,6 +348,10 @@ public final class CudaComputeBackend implements ComputeBackend {
 			double[] updated = copy(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
 		} finally { cuMemFree(values); cuMemFree(indices); cuMemFree(starts); cuMemFree(b); cuMemFree(c); }
 	}
+	@Override public PreparedCsrMatrix prepareDcsr(CsrMatrix matrix) {
+		if (matrix == null) throw new IllegalArgumentException("CSR matrix is required");
+		return new PreparedDoubleCsr(matrix);
+	}
 	@Override public synchronized void saxpy(int count, float alpha, float[] x,
 			int xOffset, int xStride, float[] y, int yOffset, int yStride) {
 		checkRegion(count, x, xOffset, xStride); checkRegion(count, y, yOffset, yStride);
@@ -474,6 +480,101 @@ public final class CudaComputeBackend implements ComputeBackend {
 					Pointer.to(b), Pointer.to(new float[] {beta}), Pointer.to(c)));
 			float[] updated = copyFloats(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
 		} finally { cuMemFree(values); cuMemFree(indices); cuMemFree(starts); cuMemFree(b); cuMemFree(c); }
+	}
+	@Override public PreparedFloatCsrMatrix prepareScsr(FloatCsrMatrix matrix) {
+		if (matrix == null) throw new IllegalArgumentException("FP32 CSR matrix is required");
+		return new PreparedFloatCsr(matrix);
+	}
+	private final class PreparedDoubleCsr implements PreparedCsrMatrix {
+		private final int rows, columns, nonzeros; private CUdeviceptr values, indices, starts;
+		private boolean closed;
+		PreparedDoubleCsr(CsrMatrix matrix) {
+			rows = matrix.rows(); columns = matrix.columns(); nonzeros = matrix.nonzeroCount();
+			synchronized (CudaComputeBackend.this) { ensureAvailable(); setCurrent();
+				if (nonzeros > 0) { values = allocate(matrix.values()); indices = allocate(matrix.columnIndices());
+					starts = allocate(matrix.rowStarts()); }
+			}
+		}
+		@Override public int rows() { checkOpen(); return rows; }
+		@Override public int columns() { checkOpen(); return columns; }
+		@Override public int nonzeroCount() { checkOpen(); return nonzeros; }
+		@Override public void multiply(double alpha, double[] x, double beta, double[] y) {
+			if (x == null || x.length != columns || y == null || y.length != rows)
+				throw new IllegalArgumentException("prepared CUDA CSR matrix-vector dimensions do not conform");
+			synchronized (CudaComputeBackend.this) { checkOpen(); setCurrent();
+				if (nonzeros == 0) { for (int i = 0; i < y.length; i++) y[i] *= beta; return; }
+				CUdeviceptr dx = allocate(x), dy = allocate(y); try {
+					launch("csr_mv", grid(rows), 1, 1, BLOCK, 1, 1, Pointer.to(Pointer.to(new int[] {rows}),
+							Pointer.to(new double[] {alpha}), Pointer.to(values), Pointer.to(indices),
+							Pointer.to(starts), Pointer.to(dx), Pointer.to(new double[] {beta}), Pointer.to(dy)));
+					double[] updated = copy(dy, y.length); System.arraycopy(updated, 0, y, 0, y.length);
+				} finally { cuMemFree(dx); cuMemFree(dy); }
+			}
+		}
+		@Override public void multiply(double alpha, double[] right, int rightColumns,
+				double beta, double[] result) {
+			if (rightColumns < 1 || right == null || right.length != columns * rightColumns
+					|| result == null || result.length != rows * rightColumns)
+				throw new IllegalArgumentException("prepared CUDA CSR matrix-matrix dimensions do not conform");
+			synchronized (CudaComputeBackend.this) { checkOpen(); setCurrent();
+				if (nonzeros == 0) { for (int i = 0; i < result.length; i++) result[i] *= beta; return; }
+				CUdeviceptr b = allocate(right), c = allocate(result); try {
+					launch("csr_mm", grid(result.length), 1, 1, BLOCK, 1, 1, Pointer.to(
+							Pointer.to(new int[] {rows}), Pointer.to(new int[] {rightColumns}),
+							Pointer.to(new double[] {alpha}), Pointer.to(values), Pointer.to(indices),
+							Pointer.to(starts), Pointer.to(b), Pointer.to(new double[] {beta}), Pointer.to(c)));
+					double[] updated = copy(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
+				} finally { cuMemFree(b); cuMemFree(c); }
+			}
+		}
+		@Override public void close() { synchronized (CudaComputeBackend.this) { if (values != null) {
+			setCurrent(); cuMemFree(values); cuMemFree(indices); cuMemFree(starts);
+			values = indices = starts = null; } closed = true; } }
+		private void checkOpen() { if (closed)
+			throw new IllegalStateException("prepared CUDA CSR matrix is closed"); }
+	}
+	private final class PreparedFloatCsr implements PreparedFloatCsrMatrix {
+		private final int rows, columns, nonzeros; private CUdeviceptr values, indices, starts;
+		private boolean closed;
+		PreparedFloatCsr(FloatCsrMatrix matrix) { rows = matrix.rows(); columns = matrix.columns();
+			nonzeros = matrix.nonzeroCount(); synchronized (CudaComputeBackend.this) {
+				ensureAvailable(); setCurrent(); if (nonzeros > 0) { values = allocate(matrix.values());
+					indices = allocate(matrix.columnIndices()); starts = allocate(matrix.rowStarts()); } } }
+		@Override public int rows() { checkOpen(); return rows; }
+		@Override public int columns() { checkOpen(); return columns; }
+		@Override public int nonzeroCount() { checkOpen(); return nonzeros; }
+		@Override public void multiply(float alpha, float[] x, float beta, float[] y) {
+			if (x == null || x.length != columns || y == null || y.length != rows)
+				throw new IllegalArgumentException("prepared CUDA FP32 CSR dimensions do not conform");
+			synchronized (CudaComputeBackend.this) { checkOpen(); setCurrent();
+				if (nonzeros == 0) { for (int i = 0; i < y.length; i++) y[i] *= beta; return; }
+				CUdeviceptr dx = allocate(x), dy = allocate(y); try {
+					launch("float_csr_mv", grid(rows), 1, 1, BLOCK, 1, 1, Pointer.to(Pointer.to(new int[] {rows}),
+							Pointer.to(new float[] {alpha}), Pointer.to(values), Pointer.to(indices),
+							Pointer.to(starts), Pointer.to(dx), Pointer.to(new float[] {beta}), Pointer.to(dy)));
+					float[] updated = copyFloats(dy, y.length); System.arraycopy(updated, 0, y, 0, y.length);
+				} finally { cuMemFree(dx); cuMemFree(dy); } }
+		}
+		@Override public void multiply(float alpha, float[] right, int rightColumns,
+				float beta, float[] result) {
+			if (rightColumns < 1 || right == null || right.length != columns * rightColumns
+					|| result == null || result.length != rows * rightColumns)
+				throw new IllegalArgumentException("prepared CUDA FP32 CSR matrix-matrix dimensions do not conform");
+			synchronized (CudaComputeBackend.this) { checkOpen(); setCurrent();
+				if (nonzeros == 0) { for (int i = 0; i < result.length; i++) result[i] *= beta; return; }
+				CUdeviceptr b = allocate(right), c = allocate(result); try {
+					launch("float_csr_mm", grid(result.length), 1, 1, BLOCK, 1, 1, Pointer.to(
+							Pointer.to(new int[] {rows}), Pointer.to(new int[] {rightColumns}),
+							Pointer.to(new float[] {alpha}), Pointer.to(values), Pointer.to(indices),
+							Pointer.to(starts), Pointer.to(b), Pointer.to(new float[] {beta}), Pointer.to(c)));
+					float[] updated = copyFloats(c, result.length); System.arraycopy(updated, 0, result, 0, result.length);
+				} finally { cuMemFree(b); cuMemFree(c); } }
+		}
+		@Override public void close() { synchronized (CudaComputeBackend.this) { if (values != null) {
+			setCurrent(); cuMemFree(values); cuMemFree(indices); cuMemFree(starts);
+			values = indices = starts = null; } closed = true; } }
+		private void checkOpen() { if (closed)
+			throw new IllegalStateException("prepared CUDA FP32 CSR matrix is closed"); }
 	}
 	@Override public synchronized CholeskyFactor dpotrf(double[] matrix, int dimension) {
 		checkDecompositionMatrix(matrix, dimension, dimension); ensureAvailable(); setCurrent();
@@ -620,7 +721,7 @@ public final class CudaComputeBackend implements ComputeBackend {
 		cuDeviceGetAttribute(major, CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device);
 		cuDeviceGetAttribute(minor, CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
 		capabilities = new ComputeCapabilities("CUDA", name + " (sm_" + major[0] + minor[0] + ")",
-				major[0] >= 2, true, memory[0], true, true, true);
+				major[0] >= 2, true, memory[0], true, true, true, true, false, true);
 		int[] driver = new int[1]; cuDriverGetVersion(driver);
 		String driverVersion = version(driver[0]); Package pkg = getClass().getPackage();
 		String backendVersion = pkg == null || pkg.getImplementationVersion() == null

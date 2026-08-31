@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="JDistlib: thread-safe Java probability distributions based on R src/nmath.">
-  <title>JDistlib — Statistical distributions for Java</title>
+  <meta name="description" content="JDistlib: thread-safe Java probability distributions, inference, and unified CPU/GPU linear algebra.">
+  <title>JDistlib — Probability and numerical computing for Java</title>
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/latest-release.js" defer></script>
 </head>
@@ -19,6 +19,7 @@
       <a href="multiple-testing.html">Multiple testing <span aria-label="version 0.7.0 and later">0.7.0+</span></a>
       <a href="copula-tutorial.html">Copulas <span aria-label="version 0.7.0 and later">0.7.0+</span></a>
       <a href="inference-tutorial.html">Inference <span aria-label="version 0.8.0 and later">0.8.0+</span></a>
+      <a href="linear-algebra.html">Linear algebra <span aria-label="version 0.10.0 and later">0.10.0+</span></a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
       <a href="https://github.com/robbyjo/JDistlib">Source</a>
@@ -32,18 +33,18 @@
       <div class="release-banner" aria-label="Latest stable release">
         <div>
           <span class="release-label">Latest stable release</span>
-          <strong>JDistlib <span data-latest-release-version>0.9.1</span></strong>
+          <strong>JDistlib <span data-latest-release-version>0.10.0</span></strong>
           <span class="release-meta">Java 8+ compatible bytecode</span>
         </div>
-        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download JDistlib <span data-latest-release-version>0.9.1</span> — all in one ↓</a>
+        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download JDistlib <span data-latest-release-version>0.10.0</span> — all in one ↓</a>
       </div>
       <p class="eyebrow">Probability distributions for Java</p>
       <h1>R-grade numerical methods,<br>designed for concurrent Java.</h1>
       <p class="lede">JDistlib is a Java translation of R's <code>src/nmath</code>,
         adapted to avoid process-global mutable caches and extended with distributions
-        beyond the R library. Version 0.9.1 adds restartable sparse RJMCMC,
-        a public 17,000-gene mixed-model example, and prepared CUDA/OpenCL score
-        products on top of the 0.9.0 finance and option-implied distribution APIs.</p>
+        beyond the R library. Version 0.10.0 adds a unified FP64/FP32 dense and
+        sparse linear-algebra engine across Java CPU, oneMKL, OpenBLAS, CUDA,
+        OpenCL, and Vulkan, with reusable factorizations and prepared operands.</p>
       <div class="actions">
         <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/latest">Release notes &amp; checksum</a>
         <a class="button secondary" href="getting-started.html">Start the beginner tutorial</a>
@@ -51,7 +52,7 @@
         <a class="button secondary" href="examples.html">Browse examples</a>
       </div>
       <ul class="facts" aria-label="Project facts">
-        <li><strong data-latest-release-version>0.9.1</strong><span>stable release</span></li>
+        <li><strong data-latest-release-version>0.10.0</strong><span>stable release</span></li>
         <li><strong>R 4.6.1</strong><span>sync target</span></li>
         <li><strong>Java 8+</strong><span>compatible bytecode</span></li>
         <li><strong>GPL-2.0+</strong><span>open source</span></li>
@@ -125,6 +126,14 @@
           <br><a class="card-link" href="options-trading-worked-example.html">Follow the worked options analysis →</a>
           <br><a class="card-link" href="https://github.com/robbyjo/JDistlib/blob/master/examples/AdvancedFinanceExamples.java">Open the advanced examples →</a>
         </article>
+        <article>
+          <h3>Unified linear algebra</h3>
+          <p>Build on parallel FP64/FP32 dense and CSR operations, reusable
+            Cholesky, LU, LDL', QR, eigen and SVD factors, prepared operands,
+            and honest CPU/GPU capability reporting.</p>
+          <a class="card-link" href="linear-algebra.html">Explore the 0.10.0 engine →</a>
+          <br><a class="card-link" href="LINEAR_ALGEBRA_ACCELERATION.md">Read the complete API contract →</a>
+        </article>
       </div>
     </section>
 
@@ -157,14 +166,14 @@ double x = Normal.quantile(
 
     <section class="section status" aria-labelledby="status-heading">
       <div>
-        <p class="eyebrow">Release status</p>
-        <h2 id="status-heading">The R 4.6.1 audit is complete</h2>
+        <p class="eyebrow">Release status · 0.10.0</p>
+        <h2 id="status-heading">Ready to underpin statistical modeling libraries</h2>
       </div>
-      <p>Version 0.9.0 completes the probability-first finance roadmap, from
-        atom-aware tails and transform-domain laws through EVT, asymmetric tail
-        dependence, checked option inversion, arbitrage-repaired curves, and
-        labeled risk-neutral or physical posterior-predictive distributions.</p>
-      <a class="text-link" href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">Read the synchronization ledger →</a>
+      <p>Version 0.10.0 supplies the dense, sparse, decomposition, batching, and
+        prepared-operand primitives needed by future regression, REML, pedigree,
+        graphical-model, and fine-mapping packages while keeping provider
+        selection and numerical policy in one tested engine.</p>
+      <a class="text-link" href="linear-algebra.html">Review the linear-algebra release →</a>
     </section>
   </main>
 

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="JDistlib 0.10.0 unified FP64/FP32 dense and sparse linear algebra across Java CPU, oneMKL, OpenBLAS, CUDA, OpenCL, and Vulkan.">
+  <title>JDistlib unified linear algebra</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">JDistlib</a>
+    <nav aria-label="Primary navigation">
+      <a href="learn.html">Learn</a>
+      <a href="distributions.html">Distributions</a>
+      <a href="inference-tutorial.html">Inference</a>
+      <a href="gpu-acceleration.html">Acceleration</a>
+      <a aria-current="page" href="linear-algebra.html">Linear algebra</a>
+      <a href="api/">JavaDoc</a>
+      <a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
+    </nav>
+  </header>
+  <main class="guide">
+    <section class="guide-hero">
+      <p class="eyebrow">Unified numerical engine · JDistlib 0.10.0</p>
+      <h1>One linear-algebra contract from portable CPU to GPU</h1>
+      <p class="lede">Use matching FP64 and FP32 dense, sparse, and factorization APIs while JDistlib owns provider discovery, device reuse, capability reporting, and checked portable fallbacks.</p>
+      <div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download the all-in-one JAR ↓</a><a class="button secondary" href="LINEAR_ALGEBRA_ACCELERATION.md">Read the complete contract</a></div>
+    </section>
+
+    <nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#surface">API surface</a><a href="#factors">Factorizations</a><a href="#reuse">Prepared work</a><a href="#providers">Providers</a><a href="#downstream">Downstream libraries</a></nav>
+
+    <section class="guide-section" id="surface">
+      <p class="eyebrow">FP64 and FP32</p>
+      <h2>Dense and sparse primitives share one shape</h2>
+      <div class="table-wrap"><table class="troubleshooting-table">
+        <thead><tr><th>Area</th><th>Released operations</th><th>Reuse support</th></tr></thead>
+        <tbody>
+          <tr><td>Level 1</td><td>scale, copy, swap, AXPY, dot, norm, absolute sum, absolute maximum</td><td>strided caller-owned vectors</td></tr>
+          <tr><td>Dense</td><td>GEMV/GEMM, rank updates, symmetric multiply/rank-k updates, triangular solves</td><td>offsets, leading dimensions, batching, prepared fixed operands</td></tr>
+          <tr><td>Sparse CSR</td><td>matrix-vector, matrix-dense, CSR-by-CSR, triangular solve</td><td>canonical output and prepared provider storage</td></tr>
+          <tr><td>Factorization</td><td>Cholesky, LU, LDL', pivoted QR, symmetric/generalized eigen, thin SVD</td><td>factor objects, repeated solves, determinant metadata</td></tr>
+        </tbody>
+      </table></div>
+      <p>Dense storage is row-major. Standard <code>d*</code> and <code>s*</code> prefixes distinguish <code>double[]</code> and <code>float[]</code> without introducing a second naming system.</p>
+    </section>
+
+    <section class="guide-section" id="factors">
+      <p class="eyebrow">Reusable decomposition results</p>
+      <h2>Factor once, solve and inspect repeatedly</h2>
+      <div class="guide-columns">
+        <article><h3>Positive definite</h3><p>Cholesky supports solves and log determinants. Sparse Cholesky adds natural or minimum-degree ordering and original-coordinate solutions.</p></article>
+        <article><h3>General systems</h3><p>Partial-pivoted LU supports vector or multiple-right-side solves plus determinant sign and log-absolute-determinant metadata.</p></article>
+        <article><h3>Symmetric indefinite</h3><p>Pivoted LDL' retains 1x1 and 2x2 blocks for stable solves and determinant inspection.</p></article>
+        <article><h3>Least squares and spectra</h3><p>Pivoted QR reports numerical rank; eigen, generalized eigen, and thin SVD cover spectral and rank-deficient workflows.</p></article>
+      </div>
+    </section>
+
+    <section class="guide-section" id="reuse">
+      <p class="eyebrow">Prepared operands</p>
+      <h2>Avoid rebuilding or retransferring fixed matrices</h2>
+      <pre><code>try (ComputeSelection selected = ComputeBackends.select(Compute.AUTO);
+     PreparedDenseMatrix prepared =
+         selected.backend().prepareDge(a, rows, shared)) {
+    prepared.multiply(MatrixTranspose.NONE,
+        1.0, right, columns, 0.0, result);
+}</code></pre>
+      <p>Prepared dense handles can retain the fixed matrix in a native CPU or CUDA/OpenCL/Vulkan provider buffer. Prepared sparse Cholesky retains symbolic analysis and accepts numeric refactorization when the authoritative CSR structure is unchanged. Batched entry points amortize dispatch for collections of independent products or factors.</p>
+    </section>
+
+    <section class="guide-section" id="providers">
+      <p class="eyebrow">Explicit capability boundary</p>
+      <h2>Know which machine and implementation did the work</h2>
+      <div class="table-wrap"><table class="troubleshooting-table">
+        <thead><tr><th>Provider</th><th>Role</th><th>Installation boundary</th></tr></thead>
+        <tbody>
+          <tr><td>Java CPU</td><td>portable deterministic reference and universal fallback</td><td>always available</td></tr>
+          <tr><td>oneMKL</td><td>native CBLAS/LAPACKE plus reusable PARDISO sparse factorization</td><td>system oneMKL runtime</td></tr>
+          <tr><td>OpenBLAS</td><td>native CBLAS/LAPACKE dense operations and factors when exported</td><td>system OpenBLAS runtime</td></tr>
+          <tr><td>CUDA</td><td>NVIDIA device kernels and resident prepared dense/CSR operands</td><td>compatible driver and NVRTC</td></tr>
+          <tr><td>OpenCL</td><td>portable GPU kernels and resident prepared dense/CSR operands</td><td>FP64-capable OpenCL implementation</td></tr>
+          <tr><td>Vulkan</td><td>SPIR-V compute kernels and resident prepared dense operands</td><td>Vulkan device with <code>shaderFloat64</code></td></tr>
+        </tbody>
+      </table></div>
+      <p><code>ComputeCapabilities</code> reports the backend, device, memory, precision, dense/sparse acceleration, native factorization, prepared storage, reusable sparse factorization, and batching support. Execution plans separately identify portable fallback. Numerical results are tolerance-checked, but parallel reduction order means cross-hardware bit identity is not promised.</p>
+    </section>
+
+    <section class="guide-section guide-next" id="downstream">
+      <p class="eyebrow">Library foundation</p>
+      <h2>Ready for regression, REML, pedigree, and graphical-model packages</h2>
+      <p>JDistlib now owns the low-level numerical and provider layer. A downstream package can focus on design matrices, formula handling, statistical algorithms, variance-component optimization, pedigree construction, diagnostics, and result objects. Additional primitives can be added when those real workloads expose a measured gap.</p>
+      <div class="actions"><a class="button secondary" href="api/">Browse JavaDoc</a><a class="button secondary" href="gpu-acceleration.html">Review acceleration guidance</a></div>
+    </section>
+  </main>
+  <footer><span>JDistlib unified linear algebra.</span><span>Released in version 0.10.0.</span></footer>
+</body>
+</html>

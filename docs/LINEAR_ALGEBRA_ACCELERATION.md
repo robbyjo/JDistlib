@@ -1,5 +1,9 @@
 # Unified dense and sparse linear algebra
 
+**Release status:** the complete API described here is released in JDistlib
+0.10.0. The shorter [website guide](linear-algebra.html) provides an overview
+for downstream library authors.
+
 JDistlib exposes FP64 and FP32 linear-algebra contracts across its deterministic
 Java CPU reference, optional oneMKL/OpenBLAS native CPU providers, and optional
 CUDA, OpenCL, and Vulkan providers. Select and own a backend through the

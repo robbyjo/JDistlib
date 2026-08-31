@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Beginner tutorials and applied vignettes for JDistlib distributions, custom distributions, copulas, and Bayesian inference.">
+  <meta name="description" content="Tutorials and applied guides for JDistlib distributions, copulas, inference, finance, and unified linear algebra.">
   <title>Learn JDistlib — tutorials and vignettes</title>
   <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -18,6 +18,7 @@
       <a href="multiple-testing.html">Multiple testing 0.7.0+</a>
       <a href="copula-tutorial.html">Copulas 0.7.0+</a>
       <a href="inference-tutorial.html">Inference 0.8.0+</a>
+      <a href="linear-algebra.html">Linear algebra 0.10.0+</a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib">Source</a>
     </nav>
@@ -32,7 +33,7 @@
     </section>
     <section class="guide-section">
       <p class="eyebrow">Choose a path</p>
-      <h2>Six levels, no prerequisites beyond Java</h2>
+      <h2>Seven paths, no prerequisites beyond Java</h2>
       <div class="learning-grid">
         <article class="learning-card"><span class="card-kicker">1 · Beginner</span><h3>Built-in distributions</h3><p>Understand D/P/Q/R and answer probability questions with familiar laws.</p><a class="card-link" href="getting-started.html">Tutorial →</a><br><a class="card-link" href="distribution-vignette.html">Response-time vignette →</a></article>
         <article class="learning-card"><span class="card-kicker">2 · Composition · 0.6.0+</span><h3>Compose and transform</h3><p>Mix populations, restrict support, represent measurement limits, change units, and apply a Jacobian correctly.</p><a class="card-link" href="composition-tutorial.html">Tutorial →</a></article>
@@ -40,12 +41,14 @@
         <article class="learning-card"><span class="card-kicker">4 · Joint models · 0.7.0+</span><h3>Copulas and dependence</h3><p>Keep marginal behavior separate from dependence, including mixed and vine models.</p><a class="card-link" href="copula-tutorial.html">Tutorial →</a><br><a class="card-link" href="copula-vignette.html">Claims vignette →</a></article>
         <article class="learning-card"><span class="card-kicker">5 · Inference · 0.8.0+</span><h3>Bayesian models and MCMC</h3><p>Use one organized gateway to choose a complete quick start, pure-Java modeling, feature examples, JDM/Stan scripts, beginner language material, or advanced diagnostics.</p><a class="card-link" href="inference-tutorial.html">Choose your MCMC route →</a></article>
         <article class="learning-card"><span class="card-kicker">6 · Finance · 0.9.0+</span><h3>Tails and option-implied laws</h3><p>Move from loss/return conventions through heavy tails, EVT, curve repair, and labeled Q or physical predictive outputs.</p><a class="card-link" href="finance-tutorial.html">Finance tutorial →</a><br><a class="card-link" href="options-trading-worked-example.html">Worked options analysis →</a></article>
+        <article class="learning-card"><span class="card-kicker">7 · Numerical engine · 0.10.0+</span><h3>Dense and sparse linear algebra</h3><p>Choose CPU or GPU providers, reuse dense and sparse operands, solve systems, and factor matrices through matching FP64 and FP32 contracts.</p><a class="card-link" href="linear-algebra.html">Linear-algebra guide →</a><br><a class="card-link" href="LINEAR_ALGEBRA_ACCELERATION.md">Complete API contract →</a></article>
       </div>
       <aside class="version-note"><strong>Version note:</strong> copula APIs and both
         copula learning pages require JDistlib 0.7.0 or later. Custom numerical
         distributions require 0.6.0 or later. Bayesian inference and model
         scripts are available from JDistlib 0.8.0. Finance and option-implied
-        distribution APIs require 0.9.0 or later.</aside>
+        distribution APIs require 0.9.0 or later. The unified linear-algebra
+        engine described here requires 0.10.0 or later.</aside>
     </section>
     <section class="guide-section">
       <p class="eyebrow">After hypothesis tests · 0.7.0+</p>

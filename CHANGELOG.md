@@ -1,6 +1,6 @@
 What's new:
 
-Development after 0.9.1:
+Version 0.10.0 (August 31, 2026):
 * Completed the FP64/FP32 BLAS surface needed by downstream linear-algebra
   libraries: scaling, copying, swapping, absolute reductions, rank-one/rank-two
   updates, symmetric multiplication and rank-2k updates; no-copy GEMV/GEMM/

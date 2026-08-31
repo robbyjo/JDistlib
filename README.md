@@ -31,10 +31,13 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.9.1 is the current stable release. It adds sparse subset RJMCMC for
-thousands of candidate features, exact restart during warmup or sampling,
-crash-safe segmented output, CUDA/OpenCL-assisted residual proposals, and a
-public GSE93272 mixed-model worked example. Version 0.9.0 added
+Version 0.10.0 is the current stable release. It establishes a backend-neutral
+FP64/FP32 dense and sparse linear-algebra engine with reusable decompositions,
+prepared operands, batched operations, native oneMKL/OpenBLAS choices, and
+CUDA/OpenCL/Vulkan routing and capability reporting. Version 0.9.1 added sparse
+subset RJMCMC for thousands of candidate features, exact restart during warmup
+or sampling, crash-safe segmented output, CUDA/OpenCL-assisted residual
+proposals, and a public GSE93272 mixed-model worked example. Version 0.9.0 added
 probability-first finance:
 tail and payoff functionals, transform-domain and heavy-tailed laws,
 aggregation, tail-sensitive copulas, EVT fitting, checked implied volatility,
@@ -179,7 +182,7 @@ The website now puts beginner material first:
   OpenCL, and Vulkan backends, automatic CPU fallback, the unified download,
   reproducible RTX 2080 likelihood numbers, and the still-provisional
   whole-NUTS decision.
-* [Unified dense and sparse linear algebra](docs/LINEAR_ALGEBRA_ACCELERATION.md) —
+* [Unified dense and sparse linear algebra](https://robbyjo.github.io/JDistlib/linear-algebra.html) —
   parallel FP64/FP32 BLAS operations, CSR kernels, sparse Cholesky, and reusable dense Cholesky,
   symmetric-eigen, pivoted-QR, and thin-SVD decompositions,
   backend capabilities, routing, and numerical semantics.

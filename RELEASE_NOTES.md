@@ -1,4 +1,46 @@
-# JDistlib 0.9.1
+# JDistlib 0.10.0
+
+JDistlib 0.10.0 turns the optional accelerator layer into a reusable
+backend-neutral linear-algebra engine for downstream statistical, graphical-
+model, and scientific libraries. Matching FP64 and FP32 contracts cover
+strided Level-1 operations; row-major GEMV, GEMM, symmetric updates and
+triangular solves; no-copy matrix regions with explicit offsets and leading
+dimensions; and batched GEMM, Cholesky, and LU entry points.
+
+Reusable dense factors now include Cholesky, partial-pivoted LU,
+symmetric-indefinite LDL', column-pivoted QR, ordinary and generalized
+symmetric eigendecomposition, and thin SVD. Factor objects expose solves,
+rank or pivot metadata, and determinant information where applicable. The
+generalized eigen path uses an SPD metric, while portable reference
+implementations preserve the API when a provider does not export a native
+routine.
+
+Sparse support now spans CSR matrix-vector, matrix-dense, and canonical
+CSR-by-CSR multiplication; transposed and unit-diagonal sparse triangular
+solves; and ordered sparse Cholesky. Prepared sparse factorizations separate
+symbolic analysis from repeatable numeric refactorization. The oneMKL provider
+can use PARDISO for this reusable path, while every installation retains a
+checked portable implementation.
+
+Prepared FP64 and FP32 dense handles retain a fixed operand for repeated or
+batched products. Native CPU handles use the selected CBLAS runtime, and CUDA,
+OpenCL, and Vulkan handles retain provider buffers instead of retransferring
+the fixed matrix for each call. Expanded capability and execution-plan records
+identify the selected backend, hardware, native support, and portable
+fallbacks rather than implying that every operation executes on the device.
+
+The native CPU module dynamically supports either oneMKL or OpenBLAS without
+making either library mandatory. LAPACKE exports are used for supported dense
+factorizations when available. The native-free Java CPU implementation remains
+the deterministic reference and the all-in-one JAR continues to operate when
+no native CPU or GPU runtime is installed.
+
+Provider parity, mixed 1x1/2x2 LDL' pivots, matrix regions, batching, prepared
+operands, sparse multiplication/solves, factor reuse, capability reporting,
+packaging, JavaDoc, and the complete 92-model script catalog are release-gated.
+All additions preserve existing APIs and Java 8-compatible bytecode.
+
+## Previous release: JDistlib 0.9.1
 
 JDistlib 0.9.1 adds a production-oriented sparse subset RJMCMC path for a large
 candidate universe with a small active model. `SparseSubsetState` stores sorted

@@ -33,18 +33,18 @@
       <div class="release-banner" aria-label="Latest stable release">
         <div>
           <span class="release-label">Latest stable release</span>
-          <strong>JDistlib <span data-latest-release-version>0.10.0</span></strong>
+          <strong>JDistlib <span data-latest-release-version>0.10.1</span></strong>
           <span class="release-meta">Java 8+ compatible bytecode</span>
         </div>
-        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download JDistlib <span data-latest-release-version>0.10.0</span> — all in one ↓</a>
+        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download JDistlib <span data-latest-release-version>0.10.1</span> — all in one ↓</a>
       </div>
       <p class="eyebrow">Probability distributions for Java</p>
       <h1>R-grade numerical methods,<br>designed for concurrent Java.</h1>
       <p class="lede">JDistlib is a Java translation of R's <code>src/nmath</code>,
         adapted to avoid process-global mutable caches and extended with distributions
-        beyond the R library. Version 0.10.0 adds a unified FP64/FP32 dense and
-        sparse linear-algebra engine across Java CPU, oneMKL, OpenBLAS, CUDA,
-        OpenCL, and Vulkan, with reusable factorizations and prepared operands.</p>
+        beyond the R library. Version 0.10.1 completes provider-resident FP64/
+        FP32 prepared sparse factors across oneMKL, optional OpenBLAS/CHOLMOD,
+        CUDA, OpenCL, and Vulkan.</p>
       <div class="actions">
         <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/latest">Release notes &amp; checksum</a>
         <a class="button secondary" href="getting-started.html">Start the beginner tutorial</a>
@@ -52,7 +52,7 @@
         <a class="button secondary" href="examples.html">Browse examples</a>
       </div>
       <ul class="facts" aria-label="Project facts">
-        <li><strong data-latest-release-version>0.10.0</strong><span>stable release</span></li>
+        <li><strong data-latest-release-version>0.10.1</strong><span>stable release</span></li>
         <li><strong>R 4.6.1</strong><span>sync target</span></li>
         <li><strong>Java 8+</strong><span>compatible bytecode</span></li>
         <li><strong>GPL-2.0+</strong><span>open source</span></li>
@@ -166,13 +166,12 @@ double x = Normal.quantile(
 
     <section class="section status" aria-labelledby="status-heading">
       <div>
-        <p class="eyebrow">Release status · 0.10.0</p>
-        <h2 id="status-heading">Ready to underpin statistical modeling libraries</h2>
+        <p class="eyebrow">Release status · 0.10.1</p>
+        <h2 id="status-heading">Sparse factors now stay with the selected provider</h2>
       </div>
-      <p>Version 0.10.0 supplies the dense, sparse, decomposition, batching, and
-        prepared-operand primitives needed by future regression, REML, pedigree,
-        graphical-model, and fine-mapping packages while keeping provider
-        selection and numerical policy in one tested engine.</p>
+      <p>Version 0.10.1 completes native prepared sparse numeric factors and
+        solves across the optional CPU and GPU providers while preserving the
+        portable Java implementation and explicit execution reporting.</p>
       <a class="text-link" href="linear-algebra.html">Review the linear-algebra release →</a>
     </section>
   </main>

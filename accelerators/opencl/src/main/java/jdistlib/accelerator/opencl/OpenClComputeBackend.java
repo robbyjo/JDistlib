@@ -34,10 +34,14 @@ import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
 import jdistlib.accelerator.PreparedDenseMatrix;
 import jdistlib.accelerator.PreparedFloatDenseMatrix;
+import jdistlib.accelerator.PreparedFloatSparseCholesky;
+import jdistlib.accelerator.PreparedSparseCholesky;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.PivotedQrFactor;
 import jdistlib.accelerator.SingularValueDecomposition;
 import jdistlib.accelerator.SymmetricEigenDecomposition;
+import jdistlib.accelerator.SparseCholeskyPlan;
+import jdistlib.accelerator.SparseOrdering;
 import jdistlib.accelerator.UnaryOperation;
 import jdistlib.matrix.CsrMatrix;
 import jdistlib.matrix.FloatCsrMatrix;
@@ -56,6 +60,10 @@ public final class OpenClComputeBackend implements ComputeBackend {
 			+ "__kernel void decomp_$Psyev(__global $T*a,__global $T*values,__global $T*vectors,int n,$T eps,__global int*info){if(get_global_id(0)!=0)return;*info=0;for(int i=0;i<n*n;i++)vectors[i]=0;for(int i=0;i<n;i++)vectors[i*n+i]=1;int maximum=8*n>32?8*n:32;for(int sweep=0;sweep<maximum;sweep++){bool changed=false;for(int p=0;p<n-1;p++)for(int q=p+1;q<n;q++){$T apq=a[p*n+q],threshold=eps*($Pabs(a[p*n+p])+$Pabs(a[q*n+q])+1);if($Pabs(apq)<=threshold)continue;changed=true;$T app=a[p*n+p],aqq=a[q*n+q],tau=(aqq-app)/(2*apq),t=(tau<0?-1:1)/($Pabs(tau)+$Phypot(($T)1,tau)),c=1/$Phypot(($T)1,t),s=t*c;for(int k=0;k<n;k++)if(k!=p&&k!=q){$T akp=a[k*n+p],akq=a[k*n+q],np=c*akp-s*akq,nq=s*akp+c*akq;a[k*n+p]=a[p*n+k]=np;a[k*n+q]=a[q*n+k]=nq;}a[p*n+p]=c*c*app-2*s*c*apq+s*s*aqq;a[q*n+q]=s*s*app+2*s*c*apq+c*c*aqq;a[p*n+q]=a[q*n+p]=0;for(int r=0;r<n;r++){$T vp=vectors[r*n+p],vq=vectors[r*n+q];vectors[r*n+p]=c*vp-s*vq;vectors[r*n+q]=s*vp+c*vq;}}if(!changed)break;if(sweep+1==maximum){*info=1;return;}}for(int i=0;i<n;i++)values[i]=a[i*n+i];for(int i=0;i<n-1;i++){int selected=i;for(int j=i+1;j<n;j++)if(values[j]<values[selected])selected=j;if(selected!=i){$T z=values[i];values[i]=values[selected];values[selected]=z;$Pswap(vectors,n,n,i,selected);}}for(int c=0;c<n;c++){int largest=0;for(int r=1;r<n;r++)if($Pabs(vectors[r*n+c])>$Pabs(vectors[largest*n+c]))largest=r;if(vectors[largest*n+c]<0)for(int r=0;r<n;r++)vectors[r*n+c]=-vectors[r*n+c];}}\n"
 			+ "__kernel void decomp_$Pgesvd(__global const $T*a,__global $T*work,__global $T*u,__global $T*singular,__global $T*vt,int rows,int cols,$T eps,__global int*info){if(get_global_id(0)!=0)return;*info=0;bool wide=rows<cols;int tr=wide?cols:rows,tc=wide?rows:cols;for(int r=0;r<tr;r++)for(int c=0;c<tc;c++)work[r*tc+c]=wide?a[c*cols+r]:a[r*cols+c];__global $T*v=wide?u:vt;for(int i=0;i<tc*tc;i++)v[i]=0;for(int i=0;i<tc;i++)v[i*tc+i]=1;int maximum=12*tc>48?12*tc:48;for(int sweep=0;sweep<maximum;sweep++){bool changed=false;for(int p=0;p<tc-1;p++)for(int q=p+1;q<tc;q++){$T alpha=0,beta=0,gamma=0;for(int r=0;r<tr;r++){$T x=work[r*tc+p],y=work[r*tc+q];alpha+=x*x;beta+=y*y;gamma+=x*y;}if(gamma==0||$Pabs(gamma)<=eps*sqrt(alpha*beta))continue;changed=true;$T zeta=(beta-alpha)/(2*gamma),t=(zeta<0?-1:1)/($Pabs(zeta)+$Phypot(($T)1,zeta)),c=1/$Phypot(($T)1,t),s=c*t;for(int r=0;r<tr;r++){int pi=r*tc+p,qi=r*tc+q;$T x=work[pi],y=work[qi];work[pi]=c*x-s*y;work[qi]=s*x+c*y;}for(int r=0;r<tc;r++){int pi=r*tc+p,qi=r*tc+q;$T x=v[pi],y=v[qi];v[pi]=c*x-s*y;v[qi]=s*x+c*y;}}if(!changed)break;if(sweep+1==maximum){*info=1;return;}}for(int c=0;c<tc;c++)singular[c]=$Pnorm(work,tr,tc,c);for(int i=0;i<tc-1;i++){int selected=i;for(int j=i+1;j<tc;j++)if(singular[j]>singular[selected])selected=j;if(selected!=i){$T z=singular[i];singular[i]=singular[selected];singular[selected]=z;$Pswap(work,tr,tc,i,selected);$Pswap(v,tc,tc,i,selected);}}$T threshold=(rows>cols?rows:cols)*eps/16*singular[0];if(!wide){for(int c=0;c<tc;c++){if(singular[c]>threshold)for(int r=0;r<tr;r++)u[r*tc+c]=work[r*tc+c]/singular[c];else if(!$Pcomplete(u,tr,tc,c,eps)){*info=2;return;}}for(int c=0;c<tc;c++){int largest=0;for(int r=1;r<tr;r++)if($Pabs(u[r*tc+c])>$Pabs(u[largest*tc+c]))largest=r;if(u[largest*tc+c]<0){for(int r=0;r<tr;r++)u[r*tc+c]=-u[r*tc+c];for(int r=0;r<tc;r++)v[r*tc+c]=-v[r*tc+c];}}for(int r=0;r<tc;r++)for(int c=r+1;c<tc;c++){$T z=vt[r*tc+c];vt[r*tc+c]=vt[c*tc+r];vt[c*tc+r]=z;}}else{for(int c=0;c<tc;c++){if(singular[c]>threshold)for(int r=0;r<tr;r++)work[r*tc+c]/=singular[c];else if(!$Pcomplete(work,tr,tc,c,eps)){*info=2;return;}}for(int c=0;c<tc;c++){int largest=0;for(int r=1;r<tc;r++)if($Pabs(u[r*tc+c])>$Pabs(u[largest*tc+c]))largest=r;if(u[largest*tc+c]<0){for(int r=0;r<tc;r++)u[r*tc+c]=-u[r*tc+c];for(int r=0;r<tr;r++)work[r*tc+c]=-work[r*tc+c];}}for(int c=0;c<tc;c++)for(int r=0;r<tr;r++)vt[c*tr+r]=work[r*tc+c];}}\n";
 	private static String decompositionSource(String type,String prefix){return DECOMPOSITION_TEMPLATE.replace("$T",type).replace("$P",prefix);}
+	private static final String SPARSE_TEMPLATE =
+			"__kernel void sparse_$Ppotrf(__global const $T*a,__global $T*l,__global const int*ci,__global const int*rs,int n,__global int*info,__global $T*logdet){if(get_global_id(0)!=0)return;*info=0;$T determinant=0;for(int row=0;row<n;row++){for(int at=rs[row];at<rs[row+1];at++){int col=ci[at];$T sum=a[at];int left=rs[row],other=rs[col];while(left<at&&other<rs[col+1]){int lc=ci[left],oc=ci[other];if(lc>=col||oc>=col)break;if(lc==oc){sum-=l[left]*l[other];left++;other++;}else if(lc<oc)left++;else other++;}if(row==col){if(!(sum>0)||!isfinite(sum)){*info=row+1;return;}l[at]=sqrt(sum);determinant+=2*log(l[at]);}else l[at]=sum/l[rs[col+1]-1];}}*logdet=determinant;}\n"
+			+ "__kernel void sparse_$Psolve(__global const $T*l,__global const int*ci,__global const int*rs,__global const int*perm,__global const $T*right,__global $T*work,__global $T*result,int n,int columns){int rhs=get_global_id(0);if(rhs>=columns)return;for(int row=0;row<n;row++)work[row*columns+rhs]=right[perm[row]*columns+rhs];for(int row=0;row<n;row++){$T value=work[row*columns+rhs];int end=rs[row+1]-1;for(int at=rs[row];at<end;at++)value-=l[at]*work[ci[at]*columns+rhs];work[row*columns+rhs]=value/l[end];}for(int row=n-1;row>=0;row--){int end=rs[row+1]-1;work[row*columns+rhs]/=l[end];for(int at=rs[row];at<end;at++)work[ci[at]*columns+rhs]-=l[at]*work[row*columns+rhs];}for(int row=0;row<n;row++)result[perm[row]*columns+rhs]=work[row*columns+rhs];}\n";
+	private static String sparseSource(String type,String prefix){return SPARSE_TEMPLATE.replace("$T",type).replace("$P",prefix);}
 	private static final String SOURCE =
 			"#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n"
 			+ "double logistic(double v){return v>=0?1.0/(1.0+exp(-v)):exp(v)/(1.0+exp(v));}\n"
@@ -84,6 +92,7 @@ public final class OpenClComputeBackend implements ComputeBackend {
 			+ "__kernel void float_blas_trsm(int side,int lower,int tr,int unit,int rows,int cols,float alpha,__global const float*a,__global float*b){int vector=get_global_id(0),count=side?rows:cols,n=side?cols:rows;if(vector>=count)return;if(!side){int effective=tr?!lower:lower;for(int i=0;i<n;i++)b[i*cols+vector]*=alpha;for(int step=0;step<n;step++){int i=effective?step:n-1-step;float v=b[i*cols+vector];if(effective){for(int j=0;j<i;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}else{for(int j=i+1;j<n;j++)v-=(tr?a[j*n+i]:a[i*n+j])*b[j*cols+vector];}b[i*cols+vector]=unit?v:v/a[i*n+i];}}else{int effective=tr?!lower:lower;for(int j=0;j<n;j++)b[vector*cols+j]*=alpha;for(int step=0;step<n;step++){int j=effective?n-1-step:step;float v=b[vector*cols+j];if(effective){for(int k=j+1;k<n;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}else{for(int k=0;k<j;k++)v-=b[vector*cols+k]*(tr?a[j*n+k]:a[k*n+j]);}b[vector*cols+j]=unit?v:v/a[j*n+j];}}}\n"
 			+ "__kernel void float_csr_mv(int rows,float alpha,__global const float*v,__global const int*ci,__global const int*rs,__global const float*x,float beta,__global float*y){int row=get_global_id(0);if(row<rows){float s=0;for(int z=rs[row]-1;z<rs[row+1]-1;z++)s+=v[z]*x[ci[z]-1];y[row]=alpha*s+beta*y[row];}}\n"
 			+ "__kernel void float_csr_mm(int rows,int outcols,float alpha,__global const float*v,__global const int*ci,__global const int*rs,__global const float*b,float beta,__global float*c){int z=get_global_id(0);if(z<rows*outcols){int row=z/outcols,col=z-row*outcols;float s=0;for(int q=rs[row]-1;q<rs[row+1]-1;q++)s+=v[q]*b[(ci[q]-1)*outcols+col];c[z]=alpha*s+beta*c[z];}}\n"
+			+ sparseSource("double","d") + sparseSource("float","s")
 			+ decompositionSource("double","d") + decompositionSource("float","s")
 			+ "__kernel void transpose_product(__global const double*x,__global const double*v,__global double*out,int rows,int cols,int batches){int z=get_global_id(0);if(z<cols*batches){int b=z/cols,col=z-b*cols;double s=0;for(int row=0;row<rows;row++)s+=x[row*cols+col]*v[b*rows+row];out[z]=s;}}\n"
 			+ "__kernel void logistic_residual(__global const double*x,__global const double*y,__global const double*q,__global double*r,__global double*t,int rows,int dims,int chains){int z=get_global_id(0);if(z<rows*chains){int c=z/rows,i=z-c*rows;double eta=0;for(int d=0;d<dims;d++)eta+=x[i*dims+d]*q[c*dims+d];r[z]=y[i]-logistic(eta);t[z]=y[i]*eta-l1e(eta);}}\n"
@@ -429,6 +438,102 @@ public final class OpenClComputeBackend implements ComputeBackend {
 		public void multiply(MatrixTranspose transpose,float alpha,float[]right,int rightColumns,float beta,float[]result){if(transpose==null||rightColumns<1)throw new IllegalArgumentException("prepared OpenCL FP32 dense dimensions do not conform");int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;if(right==null||right.length!=shared*rightColumns||result==null||result.length!=output*rightColumns)throw new IllegalArgumentException("prepared OpenCL FP32 dense dimensions do not conform");synchronized(OpenClComputeBackend.this){checkOpen();cl_mem b=input(right),c=inputReadWrite(result);cl_kernel operation=kernel("float_blas_gemm");try{arg(operation,0,transpose==MatrixTranspose.TRANSPOSE?1:0);arg(operation,1,0);arg(operation,2,output);arg(operation,3,rightColumns);arg(operation,4,shared);arg(operation,5,alpha);arg(operation,6,matrix);arg(operation,7,b);arg(operation,8,beta);arg(operation,9,c);check(clEnqueueNDRangeKernel(queue,operation,2,null,new long[]{round16(rightColumns),round16(output)},new long[]{16,16},0,null,null));float[]updated=readFloats(c,result.length);System.arraycopy(updated,0,result,0,result.length);}finally{clReleaseKernel(operation);clReleaseMemObject(b);clReleaseMemObject(c);}}}
 		public void close(){synchronized(OpenClComputeBackend.this){if(matrix!=null){clReleaseMemObject(matrix);matrix=null;}}}private void checkOpen(){if(matrix==null)throw new IllegalStateException("prepared OpenCL FP32 dense matrix is closed");}
 	}
+	@Override public PreparedSparseCholesky prepareDcsrpotrf(CsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return new PreparedDoubleSparseFactor(matrix, triangle, ordering);
+	}
+	@Override public PreparedFloatSparseCholesky prepareScsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return new PreparedFloatSparseFactor(matrix, triangle, ordering);
+	}
+	private final class PreparedDoubleSparseFactor implements PreparedSparseCholesky {
+		private final SparseCholeskyPlan plan;
+		private cl_mem factor, candidate, indices, starts, permutation, info, determinant;
+		private double logDeterminant; private boolean closed;
+		PreparedDoubleSparseFactor(CsrMatrix matrix, MatrixTriangle triangle, SparseOrdering ordering) {
+			plan = SparseCholeskyPlan.analyze(matrix, triangle, ordering);
+			synchronized (OpenClComputeBackend.this) {
+				ensureAvailable(); int count = plan.factorNonzeroCount(); factor = output(count); candidate = output(count);
+				indices = input(plan.factorColumnIndices()); starts = input(plan.factorRowStarts());
+				permutation = input(plan.permutation()); info = outputInts(1); determinant = output(1);
+				try { factor(plan.factorValues(matrix)); } catch (RuntimeException error) { close(); throw error; }
+			}
+		}
+		@Override public int dimension() { checkOpen(); return plan.dimension(); }
+		@Override public int structuralNonzeroCount() { checkOpen(); return plan.structuralNonzeroCount(); }
+		@Override public int factorNonzeroCount() { checkOpen(); return plan.factorNonzeroCount(); }
+		@Override public int[] permutation() { checkOpen(); return plan.permutation(); }
+		@Override public double logDeterminant() { checkOpen(); return logDeterminant; }
+		@Override public void refactor(CsrMatrix matrix) { double[] values = plan.factorValues(matrix);
+			synchronized (OpenClComputeBackend.this) { checkOpen(); factor(values); } }
+		private void factor(double[] values) {
+			cl_mem source = input(values); cl_kernel operation = kernel("sparse_dpotrf");
+			try { arg(operation,0,source);arg(operation,1,candidate);arg(operation,2,indices);arg(operation,3,starts);
+				arg(operation,4,plan.dimension());arg(operation,5,info);arg(operation,6,determinant);run1d(operation,1);
+				int status=readInts(info,1)[0];if(status!=0)throw new IllegalArgumentException(
+						"sparse matrix is not positive definite at permuted minor "+status);
+				logDeterminant=read(determinant,1)[0];cl_mem previous=factor;factor=candidate;candidate=previous;
+			} finally { clReleaseKernel(operation);clReleaseMemObject(source); }
+		}
+		@Override public void solveInPlace(double[] right,int columns) {
+			if(columns<1||right==null||right.length!=plan.dimension()*columns)
+				throw new IllegalArgumentException("invalid OpenCL sparse right side");
+			synchronized(OpenClComputeBackend.this){checkOpen();cl_mem source=input(right),work=output(right.length),result=output(right.length);
+				cl_kernel operation=kernel("sparse_dsolve");try{arg(operation,0,factor);arg(operation,1,indices);arg(operation,2,starts);
+					arg(operation,3,permutation);arg(operation,4,source);arg(operation,5,work);arg(operation,6,result);
+					arg(operation,7,plan.dimension());arg(operation,8,columns);run1d(operation,columns);
+					double[]updated=read(result,right.length);System.arraycopy(updated,0,right,0,right.length);
+				}finally{clReleaseKernel(operation);clReleaseMemObject(result);clReleaseMemObject(work);clReleaseMemObject(source);}}
+		}
+		@Override public void close(){synchronized(OpenClComputeBackend.this){if(!closed){release(factor);release(candidate);
+			release(indices);release(starts);release(permutation);release(info);release(determinant);
+			factor=candidate=indices=starts=permutation=info=determinant=null;closed=true;}}}
+		private void checkOpen(){if(closed||factor==null)throw new IllegalStateException("prepared OpenCL sparse Cholesky is closed");}
+	}
+	private final class PreparedFloatSparseFactor implements PreparedFloatSparseCholesky {
+		private final SparseCholeskyPlan plan;
+		private cl_mem factor, candidate, indices, starts, permutation, info, determinant;
+		private float logDeterminant; private boolean closed;
+		PreparedFloatSparseFactor(FloatCsrMatrix matrix, MatrixTriangle triangle, SparseOrdering ordering) {
+			plan = SparseCholeskyPlan.analyze(matrix, triangle, ordering);
+			synchronized (OpenClComputeBackend.this) {
+				ensureAvailable(); int count = plan.factorNonzeroCount(); factor = outputFloats(count); candidate = outputFloats(count);
+				indices = input(plan.factorColumnIndices()); starts = input(plan.factorRowStarts());
+				permutation = input(plan.permutation()); info = outputInts(1); determinant = outputFloats(1);
+				try { factor(plan.factorValues(matrix)); } catch (RuntimeException error) { close(); throw error; }
+			}
+		}
+		@Override public int dimension() { checkOpen(); return plan.dimension(); }
+		@Override public int structuralNonzeroCount() { checkOpen(); return plan.structuralNonzeroCount(); }
+		@Override public int factorNonzeroCount() { checkOpen(); return plan.factorNonzeroCount(); }
+		@Override public int[] permutation() { checkOpen(); return plan.permutation(); }
+		@Override public float logDeterminant() { checkOpen(); return logDeterminant; }
+		@Override public void refactor(FloatCsrMatrix matrix) { float[] values = plan.factorValues(matrix);
+			synchronized (OpenClComputeBackend.this) { checkOpen(); factor(values); } }
+		private void factor(float[] values) {
+			cl_mem source = input(values); cl_kernel operation = kernel("sparse_spotrf");
+			try { arg(operation,0,source);arg(operation,1,candidate);arg(operation,2,indices);arg(operation,3,starts);
+				arg(operation,4,plan.dimension());arg(operation,5,info);arg(operation,6,determinant);run1d(operation,1);
+				int status=readInts(info,1)[0];if(status!=0)throw new IllegalArgumentException(
+						"FP32 sparse matrix is not positive definite at permuted minor "+status);
+				logDeterminant=readFloats(determinant,1)[0];cl_mem previous=factor;factor=candidate;candidate=previous;
+			} finally { clReleaseKernel(operation);clReleaseMemObject(source); }
+		}
+		@Override public void solveInPlace(float[] right,int columns) {
+			if(columns<1||right==null||right.length!=plan.dimension()*columns)
+				throw new IllegalArgumentException("invalid OpenCL FP32 sparse right side");
+			synchronized(OpenClComputeBackend.this){checkOpen();cl_mem source=input(right),work=outputFloats(right.length),result=outputFloats(right.length);
+				cl_kernel operation=kernel("sparse_ssolve");try{arg(operation,0,factor);arg(operation,1,indices);arg(operation,2,starts);
+					arg(operation,3,permutation);arg(operation,4,source);arg(operation,5,work);arg(operation,6,result);
+					arg(operation,7,plan.dimension());arg(operation,8,columns);run1d(operation,columns);
+					float[]updated=readFloats(result,right.length);System.arraycopy(updated,0,right,0,right.length);
+				}finally{clReleaseKernel(operation);clReleaseMemObject(result);clReleaseMemObject(work);clReleaseMemObject(source);}}
+		}
+		@Override public void close(){synchronized(OpenClComputeBackend.this){if(!closed){release(factor);release(candidate);
+			release(indices);release(starts);release(permutation);release(info);release(determinant);
+			factor=candidate=indices=starts=permutation=info=determinant=null;closed=true;}}}
+		private void checkOpen(){if(closed||factor==null)throw new IllegalStateException("prepared OpenCL FP32 sparse Cholesky is closed");}
+	}
 
 	private final class PreparedTranspose implements PreparedTransposeProduct {
 		private final int rows, columns; private cl_mem matrix;
@@ -524,7 +629,7 @@ public final class OpenClComputeBackend implements ComputeBackend {
 		String extensions = deviceString(device, CL_DEVICE_EXTENSIONS);
 		capabilities = new ComputeCapabilities("OpenCL", deviceString(device, CL_DEVICE_NAME),
 				extensions.contains("cl_khr_fp64") || extensions.contains("cl_amd_fp64"), true,
-				memory[0], true, true, true, false, false, true, true, true);
+				memory[0], true, true, true, false, true, true, true, true);
 		if (!capabilities.doublePrecision()) throw new IllegalStateException("OpenCL device lacks FP64");
 		long[] vendorId = new long[1]; int[] numericVendor = new int[1];
 		check(clGetDeviceInfo(device, CL_DEVICE_VENDOR_ID, Sizeof.cl_uint, Pointer.to(numericVendor), null));
@@ -559,6 +664,7 @@ public final class OpenClComputeBackend implements ComputeBackend {
 			source, CL_TRUE, 0, (long) count * Sizeof.cl_float, Pointer.to(result), 0, null, null)); return result; }
 	private int[] readInts(cl_mem source, int count) { int[] result = new int[count]; check(clEnqueueReadBuffer(queue,
 			source, CL_TRUE, 0, (long) count * Sizeof.cl_int, Pointer.to(result), 0, null, null)); return result; }
+	private static void release(cl_mem memory) { if (memory != null) clReleaseMemObject(memory); }
 	private void run1d(cl_kernel kernel, int count) { check(clEnqueueNDRangeKernel(queue, kernel, 1, null,
 			new long[] {round(count)}, new long[] {LOCAL}, 0, null, null)); }
 	private static void arg(cl_kernel kernel, int index, cl_mem value) { check(clSetKernelArg(kernel, index, Sizeof.cl_mem, Pointer.to(value))); }

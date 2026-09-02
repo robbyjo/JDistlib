@@ -22,7 +22,7 @@
     <section class="guide-hero">
       <p class="eyebrow">Optional acceleration · 0.8.4+</p>
       <h1>Use the GPU where the workload earns it</h1>
-      <p class="lede">JDistlib can route large vector, dense/sparse linear-algebra, and batched likelihood work through optional CUDA, OpenCL, or Vulkan providers. Version 0.10.0 also exposes prepared operands and reusable factorizations to downstream libraries. Small operations stay on the deterministic CPU reference path by default.</p>
+      <p class="lede">JDistlib can route large vector, dense/sparse linear-algebra, and batched likelihood work through optional CUDA, OpenCL, or Vulkan providers. Version 0.10.1 adds provider-resident prepared sparse numeric factors and solves. Small operations stay on the deterministic CPU reference path by default.</p>
       <span class="version-pill">Unified FP64/FP32 linear algebra is available in JDistlib 0.10.0</span>
     </section>
     <nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#install">Install</a><a href="#choices">Choices</a><a href="#linear-algebra">Linear algebra</a><a href="#java">Java</a><a href="#cli">Command line</a><a href="#nuts">NUTS</a><a href="#measurements">Measurements</a><a href="#requirements">Requirements</a></nav>
@@ -53,7 +53,7 @@
     </section>
 
     <section class="guide-section" id="linear-algebra">
-      <p class="eyebrow">Reusable numerical engine · 0.10.0</p><h2>Keep fixed operands resident and inspect every fallback</h2>
+      <p class="eyebrow">Reusable numerical engine · 0.10.1</p><h2>Keep fixed operands resident and inspect every fallback</h2>
       <p>The matching FP64/FP32 contracts cover dense BLAS, CSR products and triangular solves, batched work, and Cholesky, LU, LDL', QR, ordinary/generalized symmetric eigen, and thin-SVD decompositions. Prepared dense handles keep a fixed operand in native CPU or provider device storage; prepared sparse Cholesky separates symbolic analysis from repeated numeric refactorization.</p>
       <p>Capability records and execution plans distinguish provider-native work from the portable Java fallback. This makes the same API usable on a CPU-only machine without claiming that every decomposition is a native GPU kernel. See the <a href="linear-algebra.html">linear-algebra overview</a> or the <a href="LINEAR_ALGEBRA_ACCELERATION.md">complete contract</a>.</p>
     </section>
@@ -150,13 +150,13 @@ device=NVIDIA GeForce RTX 2080 (sm_75), thresholded CPU fallback enabled</code><
       <div class="guide-columns">
         <article><h3>CUDA</h3><p><code>jdistlib-cuda</code> uses JCuda Driver and JNvrtc. NVRTC compiles device code without <code>nvcc</code> or MSVC, but a compatible NVIDIA driver, NVRTC, and <code>nvrtc-builtins</code> are required.</p></article>
         <article><h3>OpenCL</h3><p><code>jdistlib-opencl</code> uses JOCL and selects an OpenCL GPU with FP64 support.</p></article>
-        <article><h3>Vulkan</h3><p><code>jdistlib-vulkan</code> uses LWJGL Vulkan and shaderc, selects a compute queue with <code>shaderFloat64</code>, and compiles maintained GLSL kernels to cached SPIR-V pipelines at runtime. Version 0.10.0 can retain prepared FP64/FP32 dense operands in provider buffers. The provider remains explicit about operations that use portable fallback.</p></article>
+        <article><h3>Vulkan</h3><p><code>jdistlib-vulkan</code> uses LWJGL Vulkan and shaderc, selects a compute queue with <code>shaderFloat64</code>, and compiles maintained GLSL kernels to cached SPIR-V pipelines at runtime. Version 0.10.1 retains prepared FP64/FP32 dense operands and sparse numeric factors in provider buffers. The provider remains explicit about operations that use portable fallback.</p></article>
         <article><h3>Native CPU</h3><p><code>jdistlib-nativecpu</code> dynamically loads a system oneMKL or OpenBLAS runtime through JNA. The all-in-one JAR includes the adapter, not Intel or OpenBLAS binaries. Use <code>Compute.ONEMKL</code> or <code>Compute.OPENBLAS</code> for a strict choice.</p></article>
       </div>
       <p>The unified JAR carries the x86-64 JNI bindings, but it cannot carry vendor drivers. CUDA still needs an NVIDIA driver plus NVRTC, OpenCL needs a vendor OpenCL implementation, and Vulkan needs a Vulkan loader/driver (MoltenVK is bundled through LWJGL on x86-64 macOS). On other architectures, use the modular artifacts so the dependency manager can select matching natives.</p>
       <p>Caller-provided random streams remain deterministic. Parallel reductions can differ in their final floating-point bits across hardware and providers, so JDistlib does not promise bit-identical chains across CPU, CUDA, OpenCL, or Vulkan devices. Use CPU for the cross-machine reference path; for accelerated reproduction, retain the backend/device manifest and use the same software and hardware configuration.</p>
     </section>
   </main>
-  <footer><span>JDistlib acceleration guide.</span><span>Unified linear algebra expanded in JDistlib 0.10.0.</span></footer>
+  <footer><span>JDistlib acceleration guide.</span><span>Native prepared sparse factors completed in JDistlib 0.10.1.</span></footer>
 </body>
 </html>

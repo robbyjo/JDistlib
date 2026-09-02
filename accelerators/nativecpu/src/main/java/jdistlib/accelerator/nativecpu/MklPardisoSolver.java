@@ -2,7 +2,8 @@
 package jdistlib.accelerator.nativecpu;
 
 import com.sun.jna.Function;
-import com.sun.jna.Pointer;
+import com.sun.jna.Memory;
+import com.sun.jna.Native;
 import java.util.Map;
 import java.util.TreeMap;
 import jdistlib.accelerator.MatrixTriangle;
@@ -24,17 +25,18 @@ final class MklPardisoSolver {
 	}
 
 	private abstract static class Handle {
-		final Function pardiso, getdiag; final Pointer[] state = new Pointer[64];
-		final int dimension; final int[] rowStarts, columns, iparm = new int[64];
+		final Function pardiso, getdiag; final Memory state = new Memory(64L * Native.POINTER_SIZE);
+		final int dimension; final int[] rowStarts, columns, permutation, iparm = new int[64];
 		private boolean analyzed, closed; int factorNonzeros;
 		Handle(OneMklComputeBackend backend, int dimension, int[] rowStarts, int[] columns,
 				boolean singlePrecision) {
 			this.pardiso = backend.function("pardiso");
 			this.getdiag = backend.function("pardiso_getdiag"); this.dimension = dimension;
-			this.rowStarts = rowStarts; this.columns = columns;
+			this.rowStarts = rowStarts; this.columns = columns; this.permutation = new int[dimension];
+			state.clear();
 			backend.function("pardisoinit").invokeVoid(new Object[] {state,
 					new int[] {2}, iparm});
-			iparm[27] = singlePrecision ? 1 : 0; iparm[34] = 0; iparm[55] = 1;
+			iparm[26] = 1; iparm[27] = singlePrecision ? 1 : 0; iparm[34] = 0; iparm[55] = 1;
 		}
 		final void analyze(Object values) {
 			analyzed = true; call(11, values, 1, dummy(), dummy());
@@ -47,7 +49,7 @@ final class MklPardisoSolver {
 			checkOpen(); int[] error = new int[1];
 			pardiso.invokeVoid(new Object[] {state, new int[] {1}, new int[] {1},
 					new int[] {2}, new int[] {phase}, new int[] {dimension}, values,
-					rowStarts, columns, new int[dimension], new int[] {rightSides}, iparm,
+					rowStarts, columns, permutation, new int[] {rightSides}, iparm,
 					new int[] {0}, right, result, error});
 			if (error[0] != 0) throw failure(phase, error[0]);
 		}

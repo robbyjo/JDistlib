@@ -106,6 +106,12 @@ public class NativeCpuComputeBackendTest {
 						factor.solve(new double[] {6,16,7,15}, 2), 1e-12);
 				assertEquals(Math.log(11.0), factor.logDeterminant(), 1e-12);
 				assertEquals(0, factor.permutation().length);
+				boolean rejected = false;
+				try { factor.refactor(new CsrMatrix(2, 2, new double[] {1,2,1},
+						new int[] {1,1,2}, new int[] {1,2,4})); }
+				catch (RuntimeException expected) { rejected = true; }
+				assertTrue(rejected);
+				assertArrayEquals(new double[] {1,2}, factor.solve(new double[] {6,7}), 1e-12);
 				factor.refactor(new CsrMatrix(2, 2, new double[] {5,1,4},
 						new int[] {1,1,2}, new int[] {1,2,4}));
 				assertArrayEquals(new double[] {1,2}, factor.solve(new double[] {7,9}), 1e-12);
@@ -118,13 +124,41 @@ public class NativeCpuComputeBackendTest {
 				assertArrayEquals(new float[] {1,2}, factor.solve(new float[] {6,7}), 2e-5f);
 				assertEquals((float) Math.log(11.0), factor.logDeterminant(), 2e-5f);
 			}
+			CsrMatrix tridiagonal = tridiagonal(8, 4.0);
+			try (PreparedSparseCholesky factor = backend.prepareDcsrpotrf(tridiagonal,
+					MatrixTriangle.LOWER)) {
+				assertArrayEquals(new double[] {1,1,1,1,1,1,1,1}, factor.solve(
+						new double[] {3,2,2,2,2,2,2,3}), 2e-12);
+			}
 		}
 	}
 
-	@Test public void absentOpenBlasIsReportedWithoutBreakingCoreDiscovery() {
+	@Test public void openBlasOptionallyUsesCholmodWithoutBreakingCoreDiscovery() {
 		try (OpenBlasComputeBackend backend = new OpenBlasComputeBackend()) {
 			if (!backend.available()) assertTrue(backend.unavailableCause() != null);
-			else assertTrue(!backend.capabilities().nativeSparseFactorizations());
+			else if (backend.capabilities().nativeSparseFactorizations()) {
+				CsrMatrix matrix = new CsrMatrix(2, 2, new double[] {4,1,3},
+						new int[] {1,1,2}, new int[] {1,2,4});
+				try (PreparedSparseCholesky factor = backend.prepareDcsrpotrf(matrix,
+						MatrixTriangle.LOWER)) {
+					assertArrayEquals(new double[] {1,2}, factor.solve(new double[] {6,7}), 1e-12);
+					boolean rejected = false;
+					try { factor.refactor(new CsrMatrix(2, 2, new double[] {1,2,1},
+							new int[] {1,1,2}, new int[] {1,2,4})); }
+					catch (RuntimeException expected) { rejected = true; }
+					assertTrue(rejected);
+					assertArrayEquals(new double[] {1,2}, factor.solve(new double[] {6,7}), 1e-12);
+					factor.refactor(new CsrMatrix(2, 2, new double[] {5,1,4},
+							new int[] {1,1,2}, new int[] {1,2,4}));
+					assertArrayEquals(new double[] {1,2}, factor.solve(new double[] {7,9}), 1e-12);
+				}
+				FloatCsrMatrix floats = new FloatCsrMatrix(2, 2, new float[] {4,1,3},
+						new int[] {1,1,2}, new int[] {1,2,4});
+				try (PreparedFloatSparseCholesky factor = backend.prepareScsrpotrf(floats,
+						MatrixTriangle.LOWER)) {
+					assertArrayEquals(new float[] {1,2}, factor.solve(new float[] {6,7}), 3e-5f);
+				}
+			}
 		}
 		assertTrue(Arrays.asList(Compute.values()).contains(Compute.OPENBLAS));
 	}
@@ -136,6 +170,15 @@ public class NativeCpuComputeBackendTest {
 					+= vectors[row * n + component] * values[component]
 					* vectors[column * n + component];
 		return result;
+	}
+	private static CsrMatrix tridiagonal(int dimension, double diagonal) {
+		double[] values = new double[2 * dimension - 1]; int[] columns = new int[values.length];
+		int[] starts = new int[dimension + 1]; int offset = 0; starts[0] = 1;
+		for (int row = 0; row < dimension; row++) {
+			if (row > 0) { values[offset] = -1.0; columns[offset++] = row; }
+			values[offset] = diagonal; columns[offset++] = row + 1; starts[row + 1] = offset + 1;
+		}
+		return new CsrMatrix(dimension, dimension, values, columns, starts);
 	}
 	private static double[] reconstruct(SingularValueDecomposition decomposition) {
 		int rows = decomposition.rows(), columns = decomposition.columns();

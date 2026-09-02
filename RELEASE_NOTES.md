@@ -1,4 +1,30 @@
-# JDistlib 0.10.0
+# JDistlib 0.10.1
+
+JDistlib 0.10.1 completes native reusable sparse-Cholesky support across the
+optional compute providers. CUDA, OpenCL, and Vulkan now perform FP64 and FP32
+numeric factorization, refactorization, log-determinant evaluation, and
+multi-right-side solves in retained provider buffers. A shared host-side
+symbolic plan determines the fill pattern and permutation without densifying
+the matrix.
+
+GPU refactorization is transactional: rejected non-positive-definite numeric
+updates leave the previous factor usable. Execution plans distinguish the
+host-side symbolic analysis from provider-resident numeric work, and immutable
+`dcsrpotrf`/`scsrpotrf` results retain the deterministic Java representation.
+
+The existing oneMKL PARDISO path now uses persistent ABI-safe handle and
+permutation storage, enables CSR matrix checking, and has broader regression
+coverage for factor reuse and rollback. OpenBLAS itself has no sparse-direct
+solver; when SuiteSparse CHOLMOD 5 or later is installed, JDistlib pairs it
+with the OpenBLAS provider for minimum-degree FP64/FP32 prepared factors.
+Natural ordering and installations without CHOLMOD retain the portable path.
+
+The release gates exercise symbolic fill, FP64/FP32 solves, multiple right
+sides, successful refactorization, rejected-refactor rollback, capability and
+execution reporting, and a nontrivial oneMKL PARDISO sparse benchmark. All
+changes preserve the 0.10.0 API and Java 8-compatible bytecode.
+
+## Previous release: JDistlib 0.10.0
 
 JDistlib 0.10.0 turns the optional accelerator layer into a reusable
 backend-neutral linear-algebra engine for downstream statistical, graphical-

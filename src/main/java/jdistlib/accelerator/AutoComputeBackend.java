@@ -50,6 +50,9 @@ final class AutoComputeBackend implements ComputeBackend {
 				|| operation == LinearAlgebraOperation.CSR_SOLVE;
 		String reason = operation == LinearAlgebraOperation.CSR_POTRF
 				? "sparse-direct factorization uses portable CPU baseline"
+				: operation == LinearAlgebraOperation.CSR_ANALYZE
+						&& concrete.kind() == ExecutionKind.PORTABLE_FALLBACK
+				? "GPU sparse symbolic analysis runs on the host"
 				: preparedSparseFactor && selected == accelerator
 				? "selected provider supports native reusable sparse factorization"
 				: preparedSparseFactor ? "provider lacks native reusable sparse factorization"

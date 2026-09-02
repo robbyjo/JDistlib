@@ -1,8 +1,9 @@
 # Unified dense and sparse linear algebra
 
-**Release status:** the complete API described here is released in JDistlib
-0.10.0. The shorter [website guide](linear-algebra.html) provides an overview
-for downstream library authors.
+**Release status:** the unified API was released in JDistlib 0.10.0; native
+prepared sparse numeric factors across the optional providers were completed
+in 0.10.1. The shorter [website guide](linear-algebra.html) provides an
+overview for downstream library authors.
 
 JDistlib exposes FP64 and FP32 linear-algebra contracts across its deterministic
 Java CPU reference, optional oneMKL/OpenBLAS native CPU providers, and optional
@@ -208,8 +209,20 @@ Prepared oneMKL factors use PARDISO when the installed runtime exports
 phase 22 performs the initial and subsequent numeric factorizations, phase 33
 solves one or more right sides, and close releases PARDISO state. Natural
 ordering requests retain the portable implementation; minimum-degree requests
-allow PARDISO to own its fill-reducing permutation. OpenBLAS and GPU providers
-currently retain the portable prepared-factor fallback.
+allow PARDISO to own its fill-reducing permutation.
+
+OpenBLAS itself implements dense BLAS/LAPACK rather than a sparse direct solver.
+When SuiteSparse CHOLMOD 5 or later is installed, the OpenBLAS provider pairs
+with it for native minimum-degree FP64/FP32 prepared factors. Set
+`-Djdistlib.cholmod.library=/path/to/cholmod` when it is not on the ordinary
+loader path. Without CHOLMOD, and for natural ordering, the portable factor is
+used.
+
+CUDA, OpenCL, and Vulkan use a shared host-side symbolic plan to determine the
+permutation and fill pattern, then perform FP64/FP32 numeric factorization,
+refactorization, log-determinant evaluation, and multi-RHS solves in retained
+provider buffers without densifying the matrix. Refactorization is
+transactional: a failed numeric update leaves the prior usable factor intact.
 
 ## Native CPU providers
 
@@ -258,7 +271,9 @@ the plans for accelerated CSR products.
 factorizations, provider-prepared sparse matrices, native sparse factorization,
 reusable sparse analysis, prepared dense storage, and batched API support.
 CUDA, OpenCL, and Vulkan currently accelerate both FP64
-and FP32 dense and CSR operations with native precision buffers and kernels.
+and FP32 dense and CSR operations with native precision buffers and kernels,
+including prepared sparse numeric factors and solves. Sparse symbolic analysis
+remains host-side and is reported separately by execution plans.
 Reduction order and final rounding can differ across providers, so callers
 should compare numerical tolerances rather than bits and record the selected
 backend and device with reproducible results. FP32 is intended for workloads

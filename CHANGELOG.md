@@ -1,5 +1,15 @@
 What's new:
 
+Version 0.10.1 (September 2, 2026):
+* Added native prepared sparse-Cholesky numeric factorization, refactorization,
+  log determinants, and multi-RHS solves for CUDA, OpenCL, and Vulkan, backed by
+  a shared reusable symbolic plan without dense materialization. oneMKL retains
+  its PARDISO path; the OpenBLAS provider can now pair with an optional
+  SuiteSparse CHOLMOD 5+ runtime for FP64/FP32 sparse factors.
+* Hardened reusable oneMKL PARDISO state, permutation storage, CSR validation,
+  and failed-refactor recovery, with nontrivial sparse-system regression and
+  native benchmark coverage.
+
 Version 0.10.0 (August 31, 2026):
 * Completed the FP64/FP32 BLAS surface needed by downstream linear-algebra
   libraries: scaling, copying, swapping, absolute reductions, rank-one/rank-two

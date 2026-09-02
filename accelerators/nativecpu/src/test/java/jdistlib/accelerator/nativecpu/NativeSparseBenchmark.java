@@ -25,6 +25,13 @@ public final class NativeSparseBenchmark {
 				benchmark(oneMkl, matrix, vector, repetitions);
 			else System.out.println("# oneMKL PARDISO unavailable: " + oneMkl.unavailableCause());
 		}
+		try (OpenBlasComputeBackend openBlas = new OpenBlasComputeBackend()) {
+			if (openBlas.available() && openBlas.capabilities().nativeSparseFactorizations())
+				benchmark(openBlas, matrix, vector, repetitions);
+			else System.out.println("# OpenBLAS/CHOLMOD unavailable: "
+					+ (openBlas.available() ? openBlas.cholmodUnavailableCause()
+							: openBlas.unavailableCause()));
+		}
 	}
 	private static void benchmark(ComputeBackend backend, CsrMatrix matrix, double[] vector,
 			int repetitions) {

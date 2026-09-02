@@ -31,10 +31,12 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
-Version 0.10.0 is the current stable release. It establishes a backend-neutral
-FP64/FP32 dense and sparse linear-algebra engine with reusable decompositions,
-prepared operands, batched operations, native oneMKL/OpenBLAS choices, and
-CUDA/OpenCL/Vulkan routing and capability reporting. Version 0.9.1 added sparse
+Version 0.10.1 is the current stable release. It adds provider-resident FP64/
+FP32 prepared sparse-Cholesky factorization and solves for CUDA, OpenCL, and
+Vulkan, hardens oneMKL PARDISO reuse, and optionally pairs OpenBLAS with
+SuiteSparse CHOLMOD 5+. Version 0.10.0 established the backend-neutral dense
+and sparse linear-algebra engine, reusable decompositions, prepared operands,
+batching, native CPU choices, and provider capability reporting. Version 0.9.1 added sparse
 subset RJMCMC for thousands of candidate features, exact restart during warmup
 or sampling, crash-safe segmented output, CUDA/OpenCL-assisted residual
 proposals, and a public GSE93272 mixed-model worked example. Version 0.9.0 added
@@ -388,7 +390,9 @@ Reusable FP64/FP32 sparse Cholesky factors add minimum-degree or natural
 ordering, log determinants, and original-coordinate solves. Sparse
 factorization supports prepared symbolic reuse and numeric refactorization;
 oneMKL selections use native PARDISO when its required exports are available,
-while OpenBLAS and GPU selections report their portable factor fallback.
+CUDA, OpenCL, and Vulkan retain the numeric factor in provider memory, and the
+OpenBLAS selection can use an optional SuiteSparse CHOLMOD 5+ runtime. OpenBLAS
+alone has no sparse solver, and all providers retain a portable fallback.
 CUDA and OpenCL additionally implement a resident prepared transpose product
 for repeated high-dimensional score calculations; Vulkan currently uses its
 CPU fallback for that primitive.

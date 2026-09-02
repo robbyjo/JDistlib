@@ -69,7 +69,11 @@ import jdistlib.accelerator.MatrixSide;
 import jdistlib.accelerator.PreparedLogisticRegression;
 import jdistlib.accelerator.PreparedDenseMatrix;
 import jdistlib.accelerator.PreparedFloatDenseMatrix;
+import jdistlib.accelerator.PreparedFloatSparseCholesky;
+import jdistlib.accelerator.PreparedSparseCholesky;
 import jdistlib.accelerator.PivotedQrFactor;
+import jdistlib.accelerator.SparseCholeskyPlan;
+import jdistlib.accelerator.SparseOrdering;
 import jdistlib.accelerator.SingularValueDecomposition;
 import jdistlib.accelerator.SymmetricEigenDecomposition;
 import jdistlib.accelerator.UnaryOperation;
@@ -248,6 +252,10 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	private static final String FLOAT_TRSM_SHADER = trsmShader(FLOAT_HEADER, "float");
 	private static final String DPOTRF_SHADER = choleskyShader(HEADER,"double");
 	private static final String SPOTRF_SHADER = choleskyShader(FLOAT_HEADER,"float");
+	private static final String SPARSE_DPOTRF_SHADER = sparseFactorShader(HEADER,"double","dlog");
+	private static final String SPARSE_SPOTRF_SHADER = sparseFactorShader(FLOAT_HEADER,"float","log");
+	private static final String SPARSE_DSOLVE_SHADER = sparseSolveShader(HEADER,"double");
+	private static final String SPARSE_SSOLVE_SHADER = sparseSolveShader(FLOAT_HEADER,"float");
 	private static final String DGEQP3_SHADER = qrShader(HEADER,"double");
 	private static final String SGEQP3_SHADER = qrShader(FLOAT_HEADER,"float");
 	private static final String DSYEV_SHADER = eigenShader(HEADER,"double");
@@ -302,6 +310,18 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+"layout(local_size_x=1) in;\nlayout(std430,binding=0) readonly buffer A{"+type+" a[];};\n"
 			+"layout(std430,binding=1) buffer L{"+type+" l[];};\nlayout(std430,binding=2) buffer I{int info[];};\n"
 			+"layout(push_constant) uniform P{int n;}p;\nvoid main(){info[0]=0;for(int i=0;i<p.n*p.n;i++)l[i]=0;for(int r=0;r<p.n;r++)for(int c=0;c<=r;c++){"+type+" s=a[r*p.n+c];for(int k=0;k<c;k++)s-=l[r*p.n+k]*l[c*p.n+k];if(r==c){if(!(s>0)){info[0]=r+1;return;}l[r*p.n+c]=sqrt(s);}else l[r*p.n+c]=s/l[c*p.n+c];}}\n";}
+	private static String sparseFactorShader(String header,String type,String logarithm){return header
+			+"layout(local_size_x=1) in;\nlayout(std430,binding=0) readonly buffer A{"+type+" a[];};\n"
+			+"layout(std430,binding=1) buffer L{"+type+" l[];};\nlayout(std430,binding=2) readonly buffer CI{int ci[];};\n"
+			+"layout(std430,binding=3) readonly buffer RS{int rs[];};\nlayout(std430,binding=4) buffer I{int info[];};\n"
+			+"layout(std430,binding=5) buffer D{"+type+" determinant[];};\nlayout(push_constant) uniform P{int n;}p;\n"
+			+"void main(){info[0]=0;"+type+" logdet=0;for(int row=0;row<p.n;row++)for(int at=rs[row];at<rs[row+1];at++){int col=ci[at];"+type+" sum=a[at];int left=rs[row],other=rs[col];while(left<at&&other<rs[col+1]){int lc=ci[left],oc=ci[other];if(lc>=col||oc>=col)break;if(lc==oc){sum-=l[left]*l[other];left++;other++;}else if(lc<oc)left++;else other++;}if(row==col){if(!(sum>0)||isnan(sum)||isinf(sum)){info[0]=row+1;return;}l[at]=sqrt(sum);logdet+=2*"+logarithm+"(l[at]);}else l[at]=sum/l[rs[col+1]-1];}determinant[0]=logdet;}\n";}
+	private static String sparseSolveShader(String header,String type){return header
+			+"layout(local_size_x=256) in;\nlayout(std430,binding=0) readonly buffer L{"+type+" l[];};\n"
+			+"layout(std430,binding=1) readonly buffer CI{int ci[];};\nlayout(std430,binding=2) readonly buffer RS{int rs[];};\n"
+			+"layout(std430,binding=3) readonly buffer PM{int perm[];};\nlayout(std430,binding=4) readonly buffer R{"+type+" right[];};\n"
+			+"layout(std430,binding=5) buffer W{"+type+" work[];};\nlayout(std430,binding=6) buffer O{"+type+" result[];};\n"
+			+"layout(push_constant) uniform P{int n;int columns;}p;\nvoid main(){int rhs=int(gl_GlobalInvocationID.x);if(rhs>=p.columns)return;for(int row=0;row<p.n;row++)work[row*p.columns+rhs]=right[perm[row]*p.columns+rhs];for(int row=0;row<p.n;row++){"+type+" value=work[row*p.columns+rhs];int end=rs[row+1]-1;for(int at=rs[row];at<end;at++)value-=l[at]*work[ci[at]*p.columns+rhs];work[row*p.columns+rhs]=value/l[end];}for(int row=p.n-1;row>=0;row--){int end=rs[row+1]-1;work[row*p.columns+rhs]/=l[end];for(int at=rs[row];at<end;at++)work[ci[at]*p.columns+rhs]-=l[at]*work[row*p.columns+rhs];}for(int row=0;row<p.n;row++)result[perm[row]*p.columns+rhs]=work[row*p.columns+rhs];}\n";}
 	private static String qrShader(String header,String type){return header
 			+"layout(local_size_x=1) in;\nlayout(std430,binding=0) buffer Q{"+type+" qr[];};\nlayout(std430,binding=1) buffer T{"+type+" tau[];};\nlayout(std430,binding=2) buffer Piv{int pivot[];};\nlayout(push_constant) uniform P{int rows;int cols;}p;\n"
 			+type+" absv("+type+" x){return x<0?-x:x;}\nvoid swapcols(int first,int second){for(int r=0;r<p.rows;r++){int a=r*p.cols+first,b=r*p.cols+second;"+type+" z=qr[a];qr[a]=qr[b];qr[b]=z;}}\n"
@@ -332,6 +352,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	private Kernel floatCsrMvKernel, floatCsrMmKernel;
 	private Kernel dpotrfKernel, dgeqp3Kernel, dsyevKernel, dgesvdKernel;
 	private Kernel spotrfKernel, sgeqp3Kernel, ssyevKernel, sgesvdKernel;
+	private Kernel sparseDpotrfKernel, sparseSpotrfKernel, sparseDsolveKernel, sparseSsolveKernel;
 	private ComputeCapabilities capabilities;
 	private ComputeDeviceInfo deviceInfo;
 	private Throwable unavailableCause;
@@ -695,6 +716,74 @@ public final class VulkanComputeBackend implements ComputeBackend {
 		public void multiply(MatrixTranspose transpose,float alpha,float[]right,int rightColumns,float beta,float[]result){if(transpose==null||rightColumns<1)throw new IllegalArgumentException("prepared Vulkan FP32 dense dimensions do not conform");int output=transpose==MatrixTranspose.NONE?rows:columns,shared=transpose==MatrixTranspose.NONE?columns:rows;if(right==null||right.length!=shared*rightColumns||result==null||result.length!=output*rightColumns)throw new IllegalArgumentException("prepared Vulkan FP32 dense dimensions do not conform");synchronized(VulkanComputeBackend.this){checkOpen();BufferResource b=create(right),c=create(result);try{ByteBuffer push=nativeBuffer(28).putFloat(0,alpha).putFloat(4,beta).putInt(8,transpose==MatrixTranspose.TRANSPOSE?1:0).putInt(12,0).putInt(16,output).putInt(20,rightColumns).putInt(24,shared);if(floatGemmKernel==null)floatGemmKernel=new Kernel(FLOAT_GEMM_SHADER,3,28);execute(floatGemmKernel,resources(matrix,b,c),push,groups(rightColumns,16),groups(output,16),1);float[]updated=c.readFloats(result.length);System.arraycopy(updated,0,result,0,result.length);}finally{c.close();b.close();}}}
 		public void close(){synchronized(VulkanComputeBackend.this){if(matrix!=null){matrix.close();matrix=null;}}}private void checkOpen(){if(matrix==null)throw new IllegalStateException("prepared Vulkan FP32 dense matrix is closed");}
 	}
+	@Override public PreparedSparseCholesky prepareDcsrpotrf(CsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return new PreparedDoubleSparseFactor(matrix, triangle, ordering);
+	}
+	@Override public PreparedFloatSparseCholesky prepareScsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return new PreparedFloatSparseFactor(matrix, triangle, ordering);
+	}
+	private final class PreparedDoubleSparseFactor implements PreparedSparseCholesky {
+		private final SparseCholeskyPlan plan;
+		private BufferResource factor,candidate,indices,starts,permutation,info,determinant;
+		private double logDeterminant; private boolean closed;
+		PreparedDoubleSparseFactor(CsrMatrix matrix,MatrixTriangle triangle,SparseOrdering ordering){
+			plan=SparseCholeskyPlan.analyze(matrix,triangle,ordering);synchronized(VulkanComputeBackend.this){
+				ensureAvailable();int count=plan.factorNonzeroCount();factor=createDoubles(count);candidate=createDoubles(count);
+				indices=create(plan.factorColumnIndices());starts=create(plan.factorRowStarts());permutation=create(plan.permutation());
+				info=createInts(1);determinant=createDoubles(1);try{factor(plan.factorValues(matrix));}catch(RuntimeException error){close();throw error;}}}
+		public int dimension(){checkOpen();return plan.dimension();}public int structuralNonzeroCount(){checkOpen();return plan.structuralNonzeroCount();}
+		public int factorNonzeroCount(){checkOpen();return plan.factorNonzeroCount();}public int[] permutation(){checkOpen();return plan.permutation();}
+		public double logDeterminant(){checkOpen();return logDeterminant;}
+		public void refactor(CsrMatrix matrix){double[]values=plan.factorValues(matrix);synchronized(VulkanComputeBackend.this){checkOpen();factor(values);}}
+		private void factor(double[]values){BufferResource source=create(values);try{ByteBuffer push=nativeBuffer(4).putInt(0,plan.dimension());
+			if(sparseDpotrfKernel==null)sparseDpotrfKernel=new Kernel(SPARSE_DPOTRF_SHADER,6,4);
+			execute(sparseDpotrfKernel,resources(source,candidate,indices,starts,info,determinant),push,1,1,1);
+			int status=info.readInts(1)[0];if(status!=0)throw new IllegalArgumentException("sparse matrix is not positive definite at permuted minor "+status);
+			logDeterminant=determinant.readDoubles(1)[0];BufferResource previous=factor;factor=candidate;candidate=previous;}finally{source.close();}}
+		public void solveInPlace(double[]right,int columns){if(columns<1||right==null||right.length!=plan.dimension()*columns)
+			throw new IllegalArgumentException("invalid Vulkan sparse right side");synchronized(VulkanComputeBackend.this){checkOpen();
+			BufferResource source=create(right),work=createDoubles(right.length),result=createDoubles(right.length);try{
+				ByteBuffer push=nativeBuffer(8).putInt(0,plan.dimension()).putInt(4,columns);
+				if(sparseDsolveKernel==null)sparseDsolveKernel=new Kernel(SPARSE_DSOLVE_SHADER,7,8);
+				execute(sparseDsolveKernel,resources(factor,indices,starts,permutation,source,work,result),push,groups(columns,VECTOR_LOCAL_SIZE),1,1);
+				double[]updated=result.readDoubles(right.length);System.arraycopy(updated,0,right,0,right.length);
+			}finally{result.close();work.close();source.close();}}}
+		public void close(){synchronized(VulkanComputeBackend.this){if(!closed){closeResource(factor);closeResource(candidate);closeResource(indices);
+			closeResource(starts);closeResource(permutation);closeResource(info);closeResource(determinant);factor=candidate=indices=starts=permutation=info=determinant=null;closed=true;}}}
+		private void checkOpen(){if(closed||factor==null)throw new IllegalStateException("prepared Vulkan sparse Cholesky is closed");}
+	}
+	private final class PreparedFloatSparseFactor implements PreparedFloatSparseCholesky {
+		private final SparseCholeskyPlan plan;
+		private BufferResource factor,candidate,indices,starts,permutation,info,determinant;
+		private float logDeterminant; private boolean closed;
+		PreparedFloatSparseFactor(FloatCsrMatrix matrix,MatrixTriangle triangle,SparseOrdering ordering){
+			plan=SparseCholeskyPlan.analyze(matrix,triangle,ordering);synchronized(VulkanComputeBackend.this){
+				ensureAvailable();int count=plan.factorNonzeroCount();factor=createFloats(count);candidate=createFloats(count);
+				indices=create(plan.factorColumnIndices());starts=create(plan.factorRowStarts());permutation=create(plan.permutation());
+				info=createInts(1);determinant=createFloats(1);try{factor(plan.factorValues(matrix));}catch(RuntimeException error){close();throw error;}}}
+		public int dimension(){checkOpen();return plan.dimension();}public int structuralNonzeroCount(){checkOpen();return plan.structuralNonzeroCount();}
+		public int factorNonzeroCount(){checkOpen();return plan.factorNonzeroCount();}public int[] permutation(){checkOpen();return plan.permutation();}
+		public float logDeterminant(){checkOpen();return logDeterminant;}
+		public void refactor(FloatCsrMatrix matrix){float[]values=plan.factorValues(matrix);synchronized(VulkanComputeBackend.this){checkOpen();factor(values);}}
+		private void factor(float[]values){BufferResource source=create(values);try{ByteBuffer push=nativeBuffer(4).putInt(0,plan.dimension());
+			if(sparseSpotrfKernel==null)sparseSpotrfKernel=new Kernel(SPARSE_SPOTRF_SHADER,6,4);
+			execute(sparseSpotrfKernel,resources(source,candidate,indices,starts,info,determinant),push,1,1,1);
+			int status=info.readInts(1)[0];if(status!=0)throw new IllegalArgumentException("FP32 sparse matrix is not positive definite at permuted minor "+status);
+			logDeterminant=determinant.readFloats(1)[0];BufferResource previous=factor;factor=candidate;candidate=previous;}finally{source.close();}}
+		public void solveInPlace(float[]right,int columns){if(columns<1||right==null||right.length!=plan.dimension()*columns)
+			throw new IllegalArgumentException("invalid Vulkan FP32 sparse right side");synchronized(VulkanComputeBackend.this){checkOpen();
+			BufferResource source=create(right),work=createFloats(right.length),result=createFloats(right.length);try{
+				ByteBuffer push=nativeBuffer(8).putInt(0,plan.dimension()).putInt(4,columns);
+				if(sparseSsolveKernel==null)sparseSsolveKernel=new Kernel(SPARSE_SSOLVE_SHADER,7,8);
+				execute(sparseSsolveKernel,resources(factor,indices,starts,permutation,source,work,result),push,groups(columns,VECTOR_LOCAL_SIZE),1,1);
+				float[]updated=result.readFloats(right.length);System.arraycopy(updated,0,right,0,right.length);
+			}finally{result.close();work.close();source.close();}}}
+		public void close(){synchronized(VulkanComputeBackend.this){if(!closed){closeResource(factor);closeResource(candidate);closeResource(indices);
+			closeResource(starts);closeResource(permutation);closeResource(info);closeResource(determinant);factor=candidate=indices=starts=permutation=info=determinant=null;closed=true;}}}
+		private void checkOpen(){if(closed||factor==null)throw new IllegalStateException("prepared Vulkan FP32 sparse Cholesky is closed");}
+	}
 
 	@Override public synchronized LogisticRegressionBatchResult logisticRegression(double[][] design,
 			double[] outcomes, double[][] states, double priorPrecision) {
@@ -778,7 +867,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			vkGetPhysicalDeviceProperties(physicalDevice, properties);
 			capabilities = new ComputeCapabilities("VULKAN", properties.deviceNameString(), true, true,
 					deviceLocalMemory(physicalDevice, stack), true, true, true,
-					false, false, true, true, true);
+					false, true, true, true, true);
 			Package pkg = getClass().getPackage(); String backendVersion = pkg == null
 					|| pkg.getImplementationVersion() == null ? "development" : pkg.getImplementationVersion();
 			deviceInfo = new ComputeDeviceInfo(id(), backendVersion, ComputeApi.VULKAN,
@@ -906,6 +995,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			buffer = memory = NULL;
 		}
 	}
+	private static void closeResource(BufferResource resource) { if (resource != null) resource.close(); }
 
 	private int findMemoryType(int allowed, MemoryStack stack) {
 		VkPhysicalDeviceMemoryProperties properties = VkPhysicalDeviceMemoryProperties.calloc(stack);
@@ -1044,6 +1134,8 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	@Override public synchronized void close() {
 		if (device != null) {
 			try { vkDeviceWaitIdle(device); } catch (Throwable ignored) {}
+			closeKernel(sparseSsolveKernel); closeKernel(sparseDsolveKernel);
+			closeKernel(sparseSpotrfKernel); closeKernel(sparseDpotrfKernel);
 			closeKernel(sgesvdKernel); closeKernel(ssyevKernel); closeKernel(sgeqp3Kernel); closeKernel(spotrfKernel);
 			closeKernel(dgesvdKernel); closeKernel(dsyevKernel); closeKernel(dgeqp3Kernel); closeKernel(dpotrfKernel);
 			closeKernel(floatCsrMmKernel); closeKernel(floatCsrMvKernel); closeKernel(floatTrsmKernel);
@@ -1063,6 +1155,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			floatNrm2Kernel = floatDotKernel = floatAxpyKernel = null;
 			sgesvdKernel = ssyevKernel = sgeqp3Kernel = spotrfKernel = null;
 			dgesvdKernel = dsyevKernel = dgeqp3Kernel = dpotrfKernel = null;
+			sparseSsolveKernel = sparseDsolveKernel = sparseSpotrfKernel = sparseDpotrfKernel = null;
 			logisticKernel = gemmKernel = dotKernel = axpyKernel = unaryKernel = null;
 			if (commandPool != NULL) vkDestroyCommandPool(device, commandPool, null);
 			vkDestroyDevice(device, null); device = null; queue = null; commandPool = NULL;

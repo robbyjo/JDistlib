@@ -235,4 +235,16 @@ public class CudaComputeBackendTest {
 		}
 	}
 	@Test public void preparedDenseMatricesRemainOnCudaDevice(){CudaComputeBackend backend=new CudaComputeBackend();Assume.assumeTrue(backend.available());try{try(jdistlib.accelerator.PreparedDenseMatrix prepared=backend.prepareDge(new double[]{1,2,3,4,5,6},2,3)){double[]result=new double[4];prepared.multiply(MatrixTranspose.NONE,1,new double[]{1,0,0,1,1,1},2,0,result);assertArrayEquals(new double[]{4,5,10,11},result,1e-12);}try(jdistlib.accelerator.PreparedFloatDenseMatrix prepared=backend.prepareSge(new float[]{1,2,3,4},2,2)){float[]result=new float[2];prepared.multiply(MatrixTranspose.NONE,1,new float[]{1,1},1,0,result);assertArrayEquals(new float[]{3,7},result,2e-5f);}assertTrue(backend.capabilities().preparedDenseMatrices());assertTrue(backend.capabilities().batchedLinearAlgebra());}finally{backend.close();}}
+	@Test public void preparedSparseFactorsRemainOnCudaDevice(){CudaComputeBackend backend=new CudaComputeBackend();Assume.assumeTrue(backend.available());try{
+		CsrMatrix matrix=new CsrMatrix(2,2,new double[]{4,1,3},new int[]{1,1,2},new int[]{1,2,4});
+		try(jdistlib.accelerator.PreparedSparseCholesky factor=backend.prepareDcsrpotrf(matrix,MatrixTriangle.LOWER)){
+			assertArrayEquals(new double[]{1,2},factor.solve(new double[]{6,7}),2e-12);assertEquals(Math.log(11),factor.logDeterminant(),2e-12);
+			boolean rejected=false;try{factor.refactor(new CsrMatrix(2,2,new double[]{1,2,1},new int[]{1,1,2},new int[]{1,2,4}));}catch(IllegalArgumentException expected){rejected=true;}assertTrue(rejected);assertArrayEquals(new double[]{1,2},factor.solve(new double[]{6,7}),2e-12);
+			factor.refactor(new CsrMatrix(2,2,new double[]{5,1,4},new int[]{1,1,2},new int[]{1,2,4}));assertArrayEquals(new double[]{1,2},factor.solve(new double[]{7,9}),2e-12);}
+		CsrMatrix fill=new CsrMatrix(3,3,new double[]{4,1,3,1,3},new int[]{1,1,2,1,3},new int[]{1,2,4,6});
+		try(jdistlib.accelerator.PreparedSparseCholesky factor=backend.prepareDcsrpotrf(fill,MatrixTriangle.LOWER,jdistlib.accelerator.SparseOrdering.NATURAL)){assertArrayEquals(new double[]{1,4,2,5,3,6},factor.solve(new double[]{9,27,7,19,10,22},2),3e-12);assertEquals(6,factor.factorNonzeroCount());}
+		FloatCsrMatrix floats=new FloatCsrMatrix(2,2,new float[]{4,1,3},new int[]{1,1,2},new int[]{1,2,4});
+		try(jdistlib.accelerator.PreparedFloatSparseCholesky factor=backend.prepareScsrpotrf(floats,MatrixTriangle.LOWER)){assertArrayEquals(new float[]{1,2},factor.solve(new float[]{6,7}),3e-5f);}
+		assertTrue(backend.capabilities().nativeSparseFactorizations());
+	}finally{backend.close();}}
 }

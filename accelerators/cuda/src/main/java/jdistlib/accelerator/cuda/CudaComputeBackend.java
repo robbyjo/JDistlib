@@ -58,10 +58,14 @@ import jdistlib.accelerator.PreparedCsrMatrix;
 import jdistlib.accelerator.PreparedDenseMatrix;
 import jdistlib.accelerator.PreparedFloatCsrMatrix;
 import jdistlib.accelerator.PreparedFloatDenseMatrix;
+import jdistlib.accelerator.PreparedFloatSparseCholesky;
+import jdistlib.accelerator.PreparedSparseCholesky;
 import jdistlib.accelerator.PreparedTransposeProduct;
 import jdistlib.accelerator.PivotedQrFactor;
 import jdistlib.accelerator.SingularValueDecomposition;
 import jdistlib.accelerator.SymmetricEigenDecomposition;
+import jdistlib.accelerator.SparseCholeskyPlan;
+import jdistlib.accelerator.SparseOrdering;
 import jdistlib.accelerator.UnaryOperation;
 import jdistlib.matrix.CsrMatrix;
 import jdistlib.matrix.FloatCsrMatrix;
@@ -126,6 +130,12 @@ public final class CudaComputeBackend implements ComputeBackend {
 			+ "extern \"C\" __global__ void float_csr_mm(int rows,int outcols,float alpha,const float*v,const int*ci,const int*rs,const float*b,float beta,float*c){"
 			+ "int z=blockIdx.x*blockDim.x+threadIdx.x;if(z<rows*outcols){int row=z/outcols,col=z-row*outcols;float s=0;"
 			+ "for(int q=rs[row]-1;q<rs[row+1]-1;q++)s+=v[q]*b[(ci[q]-1)*outcols+col];c[z]=alpha*s+beta*c[z];}}"
+			+ "template<class T> __device__ void sparse_chol_factor(const T*a,T*l,const int*ci,const int*rs,int n,int*info,T*logdet){if(blockIdx.x||threadIdx.x)return;*info=0;T determinant=0;for(int row=0;row<n;row++){for(int at=rs[row];at<rs[row+1];at++){int col=ci[at];T sum=a[at];int left=rs[row],other=rs[col];while(left<at&&other<rs[col+1]){int lc=ci[left],oc=ci[other];if(lc>=col||oc>=col)break;if(lc==oc){sum-=l[left]*l[other];left++;other++;}else if(lc<oc)left++;else other++;}if(row==col){if(!(sum>0)||!isfinite(sum)){*info=row+1;return;}l[at]=sqrt(sum);determinant+=2*log(l[at]);}else l[at]=sum/l[rs[col+1]-1];}}*logdet=determinant;}"
+			+ "template<class T> __device__ void sparse_chol_solve(const T*l,const int*ci,const int*rs,const int*perm,const T*right,T*work,T*result,int n,int columns){int rhs=blockIdx.x*blockDim.x+threadIdx.x;if(rhs>=columns)return;for(int row=0;row<n;row++)work[row*columns+rhs]=right[perm[row]*columns+rhs];for(int row=0;row<n;row++){T value=work[row*columns+rhs];int end=rs[row+1]-1;for(int at=rs[row];at<end;at++)value-=l[at]*work[ci[at]*columns+rhs];work[row*columns+rhs]=value/l[end];}for(int row=n-1;row>=0;row--){int end=rs[row+1]-1;work[row*columns+rhs]/=l[end];for(int at=rs[row];at<end;at++)work[ci[at]*columns+rhs]-=l[at]*work[row*columns+rhs];}for(int row=0;row<n;row++)result[perm[row]*columns+rhs]=work[row*columns+rhs];}"
+			+ "extern \"C\" __global__ void sparse_dpotrf(const double*a,double*l,const int*ci,const int*rs,int n,int*info,double*logdet){sparse_chol_factor(a,l,ci,rs,n,info,logdet);}"
+			+ "extern \"C\" __global__ void sparse_spotrf(const float*a,float*l,const int*ci,const int*rs,int n,int*info,float*logdet){sparse_chol_factor(a,l,ci,rs,n,info,logdet);}"
+			+ "extern \"C\" __global__ void sparse_dsolve(const double*l,const int*ci,const int*rs,const int*perm,const double*right,double*work,double*result,int n,int columns){sparse_chol_solve(l,ci,rs,perm,right,work,result,n,columns);}"
+			+ "extern \"C\" __global__ void sparse_ssolve(const float*l,const int*ci,const int*rs,const int*perm,const float*right,float*work,float*result,int n,int columns){sparse_chol_solve(l,ci,rs,perm,right,work,result,n,columns);}"
 			+ "template<class T> __device__ T decomp_abs(T x){return x<0?-x:x;}"
 			+ "template<class T> __device__ T decomp_hypot(T a,T b){a=decomp_abs(a);b=decomp_abs(b);T m=a>b?a:b;if(m==0)return 0;T x=a/m,y=b/m;return m*sqrt(x*x+y*y);}"
 			+ "template<class T> __device__ void decomp_potrf(const T*a,T*l,int n,int*info){*info=0;for(int i=0;i<n*n;i++)l[i]=0;for(int r=0;r<n;r++)for(int c=0;c<=r;c++){T s=a[r*n+c];for(int k=0;k<c;k++)s-=l[r*n+k]*l[c*n+k];if(r==c){if(!(s>0)){*info=r+1;return;}l[r*n+c]=sqrt(s);}else l[r*n+c]=s/l[c*n+c];}}"
@@ -620,6 +630,132 @@ public final class CudaComputeBackend implements ComputeBackend {
 		private void checkOpen() { if (closed)
 			throw new IllegalStateException("prepared CUDA FP32 CSR matrix is closed"); }
 	}
+	@Override public PreparedSparseCholesky prepareDcsrpotrf(CsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return new PreparedDoubleSparseFactor(matrix, triangle, ordering);
+	}
+	@Override public PreparedFloatSparseCholesky prepareScsrpotrf(FloatCsrMatrix matrix,
+			MatrixTriangle triangle, SparseOrdering ordering) {
+		return new PreparedFloatSparseFactor(matrix, triangle, ordering);
+	}
+	private final class PreparedDoubleSparseFactor implements PreparedSparseCholesky {
+		private final SparseCholeskyPlan plan;
+		private CUdeviceptr factor, candidate, indices, starts, permutation, info, determinant;
+		private double logDeterminant; private boolean closed;
+		PreparedDoubleSparseFactor(CsrMatrix matrix, MatrixTriangle triangle, SparseOrdering ordering) {
+			plan = SparseCholeskyPlan.analyze(matrix, triangle, ordering);
+			synchronized (CudaComputeBackend.this) {
+				ensureAvailable(); setCurrent(); int count = plan.factorNonzeroCount();
+				factor = allocateDoubles(count); candidate = allocateDoubles(count);
+				indices = allocate(plan.factorColumnIndices()); starts = allocate(plan.factorRowStarts());
+				permutation = allocate(plan.permutation()); info = allocateInts(1); determinant = allocateDoubles(1);
+				try { factor(plan.factorValues(matrix)); }
+				catch (RuntimeException error) { close(); throw error; }
+			}
+		}
+		@Override public int dimension() { checkOpen(); return plan.dimension(); }
+		@Override public int structuralNonzeroCount() { checkOpen(); return plan.structuralNonzeroCount(); }
+		@Override public int factorNonzeroCount() { checkOpen(); return plan.factorNonzeroCount(); }
+		@Override public int[] permutation() { checkOpen(); return plan.permutation(); }
+		@Override public double logDeterminant() { checkOpen(); return logDeterminant; }
+		@Override public void refactor(CsrMatrix matrix) {
+			double[] values = plan.factorValues(matrix);
+			synchronized (CudaComputeBackend.this) { checkOpen(); setCurrent(); factor(values); }
+		}
+		private void factor(double[] values) {
+			CUdeviceptr input = allocate(values);
+			try {
+				launch("sparse_dpotrf", 1, 1, 1, 1, 1, 1, Pointer.to(Pointer.to(input),
+						Pointer.to(candidate), Pointer.to(indices), Pointer.to(starts),
+						Pointer.to(new int[] {plan.dimension()}), Pointer.to(info), Pointer.to(determinant)));
+				int status = copyInts(info, 1)[0];
+				if (status != 0) throw new IllegalArgumentException(
+						"sparse matrix is not positive definite at permuted minor " + status);
+				logDeterminant = copy(determinant, 1)[0];
+				CUdeviceptr previous = factor; factor = candidate; candidate = previous;
+			} finally { cuMemFree(input); }
+		}
+		@Override public void solveInPlace(double[] right, int columns) {
+			if (columns < 1 || right == null || right.length != plan.dimension() * columns)
+				throw new IllegalArgumentException("invalid CUDA sparse right side");
+			synchronized (CudaComputeBackend.this) { checkOpen(); setCurrent();
+				CUdeviceptr input = allocate(right), work = allocateDoubles(right.length), output = allocateDoubles(right.length);
+				try {
+					launch("sparse_dsolve", grid(columns), 1, 1, BLOCK, 1, 1, Pointer.to(
+							Pointer.to(factor), Pointer.to(indices), Pointer.to(starts), Pointer.to(permutation),
+							Pointer.to(input), Pointer.to(work), Pointer.to(output),
+							Pointer.to(new int[] {plan.dimension()}), Pointer.to(new int[] {columns})));
+					double[] result = copy(output, right.length); System.arraycopy(result, 0, right, 0, right.length);
+				} finally { cuMemFree(output); cuMemFree(work); cuMemFree(input); }
+			}
+		}
+		@Override public void close() { synchronized (CudaComputeBackend.this) {
+			if (!closed) { setCurrent(); free(factor); free(candidate); free(indices); free(starts);
+				free(permutation); free(info); free(determinant); factor = candidate = indices = starts = null;
+				permutation = info = determinant = null; closed = true; }
+		} }
+		private void checkOpen() { if (closed || factor == null)
+			throw new IllegalStateException("prepared CUDA sparse Cholesky is closed"); }
+	}
+	private final class PreparedFloatSparseFactor implements PreparedFloatSparseCholesky {
+		private final SparseCholeskyPlan plan;
+		private CUdeviceptr factor, candidate, indices, starts, permutation, info, determinant;
+		private float logDeterminant; private boolean closed;
+		PreparedFloatSparseFactor(FloatCsrMatrix matrix, MatrixTriangle triangle, SparseOrdering ordering) {
+			plan = SparseCholeskyPlan.analyze(matrix, triangle, ordering);
+			synchronized (CudaComputeBackend.this) {
+				ensureAvailable(); setCurrent(); int count = plan.factorNonzeroCount();
+				factor = allocateFloats(count); candidate = allocateFloats(count);
+				indices = allocate(plan.factorColumnIndices()); starts = allocate(plan.factorRowStarts());
+				permutation = allocate(plan.permutation()); info = allocateInts(1); determinant = allocateFloats(1);
+				try { factor(plan.factorValues(matrix)); }
+				catch (RuntimeException error) { close(); throw error; }
+			}
+		}
+		@Override public int dimension() { checkOpen(); return plan.dimension(); }
+		@Override public int structuralNonzeroCount() { checkOpen(); return plan.structuralNonzeroCount(); }
+		@Override public int factorNonzeroCount() { checkOpen(); return plan.factorNonzeroCount(); }
+		@Override public int[] permutation() { checkOpen(); return plan.permutation(); }
+		@Override public float logDeterminant() { checkOpen(); return logDeterminant; }
+		@Override public void refactor(FloatCsrMatrix matrix) {
+			float[] values = plan.factorValues(matrix);
+			synchronized (CudaComputeBackend.this) { checkOpen(); setCurrent(); factor(values); }
+		}
+		private void factor(float[] values) {
+			CUdeviceptr input = allocate(values);
+			try {
+				launch("sparse_spotrf", 1, 1, 1, 1, 1, 1, Pointer.to(Pointer.to(input),
+						Pointer.to(candidate), Pointer.to(indices), Pointer.to(starts),
+						Pointer.to(new int[] {plan.dimension()}), Pointer.to(info), Pointer.to(determinant)));
+				int status = copyInts(info, 1)[0];
+				if (status != 0) throw new IllegalArgumentException(
+						"FP32 sparse matrix is not positive definite at permuted minor " + status);
+				logDeterminant = copyFloats(determinant, 1)[0];
+				CUdeviceptr previous = factor; factor = candidate; candidate = previous;
+			} finally { cuMemFree(input); }
+		}
+		@Override public void solveInPlace(float[] right, int columns) {
+			if (columns < 1 || right == null || right.length != plan.dimension() * columns)
+				throw new IllegalArgumentException("invalid CUDA FP32 sparse right side");
+			synchronized (CudaComputeBackend.this) { checkOpen(); setCurrent();
+				CUdeviceptr input = allocate(right), work = allocateFloats(right.length), output = allocateFloats(right.length);
+				try {
+					launch("sparse_ssolve", grid(columns), 1, 1, BLOCK, 1, 1, Pointer.to(
+							Pointer.to(factor), Pointer.to(indices), Pointer.to(starts), Pointer.to(permutation),
+							Pointer.to(input), Pointer.to(work), Pointer.to(output),
+							Pointer.to(new int[] {plan.dimension()}), Pointer.to(new int[] {columns})));
+					float[] result = copyFloats(output, right.length); System.arraycopy(result, 0, right, 0, right.length);
+				} finally { cuMemFree(output); cuMemFree(work); cuMemFree(input); }
+			}
+		}
+		@Override public void close() { synchronized (CudaComputeBackend.this) {
+			if (!closed) { setCurrent(); free(factor); free(candidate); free(indices); free(starts);
+				free(permutation); free(info); free(determinant); factor = candidate = indices = starts = null;
+				permutation = info = determinant = null; closed = true; }
+		} }
+		private void checkOpen() { if (closed || factor == null)
+			throw new IllegalStateException("prepared CUDA FP32 sparse Cholesky is closed"); }
+	}
 	@Override public synchronized CholeskyFactor dpotrf(double[] matrix, int dimension) {
 		checkDecompositionMatrix(matrix, dimension, dimension); ensureAvailable(); setCurrent();
 		CUdeviceptr a=allocate(matrix), lower=allocateDoubles(matrix.length), info=allocateInts(1);
@@ -765,7 +901,7 @@ public final class CudaComputeBackend implements ComputeBackend {
 		cuDeviceGetAttribute(major, CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device);
 		cuDeviceGetAttribute(minor, CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
 		capabilities = new ComputeCapabilities("CUDA", name + " (sm_" + major[0] + minor[0] + ")",
-				major[0] >= 2, true, memory[0], true, true, true, true, false, true, true, true);
+				major[0] >= 2, true, memory[0], true, true, true, true, true, true, true, true);
 		int[] driver = new int[1]; cuDriverGetVersion(driver);
 		String driverVersion = version(driver[0]); Package pkg = getClass().getPackage();
 		String backendVersion = pkg == null || pkg.getImplementationVersion() == null
@@ -814,6 +950,7 @@ public final class CudaComputeBackend implements ComputeBackend {
 	private static CUdeviceptr allocateInts(int count) {
 		CUdeviceptr result = new CUdeviceptr(); cuMemAlloc(result, (long) count * Sizeof.INT); return result;
 	}
+	private static void free(CUdeviceptr pointer) { if (pointer != null) cuMemFree(pointer); }
 	private static double[] copy(CUdeviceptr source, int count) {
 		double[] result = new double[count]; cuMemcpyDtoH(Pointer.to(result), source, (long) count * Sizeof.DOUBLE); return result;
 	}

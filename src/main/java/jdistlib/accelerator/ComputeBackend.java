@@ -41,12 +41,17 @@ public interface ComputeBackend extends LinearAlgebraBackend,
 				|| operation == LinearAlgebraOperation.SYEV
 				|| operation == LinearAlgebraOperation.SYGVD
 				|| operation == LinearAlgebraOperation.GESVD
-				|| operation == LinearAlgebraOperation.TRSV;
+				|| operation == LinearAlgebraOperation.TRSV
+				|| operation == LinearAlgebraOperation.CSR_REFACTOR;
 		boolean sparseFactor = operation == LinearAlgebraOperation.CSR_ANALYZE
 				|| operation == LinearAlgebraOperation.CSR_REFACTOR
 				|| operation == LinearAlgebraOperation.CSR_SOLVE;
 		boolean gpuProvider = api == ComputeApi.CUDA || api == ComputeApi.OPENCL
 				|| api == ComputeApi.VULKAN;
+		if (gpuProvider && operation == LinearAlgebraOperation.CSR_ANALYZE)
+			return new ExecutionPlan(operation, precision, ExecutionKind.PORTABLE_FALLBACK,
+					"cpu", System.getProperty("os.arch", "unknown"),
+					"symbolic sparse analysis runs on the host; numeric factors remain provider-resident");
 		boolean portableOnly = operation == LinearAlgebraOperation.CSR_GEMM
 				|| operation == LinearAlgebraOperation.CSR_TRSV
 				|| operation == LinearAlgebraOperation.SYTRF

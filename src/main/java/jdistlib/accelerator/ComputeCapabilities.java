@@ -65,7 +65,7 @@ public final class ComputeCapabilities {
 	public boolean nativeFactorizations() { return nativeFactorizations; }
 	/** Whether prepared CSR handles retain provider-optimal storage between calls. */
 	public boolean preparedSparseMatrices() { return preparedSparseMatrices; }
-	/** Whether sparse Cholesky analysis, factorization, and solves execute natively. */
+	/** Whether sparse Cholesky numeric factorization and solves execute on the provider. */
 	public boolean nativeSparseFactorizations() { return nativeSparseFactorizations; }
 	/** Whether sparse symbolic analysis is reusable when only numerical values change. */
 	public boolean reusableSparseFactorizations() { return reusableSparseFactorizations; }

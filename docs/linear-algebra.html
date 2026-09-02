@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="JDistlib 0.10.0 unified FP64/FP32 dense and sparse linear algebra across Java CPU, oneMKL, OpenBLAS, CUDA, OpenCL, and Vulkan.">
+  <meta name="description" content="JDistlib 0.10.1 unified FP64/FP32 dense and sparse linear algebra across Java CPU, oneMKL, OpenBLAS/CHOLMOD, CUDA, OpenCL, and Vulkan.">
   <title>JDistlib unified linear algebra</title>
   <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -22,7 +22,7 @@
   </header>
   <main class="guide">
     <section class="guide-hero">
-      <p class="eyebrow">Unified numerical engine · JDistlib 0.10.0</p>
+      <p class="eyebrow">Unified numerical engine · JDistlib 0.10.1</p>
       <h1>One linear-algebra contract from portable CPU to GPU</h1>
       <p class="lede">Use matching FP64 and FP32 dense, sparse, and factorization APIs while JDistlib owns provider discovery, device reuse, capability reporting, and checked portable fallbacks.</p>
       <div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download the all-in-one JAR ↓</a><a class="button secondary" href="LINEAR_ALGEBRA_ACCELERATION.md">Read the complete contract</a></div>
@@ -65,7 +65,7 @@
     prepared.multiply(MatrixTranspose.NONE,
         1.0, right, columns, 0.0, result);
 }</code></pre>
-      <p>Prepared dense handles can retain the fixed matrix in a native CPU or CUDA/OpenCL/Vulkan provider buffer. Prepared sparse Cholesky retains symbolic analysis and accepts numeric refactorization when the authoritative CSR structure is unchanged. Batched entry points amortize dispatch for collections of independent products or factors.</p>
+      <p>Prepared dense handles can retain the fixed matrix in a native CPU or CUDA/OpenCL/Vulkan provider buffer. Prepared sparse Cholesky retains symbolic analysis and accepts numeric refactorization when the authoritative CSR structure is unchanged. GPU numeric factors and solves remain in provider buffers; symbolic analysis remains host-side. Batched entry points amortize dispatch for collections of independent products or factors.</p>
     </section>
 
     <section class="guide-section" id="providers">
@@ -76,10 +76,10 @@
         <tbody>
           <tr><td>Java CPU</td><td>portable deterministic reference and universal fallback</td><td>always available</td></tr>
           <tr><td>oneMKL</td><td>native CBLAS/LAPACKE plus reusable PARDISO sparse factorization</td><td>system oneMKL runtime</td></tr>
-          <tr><td>OpenBLAS</td><td>native CBLAS/LAPACKE dense operations and factors when exported</td><td>system OpenBLAS runtime</td></tr>
-          <tr><td>CUDA</td><td>NVIDIA device kernels and resident prepared dense/CSR operands</td><td>compatible driver and NVRTC</td></tr>
-          <tr><td>OpenCL</td><td>portable GPU kernels and resident prepared dense/CSR operands</td><td>FP64-capable OpenCL implementation</td></tr>
-          <tr><td>Vulkan</td><td>SPIR-V compute kernels and resident prepared dense operands</td><td>Vulkan device with <code>shaderFloat64</code></td></tr>
+          <tr><td>OpenBLAS</td><td>native CBLAS/LAPACKE, with optional CHOLMOD 5+ sparse factors</td><td>system OpenBLAS; optional SuiteSparse runtime</td></tr>
+          <tr><td>CUDA</td><td>NVIDIA device kernels and resident prepared dense/CSR factors</td><td>compatible driver and NVRTC</td></tr>
+          <tr><td>OpenCL</td><td>portable GPU kernels and resident prepared dense/CSR factors</td><td>FP64-capable OpenCL implementation</td></tr>
+          <tr><td>Vulkan</td><td>SPIR-V kernels and resident prepared dense/CSR factors</td><td>Vulkan device with <code>shaderFloat64</code></td></tr>
         </tbody>
       </table></div>
       <p><code>ComputeCapabilities</code> reports the backend, device, memory, precision, dense/sparse acceleration, native factorization, prepared storage, reusable sparse factorization, and batching support. Execution plans separately identify portable fallback. Numerical results are tolerance-checked, but parallel reduction order means cross-hardware bit identity is not promised.</p>
@@ -92,6 +92,6 @@
       <div class="actions"><a class="button secondary" href="api/">Browse JavaDoc</a><a class="button secondary" href="gpu-acceleration.html">Review acceleration guidance</a></div>
     </section>
   </main>
-  <footer><span>JDistlib unified linear algebra.</span><span>Released in version 0.10.0.</span></footer>
+  <footer><span>JDistlib unified linear algebra.</span><span>Native prepared sparse factors completed in version 0.10.1.</span></footer>
 </body>
 </html>

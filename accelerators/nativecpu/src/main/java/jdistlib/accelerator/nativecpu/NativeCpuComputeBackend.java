@@ -368,7 +368,7 @@ abstract class NativeCpuComputeBackend implements ComputeBackend {
 		throw new IllegalStateException("no loadable " + displayName() + " runtime found; set -D"
 				+ propertyName() + "=<library path>", last);
 	}
-	@Override public final void close() {
+	@Override public void close() {
 		if (library != null) { library.close(); library = null; }
 	}
 	private void ensureAvailable() {

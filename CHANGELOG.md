@@ -1,5 +1,11 @@
 What's new:
 
+Unreleased:
+* Cached discovered provider classes for exact backend selection, so repeated
+  oneMKL, OpenBLAS, CUDA, OpenCL, or Vulkan selections no longer construct and
+  tear down every optional provider. Unified-JAR smoke coverage exercises
+  repeated cached native-CPU selection.
+
 Version 0.10.1 (September 2, 2026):
 * Added native prepared sparse-Cholesky numeric factorization, refactorization,
   log determinants, and multi-RHS solves for CUDA, OpenCL, and Vulkan, backed by

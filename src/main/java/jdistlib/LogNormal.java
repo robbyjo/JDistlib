@@ -38,9 +38,13 @@ public class LogNormal extends GenericDistribution{
 
 		if(x <= 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		y = (log(x) - meanlog) / sdlog;
-		return (give_log ?
-				-(M_LN_SQRT_2PI   + 0.5 * y * y + log(x * sdlog)) :
-					M_1_SQRT_2PI * exp(-0.5 * y * y)  /	 (x * sdlog));
+		if (give_log)
+			return -M_LN_SQRT_2PI - 0.5 * y * y - log(x) - log(sdlog);
+		double numerator = exp(-0.5 * y * y);
+		double result = M_1_SQRT_2PI * numerator / (x * sdlog);
+		if (numerator < Double.MIN_NORMAL || result == 0 || !Double.isFinite(result))
+			return exp(-M_LN_SQRT_2PI - 0.5 * y * y - log(x) - log(sdlog));
+		return result;
 		/* M_1_SQRT_2PI = 1 / sqrt(2 * pi) */
 	}
 

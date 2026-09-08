@@ -40,7 +40,9 @@ public class Exponential extends GenericDistribution {
 
 		if (x < 0.)
 			return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		return (give_log ? (-x / scale) - log(scale) : exp(-x / scale) / scale);
+		if (give_log) return (-x / scale) - log(scale);
+		double unscaled = exp(-x / scale);
+		return unscaled < Double.MIN_NORMAL ? exp(-x / scale - log(scale)) : unscaled / scale;
 	}
 
 	public static final double cumulative(double x, double scale, boolean lower_tail, boolean log_p)
@@ -50,7 +52,9 @@ public class Exponential extends GenericDistribution {
 		if (scale < 0) return Double.NaN;
 
 		if (x <= 0.)
-			return (log_p ? Double.NEGATIVE_INFINITY : 0.);
+			return lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.);
+		if (log_p && lower_tail && x / scale < Double.MIN_NORMAL && Double.isFinite(scale))
+			return log(x) - log(scale);
 		/* same as weibull( shape = 1): */
 		x = -(x / scale);
 		if (lower_tail)

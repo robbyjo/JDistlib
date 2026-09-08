@@ -35,9 +35,17 @@ public class Cauchy extends GenericDistribution {
 		if (scale <= 0) return Double.NaN;
 
 		y = (x - location) / scale;
-		return give_log ?
-			- log(PI * scale * (1. + y * y)) :
-			1. / (PI * scale * (1. + y * y));
+		double denominator = PI * scale * (1. + y * y);
+		if (Double.isFinite(denominator) && denominator >= Double.MIN_NORMAL)
+			return give_log ? -log(denominator) : 1. / denominator;
+		double difference = abs(x - location);
+		double logDifference = log(difference);
+		if (Double.isInfinite(difference) && Double.isFinite(x) && Double.isFinite(location))
+			logDifference = log(abs(x / 2 - location / 2)) + log(2.);
+		double logScale = log(scale);
+		double logDensity = -log(PI) - logScale
+				- jdistlib.math.MathFunctions.log1pexp(2 * (logDifference - logScale));
+		return give_log ? logDensity : exp(logDensity);
 	}
 
 	public static final double cumulative(double x, double location, double scale, boolean lower_tail, boolean log_p)

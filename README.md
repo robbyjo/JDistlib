@@ -31,6 +31,10 @@ and are not removed during upstream synchronization.
 
 ## Project status
 
+The [September 2026 numerical audit](docs/NUMERICAL_AUDIT_2026-09-08.md)
+documents accuracy fixes, independent checks of R discrepancies, and
+reproducible R/Java performance comparisons.
+
 Version 0.10.1 is the current stable release. It adds provider-resident FP64/
 FP32 prepared sparse-Cholesky factorization and solves for CUDA, OpenCL, and
 Vulkan, hardens oneMKL PARDISO reuse, and optionally pairs OpenBLAS with

@@ -44,14 +44,29 @@ public class Gamma extends GenericDistribution implements SupportedDistribution,
 			if (shape > 1) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 			return give_log ? -log(scale) : 1 / scale;
 		}
+		// Scaling a positive x can lose all significant bits before the
+		// Poisson representation is evaluated. Use the defining log density
+		// here; the omitted digits of x/scale cannot affect the exponential.
+		if (x > 0 && Double.isFinite(x) && Double.isFinite(shape) && Double.isFinite(scale)
+				&& (x / scale < Double.MIN_NORMAL || shape < Double.MIN_NORMAL)) {
+			double logRatio = log(x) - log(scale);
+			double logDensity = (shape - 1) * logRatio - log(scale) - lgammafn(shape) - x / scale;
+			return give_log ? logDensity : exp(logDensity);
+		}
 		if (shape < 1) {
 			pr = Poisson.density_raw(shape, x/scale, give_log);
-			return give_log ? pr + (Double.isFinite(shape/x) ? log(shape/x) : log(shape) - log(x))
-				: pr*shape/x;
+			if (give_log) {
+				double ratio = shape / x;
+				return pr + (Double.isFinite(ratio) && ratio >= Double.MIN_NORMAL ? log(ratio) : log(shape) - log(x));
+			}
+			double result = pr * shape / x;
+			return pr < Double.MIN_NORMAL || !Double.isFinite(result) || result == 0
+					? exp(density(x, shape, scale, true)) : result;
 		}
 		/* else  shape >= 1 */
 		pr = Poisson.density_raw(shape-1, x/scale, give_log);
-		return give_log ? pr - log(scale) : pr/scale;
+		if (give_log) return pr - log(scale);
+		return pr < Double.MIN_NORMAL ? exp(Poisson.density_raw(shape-1, x/scale, true) - log(scale)) : pr/scale;
 	}
 
 	static final double dpois_wrap (double x_plus_1, double lambda, boolean give_log)
@@ -302,6 +317,14 @@ public class Gamma extends GenericDistribution implements SupportedDistribution,
 			return x + alph + scale;
 		if(alph < 0. || scale <= 0.)
 			return Double.NaN;
+		if (x > 0 && alph > 0 && Double.isFinite(x) && Double.isFinite(alph)
+				&& Double.isFinite(scale) && x / scale < Double.MIN_NORMAL) {
+			// P(a,z) = z^a/Gamma(a+1) * (1 + O(z)); z is subnormal.
+			double logLower = alph * (log(x) - log(scale)) - lgamma1p(alph);
+			if (lower_tail) return log_p ? logLower : exp(logLower);
+			return log_p ? (logLower > -M_LN2 ? log(-expm1(logLower)) : log1p(-exp(logLower)))
+					: -expm1(logLower);
+		}
 		x /= scale;
 		if (Double.isNaN(x)) /* eg. original x = scale = +Inf */
 			return x;

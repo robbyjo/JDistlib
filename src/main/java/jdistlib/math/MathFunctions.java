@@ -220,9 +220,8 @@ public class MathFunctions {
 
 	/*!* #include "DistLib.h" /*4!*/
 
-	public static final double lgammacor(double x)
-	{
-		final double algmcs[] = { 
+	// Private read-only tables avoid allocating approximation coefficients per call.
+	private static final double[] LGAMMA_CORRECTION_COEFFICIENTS = {
 				+.1666389480451863247205729650822e+0,
 				-.1384948176067563840732986059135e-4,
 				+.9810825646924729426157171547487e-8,
@@ -239,6 +238,9 @@ public class MathFunctions {
 				-.3401102254316748799999999999999e-29,
 				+.1276642195630062933333333333333e-30
 		};
+
+	public static final double lgammacor(double x)
+	{
 		int nalgm = 5;
 		double xbig = 94906265.62425156;
 		double xmax = 3.745194030963158e306;
@@ -248,7 +250,7 @@ public class MathFunctions {
 		if (x >= xmax) return 1 / (x * 12); // Underflow
 		if (x < xbig) {
 			tmp = 10 / x;
-			return chebyshev_eval(tmp * tmp * 2 - 1, algmcs, nalgm) / x;
+			return chebyshev_eval(tmp * tmp * 2 - 1, LGAMMA_CORRECTION_COEFFICIENTS, nalgm) / x;
 		}
 		return 1 / (x * 12);
 	}
@@ -323,9 +325,7 @@ public class MathFunctions {
 		return r;
 	}
 
-	public static final double stirlerr(double n)
-	{
-		final double[] s = {
+	private static final double[] STIRLING_COEFFICIENTS = {
 			0.083333333333333333333,
 			0.00277777777777777777778,
 			0.00079365079365079365079365,
@@ -344,7 +344,8 @@ public class MathFunctions {
 			15238221.539407416192283370,
 			382900751.39141414141414141
 		};
-		final double sferr_halves[] = {
+
+	private static final double[] STIRLING_HALF_VALUES = {
 			0.0, /* n=0 - wrong, place holder only */
 			0.1534264097200273452913848,  /* 0.5 */
 			0.0810614667953272582196702,  /* 1.0 */
@@ -377,9 +378,12 @@ public class MathFunctions {
 			0.005746216513010115682023589, /* 14.5 */
 			0.005554733551962801371038690  /* 15.0 */
 		};
+
+	public static final double stirlerr(double n)
+	{
 		double twiceN = n + n;
 		if (n <= 15 && twiceN == (int) twiceN)
-			return sferr_halves[(int) twiceN];
+			return STIRLING_HALF_VALUES[(int) twiceN];
 		if (n <= 5.25) {
 			if (n >= 1) {
 				double logN = log(n);
@@ -407,15 +411,13 @@ public class MathFunctions {
 			else last = 5;
 		}
 
-		double series = s[last];
+		double series = STIRLING_COEFFICIENTS[last];
 		for (int i = last - 1; i >= 0; i--)
-			series = s[i] - series / n2;
+			series = STIRLING_COEFFICIENTS[i] - series / n2;
 		return series / n;
 	}
 
-	public static final double gammafn(double x)
-	{
-		final double gamcs[] = {
+	private static final double[] GAMMA_COEFFICIENTS = {
 				+.8571195590989331421920062399942e-2,
 				+.4415381324841006757191315771652e-2,
 				+.5685043681599363378632664588789e-1,
@@ -459,13 +461,16 @@ public class MathFunctions {
 				+.3376448816585338090334890666666e-30,
 				-.5793070335782135784625493333333e-31
 		};
+
+	public static final double gammafn(double x)
+	{
 		int i, n;
 		double y, value;
 		/*
 		int ngam = 0;
 		double xmin = 0., xmax = 0., xsml = 0., dxrel = 0.;
 		if (ngam == 0) {
-			ngam = chebyshev_init(gamcs, 42, DBL_EPSILON/20);
+			ngam = chebyshev_init(GAMMA_COEFFICIENTS, 42, DBL_EPSILON/20);
 			xmin=-170.5674972726612; xmax=171.61447887182298;
 			xsml = exp(max(log(DBL_MIN), -log(Double.MAX_VALUE))+0.01);
 			dxrel = sqrt(DBL_EPSILON);
@@ -492,7 +497,7 @@ public class MathFunctions {
 			if(x < 0) --n;
 			y = x - n;/* n = floor(x)  ==>	y in [ 0, 1 ) */
 			--n;
-			value = chebyshev_eval(y * 2 - 1, gamcs, ngam) + .9375;
+			value = chebyshev_eval(y * 2 - 1, GAMMA_COEFFICIENTS, ngam) + .9375;
 			if (n == 0)
 				return value;/* x = 1.dddd = 1+y */
 
@@ -784,13 +789,7 @@ public class MathFunctions {
 		return(ans);
 	}
 
-	public static final double lgamma1p(double a)
-	{
-		final double eulers_const =	 0.5772156649015328606065120900824024;
-
-	    /* coeffs[i] holds (zeta(i+2)-1)/(i+2) , i = 0:(N-1), N = 40 : */
-		final int N = 40;
-	    final double coeffs[] = {
+	private static final double[] LGAMMA1P_COEFFICIENTS = {
 		0.3224670334241132182362075833230126e-0,/* = (zeta(2)-1)/2 */
 		0.6735230105319809513324605383715000e-1,/* = (zeta(3)-1)/3 */
 		0.2058080842778454787900092413529198e-1,
@@ -833,6 +832,13 @@ public class MathFunctions {
 		0.1109139947083452201658320007192334e-13/* = (zeta(40+1)-1)/(40+1) */
 	    };
 
+	public static final double lgamma1p(double a)
+	{
+		final double eulers_const =	 0.5772156649015328606065120900824024;
+
+	    /* LGAMMA1P_COEFFICIENTS[i] holds (zeta(i+2)-1)/(i+2) , i = 0:(N-1), N = 40 : */
+		final int N = 40;
+
 	    final double c = 0.2273736845824652515226821577978691e-12;/* zeta(N+2)-1 */
 	    final double tol_logcf = 1e-14;
 	    double lgam;
@@ -843,14 +849,14 @@ public class MathFunctions {
 
 	    /* Abramowitz & Stegun 6.1.33 : for |x| < 2,
 	     * <==> log(gamma(1+x)) = -(log(1+x) - x) - gamma*x + x^2 * \sum_{n=0}^\infty c_n (-x)^n
-	     * where c_n := (Zeta(n+2) - 1)/(n+2)  = coeffs[n]
+	     * where c_n := (Zeta(n+2) - 1)/(n+2)  = LGAMMA1P_COEFFICIENTS[n]
 	     *
 	     * Here, another convergence acceleration trick is used to compute
 	     * lgam(x) :=  sum_{n=0..Inf} c_n (-x)^n
 	     */
 	    lgam = c * logcf(-a / 2, N + 2, 1, tol_logcf);
 	    for (i = N - 1; i >= 0; i--)
-		lgam = coeffs[i] - a * lgam;
+		lgam = LGAMMA1P_COEFFICIENTS[i] - a * lgam;
 
 	    return (a * lgam - eulers_const) * a - log1pmx (a);
 	}
@@ -864,6 +870,7 @@ public class MathFunctions {
 	 * of accuracy.
 	 */
 	public static final double logspace_add (double logx, double logy) {
+		if (logx == logy && Double.isInfinite(logx)) return logx;
 	    return max(logx, logy) + log1p (exp (-abs (logx - logy)));
 	}
 
@@ -876,6 +883,8 @@ public class MathFunctions {
 	 * of accuracy.
 	 */
 	public static final double logspace_sub (double logx, double logy) {
+		if (logx == Double.NEGATIVE_INFINITY && logy == Double.NEGATIVE_INFINITY)
+			return Double.NEGATIVE_INFINITY;
 		logy = logy - logx;
 	    return logx + ((logy) > -M_LN2 ? log(-expm1(logy)) : log1p(-exp(logy)));
 	}
@@ -899,7 +908,8 @@ public class MathFunctions {
 	    int i;
 	    // Mx := max_i log(x_i)
 	    double Mx = logx[0];
-	    for(i = 1; i < n; i++) if(Mx < logx[i]) Mx = logx[i];
+	    for(i = 1; i < n; i++) Mx = max(Mx, logx[i]);
+	    if (Double.isInfinite(Mx)) return Mx;
 	    // LDOUBLE s = (LDOUBLE) 0.; // TODO long double
 	    //for(i = 0; i < n; i++) s += EXP(logx[i] - Mx);
 	    //return Mx + (double) LOG(s);

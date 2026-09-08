@@ -45,15 +45,18 @@ public class R461NmathAuditTest {
 
 	@Test
 	public void gammaAndChiSquareFamiliesMatchR461() {
-		assertEquals(Double.NEGATIVE_INFINITY,
-			Gamma.density(Double.MIN_VALUE, .5, 2, true), 0.);
+		// R loses x/scale to zero here; use the analytic shape-1/2 density.
+		close(-.5 * Math.log(Double.MIN_VALUE) - .5 * Math.log(2 * Math.PI),
+			Gamma.density(Double.MIN_VALUE, .5, 2, true), 2e-15);
 		close(-.097128825327760612, Gamma.cumulative(1e-8, .125, 3, false, true), 2e-14);
 		assertEquals(0., Gamma.quantile(-700, .125, 3, true, true), 0.);
 		close(-14.373794322256366, ChiSquare.density(41, 7.5, true), 3e-14);
 		close(-13.544359061872939, ChiSquare.cumulative(41, 7.5, false, true), 3e-14);
 		close(2.2314424168402068e-75,
 			ChiSquare.quantile(-650, 7.5, true, true), 3e-13);
-		close(-16.023767809162738, NonCentralChiSquare.density(17, 4.5, 80, true), 2e-13);
+		// R 4.6.1 truncates the lower mixture by absolute error here; use the
+		// independently verified Bessel/Poisson-mixture value instead.
+		close(-16.023767798130901733, NonCentralChiSquare.density(17, 4.5, 80, true), 2e-13);
 		close(-15.609252558841815,
 			NonCentralChiSquare.cumulative(17, 4.5, 80, true, true), 2e-12);
 		close(-19.154665749614185,
@@ -107,7 +110,8 @@ public class R461NmathAuditTest {
 		assertEquals(0., Poisson.quantile(-700, 100, true, true), 0.);
 		close(-9982.0512934843227,
 			NegBinomial.density(2, 1e16, .999999999999, true), 3e-14);
-		close(-9982.2724664366106,
+		// R substitutes -mu for the exact log zero mass in this branch.
+		close(-9982.272466431609579737,
 			NegBinomial.density_mu(2, 1e16, 10000, true), 3e-14);
 		close(-1087.010920610966,
 			NegBinomial.cumulative_mu(15000, 1e16, 10000, false, true), 2e-11);
@@ -116,7 +120,9 @@ public class R461NmathAuditTest {
 
 	@Test
 	public void continuousFamiliesAndArithmeticHelpersMatchR461() {
-		assertEquals(Double.NEGATIVE_INFINITY, Cauchy.density(1e200, -3, 2.5, true), 0.);
+		// R overflows the squared standardized distance; the log density is finite.
+		close(Math.log(2.5) - Math.log(Math.PI) - 2 * Math.log(1e200),
+			Cauchy.density(1e200, -3, 2.5, true), 2e-15);
 		close(-460.74545775278438, Cauchy.cumulative(1e200, -3, 2.5, false, true), 3e-14);
 		close(2100., Exponential.quantile(-700, 3, false, true), 3e-15);
 		close(-2170.1188526168808, F.density(1e100, 3.5, 17, true), 3e-14);

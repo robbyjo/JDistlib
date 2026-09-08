@@ -1,6 +1,13 @@
 What's new:
 
 Unreleased:
+* Audited scalar distribution accuracy against R 4.6.1 and independent
+  high-precision/analytic references. Fixed support, scale, log-tail, mixture,
+  and negative-binomial approximation errors, including inherited R defects.
+  See docs/NUMERICAL_AUDIT_2026-09-08.md for scope, evidence and remaining limits.
+* Reused immutable gamma/Stirling coefficient tables, eliminating repeated
+  allocations without changing arithmetic; added reproducible R/Java and
+  before/after timing harnesses. Corrected log-space zero/infinity endpoints.
 * Cached discovered provider classes for exact backend selection, so repeated
   oneMKL, OpenBLAS, CUDA, OpenCL, or Vulkan selections no longer construct and
   tear down every optional provider. Unified-JAR smoke coverage exercises

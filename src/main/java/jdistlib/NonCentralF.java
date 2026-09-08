@@ -43,7 +43,7 @@ public class NonCentralF extends GenericDistribution {
 		 *   return df(x, df1, df2, give_log); */
 
 		if (df1 <= 0. || df2 <= 0. || ncp < 0) return Double.NaN;
-		if (x < 0.)	 return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (x < 0. || x == Double.POSITIVE_INFINITY)	 return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (MathFunctions.isInfinite(ncp)) /* ncp = +Inf -- FIXME?: in some cases, limit exists */
 			return Double.NaN;
 
@@ -55,8 +55,10 @@ public class NonCentralF extends GenericDistribution {
 			if(x == 1.) return Double.POSITIVE_INFINITY;
 			/* else */  return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		}
-		if (MathFunctions.isInfinite(df2)) /* i.e.  = +Inf */
-			return df1* NonCentralChiSquare.density(x*df1, df1, ncp, give_log);
+		if (MathFunctions.isInfinite(df2)) { /* i.e. = +Inf */
+			double value = NonCentralChiSquare.density(x * df1, df1, ncp, give_log);
+			return give_log ? log(df1) + value : df1 * value;
+		}
 		/*	 ==  dngamma(x, df1/2, 2./df1, ncp, give_log)  -- but that does not exist */
 		if (df1 > 1e14 && ncp < 1e7) {
 			/* includes df1 == +Inf: code below is inaccurate there */
@@ -122,7 +124,9 @@ public class NonCentralF extends GenericDistribution {
 	}
 
 	public static final double random(double df1, double df2, double ncp, RandomEngine random) {
-		if (ncp == 0 || Double.isNaN(ncp))
+		if (Double.isNaN(ncp) || ncp < 0 || !Double.isFinite(ncp))
+			return Double.NaN;
+		if (ncp == 0)
 			return F.random(df1, df2, random);
 		return (NonCentralChiSquare.random(df1, ncp, random) / df1) / (ChiSquare.random(df2, random) / df2);
 	}

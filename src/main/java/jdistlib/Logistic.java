@@ -35,7 +35,9 @@ public class Logistic extends GenericDistribution {
 	    x = abs((x - location) / scale);
 	    e = exp(-x);
 	    f = 1.0 + e;
-	    return give_log ? -(x + log(scale * f * f)) : e / (scale * f * f);
+	    if (give_log) return -x - log(scale) - 2 * log1p(e);
+	    double result = (e / f / f) / scale;
+	    return e < Double.MIN_NORMAL && Double.isFinite(x) ? exp(-x - log(scale) - 2 * log1p(e)) : result;
 	}
 
 	public static final double cumulative(double x, double location, double scale, boolean lower_tail, boolean log_p) {

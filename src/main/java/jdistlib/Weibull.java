@@ -34,14 +34,29 @@ public class Weibull extends GenericDistribution {
 
 		if (x < 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
 		if (MathFunctions.isInfinite(x)) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		/* need to handle x == 0 separately */
-		if(x == 0 && shape < 1) return Double.POSITIVE_INFINITY;
-		tmp1 = pow(x / scale, shape - 1);
-		tmp2 = tmp1 * (x / scale);
-		/* These are incorrect if tmp1 == 0 */
-		return  give_log ?
-				-tmp2 + log(shape * tmp1 / scale) :
-				shape * tmp1 * exp(-tmp2) / scale;
+		if (x == 0) {
+			if (shape < 1) return Double.POSITIVE_INFINITY;
+			if (shape > 1) return give_log ? Double.NEGATIVE_INFINITY : 0.;
+			return give_log ? -log(scale) : 1 / scale;
+		}
+		if (Double.isInfinite(scale) && Double.isFinite(shape))
+			return give_log ? Double.NEGATIVE_INFINITY : 0.;
+		if (Double.isInfinite(shape) && x == scale)
+			return Double.POSITIVE_INFINITY;
+		double ratio = x / scale;
+		tmp1 = pow(ratio, shape - 1);
+		tmp2 = tmp1 * ratio;
+		double factor = shape * tmp1 / scale;
+		double result = give_log ? -tmp2 + log(factor) : factor * exp(-tmp2);
+		if (ratio >= Double.MIN_NORMAL && Double.isFinite(ratio)
+				&& Double.isFinite(tmp1) && tmp1 >= Double.MIN_NORMAL && Double.isFinite(factor) && factor >= Double.MIN_NORMAL
+				&& Double.isFinite(result) && (give_log || result > 0)) return result;
+		double logRatio = ratio >= Double.MIN_NORMAL && Double.isFinite(ratio)
+				? log(ratio) : log(x) - log(scale);
+		double power = exp(shape * logRatio);
+		if (Double.isInfinite(power)) return give_log ? Double.NEGATIVE_INFINITY : 0.;
+		double logDensity = log(shape) - log(scale) + (shape - 1) * logRatio - power;
+		return give_log ? logDensity : exp(logDensity);
 	}
 
 	public static final double cumulative(double x, double shape, double scale, boolean lower_tail, boolean log_p) {
@@ -49,7 +64,15 @@ public class Weibull extends GenericDistribution {
 		if (shape <= 0 || scale <= 0) return Double.NaN;
 
 		if (x <= 0)	return (lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.));
-		x = -pow(x / scale, shape);
+		double ratio = x / scale;
+		double power = pow(ratio, shape);
+		if (Double.isFinite(x) && Double.isFinite(shape) && Double.isFinite(scale)
+				&& (ratio < Double.MIN_NORMAL || Double.isInfinite(ratio) || power < Double.MIN_NORMAL)) {
+			double logPower = shape * (log(x) - log(scale));
+			if (lower_tail && log_p && logPower < log(Double.MIN_NORMAL)) return logPower;
+			power = exp(logPower);
+		}
+		x = -power;
 		if (lower_tail)
 			return (log_p
 					/* log(1 - exp(x))  for x < 0 : */
@@ -83,8 +106,17 @@ public class Weibull extends GenericDistribution {
 		}
 
 		//return scale * pow(- R_DT_Clog(p), 1./shape) ;
-		p = (lower_tail? (log_p ? ((p) > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))) : log1p(-p)) : (log_p ? (p) : log(p)));
-		return scale * pow(-p, 1./shape) ;
+		double hazard = -(lower_tail? (log_p ? ((p) > -M_LN2 ? log(-expm1(p)) : log1p(-exp(p))) : log1p(-p)) : (log_p ? (p) : log(p)));
+		if (log_p && lower_tail && hazard < Double.MIN_NORMAL && Double.isFinite(scale)) {
+			double result = scale * exp(p / shape);
+			return result == 0 || Double.isInfinite(result) ? exp(log(scale) + p / shape) : result;
+		}
+		double result = scale * pow(hazard, 1. / shape);
+		if ((result == 0 || Double.isInfinite(result)) && Double.isFinite(scale)) {
+			double logHazard = log_p && lower_tail && hazard == 0 ? p : log(hazard);
+			return exp(log(scale) + logHazard / shape);
+		}
+		return result;
 	}
 
 	public static final double random(double shape, double scale, RandomEngine random) {

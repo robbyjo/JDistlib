@@ -36,72 +36,122 @@ public class NonCentralChiSquare extends GenericDistribution {
 	 * degrees of freedom and noncentrality parameter "ncp".
 	 */
 	public static final double density(double x, double df, double ncp, boolean give_log) {
-		final double eps = 5e-15;
-
-		double i, ncp2, q, mid, dfmid = 0, imax;
-		/* long */ double sum, term; // TODO long double
-
 		if (Double.isNaN(x) || Double.isNaN(df) || Double.isNaN(ncp)) return x + df + ncp;
-
-		if (MathFunctions.isInfinite(df) || MathFunctions.isInfinite(ncp) || ncp < 0 || df <= 0)
+		if (!Double.isFinite(df) || !Double.isFinite(ncp) || ncp < 0 || df < 0)
 			return Double.NaN;
-
-		if(x < 0) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		if(x == 0 && df < 2.)
-			return Double.POSITIVE_INFINITY;
-		if(ncp == 0)
-			return (df > 0) ? ChiSquare.density(x, df, give_log) : (give_log ? Double.NEGATIVE_INFINITY : 0.);
-		if(x == Double.POSITIVE_INFINITY) return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-
-		ncp2 = 0.5 * ncp;
-
-		/* find max element of sum */
-		imax = ceil((-(2+df) +sqrt((2-df) * (2-df) + 4 * ncp * x))/4);
-		if (imax < 0) imax = 0;
-		if(MathFunctions.isFinite(imax)) {
-			dfmid = df + 2 * imax;
-			mid = Poisson.density_raw(imax, ncp2, false) * ChiSquare.density(x, dfmid, false);
-		} else /* imax = Inf */
-			mid = 0;
-
-		if(mid == 0) {
-			/* underflow to 0 -- maybe numerically correct; maybe can be more accurate,
-			 * particularly when  give_log = true */
-			/* Use  central-chisq approximation formula when appropriate;
-			 * ((FIXME: the optimal cutoff also depends on (x,df);  use always here? )) */
-			if(give_log || ncp > 1000.) {
-				double nl = df + ncp, ic = nl/(nl + ncp);/* = "1/(1+b)" Abramowitz & St.*/
-				return ChiSquare.density(x*ic, nl*ic, give_log);
-			} else
-				return (give_log ? Double.NEGATIVE_INFINITY : 0.);
+		if (x < 0 || x == Double.POSITIVE_INFINITY)
+			return give_log ? Double.NEGATIVE_INFINITY : 0.;
+		if (x == 0) {
+			if (df < 2) return Double.POSITIVE_INFINITY;
+			double value = df == 2 ? -0.5 * ncp - M_LN2 : Double.NEGATIVE_INFINITY;
+			return give_log ? value : exp(value);
 		}
+		if (ncp == 0)
+			return df > 0 ? ChiSquare.density(x, df, give_log)
+				: (give_log ? Double.NEGATIVE_INFINITY : 0.);
 
-		sum = mid;
-
-		/* errorbound := term * q / (1-q)  now subsumed in while() / if() below: */
-
-		/* upper tail */
-		term = mid; df = dfmid; i = imax;
-		double x2 = x * ncp2;
-		do {
+		/* Locate the largest term of the Poisson/chi-square mixture without
+		 * squaring df or forming ncp*x. Rationalize the positive root when
+		 * subtracting it from df would lose its significant digits. */
+		double ncp2 = 0.5 * ncp;
+		boolean subnormalLambda = ncp2 < Double.MIN_NORMAL;
+		double logLambda = subnormalLambda ? log(ncp) - M_LN2 : log(ncp2);
+		if (ncp2 == 0) {
+			double value = df == 0 ? log(ncp) - M_LN2 + ChiSquare.density(x, 2, true)
+				: ChiSquare.density(x, df, true);
+			return give_log ? value : exp(value);
+		}
+		double d = 0.25 * df - 0.5;
+		double z = (0.5 * sqrt(ncp)) * sqrt(x);
+		double root = hypot(d, z);
+		double index = root == 0 ? 0 : d >= 0 ? (z / root) * (z / (1 + d / root)) : root - d;
+		double mode = max(df == 0 ? 1 : 0, ceil(index - 1));
+		if (!Double.isFinite(mode) || mode >= 0x1.0p52) {
+			/* At these parameters individual mixture indices are no longer
+			 * distinguishable in double precision. Retain the central moment
+			 * approximation, including its density change of scale. */
+			double total = df + ncp;
+			double scale = 1 / (1 + ncp / total);
+			double value = ChiSquare.density(x * scale, total * scale, true) + log(scale);
+			return give_log ? value : exp(value);
+		}
+		double dfmid = df + 2 * mode;
+		double logMid = (subnormalLambda ? -ncp2 + mode * logLambda - lgamma1p(mode)
+			: Poisson.density_raw(mode, ncp2, true))
+			+ ChiSquare.density(x, dfmid, true);
+		/* Scaling the largest term to one preserves both log densities and
+		 * relative accuracy when the unscaled terms would underflow. */
+		double sum = 1;
+		double term = 1;
+		double i = mode;
+		double degrees = dfmid;
+		final double eps = 2 * DBL_EPSILON;
+		for (;;) {
 			i++;
-			q = x2 / i / df;
-			df += 2;
-			term *= q;
+			double ratio = (ncp2 / i) * (x / degrees);
+			if (subnormalLambda || !Double.isFinite(ratio) || ratio == 0)
+				ratio = exp(logLambda + log(x) - log(i) - log(degrees));
+			degrees += 2;
+			term *= ratio;
 			sum += term;
-		} while (q >= 1 || term * q > (1-q)*eps || term > 1e-10*sum);
-		/* lower tail */
-		term = mid; df = dfmid; i = imax;
-		while (i != 0) {
-			df -= 2;
-			q = i * df / x2;
-			i--;
-			term *= q;
-			sum += term;
-			if (q < 1 && term * q <= (1-q)*eps) break;
+			if (ratio < 1 && term * ratio <= (1 - ratio) * eps * sum) break;
 		}
-		//return R_D_val(sum);
-		return (give_log ? log(sum) : (sum));
+		term = 1;
+		i = mode;
+		degrees = dfmid;
+		while (i > (df == 0 ? 1 : 0)) {
+			degrees -= 2;
+			double ratio = (i / ncp2) * (degrees / x);
+			if (subnormalLambda || !Double.isFinite(ratio) || ratio == 0)
+				ratio = exp(log(i) + log(degrees) - logLambda - log(x));
+			i--;
+			term *= ratio;
+			sum += term;
+			if (ratio < 1 && term * ratio <= (1 - ratio) * eps * sum) break;
+		}
+		double value = logMid + log(sum);
+		return give_log ? value : exp(value);
+	}
+	/* The upper-tail mixture can peak far above the Poisson mode. A bound
+	 * on omitted Poisson mass alone does not control relative tail error. */
+	private static double smallNoncentralityUpperLog(double x, double df, double ncp) {
+		double lambda = ncp * 0.5;
+		// Dividing an odd subnormal ncp by two rounds its Poisson mean.
+		// Preserve the unrounded mean in logarithmic mixture weights.
+		double logLambda = lambda < Double.MIN_NORMAL ? log(ncp) - M_LN2 : log(lambda);
+		double d = df * 0.25 - 0.5;
+		double z = (0.5 * sqrt(ncp)) * sqrt(x);
+		double root = hypot(d, z);
+		double index = d >= 0 ? (z / root) * (z / (1 + d / root)) : root - d;
+		double mode = max(df == 0 ? 1 : 0, ceil(index - 1));
+		double logWeight = lambda < Double.MIN_NORMAL
+			? -lambda + mode * logLambda - lgamma1p(mode)
+			: Poisson.density_raw(mode, lambda, true);
+		double middle = logWeight + ChiSquare.cumulative(x, df + 2 * mode, false, true);
+		double sum = middle;
+		double weight = logWeight;
+		double previous = middle;
+		for (double k = mode + 1; ; k++) {
+			weight += logLambda - log(k);
+			double term = weight + ChiSquare.cumulative(x, df + 2 * k, false, true);
+			sum = logspace_add(sum, term);
+			double ratio = exp(term - previous);
+			if (ratio < 1 && term - sum + log(ratio) - log1p(-ratio) < log(DBL_EPSILON))
+				break;
+			previous = term;
+		}
+		weight = logWeight;
+		previous = middle;
+		for (double k = mode - 1; k >= 0; k--) {
+			weight += log(k + 1) - logLambda;
+			double term = weight + ChiSquare.cumulative(x, df + 2 * k, false, true);
+			sum = logspace_add(sum, term);
+			double ratio = exp(term - previous);
+			if (ratio < 1 && term - sum + log(ratio) - log1p(-ratio) < log(DBL_EPSILON))
+				break;
+			previous = term;
+		}
+		return min(0, sum);
 	}
 
 	@SuppressWarnings("unused")
@@ -117,6 +167,8 @@ public class NonCentralChiSquare extends GenericDistribution {
 
 		if (x <= 0.) {
 			if(x == 0. && f == 0.) {
+				if (!lower_tail && log_p && theta > 0 && theta * 0.5 < Double.MIN_NORMAL)
+					return log(theta) - M_LN2;
 				double _L = -0.5*theta;
 				// return lower_tail ? R_D_exp(_L) : (log_p ? R_Log1_Exp(_L) : -expm1(_L));
 				return lower_tail ? (log_p	?  (_L)	 : exp(_L)) : (log_p ? ((_L) > -M_LN2 ? log(-expm1(_L)) : log1p(-exp(_L))) : -expm1(_L));
@@ -127,6 +179,13 @@ public class NonCentralChiSquare extends GenericDistribution {
 		}
 		// if(!R_FINITE(x))	return R_DT_1;
 		if(MathFunctions.isInfinite(x)) return (lower_tail ? (log_p ? 0. : 1.) : (log_p ? Double.NEGATIVE_INFINITY : 0.));
+		if (theta == 0) return ChiSquare.cumulative(x, f, lower_tail, log_p);
+		if (theta > 0 && theta < 80 && x < 1e8
+				&& x > f + theta + 8 * sqrt(2 * (f + 2 * theta))) {
+			double upper = smallNoncentralityUpperLog(x, f, theta);
+			return lower_tail ? (log_p ? log1p(-exp(upper)) : -expm1(upper))
+				: (log_p ? upper : exp(upper));
+		}
 
 		if(theta < 80) { /* use 110 for Inf, as ppois(110, 80/2, lower.tail=false) is 2e-20 */
 			//double ans;

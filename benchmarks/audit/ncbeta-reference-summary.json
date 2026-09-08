@@ -1,0 +1,63 @@
+{
+  "Java_relative_probability_tolerance": 1e-11,
+  "by_key": {
+    "ncbeta:p:0:0": {
+      "Java_closer": 156,
+      "R_closer": 0,
+      "count": 156,
+      "max_Java_absolute_error": 1.1508184457531626e-17,
+      "max_Java_relative_probability_error": 1.543116351554718e-14,
+      "max_R_absolute_error": 9.945978831631913e-10,
+      "max_R_relative_probability_error": 1661828.6431661213,
+      "ties": 0
+    },
+    "ncbeta:p:0:1": {
+      "Java_closer": 166,
+      "R_closer": 0,
+      "count": 166,
+      "max_Java_absolute_error": 1.5517435606908365e-14,
+      "max_Java_relative_probability_error": 1.5517435606908485e-14,
+      "max_R_absolute_error": 14.323429748040516,
+      "max_R_relative_probability_error": 1661828.6431661192,
+      "ties": 0
+    },
+    "ncbeta:p:1:0": {
+      "Java_closer": 79,
+      "R_closer": 0,
+      "count": 79,
+      "max_Java_absolute_error": 4.688639343274563e-18,
+      "max_Java_relative_probability_error": 6.100081488453158e-15,
+      "max_R_absolute_error": 5.571502106698119e-10,
+      "max_R_relative_probability_error": 0.0005641612133820811,
+      "ties": 0
+    },
+    "ncbeta:p:1:1": {
+      "Java_closer": 183,
+      "R_closer": 0,
+      "count": 183,
+      "max_Java_absolute_error": 5.9577526555454166e-15,
+      "max_Java_relative_probability_error": 5.9577526555453985e-15,
+      "max_R_absolute_error": 0.0005643204121976016,
+      "max_R_relative_probability_error": 0.0005641612133815788,
+      "ties": 0
+    }
+  },
+  "flagged_rows": 584,
+  "input_sha256": "1e4dda8004caa1f9ef8c56d7ba1d55030cc160bf9c7c993754be61dc627633ac",
+  "max_omitted_probability_bound": "9.74324352498e-112",
+  "max_precision_delta": "5.33483309108e-71",
+  "mixture_terms_max": 119,
+  "mixture_terms_min": 119,
+  "mpmath_version": "1.4.1",
+  "parameters": {
+    "a": 2.5,
+    "b": 7,
+    "ncp": 11
+  },
+  "passed": true,
+  "precisions": [
+    80,
+    120
+  ],
+  "unique_x": 235
+}

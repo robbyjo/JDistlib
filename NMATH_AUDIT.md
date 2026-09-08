@@ -1,5 +1,10 @@
 # R 4.6.1 `src/nmath` audit
 
+The later [September 2026 independent accuracy/performance audit](docs/NUMERICAL_AUDIT_2026-09-08.md)
+identified inherited R errors in several edge cases. The corresponding tests
+now use documented analytic/high-precision expectations rather than reproducing
+those R outputs. The record below describes the original upstream comparison.
+
 This is the completion record for the checklist in [UPSTREAM.md](UPSTREAM.md).
 The audit compared the extracted tagged trees in `.upstream/R-3.3.2/src/nmath`
 and `.upstream/R-4.6.1/src/nmath`. R 3.3.2 is the historical JDistlib baseline;

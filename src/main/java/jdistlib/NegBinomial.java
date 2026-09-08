@@ -58,6 +58,14 @@ public class NegBinomial extends GenericDistribution {
 			double xx2s = x < sqrt(Double.MAX_VALUE)
 				? scalb(x * (x - 1), -1) / size
 				: x * (scalb(x, -1) / size);
+			if (xx2s >= 1e-8 && Double.isFinite(x + size)) {
+				// The log1p correction below requires x*x/size to be tiny,
+				// not just x/size. Use binomial symmetry so its prefactor
+				// never subtracts size/(size+x) from one.
+				double value = Binomial.density_raw(x, x + size, 1 - prob, prob, true)
+					- log1p(x / size);
+				return give_log ? value : exp(value);
+			}
 			double ans = size * log(prob) + x * (log(size) + log1p(-prob))
 				- lgamma1p(x) + log1p(xx2s);
 			return give_log ? ans : exp(ans);
@@ -93,7 +101,7 @@ public class NegBinomial extends GenericDistribution {
 		//x = R_D_forceint(x);
 		x = rint(x);
 		if(x == 0) { /* be accurate, both for n << mu, and n >> mu :*/
-			x = size * (size < mu ? log(size/(size+mu)) : log1p(- mu/(size+mu)));
+			x = logZeroMass(size, mu);
 			return (give_log ? (x) : exp(x));
 		}
 		if(x < 1e-10 * size) { /* don't use dbinom_raw() but MM's formula: */
@@ -102,7 +110,13 @@ public class NegBinomial extends GenericDistribution {
 			double xx2s = x < sqrt(Double.MAX_VALUE)
 				? scalb(x * (x - 1), -1) / size
 				: x * (scalb(x, -1) / size);
-			x = x * p - mu - lgamma1p(x) + log1p(xx2s);
+			if (xx2s >= 1e-8 && Double.isFinite(size + mu) && Double.isFinite(x + size)
+					&& mu / (size + mu) > 0) {
+				double value = Binomial.density_raw(x, x + size, mu / (size + mu),
+					size / (size + mu), true) - log1p(x / size);
+				return give_log ? value : exp(value);
+			}
+			x = x * p + logZeroMass(size, mu) - lgamma1p(x) + log1p(xx2s);
 			return (give_log ? (x) : exp(x));
 		}
 		/* else: no unnecessary cancellation inside dbinom_raw, when
@@ -115,6 +129,16 @@ public class NegBinomial extends GenericDistribution {
 		return give_log ? p + ans : p * ans;
 	}
 
+	/* Keep size*log(size/(size+mu)) finite and accurate even when size+mu
+	 * overflows or mu/size underflows. Replacing this by -mu requires a
+	 * Poisson limit; small x/size alone does not justify that approximation. */
+	private static double logZeroMass(double size, double mu) {
+		if (mu <= size) {
+			double ratio = mu / size;
+			return ratio == 0 ? -mu : -mu * (log1p(ratio) / ratio);
+		}
+		return size * (log(size) - log(mu) - log1p(size / mu));
+	}
 	public static final double cumulative(double x, double size, double prob, boolean lower_tail, boolean log_p) {
 		if (Double.isNaN(x) || Double.isNaN(size) || Double.isNaN(prob)) return x + size + prob;
 		if(MathFunctions.isInfinite(prob)) return Double.NaN;

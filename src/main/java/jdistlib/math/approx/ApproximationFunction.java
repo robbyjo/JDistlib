@@ -106,6 +106,7 @@ public class ApproximationFunction implements UnivariateFunction
 	 * @return Approximated value
 	 */
 	public static final double constant(double v, double[] x, double[] y, double lo, double hi, double compromise) {
+		if (Double.isNaN(v)) return Double.NaN;
 		int
 			left = 0,
 			right = x.length - 1;
@@ -121,6 +122,9 @@ public class ApproximationFunction implements UnivariateFunction
 			return y[right];
 		if(v == x[left])
 			return y[left];
-		return y[left] * compromise + y[right] * (1-compromise);
+		// R approxfun(method="constant", f): f=0 is right-continuous.
+		if (compromise == 0) return y[left];
+		if (compromise == 1) return y[right];
+		return y[left] * (1-compromise) + y[right] * compromise;
 	}
 }

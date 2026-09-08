@@ -28,6 +28,39 @@ public class PoissonInverseGaussian extends GenericDistribution {
 		return !(mean > 0.0) || !(dispersion > 0.0);
 	}
 
+	private static double logMass(int x, double mean, double dispersion) {
+		double t = 2.0 * dispersion * mean * mean;
+		double p0 = Double.isInfinite(mean) ? -sqrt(2.0 / dispersion)
+				: -2.0 * mean / (1.0 + sqrt(1.0 + t));
+		if (x == 0) return p0;
+		double previous = Double.isInfinite(mean) ? p0 - 0.5 * log(2.0 * dispersion)
+				: p0 + log(mean) - 0.5 * log1p(t);
+		double first = Double.isInfinite(mean) ? 1.0 : t / (1.0 + t);
+		double second = Double.isInfinite(mean) ? 0.5 / dispersion : mean * mean / (1.0 + t);
+		for (int i = 2; i <= x; i++) {
+			double current = DistributionUtil.logAdd(log(first) + log1p(-1.5 / i) + previous,
+					log(second) - log(i) - log(i - 1.0) + p0);
+			p0 = previous; previous = current;
+		}
+		return previous;
+	}
+
+	private static double logUpperCumulative(int x, double mean, double dispersion) {
+		double t = 2.0 * dispersion * mean * mean;
+		double first = t / (1.0 + t), second = mean * mean / (1.0 + t);
+		double previous2 = logMass(x, mean, dispersion);
+		double previous1 = logMass(x + 1, mean, dispersion);
+		double sum = previous1;
+		for (long i = (long) x + 2; i < (long) x + 1000000; i++) {
+			double term = DistributionUtil.logAdd(log(first) + log1p(-1.5 / i) + previous1,
+					log(second) - log(i) - log(i - 1.0) + previous2);
+			sum = DistributionUtil.logAdd(sum, term);
+			if (term < sum - 37.0 && term < previous1) return sum;
+			previous2 = previous1; previous1 = term;
+		}
+		return Double.NaN;
+	}
+
 	private static double mass(int x, double mean, double dispersion) {
 		if (Double.isInfinite(mean)) {
 			double logP0 = -sqrt(2.0 / dispersion);
@@ -44,7 +77,7 @@ public class PoissonInverseGaussian extends GenericDistribution {
 			return previous1;
 		}
 		double twicePhiMu2 = 2.0 * dispersion * mean * mean;
-		double logP0 = (1.0 - sqrt(1.0 + twicePhiMu2)) / (dispersion * mean);
+		double logP0 = -2.0 * mean / (1.0 + sqrt(1.0 + twicePhiMu2));
 		if (x == 0) return exp(logP0);
 		double previous2 = exp(logP0);
 		double previous1 = exp(log(mean) + logP0 - 0.5 * log1p(twicePhiMu2));
@@ -78,7 +111,7 @@ public class PoissonInverseGaussian extends GenericDistribution {
 			return Math.min(1.0, sum);
 		}
 		double twicePhiMu2 = 2.0 * dispersion * mean * mean;
-		double logP0 = (1.0 - sqrt(1.0 + twicePhiMu2)) / (dispersion * mean);
+		double logP0 = -2.0 * mean / (1.0 + sqrt(1.0 + twicePhiMu2));
 		double previous2 = exp(logP0);
 		double sum = previous2;
 		if (x == 0) return sum;
@@ -110,8 +143,7 @@ public class PoissonInverseGaussian extends GenericDistribution {
 				|| x > Integer.MAX_VALUE) {
 			return giveLog ? Double.NEGATIVE_INFINITY : 0.0;
 		}
-		double result = mass((int) x, mean, dispersion);
-		return giveLog ? log(result) : result;
+		return giveLog ? logMass((int) x, mean, dispersion) : mass((int) x, mean, dispersion);
 	}
 
 	public static double cumulative(double x, double mean, double dispersion,
@@ -131,6 +163,12 @@ public class PoissonInverseGaussian extends GenericDistribution {
 				lowerTail, logP);
 		int last = (int) Math.floor(x);
 		double result = lowerCumulative(last, mean, dispersion);
+		double t = 2.0 * dispersion * mean * mean;
+		if (result > 0.5 && Double.isFinite(mean) && t < 1000.0 && last < Integer.MAX_VALUE - 1) {
+			double upper = logUpperCumulative(last, mean, dispersion);
+			double value = lowerTail ? DistributionUtil.logOneMinusExp(upper) : upper;
+			return logP ? value : exp(value);
+		}
 		if (!lowerTail) result = Math.max(0.0, 1.0 - result);
 		return logP ? log(result) : result;
 	}

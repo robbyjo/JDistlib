@@ -19,6 +19,7 @@ import java.util.Set;
 
 import jdistlib.ChiSquare;
 import jdistlib.Normal;
+import jdistlib.math.VectorMath;
 import jdistlib.exception.PrecisionException;
 import jdistlib.util.Debug;
 
@@ -181,35 +182,13 @@ public class NormalityTest {
 
 	public static final double anderson_darling_statistic(double[] X) {
 		int n = X.length;
-		double
-			sum = 0,
-			sumSq = 0;
-	
-		for (int i = 0; i < n; i++) {
-			double value = X[i];
-			sum += value;
-			sumSq += value * value;
-		}
-	
-		double
-			mean = sum / n,
-			sd = sqrt((sumSq - sum * mean) / (n - 1)),
-			Y[] = new double[n];
-	
-		// Standardize X
+		double[] y = standardizedSample(X);
+		sort(y);
+		double sum = 0;
 		for (int i = 0; i < n; i++)
-			Y[i] = (X[i] - mean) / sd;
-		sort(Y);
-	
-		// Get corresponding normal CDF
-		for (int i = 0; i < n; i++)
-			Y[i] = Normal.cumulative(Y[i], 0, 1, true, false);
-	
-		sum = 0;
-		for (int i = 1; i <= n; i++)
-			sum += (2 * i - 1) * (log(Y[i-1]) + log(1 - Y[n-i]));
-	
-		return - n - sum / n;
+			sum += (2.0 * i + 1) * (Normal.cumulative(y[i], 0, 1, true, true)
+				+ Normal.cumulative(y[n - 1 - i], 0, 1, false, true));
+		return -n - sum / n;
 	}
 
 	/**
@@ -219,8 +198,9 @@ public class NormalityTest {
 	 * @return p value
 	 */
 	public static final double anderson_darling_pvalue(double value, int n) {
+		if (Double.isNaN(value) || value < 0 || n < 1) return Double.NaN;
 		double
-			aa = value * (1 + 0.75/n + 2.25 / (n*n)),
+			aa = value * (1 + 0.75/n + 2.25 / ((double)n*n)),
 			aasq = aa * aa;
 		if (aa < 0.2)
 			return 1 - exp(-13.436 + 101.14 * aa - 223.73 * aasq);
@@ -228,35 +208,21 @@ public class NormalityTest {
 			return 1 - exp(-8.318 + 42.796 * aa - 59.938 * aasq);
 		else if (aa < 0.6)
 			return exp(0.9177 - 4.279 * aa - 1.38 * aasq);
-		return exp(1.2937 - 5.709 * aa + 0.0186 * aasq);
+		return aa < 10 ? exp(1.2937 - 5.709 * aa + 0.0186 * aasq) : 3.7e-24;
 	}
 
 	public static final double cramer_vonmises_statistic(double[] X) {
 		int
 			n = X.length,
 			n2 = n * 2;
-		double
-			w = 0,
-			sum = 0,
-			sumSq = 0;
-
-		for (int i = 0; i < n; i++) {
-			double val = X[i];
-			sum += val;
-			sumSq += val * val;
-		}
-
-		double
-			mean = sum / n,
-			sd = sqrt((sumSq - sum * mean) / (n - 1)),
-			sortedZ[] = new double[n];
+		double[] sortedZ = standardizedSample(X);
 
 		// Standardize X
 		for (int i = 0; i < n; i++)
-			sortedZ[i] = Normal.cumulative(X[i], mean, sd, true, false);
+			sortedZ[i] = Normal.cumulative(sortedZ[i], 0, 1, true, false);
 		sort(sortedZ);
 
-		w = 1.0 / (12 * n);
+		double w = 1.0 / (12.0 * n);
 		for (int i = 0; i < n; i++) {
 			double val = (2 * i + 1.0) / n2 - sortedZ[i];
 			w += val * val;
@@ -271,6 +237,7 @@ public class NormalityTest {
 	 * @return p value
 	 */
 	public static final double cramer_vonmises_pvalue(double w, int n) {
+		if (Double.isNaN(w) || w < 0 || n < 1) return Double.NaN;
 		double
 			ww = (1 + 0.5/n) * w,
 			ww2 = ww * ww;
@@ -280,8 +247,9 @@ public class NormalityTest {
 	        return 1 - exp(-5.903 + 179.546 * ww - 1515.29 * ww2);
 	    else if (ww < 0.092)
 	        return exp(0.886 - 31.62 * ww + 10.897 * ww2);
-	    ww = exp(1.111 - 34.242 * ww + 12.832 * ww2);
-		return ww > 1 ? 0 : ww;
+	    // The fitted approximation is valid only below 1.1; retain the
+	    // published numerical floor instead of extrapolating it upward.
+	    return ww < 1.1 ? exp(1.111 - 34.242 * ww + 12.832 * ww2) : 7.37e-10;
 	}
 
 	/**
@@ -292,58 +260,30 @@ public class NormalityTest {
 	 * @param X
 	 * @return test statistic
 	 */
-	public static final double dagostino_pearson_statistic(double[] X)
-	{
-		// These are all magic numbers I took from:
-		// Handbook of Parametric and Non-Parametric Statistical Procedures by David Sheskin (3rd ed.)
-		int
-			n = X.length,
-			nSq = n * n,
-			nCube = n * nSq;
-		double
-			nMin1 = n - 1,
-			nn1 = n * nMin1,
-			n1n3 = (n + 1) * (n + 3),
-			nMin2 = n - 2,
-			n2n3 = nMin2 * (n - 3),
-			n3n5 = (n + 3) * (n + 5),
-			n7n9 = (n + 7) * (n + 9),
-			sum = 0,
-			sumSq = 0,
-			sumCube = 0,
-			sumQuad = 0;
-
-		for (int i = 0; i < n; i++) {
-			double
-				val = X[i],
-				valsq = val * val;
-			sum += val;
-			sumSq += valsq;
-			sumCube += valsq * val; 
-			sumQuad += valsq * valsq;
-		}
-
-		double
-			sumsum = sum * sum,
-			kurtosis = ((nCube + nSq) * sumQuad - 4 * (nSq + n) * sumCube * sum - 3 * (nSq - n) * sumSq * sumSq
-				+ 12 * n * sumSq * sumsum - 6 * sumsum * sumsum) / (nn1 * n2n3),
-			skewness = (n * sumCube - 3 * sum * sumSq + (2 * sumsum * sum / n)) / (nMin1 * nMin2),
-			variance = (sumSq - sumsum / n) / nMin1,
-			c = sqrt(2 * ((3 * (nSq + 27 * n - 70) * n1n3) / (nMin2 * (n + 5) * n7n9)) - 1) - 1,
-			f = (nMin2 * skewness / (variance * sqrt(variance) * sqrt(nn1))) * sqrt(n1n3 * (c - 1) / (12 * nMin2)),
-			jinv = n7n9 / ((6 * nSq - 30 * n + 12) * sqrt((6 * n3n5) / (n * n2n3))),
-			k = 6 + 8 * jinv * (2 * jinv + sqrt(1 + 4 * jinv * jinv)),
-			l = (1 - 2/k) / (1 + (sqrt( n2n3 * n3n5 / (24 * n)) * abs(kurtosis / (variance * variance)) / nMin1) * sqrt(2 / (k - 4))),
-			k2 = 2 / (9 * k),
-			z1 = log(f + sqrt(f * f + 1)) / sqrt(0.5 * log(c)),
-			z2 = (1 - k2 - pow(l, 1/3.0)) / sqrt(k2);
-
-		double value = z1 * z1 + z2 * z2;
-		return value > 50 ? 50 : value;
+	public static final double dagostino_pearson_statistic(double[] X) {
+		double n = X.length;
+		if (n < 8) return Double.NaN;
+		double[] moments = standardizedMoments(X);
+		// D'Agostino skewness and Anscombe-Glynn kurtosis transforms.
+		double y = moments[0] * sqrt((n + 1) * (n + 3) / (6 * (n - 2)));
+		double beta = 3 * (n * n + 27 * n - 70) * (n + 1) * (n + 3)
+			/ ((n - 2) * (n + 5) * (n + 7) * (n + 9));
+		double w2 = -1 + sqrt(2 * (beta - 1));
+		double a = sqrt(2 / (w2 - 1)), t = abs(y / a);
+		double z1 = Math.copySign(log(t + Math.hypot(t, 1)), y) / sqrt(0.5 * log(w2));
+		double expected = 3 * (n - 1) / (n + 1);
+		double variance = 24 * n * (n - 2) * (n - 3)
+			/ ((n + 1) * (n + 1) * (n + 3) * (n + 5));
+		double rootBeta = 6 * (n * n - 5 * n + 2) / ((n + 7) * (n + 9))
+			* sqrt(6 * (n + 3) * (n + 5) / (n * (n - 2) * (n - 3)));
+		double A = 6 + 8 / rootBeta * (2 / rootBeta + sqrt(1 + 4 / (rootBeta * rootBeta)));
+		double denominator = 1 + (moments[1] - expected) / sqrt(variance) * sqrt(2 / (A - 4));
+		double z2 = (1 - 2 / (9 * A) - Math.cbrt((1 - 2 / A) / denominator)) / sqrt(2 / (9 * A));
+		return z1 * z1 + z2 * z2;
 	}
 
 	public static final double dagostino_pearson_pvalue(double value)
-	{	return ChiSquare.cumulative(value, 2, true, false); }
+	{	return ChiSquare.cumulative(value, 2, false, false); }
 
 	/**
 	 * Calculate Jarque-Bera Normality Test. Follows Chi^2 distribution with df = 2<br>
@@ -353,43 +293,42 @@ public class NormalityTest {
 	 * @return test statistic
 	 */
 	public static final double jarque_bera_statistic(double[] X) {
-		// These are all magic numbers I took from:
-		// http://en.wikipedia.org/wiki/Jarque-Bera_test
-		int n = X.length;
-		double
-			sum = 0,
-			sumSq = 0,
-			sumCube = 0,
-			sumQuad = 0;
-	
-		for (int i = 0; i < n; i++) {
-			double val = X[i];
-			sum += val;
-			double valsq = val * val;
-			sumSq += valsq;
-			sumCube += valsq * val; 
-			sumQuad += valsq * valsq;
+		double[] moments = standardizedMoments(X);
+		double excess = moments[1] - 3;
+		return X.length * (moments[0] * moments[0] + excess * excess / 4) / 6;
+	}
+
+	/** Scale central moments before taking powers, preserving affine invariance. */
+	private static double[] standardizedMoments(double[] x) {
+		double m2 = 0, m3 = 0, m4 = 0;
+		for (double z : standardizedSample(x)) {
+			double z2 = z * z;
+			m2 += z2; m3 += z2 * z; m4 += z2 * z2;
 		}
-	
-		int
-			nSq = n * n,
-			nCube = n * nSq;
-		double
-			sumsum = sum * sum,
-			variance = (sumSq - sum * sum / n) / n,
-			skewness = sumCube / n - 3 * sumSq * sum / nSq + 2 * sumsum * sum / nCube,
-			kurtosis = sumQuad / n - 4 * sumCube * sum / nSq + 6 * sumSq * sumsum / nCube
-				- 3 * sumsum * sumsum / (nSq * nSq);
-		skewness = skewness / (variance * sqrt(variance));
-		kurtosis = kurtosis / (variance * variance);
-		double kMin3 = kurtosis - 3;
-	
-		double value = n * (skewness * skewness + kMin3 * kMin3 / 4) / 6;
-		return value > 50 ? 50 : value; // Cap it 
+		m2 /= x.length; m3 /= x.length; m4 /= x.length;
+		return new double[] {m3 / (m2 * sqrt(m2)), m4 / (m2 * m2)};
+	}
+
+	private static double[] standardizedSample(double[] x) {
+		double mean = VectorMath.mean(x), sd = VectorMath.sd(x);
+		double[] z = x.clone();
+		if (Double.isInfinite(sd)) {
+			// A sample SD can exceed MAX_VALUE even when every datum is finite.
+			double scale = 0;
+			for (double value : x) scale = max(scale, abs(value));
+			for (int i = 0; i < z.length; i++) z[i] /= scale;
+			mean = VectorMath.mean(z); sd = VectorMath.sd(z);
+		}
+		for (int i = 0; i < z.length; i++) {
+			double delta = z[i] - mean;
+			z[i] = Double.isInfinite(delta) && Double.isFinite(z[i]) && Double.isFinite(mean)
+				? z[i] / sd - mean / sd : delta / sd;
+		}
+		return z;
 	}
 
 	public static final double jarque_bera_pvalue(double value)
-	{	return ChiSquare.cumulative(value, 2, true, false); }
+	{	return ChiSquare.cumulative(value, 2, false, false); }
 
 	/**
 	 * Perform Kolmogorov-Smirnov two-sided normality test.
@@ -436,24 +375,8 @@ public class NormalityTest {
 	 */
 	public static final double kolmogorov_lilliefors_statistic(double[] X) {
 		int n = X.length;
-		double
-			sum = 0,
-			sumSq = 0;
-	
-		for (int i = 0; i < n; i++) {
-			double val = X[i];
-			sum += val;
-			sumSq += val * val;
-		}
-	
-		double
-			mean = sum / n,
-			sd = sqrt((sumSq - sum * mean) / (n - 1)),
-			sortedZ[] = new double[n];
-	
-		// Standardize X
-		for (int i = 0; i < n; i++)
-			sortedZ[i] = (X[i] - mean) / sd;
+		double[] sortedZ = standardizedSample(X);
+		if (n == 0 || !Double.isFinite(sortedZ[0])) return Double.NaN;
 		sort(sortedZ);
 	
 		double

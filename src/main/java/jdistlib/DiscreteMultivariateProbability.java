@@ -54,9 +54,17 @@ final class DiscreteMultivariateProbability {
 	static double logBetaBinomialMass(int count, int size, double alpha,
 			double beta) {
 		if (count < 0 || count > size) return Double.NEGATIVE_INFINITY;
-		return lgammafn(size + 1.0) - lgammafn(count + 1.0) -
-				lgammafn(size - count + 1.0) + lgammafn(count + alpha) +
-				lgammafn(size - count + beta) - lgammafn(size + alpha + beta) +
-				lgammafn(alpha + beta) - lgammafn(alpha) - lgammafn(beta);
+		return jdistlib.math.MathFunctions.lchoose(size,count) + logGammaIncrement(alpha,count)
+				+ logGammaIncrement(beta,size-count) - logGammaIncrement(alpha+beta,size);
+	}
+
+	static double logGammaIncrement(double shape, int count) {
+		if (count == 0) return 0.0;
+		if (count < 32) {
+			double result=0.0;
+			for(int i=0;i<count;i++) result+=Math.log(shape+i);
+			return result;
+		}
+		return lgammafn(count) - jdistlib.math.MathFunctions.lbeta(shape,count);
 	}
 }

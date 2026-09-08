@@ -1,0 +1,49 @@
+BetaPrime	R discrepancy	83
+BetaPrime	both agree at 2e-8	38
+BirnbaumSaunders	R discrepancy	46
+BirnbaumSaunders	both agree at 2e-8	23
+DiscreteLaplace	R discrepancy	2
+DiscreteLaplace	both agree at 2e-8	2
+DiscreteWeibull	R discrepancy	41
+DiscreteWeibull	both agree at 2e-8	6
+FellerPareto	R discrepancy	30
+FellerPareto	both agree at 2e-8	24
+HalfCauchy	R discrepancy	6
+HalfCauchy	both agree at 2e-8	18
+HalfNormal	R discrepancy	27
+HalfNormal	both agree at 2e-8	30
+HalfT	R discrepancy	30
+HalfT	both agree at 2e-8	90
+InvGamma	R discrepancy	6
+InvGamma	both agree at 2e-8	12
+InvNormal	R discrepancy	20
+Kumaraswamy	R discrepancy	107
+Kumaraswamy	both agree at 2e-8	55
+Lindley	both agree at 2e-8	5
+LogLogistic	R discrepancy	18
+LogLogistic	both agree at 2e-8	42
+Logarithmic	R discrepancy	4
+Logarithmic	both agree at 2e-8	3
+Maxwell	R discrepancy	15
+Maxwell	both agree at 2e-8	13
+PoissonInverseGaussian	R discrepancy	11
+PoissonInverseGaussian	both agree at 2e-8	7
+PositiveNormal	R discrepancy	36
+PositiveNormal	both agree at 2e-8	31
+Slash	R discrepancy	4
+Triangular	both agree at 2e-8	2
+ZeroInflatedNegativeBinomial	R discrepancy	11
+ZeroInflatedNegativeBinomial	both agree at 2e-8	5
+ZeroInflatedPoisson	R discrepancy	18
+ZeroInflatedPoisson	both agree at 2e-8	9
+ZeroTruncatedPoisson	both agree at 2e-8	6
+evd.Fretchet	R discrepancy	164
+evd.Fretchet	both agree at 2e-8	74
+evd.GEV	R discrepancy	90
+evd.GEV	both agree at 2e-8	63
+evd.GeneralizedPareto	R discrepancy	198
+evd.GeneralizedPareto	both agree at 2e-8	24
+evd.Rayleigh	R discrepancy	27
+evd.Rayleigh	both agree at 2e-8	12
+evd.ReverseWeibull	R discrepancy	122
+evd.ReverseWeibull	both agree at 2e-8	79

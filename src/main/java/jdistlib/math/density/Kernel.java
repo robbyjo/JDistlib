@@ -81,7 +81,7 @@ public enum Kernel {
 					double ax = abs(kords[i]);
 					if (ax < a) {
 						double axa = ax/a;
-						result[i] = 3/4*(1 - axa * axa)/a;
+						result[i] = 0.75*(1 - axa * axa)/a;
 					} else result[i] = 0;
 				}
 				break;
@@ -92,7 +92,7 @@ public enum Kernel {
 					if (ax < a) {
 						double axa = ax/a;
 						axa = (1 - axa * axa);
-						result[i] = 15/16*axa*axa/a;
+						result[i] = 0.9375*axa*axa/a;
 					} else result[i] = 0;
 				}
 				break;

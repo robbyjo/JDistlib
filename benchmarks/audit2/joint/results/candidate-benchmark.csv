@@ -1,0 +1,9 @@
+joe_density,20000,2.490600
+bb1_density,20000,3.300800
+joe_tau,1000,0.473800
+polya_cdf,100,4.104600
+delaporte_cdf,100,3.669400
+polya_density,1000,5.494600
+gaussian_cdf,100,1.683300
+student_cdf,100,21.592100
+normal_maximum_random,1000,0.112200

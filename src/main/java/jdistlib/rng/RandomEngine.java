@@ -36,9 +36,25 @@ public abstract class RandomEngine extends java.util.Random
 	public abstract double nextDouble();
 	public abstract float nextFloat();
 	public abstract int nextInt();
-	public abstract int nextInt(int n);
+	/** Uniform bounded draw using rejection to avoid modulo bias. */
+	public int nextInt(int n) {
+		if (n <= 0) throw new IllegalArgumentException("bound must be positive");
+		int bits = nextInt() >>> 1;
+		if ((n & -n) == n) return (int) ((n * (long) bits) >> 31);
+		int value = bits % n;
+		while (bits - value + (n - 1) < 0) { bits = nextInt() >>> 1; value = bits % n; }
+		return value;
+	}
 	public abstract long nextLong();
-	public abstract long nextLong(long l);
+	public long nextLong(long n) {
+		if (n <= 0) throw new IllegalArgumentException("bound must be positive");
+		long bits, value;
+		do { bits = nextLong() >>> 1; value = bits % n; } while (bits - value + (n - 1) < 0);
+		return value;
+	}
+
+	/** Route inherited Random methods through this engine's state. */
+	@Override protected int next(int bits) { return bits == 0 ? 0 : nextInt() >>> (32 - bits); }
 
 	public double random()
 	{	return nextDouble(); }

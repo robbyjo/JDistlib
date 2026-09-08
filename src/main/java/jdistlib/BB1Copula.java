@@ -18,21 +18,40 @@ public final class BB1Copula implements Copula {
 		if (!CopulaUtil.validPoint(u, 2)) return Double.NaN;
 		if (u[0] == 0.0 || u[1] == 0.0) return 0.0;
 		if (theta == 0.0) {
-			double sum = Math.pow(-Math.log(u[0]), delta) + Math.pow(-Math.log(u[1]), delta);
-			return Math.exp(-Math.pow(sum, 1.0 / delta));
+			return new GumbelCopula(2, delta).cumulative(u);
 		}
-		double a = Math.pow(Math.expm1(-theta * Math.log(u[0])), delta);
-		double b = Math.pow(Math.expm1(-theta * Math.log(u[1])), delta);
-		return Math.exp(-Math.log1p(Math.pow(a + b, 1.0 / delta)) / theta);
+		return Math.exp(-CopulaUtil.softplus(logRadialSum(u[0], u[1])) / theta);
 	}
 	@Override public double logDensity(double[] u) {
 		if (!CopulaUtil.interiorPoint(u, 2)) return Double.NaN;
-		double h = 2e-5, a = u[0], b = u[1];
-		double loA = Math.max(0.0, a-h), hiA = Math.min(1.0, a+h);
-		double loB = Math.max(0.0, b-h), hiB = Math.min(1.0, b+h);
-		double mixed = cumulative(new double[] {hiA,hiB})-cumulative(new double[] {hiA,loB})
-				-cumulative(new double[] {loA,hiB})+cumulative(new double[] {loA,loB});
-		return Math.log(Math.max(Double.MIN_NORMAL, mixed / ((hiA-loA)*(hiB-loB))));
+		if (theta == 0.0) return new GumbelCopula(2, delta).logDensity(u);
+		if (delta == 1.0) return new ClaytonCopula(2, theta).logDensity(u);
+		double logU = Math.log(u[0]), logV = Math.log(u[1]);
+		double a = CopulaUtil.logExpm1(-theta * logU);
+		double b = CopulaUtil.logExpm1(-theta * logV);
+		double s = CopulaUtil.logAdd(delta * a, delta * b) / delta;
+		double correction = CopulaUtil.logAdd(Math.log1p(theta),
+				Math.log(theta) + Math.log(delta - 1.0) + CopulaUtil.softplus(-s));
+		return -(1.0 + theta) * (logU + logV) + (delta - 1.0) * (a + b - 2.0 * s)
+				- (1.0 / theta + 2.0) * CopulaUtil.softplus(s) + correction;
+	}
+
+	double conditionalSecond(double first, double second) {
+		if (delta == 1.0) return new PairCopula(new ClaytonCopula(2,theta))
+				.conditionalSecondGivenFirst(first,second);
+		if (theta == 0.0) return new PairCopula(new GumbelCopula(2, delta))
+				.conditionalSecondGivenFirst(first, second);
+		if (first == 0.0) return 1.0;
+		if (first == 1.0 && delta > 1.0) return 0.0;
+		double s = logRadialSum(first, second);
+		return Math.exp(-(1.0 + theta) * Math.log(first)
+				+ (delta - 1.0) * (CopulaUtil.logExpm1(-theta * Math.log(first)) - s)
+				- (1.0 / theta + 1.0) * CopulaUtil.softplus(s));
+	}
+
+	private double logRadialSum(double first, double second) {
+		return CopulaUtil.logAdd(delta * CopulaUtil.logExpm1(-theta * Math.log(first)),
+				delta * CopulaUtil.logExpm1(-theta * Math.log(second))) / delta;
 	}
 	@Override public double[] random(RandomEngine random) {
 		if (random == null) throw new IllegalArgumentException("random engine required");

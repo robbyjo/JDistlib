@@ -58,14 +58,12 @@ public class Gumbel extends GenericDistribution {
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		p = cumulative(p, loc, scale, lower_tail);
-		return log_p ? log(p) : p;
+		return GEV.cumulative(p, loc, scale, 0.0, lower_tail, log_p);
 	}
 
 	@Override
 	public double quantile(double q, boolean lower_tail, boolean log_p) {
-		if (log_p) q = exp(q);
-		return quantile(q, loc, scale, lower_tail);
+		return GEV.quantile(q, loc, scale, 0.0, lower_tail, log_p);
 	}
 
 	@Override

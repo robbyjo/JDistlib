@@ -25,35 +25,31 @@ import jdistlib.rng.RandomEngine;
  *
  */
 public class Rayleigh extends GenericDistribution {
-	public static final double density(double x, double scale, boolean log) {
-		if (scale <= 0)
-			return Double.NaN;
-		double v = x / scale;
-		x = log(x) - 0.5 * v * v - 2 * log(scale);
-		return log ? x : exp(x);
-	}
-
-	public static final double cumulative(double q, double scale, boolean lower_tail) {
-		if (scale <= 0)
-			return Double.NaN;
-		if (q <= 0)
-			return 0;
-		q = q / scale;
-		q = -expm1(-0.5 * q * q);
-		return lower_tail ? q : 1 - q;
-	}
-
-	public static final double quantile(double p, double scale, boolean lower_tail) {
-		if (scale <= 0 | p < 0 | p > 1)
-			return Double.NaN;
-		if (!lower_tail) p = 1 - p;
-		return scale * sqrt(-2 * log1p(-p));
-	}
-
-	public static final double random(double scale, RandomEngine random) {
-		return scale <= 0 ? Double.NaN : scale * sqrt(-2 * log(random.nextDouble()));
-	}
-
+    public static final double density(double x, double scale, boolean log) {
+        if (!(scale > 0.0) || !Double.isFinite(scale) || Double.isNaN(x)) return Double.NaN;
+        if (x <= 0.0 || x == Double.POSITIVE_INFINITY) return log ? Double.NEGATIVE_INFINITY : 0.0;
+        double z = x / scale;
+        double v = log(x) - 2.0 * log(scale) - 0.5 * z * z;
+        return log ? v : exp(v);
+    }
+    public static final double cumulative(double x, double scale, boolean lower) {
+        return cumulative(x, scale, lower, false);
+    }
+    public static final double cumulative(double x, double scale, boolean lower, boolean logP) {
+        if (!(scale > 0.0) || !Double.isFinite(scale) || Double.isNaN(x)) return Double.NaN;
+        double z = max(x, 0.0) / scale;
+        return TailMath.probability(-0.5 * z * z, !lower, logP);
+    }
+    public static final double quantile(double p, double scale, boolean lower) {
+        return quantile(p, scale, lower, false);
+    }
+    public static final double quantile(double p, double scale, boolean lower, boolean logP) {
+        if (!(scale > 0.0) || !Double.isFinite(scale)) return Double.NaN;
+        return scale * sqrt(-2.0 * TailMath.logLower(p, !lower, logP));
+    }
+    public static final double random(double scale, RandomEngine random) {
+        return quantile(random.nextDouble(), scale, false, false);
+    }
 	public static final double[] random(int n, double scale, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)
@@ -74,14 +70,12 @@ public class Rayleigh extends GenericDistribution {
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		p = cumulative(p, scale, lower_tail);
-		return log_p ? log(p) : p;
+		return cumulative(p, scale, lower_tail, log_p);
 	}
 
 	@Override
 	public double quantile(double q, boolean lower_tail, boolean log_p) {
-		if (log_p) q = exp(q);
-		return quantile(q, scale, lower_tail);
+		return quantile(q, scale, lower_tail, log_p);
 	}
 
 	@Override

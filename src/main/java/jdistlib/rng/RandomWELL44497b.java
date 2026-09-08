@@ -23,156 +23,63 @@ package jdistlib.rng;
  * ACM Transaction on Mathematical Software 32:1, pp 1--16(<a href="http://dl.acm.org/citation.cfm?id=1132974">link</a>)
  * 
  */
-public class RandomWELL44497b extends RandomEngine
-{
-	private static final long serialVersionUID = 1L;
-	private static final int W = 32, R = 1391, P = 15,
-		MASKU = (0xffffffff>>>(W-P)), MASKL = ~MASKU, // M1 = 23, M2 = 481, M3 = 229,
-		TEMPERB = 0x93dd1400, TEMPERC = 0xfa118000;
-	//private static final double FACT = 2.32830643653869628906e-10;
-
-	private boolean mHaveNextGaussian = false;
+public class RandomWELL44497b extends RandomEngine {
+	// The corrected recurrence cannot reproduce serialized pre-audit streams.
+	private static final long serialVersionUID = 2L;
+	private static final int R = 1391;
+	private int[] STATE = new int[R];
+	private int state_i;
+	private boolean mHaveNextGaussian;
 	private double mNextGaussian;
-	private int state_i = 0, WELLRNG44497a = 1, STATE[] = new int[R];
 
-	public RandomWELL44497b() {
-		setSeed(System.currentTimeMillis());
-	}
-
+	public RandomWELL44497b() { this(System.currentTimeMillis()); }
+	public RandomWELL44497b(long seed) { setSeed(seed); }
 	public RandomWELL44497b(int[] init) {
+		if (init == null || init.length != R) throw new IllegalArgumentException("WELL44497 requires 1391 state words");
+		int nonzero = 0; for (int value : init) nonzero |= value;
+		if (nonzero == 0) throw new IllegalArgumentException("WELL state must not be all zero");
 		System.arraycopy(init, 0, STATE, 0, R);
 	}
-
-	public void setSeed(long seed) {
+	@Override public void setSeed(long seed) {
 		mSeed = seed;
-		STATE[0]= (int)(seed & 0xffffffff);
-		for (int mti=1; mti<R; mti++) {
-			STATE[mti] = (1812433253 * (STATE[mti-1] ^ (STATE[mti-1] >>> 30)) + mti); 
-		}
-
+		// java.util.Random calls the override before subclass fields exist.
+		if (STATE == null) return;
+		STATE[0] = (int) seed;
+		for (int i = 1; i < R; i++) STATE[i] = 1812433253 * (STATE[i-1] ^ (STATE[i-1] >>> 30)) + i;
+		state_i = 0; mHaveNextGaussian = false;
 	}
-	@Override
-	public final double nextGaussian() {
-		if (mHaveNextGaussian) {
-			mHaveNextGaussian = false;
-			return mNextGaussian;
-		}
-		double v1, v2, s;
-
-		do {
-			v1 = nextDouble();
-			v2 = nextDouble();
-			s = v1 * v1 + v2 * v2;
-		} while (s >= 1 || s==0);
-		double multiplier = Math.sqrt(-2 * Math.log(s)/s);
-		mHaveNextGaussian = true;
-		mNextGaussian = v2 * multiplier;
-		return v1 * multiplier;
+	@Override public int nextInt() {
+		int previous = state_i == 0 ? R - 1 : state_i - 1;
+		int previous2 = previous == 0 ? R - 1 : previous - 1;
+		int v0 = STATE[state_i], v1 = STATE[(state_i + 23) % R];
+		int v2 = STATE[(state_i + 481) % R], v3 = STATE[(state_i + 229) % R];
+		int z0 = (STATE[previous] & 0xffff8000) | (STATE[previous2] & 0x00007fff);
+		int z1 = (v0 ^ (v0 << 24)) ^ (v1 ^ (v1 >>> 30));
+		int z2 = (v2 ^ (v2 << 10)) ^ (v3 << 26);
+		int rotated = ((z2 << 9) ^ (z2 >>> 23)) & 0xfbffffff;
+		if ((z2 & 0x00020000) != 0) rotated ^= 0xb729fcec;
+		STATE[state_i] = z1 ^ z2;
+		STATE[previous] = z0 ^ z1 ^ (z1 >>> 20) ^ rotated ^ STATE[state_i];
+		STATE[previous2] &= 0xffff8000;
+		state_i = previous;
+		int y = STATE[state_i];
+		y ^= (y << 7) & 0x93dd1400;
+		return y ^ ((y << 15) & 0xfa118000);
 	}
-
-	// Shamelessly taken from Colt
-	public double nextDouble() {
-		return ((((long)(nextInt() >>> 6)) << 27) + (nextInt() >>> 5)) / (double)(1L << 53);
+	@Override public long nextLong() { return ((long) nextInt() << 32) | (nextInt() & 0xffffffffL); }
+	@Override public double nextDouble() { return (((long) (nextInt() >>> 6) << 27) + (nextInt() >>> 5)) * 0x1.0p-53; }
+	@Override public float nextFloat() { return (nextInt() >>> 8) * 0x1.0p-24f; }
+	@Override public double nextGaussian() {
+		if (mHaveNextGaussian) { mHaveNextGaussian = false; return mNextGaussian; }
+		double x, y, radius;
+		do { x = 2 * nextDouble() - 1; y = 2 * nextDouble() - 1; radius = x*x + y*y; } while (radius >= 1 || radius == 0);
+		double multiplier = Math.sqrt(-2 * Math.log(radius) / radius);
+		mNextGaussian = y * multiplier; mHaveNextGaussian = true; return x * multiplier;
 	}
-
-	public float nextFloat() {
-		return (float) nextDouble();
-	}
-
-	public RandomWELL44497b clone() {
-		return new RandomWELL44497b();
-	}
-
-	@Override
-	public int nextInt() {
-		int z0, z1, z2, y;
-		switch (WELLRNG44497a) {
-		case 1:
-			z0 = (STATE[state_i+R-1] & MASKL) | (STATE[state_i+R-2] & MASKU);
-			z1 = (STATE[state_i]^(STATE[state_i]<<(-(-24)))) ^ (STATE[state_i+23]^(STATE[state_i+23]>>30));
-			z2 = (STATE[state_i+481]^(STATE[state_i+481]<<(-(-10)))) ^ (STATE[state_i+229]<<(-(-26)));
-			STATE[state_i] = z1 ^ z2;
-			STATE[state_i-1+R] = z0 ^ (z1^(z1>>20)) ^ ((z2 & 0x00020000) != 0?((((z2<<9)^(z2>>(W-9)))&0xfbffffff)^0xb729fcec):(((z2<<9)^(z2>>(W-9)))&0xfbffffff)) ^ STATE[state_i];
-			state_i = R-1;
-			WELLRNG44497a = 3;
-			y = STATE[state_i] ^ ((STATE[state_i] << 7) & TEMPERB);
-			y = y ^ (( y << 15) & TEMPERC);
-			return y;
-		case 2:
-			z0 = (STATE[state_i-1] & MASKL) | (STATE[state_i+R-2] & MASKU);
-			z1 = (STATE[state_i]^(STATE[state_i]<<(-(-24)))) ^ (STATE[state_i+23]^(STATE[state_i+23]>>30));
-			z2 = (STATE[state_i+481]^(STATE[state_i+481]<<(-(-10)))) ^ (STATE[state_i+229]<<(-(-26)));
-			STATE[state_i] = z1 ^ z2;
-			STATE[state_i-1] = z0 ^ (z1^(z1>>20)) ^ ((z2 & 0x00020000) != 0?((((z2<<9)^(z2>>(W-9)))&0xfbffffff)^0xb729fcec):(((z2<<9)^(z2>>(W-9)))&0xfbffffff)) ^ STATE[state_i];
-			state_i=0;
-			WELLRNG44497a = 1;
-			y = STATE[state_i] ^ ((STATE[state_i] << 7) & TEMPERB);
-			y = y ^ (( y << 15) & TEMPERC);
-			return y;
-		case 3:
-			z0 = (STATE[state_i-1] & MASKL) | (STATE[state_i-2] & MASKU);
-			z1 = (STATE[state_i]^(STATE[state_i]<<(-(-24)))) ^ (STATE[state_i+23 -R]^(STATE[state_i+23 -R]>>30));
-			z2 = (STATE[state_i+481 -R]^(STATE[state_i+481 -R]<<(-(-10)))) ^ (STATE[state_i+229 -R]<<(-(-26)));
-			STATE[state_i] = z1 ^ z2;
-			STATE[state_i-1] = z0 ^ (z1^(z1>>20)) ^ ((z2 & 0x00020000) != 0?((((z2<<9)^(z2>>(W-9)))&0xfbffffff)^0xb729fcec):(((z2<<9)^(z2>>(W-9)))&0xfbffffff)) ^ STATE[state_i];
-			state_i--;
-			if(state_i+23<R)
-				WELLRNG44497a = 4;
-			y = STATE[state_i] ^ ((STATE[state_i] << 7) & TEMPERB);
-			y = y ^ (( y << 15) & TEMPERC);
-			return y;
-		case 4:
-			z0 = (STATE[state_i-1] & MASKL) | (STATE[state_i-2] & MASKU);
-			z1 = (STATE[state_i]^(STATE[state_i]<<(-(-24)))) ^ (STATE[state_i+23]^(STATE[state_i+23]>>30));
-			z2 = (STATE[state_i+481 -R]^(STATE[state_i+481 -R]<<(-(-10)))) ^ (STATE[state_i+229 -R]<<(-(-26)));
-			STATE[state_i] = z1 ^ z2;
-			STATE[state_i-1] = z0 ^ (z1^(z1>>20)) ^ ((z2 & 0x00020000) != 0?((((z2<<9)^(z2>>(W-9)))&0xfbffffff)^0xb729fcec):(((z2<<9)^(z2>>(W-9)))&0xfbffffff)) ^ STATE[state_i];
-			state_i--;
-			if (state_i+229 < R)
-				WELLRNG44497a = 5;
-			y = STATE[state_i] ^ ((STATE[state_i] << 7) & TEMPERB);
-			y = y ^ (( y << 15) & TEMPERC);
-			return y;
-		case 5:
-			z0 = (STATE[state_i-1] & MASKL) | (STATE[state_i-2] & MASKU);
-			z1 = (STATE[state_i]^(STATE[state_i]<<(-(-24)))) ^ (STATE[state_i+23]^(STATE[state_i+23]>>30));
-			z2 = (STATE[state_i+481 -R]^(STATE[state_i+481 -R]<<(-(-10)))) ^ (STATE[state_i+229]<<(-(-26)));
-			STATE[state_i] = z1 ^ z2;
-			STATE[state_i-1] = z0 ^ (z1^(z1>>20)) ^ ((z2 & 0x00020000) != 0?((((z2<<9)^(z2>>(W-9)))&0xfbffffff)^0xb729fcec):(((z2<<9)^(z2>>(W-9)))&0xfbffffff)) ^ STATE[state_i];
-			state_i--;
-			if(state_i+481 < R)
-				WELLRNG44497a = 6;
-			y = STATE[state_i] ^ ((STATE[state_i] << 7) & TEMPERB);
-			y = y ^ (( y << 15) & TEMPERC);
-			return y;
-		case 6:
-			z0 = (STATE[state_i-1] & MASKL) | (STATE[state_i-2] & MASKU);
-			z1 = (STATE[state_i]^(STATE[state_i]<<(-(-24)))) ^ (STATE[state_i+23]^(STATE[state_i+23]>>30));
-			z2 = (STATE[state_i+481]^(STATE[state_i+481]<<(-(-10)))) ^ (STATE[state_i+229]<<(-(-26)));
-			STATE[state_i] = z1 ^ z2;
-			STATE[state_i-1] = z0 ^ (z1^(z1>>20)) ^ ((z2 & 0x00020000) != 0?((((z2<<9)^(z2>>(W-9)))&0xfbffffff)^0xb729fcec):(((z2<<9)^(z2>>(W-9)))&0xfbffffff)) ^ STATE[state_i];
-			state_i--;
-			if(state_i == 1 )
-				WELLRNG44497a = 2;
-			y = STATE[state_i] ^ ((STATE[state_i] << 7) & TEMPERB);
-			y = y ^ (( y << 15) & TEMPERC);
-			return y;
-		}
-		throw new RuntimeException();
-	}
-
-	@Override
-	public int nextInt(int n) {
-		return nextInt() * n;
-	}
-
-	@Override
-	public long nextLong() {
-		return (((long) nextInt()) << 32) + (long) nextInt();
-	}
-
-	@Override
-	public long nextLong(long l) {
-		return nextLong() * l;
+	@Override public RandomWELL44497b clone() {
+		RandomWELL44497b copy = new RandomWELL44497b(STATE);
+		copy.state_i = state_i; copy.mSeed = mSeed;
+		copy.mHaveNextGaussian = mHaveNextGaussian; copy.mNextGaussian = mNextGaussian;
+		return copy;
 	}
 }

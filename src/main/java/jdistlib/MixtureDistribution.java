@@ -87,8 +87,17 @@ public final class MixtureDistribution extends GenericDistribution
 
 	@Override public double cumulative(double x, boolean lowerTail, boolean logP) {
 		if (Double.isNaN(x)) return Double.NaN;
+		if (logP) {
+			double result = Double.NEGATIVE_INFINITY;
+			for (int i = 0; i < components.length; i++) {
+				if (weights[i] == 0.0) continue;
+				result = logAdd(result, Math.log(weights[i]) + components[i].cumulative(x, lowerTail, true));
+			}
+			return Math.min(0.0, result);
+		}
 		double probability = 0.0;
 		for (int i = 0; i < components.length; i++) {
+			if (weights[i] == 0.0) continue;
 			probability += weights[i]
 					* components[i].cumulative(x, lowerTail, false);
 		}
@@ -111,32 +120,37 @@ public final class MixtureDistribution extends GenericDistribution
 		if (Double.isNaN(p) || DistributionUtil.invalidProbability(p, logP)) {
 			return Double.NaN;
 		}
-		double probability = logP ? Math.exp(p) : p;
-		double target = lowerTail ? probability : 1.0 - probability;
-		if (target <= 0.0) return lower;
-		if (target >= 1.0) return upper;
+		double target = logP ? p : Math.log(p);
+		if (target == Double.NEGATIVE_INFINITY) return lowerTail ? lower : upper;
+		if (target == 0.0) return lowerTail ? upper : lower;
+		if (target > -Math.log(2.0)) { target = DistributionUtil.logOneMinusExp(target); lowerTail = !lowerTail; }
 		if (Double.isFinite(lower)
-				&& cumulative(lower, true, false) >= target) return lower;
+				&& meetsQuantile(lower, target, lowerTail)) return lower;
 		double low = Double.isFinite(lower) ? lower : -1.0;
 		double high = Double.isFinite(upper) ? upper : 1.0;
 		for (int i = 0; !Double.isFinite(lower)
-				&& cumulative(low, true, false) >= target && i < 1024; i++) {
+				&& meetsQuantile(low, target, lowerTail) && i < 1024; i++) {
 			high = low;
 			low = low < 0.0 ? low * 2.0 : -1.0;
 		}
 		for (int i = 0; !Double.isFinite(upper)
-				&& cumulative(high, true, false) < target && i < 1024; i++) {
+				&& !meetsQuantile(high, target, lowerTail) && i < 1024; i++) {
 			low = high;
 			high = high > 0.0 ? high * 2.0 : 1.0;
 		}
-		if (cumulative(high, true, false) < target) return Double.NaN;
+		if (!meetsQuantile(high, target, lowerTail)) return Double.NaN;
 		for (int i = 0; i < QUANTILE_ITERATIONS; i++) {
 			double middle = low * 0.5 + high * 0.5;
 			if (middle == low || middle == high) break;
-			if (cumulative(middle, true, false) >= target) high = middle;
+			if (meetsQuantile(middle, target, lowerTail)) high = middle;
 			else low = middle;
 		}
 		return high;
+	}
+
+	private boolean meetsQuantile(double x, double target, boolean lowerTail) {
+		double value = cumulative(x, lowerTail, true);
+		return lowerTail ? value >= target : value <= target;
 	}
 
 	@Override public double random() {
@@ -148,6 +162,7 @@ public final class MixtureDistribution extends GenericDistribution
 	}
 
 	private static double logAdd(double x, double y) {
+		if (x == Double.POSITIVE_INFINITY || y == Double.POSITIVE_INFINITY) return Double.POSITIVE_INFINITY;
 		if (x == Double.NEGATIVE_INFINITY) return y;
 		if (y == Double.NEGATIVE_INFINITY) return x;
 		double high = Math.max(x, y);

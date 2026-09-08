@@ -2,11 +2,12 @@
 package jdistlib.finance;
 
 import jdistlib.SupportedDistribution;
+import jdistlib.AtomAwareDistribution;
 import jdistlib.generic.GenericDistribution;
 
 /** Exact minimum or maximum of independent identically distributed variables. */
 public final class OrderStatisticDistribution extends GenericDistribution
-		implements SupportedDistribution {
+		implements SupportedDistribution, AtomAwareDistribution {
 	private final GenericDistribution base;
 	private final int count;
 	private final boolean maximum;
@@ -22,28 +23,43 @@ public final class OrderStatisticDistribution extends GenericDistribution
 		return new OrderStatisticDistribution(base, count, false);
 	}
 	@Override public double density(double x, boolean log) {
-		double f = base.density(x, false);
-		double p = base.cumulative(x, maximum, false);
-		double value = count * f * Math.pow(p, count - 1.0);
-		return log ? Math.log(value) : value;
+		if (count == 1) return base.density(x, log);
+		double logDensity;
+		double mass = base instanceof AtomAwareDistribution ? ((AtomAwareDistribution) base).atomProbability(x) : 0.0;
+		if (mass > 0.0) {
+			double logF = base.cumulative(x, true, true), logS = base.cumulative(x, false, true);
+			logDensity = maximum ? ProbabilityMath.subtract(count * logF,
+					count * ProbabilityMath.subtract(logF, Math.log(mass)))
+					: ProbabilityMath.subtract(count * ProbabilityMath.add(logS, Math.log(mass)), count * logS);
+		} else {
+			logDensity = Math.log(count) + base.density(x, true)
+					+ (count - 1.0) * base.cumulative(x, maximum, true);
+		}
+		return log ? logDensity : Math.exp(logDensity);
 	}
 	@Override public double cumulative(double x, boolean lowerTail, boolean logP) {
-		double p = base.cumulative(x, true, false);
-		double value = maximum ? Math.pow(p, count) : 1.0 - Math.pow(1.0 - p, count);
-		if (!lowerTail) value = 1.0 - value;
-		return logP ? Math.log(value) : value;
+		double opposite = base.cumulative(x, !maximum, true);
+		if (opposite + Math.log(count) < -36.0 && lowerTail != maximum) {
+			double value = opposite + Math.log(count);
+			return logP ? value : Math.exp(value);
+		}
+		double value = count * base.cumulative(x, maximum, true);
+		if (lowerTail != maximum) value = ProbabilityMath.complement(value);
+		return logP ? value : Math.exp(value);
 	}
 	@Override public double quantile(double p, boolean lowerTail, boolean logP) {
-		if (logP) p = Math.exp(p); if (!lowerTail) p = 1.0 - p;
-		double baseP = maximum ? Math.pow(p, 1.0 / count) : 1.0 - Math.pow(1.0 - p, 1.0 / count);
-		return base.quantile(baseP, true, false);
+		double small = ProbabilityMath.logProbability(p, lowerTail != maximum, logP);
+		if (small < -36.0) return base.quantile(small - Math.log(count), !maximum, true);
+		double value = ProbabilityMath.logProbability(p, lowerTail == maximum, logP);
+		return base.quantile(value / count, maximum, true);
 	}
 	@Override public double random() {
-		double answer = inverseSample();
-		for (int i = 1; i < count; i++) answer = maximum ? Math.max(answer, inverseSample()) : Math.min(answer, inverseSample());
-		return answer;
+		return quantile(random.nextDouble(), true, false);
 	}
 	@Override public double getLowerBound() { return base instanceof SupportedDistribution ? ((SupportedDistribution) base).getLowerBound() : Double.NEGATIVE_INFINITY; }
 	@Override public double getUpperBound() { return base instanceof SupportedDistribution ? ((SupportedDistribution) base).getUpperBound() : Double.POSITIVE_INFINITY; }
-	private double inverseSample() { return base.quantile(random.nextDouble(), true, false); }
+	@Override public double atomProbability(double x) {
+		return base instanceof AtomAwareDistribution && ((AtomAwareDistribution) base).atomProbability(x) > 0.0
+				? density(x, false) : 0.0;
+	}
 }

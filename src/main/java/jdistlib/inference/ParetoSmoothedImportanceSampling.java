@@ -6,36 +6,54 @@ import java.util.Arrays;
 /** Pareto-tail smoothing for log importance ratios, with a diagnostic shape estimate. */
 public final class ParetoSmoothedImportanceSampling {
 	private ParetoSmoothedImportanceSampling() {}
+	/** Uses the empirical-Bayes generalized Pareto fit used by posterior/loo,
+	 * with independent-draw relative efficiency (r_eff=1). */
 	public static Result smooth(double[] logRatios) {
 		if (logRatios == null || logRatios.length < 5) throw new IllegalArgumentException("at least five ratios required");
 		double maximum = Double.NEGATIVE_INFINITY;
 		for (double value : logRatios) { if (!Double.isFinite(value)) throw new IllegalArgumentException("ratios must be finite"); maximum = Math.max(maximum, value); }
-		double[] weights = new double[logRatios.length]; Integer[] order = new Integer[weights.length];
-		for (int i = 0; i < weights.length; i++) { weights[i] = Math.exp(logRatios[i] - maximum); order[i] = i; }
-		Arrays.sort(order, (a, b) -> Double.compare(weights[a], weights[b]));
-		int tailLength = Math.max(3, Math.min(weights.length / 5, (int) Math.ceil(3.0 * Math.sqrt(weights.length))));
-		int thresholdIndex = weights.length - tailLength - 1;
-		double threshold = weights[order[Math.max(0, thresholdIndex)]];
-		double mean = 0.0;
-		for (int i = weights.length - tailLength; i < weights.length; i++) mean += weights[order[i]] - threshold;
-		mean /= tailLength;
-		double safeThreshold = Math.max(Double.MIN_NORMAL, threshold), k = 0.0;
-		for (int i = weights.length - tailLength; i < weights.length; i++)
-			k += Math.log(Math.max(Double.MIN_NORMAL, weights[order[i]]) / safeThreshold);
-		k = Math.max(0.0, Math.min(5.0, k / tailLength));
-		double sigma = k < 0.9 ? Math.max(1e-15, mean * (1.0 - k))
-				: Math.max(1e-15, safeThreshold * k);
-		double largest = weights[order[weights.length - 1]];
-		for (int rank = 0; rank < tailLength; rank++) {
-			double probability = (rank + 0.5) / tailLength;
-			double excess = Math.abs(k) < 1e-8 ? -sigma * Math.log1p(-probability)
-					: sigma / k * (Math.pow(1.0 - probability, -k) - 1.0);
-			weights[order[weights.length - tailLength + rank]] = Math.min(largest, threshold + excess);
+		double[] logs = new double[logRatios.length]; Integer[] order = new Integer[logs.length];
+		for (int i = 0; i < logs.length; i++) { logs[i] = logRatios[i] - maximum; order[i] = i; }
+		Arrays.sort(order, (a, b) -> Double.compare(logs[a], logs[b]));
+		int tailLength = (int) Math.ceil(Math.min(logs.length * .2, 3 * Math.sqrt(logs.length)));
+		double k = Double.POSITIVE_INFINITY;
+		if (tailLength >= 5) {
+			int first = logs.length - tailLength;
+			double threshold = Math.exp(logs[order[first - 1]]);
+			double[] excess = new double[tailLength];
+			for (int i = 0; i < tailLength; i++) excess[i] = Math.exp(logs[order[first + i]]) - threshold;
+			double[] fit = fitTail(excess); k = fit[0];
+			if (Double.isFinite(k)) for (int i = 0; i < tailLength; i++) {
+				double logSurvival = Math.log1p(-(i + .5) / tailLength);
+				double quantile = k == 0 ? -fit[1] * logSurvival : fit[1] * Math.expm1(-k * logSurvival) / k;
+				logs[order[first + i]] = Math.min(0, Math.log(threshold + quantile));
+			}
 		}
-		double sum = 0.0; for (double weight : weights) sum += weight;
-		double[] smoothedLog = new double[weights.length];
-		for (int i = 0; i < weights.length; i++) smoothedLog[i] = Math.log(weights[i] / sum);
-		return new Result(smoothedLog, k);
+		double normalizer = PredictiveMath.logSumExp(logs);
+		for (int i = 0; i < logs.length; i++) logs[i] -= normalizer;
+		return new Result(logs, k);
+	}
+
+	// Empirical-Bayes inverse-scale grid with weak shape prior (Zhang/Stephens).
+	private static double[] fitTail(double[] excess) {
+		int n = excess.length, grid = 30 + (int) Math.sqrt(n);
+		double quarter = excess[(int) Math.floor(n / 4.0 + .5) - 1];
+		if (!(quarter > excess[0])) return new double[] {Double.POSITIVE_INFINITY, Double.NaN};
+		double[] theta = new double[grid], logWeight = new double[grid];
+		for (int j = 0; j < grid; j++) {
+			theta[j] = 1 / excess[n - 1] + (1 - Math.sqrt(grid / (j + .5))) / 3 / quarter;
+			double shape = 0;
+			for (double value : excess) shape += Math.log1p(-theta[j] * value) / n;
+			logWeight[j] = n * (Math.log(-theta[j] / shape) - shape - 1);
+		}
+		double normalizer = PredictiveMath.logSumExp(logWeight), thetaMean = 0;
+		for (int j = 0; j < grid; j++) thetaMean += theta[j] * Math.exp(logWeight[j] - normalizer);
+		double shape = 0;
+		for (double value : excess) shape += Math.log1p(-thetaMean * value) / n;
+		double sigma = -shape / thetaMean;
+		shape = (shape * n + 5) / (n + 10);
+		return Double.isFinite(shape) && sigma > 0 ? new double[] {shape, sigma}
+				: new double[] {Double.POSITIVE_INFINITY, Double.NaN};
 	}
 	public static final class Result {
 		private final double[] logWeights; private final double paretoK;

@@ -12,7 +12,8 @@ public final class OdeSolver {
 		public Options(double relativeTolerance, double absoluteTolerance,
 				double initialStep, int maximumSteps) {
 			if (!(relativeTolerance > 0) || !(absoluteTolerance > 0)
-					|| !(initialStep > 0) || maximumSteps < 1)
+					|| !(initialStep > 0) || !Double.isFinite(relativeTolerance)
+					|| !Double.isFinite(absoluteTolerance) || !Double.isFinite(initialStep) || maximumSteps < 1)
 				throw new IllegalArgumentException("positive ODE controls required");
 			this.relativeTolerance = relativeTolerance; this.absoluteTolerance = absoluteTolerance;
 			this.initialStep = initialStep; this.maximumSteps = maximumSteps;
@@ -26,6 +27,9 @@ public final class OdeSolver {
 		if (system == null || initial == null || times == null || options == null)
 			throw new NullPointerException("system, state, times, and options are required");
 		if (initial.length == 0) throw new IllegalArgumentException("non-empty ODE state required");
+		if (!Double.isFinite(initialTime)) throw new IllegalArgumentException("finite initial time required");
+		for (double value : initial) if (!Double.isFinite(value))
+			throw new IllegalArgumentException("finite initial state required");
 		double[] state = initial.clone(); double time = initialTime;
 		double[] p = parameters == null ? new double[0] : parameters.clone();
 		double[] d = data == null ? new double[0] : data.clone();
@@ -33,17 +37,18 @@ public final class OdeSolver {
 		double step = options.initialStep; int steps = 0;
 		for (int output = 0; output < times.length; output++) {
 			double target = times[output];
-			if (!(target > time)) throw new IllegalArgumentException("ODE times must be strictly increasing");
+			if (!(target > time) || !Double.isFinite(target)) throw new IllegalArgumentException("ODE times must be finite and strictly increasing");
 			while (time < target) {
 				if (++steps > options.maximumSteps) throw new ArithmeticException("ODE maximum steps exceeded");
 				step = Math.min(step, target - time);
+				if (!(time + step > time)) throw new ArithmeticException("ODE step size underflow");
 				Step trial = dormandPrince(system, time, state, step, p, d,
 						options.absoluteTolerance, options.relativeTolerance);
 				if (trial.error <= 1.0) { time += step; state = trial.state; }
 				double factor = trial.error == 0 ? 5.0
 						: Math.max(0.2, Math.min(5.0, 0.9 * Math.pow(trial.error, -0.2)));
 				step *= factor;
-				if (!(step > Math.ulp(Math.max(1.0, Math.abs(time)))))
+				if (time < target && !(time + step > time))
 					throw new ArithmeticException("ODE step size underflow");
 			}
 			result[output] = state.clone();

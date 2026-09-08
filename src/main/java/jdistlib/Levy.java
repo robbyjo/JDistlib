@@ -27,36 +27,28 @@ import jdistlib.rng.RandomEngine;
  *
  */
 public class Levy extends GenericDistribution {
-	public static final double density(double x, double mu, double sigma, boolean give_log) {
-		double ld = 0.5 * log(sigma / (2*PI)) - 1.5 * log(x - mu) - 0.5 * sigma / (x - mu);
-		return give_log ? ld : exp(ld);
-	}
-
-	public static final double cumulative_standard(double x) {
-		return cumulative(x, 0, 1, true, false);
-	}
-
-	public static final double cumulative(double x, double mu, double sigma) {
-		return cumulative(x, mu, sigma, true, false);
-	}
-
-	public static final double cumulative(double x, double mu, double sigma, boolean lower_tail, boolean log_p) {
-		double val = Normal.cumulative(sqrt(sigma /(x - mu)), 0, 1, !lower_tail, log_p);
-		return log_p? log(2) + val : 2*val;
-	}
-
-	public static final double quantile(double p, double mu, double sigma, boolean lower_tail, boolean log_p) {
-		if (log_p) {
-			if (MathFunctions.isInfinite(p)) return Double.POSITIVE_INFINITY;
-			if (p == 0) return Double.NaN;
-		} else {
-			if (p < 0 || p > 1) return Double.NaN;
-			if (p == 0) return Double.POSITIVE_INFINITY;
-		}
-		double val = Normal.quantile(log_p ? p - log(2) : p/2, 0, 1, !lower_tail, log_p) / sqrt(2);
-		return mu + 0.5 * sigma / (val * val);
-	}
-
+    private static boolean invalid(double mu, double sigma) {
+        return !Double.isFinite(mu) || !(sigma > 0.0) || !Double.isFinite(sigma);
+    }
+    public static final double density(double x, double mu, double sigma, boolean giveLog) {
+        if (invalid(mu, sigma) || Double.isNaN(x)) return Double.NaN;
+        if (x <= mu || x == Double.POSITIVE_INFINITY) return giveLog ? Double.NEGATIVE_INFINITY : 0.0;
+        double logX = log(x - mu);
+        double ld = 0.5 * (log(sigma) - log(2 * PI)) - 1.5 * logX - 0.5 * sigma / (x - mu);
+        return giveLog ? ld : exp(ld);
+    }
+    public static final double cumulative_standard(double x) { return cumulative(x, 0, 1, true, false); }
+    public static final double cumulative(double x, double mu, double sigma) { return cumulative(x, mu, sigma, true, false); }
+    public static final double cumulative(double x, double mu, double sigma, boolean lowerTail, boolean logP) {
+        if (invalid(mu, sigma) || Double.isNaN(x)) return Double.NaN;
+        if (x <= mu) return DistributionUtil.boundary(false, lowerTail, logP);
+        // sigma/(X-mu) is chi-square(1); this also evaluates small survival tails directly.
+        return ChiSquare.cumulative(sigma / (x - mu), 1.0, !lowerTail, logP);
+    }
+    public static final double quantile(double p, double mu, double sigma, boolean lowerTail, boolean logP) {
+        if (invalid(mu, sigma)) return Double.NaN;
+        return mu + sigma / ChiSquare.quantile(p, 1.0, !lowerTail, logP);
+    }
 	/**
 	 * Random by quantile inversion -- the default in R
 	 * @param mu

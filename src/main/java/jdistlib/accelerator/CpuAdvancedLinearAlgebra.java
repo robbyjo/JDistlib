@@ -49,7 +49,7 @@ final class CpuAdvancedLinearAlgebra {
 				sum += (transpose == MatrixTranspose.NONE
 						? matrix[matrixOffset + row * leadingDimension + column]
 						: matrix[matrixOffset + column * leadingDimension + row]) * x[xp];
-			y[yp] = alpha * sum + beta * y[yp];
+			y[yp] = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * y[yp]);
 		}
 	}
 	static void dgemm(MatrixTranspose ta, MatrixTranspose tb, int rows, int columns,
@@ -69,7 +69,7 @@ final class CpuAdvancedLinearAlgebra {
 				double b = tb == MatrixTranspose.NONE ? right[rightOffset + k * rightLd + column]
 						: right[rightOffset + column * rightLd + k]; sum += a * b;
 			}
-			int p = resultOffset + row * resultLd + column; result[p] = alpha * sum + beta * result[p];
+			int p = resultOffset + row * resultLd + column; result[p] = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * result[p]);
 		}
 	}
 	static void dsyrk(MatrixTranspose transpose, int dimension, int shared, double alpha,
@@ -85,7 +85,7 @@ final class CpuAdvancedLinearAlgebra {
 				double b = transpose == MatrixTranspose.NONE ? matrix[matrixOffset + column * matrixLd + k]
 						: matrix[matrixOffset + k * matrixLd + column]; sum += a * b;
 			}
-			double value = alpha * sum + beta * result[resultOffset + row * resultLd + column];
+			double value = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * result[resultOffset + row * resultLd + column]);
 			result[resultOffset + row * resultLd + column] = value;
 			result[resultOffset + column * resultLd + row] = value;
 		}
@@ -155,7 +155,7 @@ final class CpuAdvancedLinearAlgebra {
 				sum += symmetric(symmetric, order, triangle, row, k) * right[k * columns + column];
 			else for (int k = 0; k < columns; k++) sum += right[row * columns + k]
 					* symmetric(symmetric, order, triangle, k, column);
-			int p = row * columns + column; result[p] = alpha * sum + beta * result[p];
+			int p = row * columns + column; result[p] = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * result[p]);
 		}
 	}
 	static void dsyr2k(MatrixTriangle triangle, MatrixTranspose transpose, int dimension,
@@ -175,7 +175,7 @@ final class CpuAdvancedLinearAlgebra {
 			}
 			int primary = triangle == MatrixTriangle.LOWER ? row * dimension + column
 					: column * dimension + row;
-			double value = alpha * sum + beta * result[primary];
+			double value = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * result[primary]);
 			result[row * dimension + column] = result[column * dimension + row] = value;
 		}
 	}

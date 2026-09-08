@@ -43,6 +43,10 @@ public final class PairCopula {
 			return gumbelSecondGivenFirst((GumbelCopula) copula, first, second);
 		if (copula instanceof FrankCopula)
 			return frankSecondGivenFirst((FrankCopula) copula, first, second);
+		if (copula instanceof JoeCopula)
+			return ((JoeCopula) copula).conditionalSecond(first, second);
+		if (copula instanceof BB1Copula)
+			return ((BB1Copula) copula).conditionalSecond(first, second);
 		return partial(first, second, true);
 	}
 
@@ -61,6 +65,10 @@ public final class PairCopula {
 			return gumbelSecondGivenFirst((GumbelCopula) copula, second, first);
 		if (copula instanceof FrankCopula)
 			return frankSecondGivenFirst((FrankCopula) copula, second, first);
+		if (copula instanceof JoeCopula)
+			return ((JoeCopula) copula).conditionalSecond(second, first);
+		if (copula instanceof BB1Copula)
+			return ((BB1Copula) copula).conditionalSecond(second, first);
 		return partial(first, second, false);
 	}
 
@@ -173,10 +181,10 @@ public final class PairCopula {
 		double theta = clayton.getTheta();
 		if (theta == 0.0) return second;
 		if (first == 0.0) return second == 0.0 ? 0.0 : 1.0;
-		double scaledExcess = Math.exp(theta * Math.log(first))
-				* Math.expm1(-theta * Math.log(second));
+		double scaledExcessLog = theta * Math.log(first)
+				+ CopulaUtil.logExpm1(-theta * Math.log(second));
 		return clampProbability(Math.exp(-(theta + 1.0) / theta
-				* Math.log1p(scaledExcess)));
+				* CopulaUtil.softplus(scaledExcessLog)));
 	}
 
 	private static double inverseClaytonSecond(ClaytonCopula clayton,
@@ -198,31 +206,38 @@ public final class PairCopula {
 		if (first == 0.0) return second == 0.0 ? 0.0 : 1.0;
 		double firstLog = -Math.log(first);
 		double secondLog = -Math.log(second);
-		double sum = Math.pow(firstLog, theta) + Math.pow(secondLog, theta);
-		double copula = Math.exp(-Math.pow(sum, 1.0 / theta));
-		return clampProbability(copula * Math.pow(sum, 1.0 / theta - 1.0)
-				* Math.pow(firstLog, theta - 1.0) / first);
+		double logSum = CopulaUtil.logAdd(theta * Math.log(firstLog), theta * Math.log(secondLog));
+		return clampProbability(Math.exp(-Math.exp(logSum / theta)
+				+ (1.0 / theta - 1.0) * logSum
+				+ (theta - 1.0) * Math.log(firstLog) - Math.log(first)));
 	}
 
 	private static double frankSecondGivenFirst(FrankCopula frank,
 			double first, double second) {
 		double theta = frank.getTheta();
 		if (theta == 0.0) return second;
-		double firstExponential = Math.exp(-theta * first);
-		double secondMinusOne = Math.expm1(-theta * second);
-		double denominator = Math.expm1(-theta)
-				+ Math.expm1(-theta * first) * secondMinusOne;
-		return clampProbability(firstExponential * secondMinusOne / denominator);
+		double parameter = Math.abs(theta), v = theta < 0.0 ? 1.0 - second : second;
+		double logOdds = parameter * (first - v)
+				+ DistributionUtil.logOneMinusExp(-parameter * (1.0 - v))
+				- DistributionUtil.logOneMinusExp(-parameter * v);
+		return Math.exp(-CopulaUtil.softplus(theta < 0.0 ? -logOdds : logOdds));
 	}
 
 	private static double inverseFrankSecond(FrankCopula frank,
 			double first, double probability) {
 		double theta = frank.getTheta();
 		if (theta == 0.0) return probability;
-		double firstExponential = Math.exp(-theta * first);
-		double secondExponential = 1.0 + probability * Math.expm1(-theta)
-				/ (firstExponential * (1.0 - probability) + probability);
-		return CopulaUtil.clampOpen(-Math.log(secondExponential) / theta);
+		if (Math.abs(theta) < 1.0) {
+			double term = probability * Math.expm1(-theta)
+					/ (Math.exp(-theta * first) * (1.0 - probability) + probability);
+			return CopulaUtil.clampOpen(-Math.log1p(term) / theta);
+		}
+		double parameter = Math.abs(theta), p = theta < 0.0 ? 1.0 - probability : probability;
+		double a = Math.log1p(-p) - parameter * first;
+		double logB = CopulaUtil.logAdd(Math.log(p) - parameter, a)
+				- CopulaUtil.logAdd(Math.log(p), a);
+		double result = -logB / parameter;
+		return CopulaUtil.clampOpen(theta < 0.0 ? 1.0 - result : result);
 	}
 
 	private static double clampProbability(double value) {

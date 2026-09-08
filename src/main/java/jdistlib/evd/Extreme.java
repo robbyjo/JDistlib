@@ -27,36 +27,24 @@ import jdistlib.rng.RandomEngine;
  *
  */
 public class Extreme extends GenericDistribution {
-	public static final double density(double x, GenericDistribution dist, int mlen, boolean largest, boolean log) {
-		if (mlen <= 0)
-			return Double.NaN;
-		double dens = dist.density(x, true);
-		if (MathFunctions.isInfinite(dens))
-			return Double.NEGATIVE_INFINITY;
-		double cum = dist.cumulative(x, true, log);
-		if (!largest) cum = 1 - cum;
-		cum = (mlen - 1) * log(cum);
-		x = log(mlen) + dens + cum;
-		return !log ? exp(x) : x;
-	}
-
-	public static final double cumulative(double q, GenericDistribution dist, int mlen, boolean largest, boolean lower_tail) {
-		if (mlen <= 0)
-			return Double.NaN;
-		double distn = dist.cumulative(q, lower_tail, false);
-		if (!largest) distn = 1 - distn;
-		q = pow(distn, mlen);
-		return largest != lower_tail ? 1 - q : q;
-	}
-
-	public static final double quantile(double p, GenericDistribution dist, int mlen, boolean largest, boolean lower_tail) {
-		if (mlen <= 0)
-			return Double.NaN;
-		if (!lower_tail) p = 1 - p;
-		return largest ? dist.quantile(pow(p, 1.0/mlen), lower_tail, false)
-			: dist.quantile(1-pow(1-p, 1.0/mlen), lower_tail, false);
-	}
-
+    public static final double density(double x, GenericDistribution dist, int mlen, boolean largest, boolean log) {
+        return Order.density(x, dist, mlen, 1, largest, log);
+    }
+    public static final double cumulative(double x, GenericDistribution dist, int mlen, boolean largest, boolean lower) {
+        return cumulative(x, dist, mlen, largest, lower, false);
+    }
+    public static final double cumulative(double x, GenericDistribution dist, int mlen, boolean largest, boolean lower, boolean logP) {
+        if (mlen <= 0) return Double.NaN;
+        return TailMath.probability(mlen * dist.cumulative(x, largest, true), largest == lower, logP);
+    }
+    public static final double quantile(double p, GenericDistribution dist, int mlen, boolean largest, boolean lower) {
+        return quantile(p, dist, mlen, largest, lower, false);
+    }
+    public static final double quantile(double p, GenericDistribution dist, int mlen, boolean largest, boolean lower, boolean logP) {
+        if (mlen <= 0) return Double.NaN;
+        double lp = TailMath.logLower(p, largest == lower, logP) / mlen;
+        return dist.quantile(lp, largest, true);
+    }
 	public static final double random(GenericDistribution dist, int mlen, boolean largest, RandomEngine random) {
 		return largest ?
 			dist.quantile(Beta.random(mlen, 1, random), true, false) :
@@ -85,14 +73,12 @@ public class Extreme extends GenericDistribution {
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		p = cumulative(p, dist, mlen, largest, lower_tail);
-		return log_p ? log(p) : p;
+		return cumulative(p, dist, mlen, largest, lower_tail, log_p);
 	}
 
 	@Override
 	public double quantile(double q, boolean lower_tail, boolean log_p) {
-		if (log_p) q = exp(q);
-		return quantile(q, dist, mlen, largest, lower_tail);
+		return quantile(q, dist, mlen, largest, lower_tail, log_p);
 	}
 
 	@Override

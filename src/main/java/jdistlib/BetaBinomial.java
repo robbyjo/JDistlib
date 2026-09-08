@@ -31,101 +31,46 @@ import jdistlib.rng.RandomEngine;
  *
  */
 public class BetaBinomial extends GenericDistribution {
-	/**
-	 * Density
-	 * @param x MUST be an integer!
-	 * @param mu MUST be between 0 and 1
-	 * @param sigma MUST be > 0
-	 * @param bd MUST be an integer!
-	 * @param give_log
-	 * @return density
-	 */
-	public static final double density(double x, double mu, double sigma, double bd, boolean give_log) {
-		if (Double.isNaN(x) || Double.isNaN(mu) || Double.isNaN(sigma) || Double.isNaN(bd)) return x + mu + sigma + bd;
-		if (x < 0 || mu < 0 || mu > 1 || sigma <= 0 || bd < x) return Double.NaN;
-	    if(isNonInt(x) || isNonInt(bd))
-	    	return (give_log ? Double.NEGATIVE_INFINITY : 0.);
-	    x = rint(x);
-		double
-			mu_sigma = mu / sigma,
-			mu_sigma_comp = (1.0 - mu) / sigma,
-			sigma_rec = 1.0 / sigma;
-		double logfy = (lgammafn(bd+1) - lgammafn(x+1) - lgammafn(bd-x+1) + lgammafn(sigma_rec) + lgammafn(x+mu_sigma) +
-			lgammafn(bd+mu_sigma_comp-x) - lgammafn(mu_sigma) - lgammafn(mu_sigma_comp) - lgammafn(bd+sigma_rec));
-		if (isInfinite(logfy)) logfy = Binomial.density(x, bd, mu, give_log);
-		return give_log ? logfy : exp(logfy);
-	}
-
-	/**
-	 * Cumulative. Computed by manual summation. SLOW!
-	 * @param q MUST be an integer!
-	 * @param mu MUST be between 0 and 1
-	 * @param sigma MUST be > 0
-	 * @param bd MUST be an integer!
-	 * @param lower_tail
-	 * @param log_p
-	 * @return cumulative
-	 */
-	public static final double cumulative(double q, double mu, double sigma, double bd, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(q) || Double.isNaN(mu) || Double.isNaN(sigma) || Double.isNaN(bd)) return q + mu + sigma + bd;
-		if (q < 0 || mu < 0 || mu > 1 || sigma <= 0 || bd < q) return Double.NaN;
-	    if(isNonInt(q) || isNonInt(bd))
-	    	return (log_p ? Double.NEGATIVE_INFINITY : 0.);
-	    q = rint(q);
-	    double sum = 0;
-	    for (int i = 0; i <= q; i++)
-	    	sum += density(i, mu, sigma, bd, false);
-	    if (!lower_tail) sum = 1-sum;
-	    if (log_p) sum = log(sum);
-	    if (isInfinite(sum)) sum = Binomial.cumulative(q, bd, mu, lower_tail, log_p);
-		return sum;
-	}
-
-	/**
-	 * Quantile. Computed by manual density check. SLOW!
-	 * @param p MUST be between 0 and 1
-	 * @param mu MUST be between 0 and 1
-	 * @param sigma MUST be > 0
-	 * @param bd MUST be an integer!
-	 * @param lower_tail
-	 * @param log_p
-	 * @return quantile
-	 */
-	public static final double quantile(double p, double mu, double sigma, double bd, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(p) || Double.isNaN(mu) || Double.isNaN(sigma) || Double.isNaN(bd)) return p + mu + sigma + bd;
-		if (p < 0 || p > 1 || mu < 0 || mu > 1 || sigma <= 0 || bd < 0) return Double.NaN;
-	    if(isNonInt(bd))
-	    	return (log_p ? Double.NEGATIVE_INFINITY : 0.);
-		if (log_p) p = exp(p);
-		if (!lower_tail) p = 1-p;
-		double sum = 0;
-		for (int j = 0; j <= bd; j++) {
-			sum += density(j, bd, mu, sigma, false);
-			if (p <= sum)
-				return j;
-		}
-		return Double.NaN;
-	}
-
-	/**
-	 * Random variate
-	 * @param mu MUST be between 0 and 1
-	 * @param sigma MUST be > 0
-	 * @param bd MUST be an integer!
-	 * @param random
-	 * @return random variate
-	 */
-	public static final double random(double mu, double sigma, double bd, RandomEngine random) {
-		if (Double.isNaN(mu) || Double.isNaN(sigma) || Double.isNaN(bd)) return mu + sigma + bd;
-		if (mu < 0 || mu > 1 || sigma <= 0 || bd < 0) return Double.NaN;
-		double p = random.nextDouble();
-		for (int j = 0; j <= bd; j++) {
-			if (p <= cumulative(j, bd, mu, sigma, true, false))
-				return j;
-		}
-		return Double.NaN;
-	}
-
+    private static boolean invalid(double mu, double sigma, double n) {
+        return !(mu >= 0.0 && mu <= 1.0) || !(sigma > 0.0) || !Double.isFinite(sigma)
+                || !(n >= 0.0) || n > Integer.MAX_VALUE || n != Math.rint(n);
+    }
+    public static final double density(double x, double mu, double sigma, double n, boolean logP) {
+        if (invalid(mu,sigma,n) || Double.isNaN(x)) return Double.NaN;
+        if (x < 0.0 || x > n || x != Math.rint(x)) return logP ? Double.NEGATIVE_INFINITY : 0.0;
+        if (mu == 0.0 || mu == 1.0 || n == 0.0) return Binomial.density(x,n,mu,logP);
+        double a=mu/sigma,b=(1.0-mu)/sigma;
+        double value=jdistlib.math.MathFunctions.lchoose(n,x)
+                +jdistlib.math.MathFunctions.lbeta(x+a,n-x+b)-jdistlib.math.MathFunctions.lbeta(a,b);
+        return logP ? value : exp(value);
+    }
+    public static final double cumulative(double x, double mu, double sigma, double n, boolean lower, boolean logP) {
+        if (invalid(mu,sigma,n) || Double.isNaN(x)) return Double.NaN;
+        if (x < 0) return DistributionUtil.boundary(false,lower,logP);
+        if (x >= n) return DistributionUtil.boundary(true,lower,logP);
+        if (mu == 0.0 || mu == 1.0 || n == 0.0) return Binomial.cumulative(x,n,mu,lower,logP);
+        int k=(int)Math.floor(x);
+        // Sum the requested tail directly. Each subsequent mass costs four logs,
+        // rather than another set of gamma functions.
+        int from=lower?0:k+1, to=lower?k:(int)n;
+        double term=density(from,mu,sigma,n,true), total=term;
+        double a=mu/sigma,b=(1-mu)/sigma;
+        for(int i=from;i<to;i++) {
+            term+=log(n-i)-log(i+1.0)+log(i+a)-log(n-i-1.0+b);
+            total=DistributionUtil.logAdd(total,term);
+        }
+        total=Math.min(total,0.0);
+        return logP ? total : exp(total);
+    }
+    public static final double quantile(double p, double mu, double sigma, double n, boolean lower, boolean logP) {
+        if (invalid(mu,sigma,n)) return Double.NaN;
+        return DistributionUtil.discreteQuantile(p,lower,logP,0,n,(x,lt,lp)->cumulative(x,mu,sigma,n,lt,lp));
+    }
+    public static final double random(double mu, double sigma, double n, RandomEngine random) {
+        if (invalid(mu,sigma,n)) return Double.NaN;
+        if (mu==0.0 || mu==1.0) return n*mu;
+        return Binomial.random(n,Beta.random(mu/sigma,(1-mu)/sigma,random),random);
+    }
 	public static final double[] random(int n, double mu, double sigma, double bd, RandomEngine random) {
 		double[] rand = new double[n];
 		for (int i = 0; i < n; i++)

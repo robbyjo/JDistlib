@@ -100,15 +100,15 @@ public final class McmcDiagnostics {
 			double median = quantile(pooled, 0.5);
 			double lower = quantile(pooled, 0.025);
 			double upper = quantile(pooled, 0.975);
-			double[][] ranks = rankNormalize(values);
+			double[][] ranks = rankNormalize(split(values));
 			double rHat = chains.length < 2 ? Double.NaN
-					: Math.max(rHat(split(ranks)), rHat(split(rankNormalize(fold(values, median)))));
+					: Math.max(rHat(ranks), rHat(rankNormalize(split(fold(values, median)))));
 			double bulkEss = effectiveSampleSize(ranks);
 			double lowThreshold = quantile(pooled, 0.05);
 			double highThreshold = quantile(pooled, 0.95);
-			double tailEss = Math.min(effectiveSampleSize(indicator(values, lowThreshold, true)),
-					effectiveSampleSize(indicator(values, highThreshold, false)));
-			double mcse = sd / Math.sqrt(Math.max(1.0, bulkEss));
+			double tailEss = Math.min(effectiveSampleSize(split(indicator(values, lowThreshold, true))),
+					effectiveSampleSize(split(indicator(values, highThreshold, true))));
+			double mcse = sd / Math.sqrt(effectiveSampleSize(split(values)));
 			boolean reliable = (Double.isNaN(rHat) || rHat < 1.01)
 					&& bulkEss >= 100.0 && tailEss >= 100.0;
 			if (!reliable) warnings.add(names[coordinate]
@@ -194,51 +194,70 @@ public final class McmcDiagnostics {
 	}
 
 	private static double effectiveSampleSize(double[][] chains) {
-		double[][] split = split(chains);
-		int m = split.length;
-		int n = split[0].length;
-		double[] means = new double[m];
-		double within = 0.0;
+		int m = chains.length, n = chains[0].length;
+		if (n < 3 || invalidOrConstant(chains)) return Double.NaN;
+		double[] means = new double[m], covariance = new double[n];
 		for (int chain = 0; chain < m; chain++) {
-			means[chain] = mean(split[chain]);
-			double variance = 0.0;
-			for (double value : split[chain])
-				variance += (value - means[chain]) * (value - means[chain]);
-			within += variance / (n - 1.0);
+			means[chain] = mean(chains[chain]);
+			double[] current = autocovariances(chains[chain], means[chain]);
+			for (int lag = 0; lag < n; lag++) covariance[lag] += current[lag] / m;
 		}
-		within /= m;
-		double meanOfMeans = mean(means);
-		double between = 0.0;
-		for (double value : means) between += (value - meanOfMeans) * (value - meanOfMeans);
-		between *= n / (m - 1.0);
-		double variancePlus = (n - 1.0) / n * within + between / n;
-		if (!(variancePlus > 0.0)) return m * n;
-		double sum = 0.0;
-		double previousPair = Double.POSITIVE_INFINITY;
-		for (int lag = 1; lag + 1 < n; lag += 2) {
-			double first = 1.0 - variogram(split, lag) / (2.0 * variancePlus);
-			double second = 1.0 - variogram(split, lag + 1) / (2.0 * variancePlus);
-			double pair = first + second;
-			if (pair < 0.0) break;
-			pair = Math.min(pair, previousPair);
-			previousPair = pair;
-			sum += pair;
+		double meanVariance = covariance[0] * n / (n - 1.0);
+		double variancePlus = covariance[0] + (m > 1 ? sampleVariance(means, mean(means)) : 0);
+		if (!(variancePlus > 0)) return Double.NaN;
+		// Geyer initial-positive and initial-monotone sequence, including the
+		// final positive even lag and the antithetic ESS cap used by posterior.
+		double[] rho = new double[n];
+		double even = 1, odd = 1 - (meanVariance - covariance[1]) / variancePlus;
+		rho[0] = even; rho[1] = odd;
+		int t = 0;
+		while (t < n - 5 && even + odd > 0) {
+			t += 2;
+			even = 1 - (meanVariance - covariance[t]) / variancePlus;
+			odd = 1 - (meanVariance - covariance[t + 1]) / variancePlus;
+			if (even + odd >= 0) { rho[t] = even; rho[t + 1] = odd; }
 		}
-		double ess = m * n / Math.max(1e-12, 1.0 + 2.0 * sum);
-		return Math.min(m * n, Math.max(1.0, ess));
+		int maxT = t;
+		if (even > 0) rho[maxT] = even;
+		for (t = 2; t <= maxT - 2; t += 2) {
+			double previous = rho[t - 2] + rho[t - 1];
+			if (rho[t] + rho[t + 1] > previous) rho[t] = rho[t + 1] = previous / 2;
+		}
+		double sum = maxT == 0 ? rho[0] : 0;
+		for (t = 0; t < maxT; t++) sum += rho[t];
+		double total = (double) m * n, tau = -1 + 2 * sum + rho[maxT];
+		return total / Math.max(1 / Math.log10(total), tau);
 	}
 
-	private static double variogram(double[][] chains, int lag) {
-		double result = 0.0;
-		for (double[] chain : chains)
-			for (int i = 0; i + lag < chain.length; i++) {
-				double difference = chain[i] - chain[i + lag];
-				result += difference * difference;
-			}
-		return result / (chains.length * (chains[0].length - lag));
+	private static double[] autocovariances(double[] values, double center) {
+		int n = values.length, padded = 1;
+		while (padded < 2L * n) padded *= 2;
+		double[] spectrum = new double[2 * padded];
+		for (int i = 0; i < n; i++) spectrum[i] = values[i] - center;
+		org.jtransforms.fft.DoubleFFT_1D fft = new org.jtransforms.fft.DoubleFFT_1D(padded);
+		fft.realForwardFull(spectrum);
+		for (int i = 0; i < padded; i++) {
+			double real = spectrum[2 * i], imaginary = spectrum[2 * i + 1];
+			spectrum[2 * i] = real * real + imaginary * imaginary;
+			spectrum[2 * i + 1] = 0;
+		}
+		fft.complexInverse(spectrum, true);
+		double[] result = new double[n];
+		for (int i = 0; i < n; i++) result[i] = spectrum[2 * i] / n;
+		return result;
+	}
+
+	private static boolean invalidOrConstant(double[][] values) {
+		double first = values[0][0]; boolean constant = true;
+		for (double[] chain : values) for (double value : chain) {
+			if (!Double.isFinite(value)) return true;
+			if (value != first) constant = false;
+		}
+		return constant;
 	}
 
 	private static double rHat(double[][] values) {
+		if (invalidOrConstant(values)) return Double.NaN;
 		int m = values.length;
 		int n = values[0].length;
 		double[] means = new double[m];
@@ -276,6 +295,9 @@ public final class McmcDiagnostics {
 		int m = values.length;
 		int n = values[0].length;
 		final double[] pooled = flatten(values);
+		for (double value : pooled) if (!Double.isFinite(value)) {
+			double[][] missing = new double[m][n]; for (double[] chain : missing) Arrays.fill(chain, Double.NaN); return missing;
+		}
 		Integer[] order = new Integer[pooled.length];
 		for (int i = 0; i < order.length; i++) order[i] = i;
 		Arrays.sort(order, new Comparator<Integer>() {

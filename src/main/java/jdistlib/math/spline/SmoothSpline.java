@@ -1376,8 +1376,10 @@ public class SmoothSpline
 			weights = new double[n];
 			fill(weights, 1.0);
 		}
-		else
+		else {
+			weights = weights.clone();
 			normalizeWeights(weights);
+		}
 		assert(n == y.length && n == weights.length);
 		double
 			sortedArray[][] = new double[3][n],
@@ -1454,11 +1456,11 @@ public class SmoothSpline
 			{
 				int idx = dupeIdx[i];
 				double
-					wi = weights[i],
+					wi = sortedArray[2][i],
 					wbi = wbar[idx];
 				if (wbi <= 0)
 					wbi = 1;
-				double temp = (y[i] - result.mSmoothedValues[idx]) / (1 - (result.mLeverage[idx] * wi) / wbi);
+				double temp = (sortedArray[1][i] - result.mSmoothedValues[idx]) / (1 - (result.mLeverage[idx] * wi) / wbi);
 				sum += wi * temp * temp;
 				sumW += wi;
 			}
@@ -1474,8 +1476,8 @@ public class SmoothSpline
 			for (int i = 0; i < n; i++)
 			{
 				double
-					wi = weights[i],
-					temp = y[i] - result.mSmoothedValues[dupeIdx[i]];
+					wi = sortedArray[2][i],
+					temp = sortedArray[1][i] - result.mSmoothedValues[dupeIdx[i]];
 				sum += wi * temp * temp;
 				sumW += wi;
 			}

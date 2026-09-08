@@ -62,7 +62,9 @@ public class InferenceNextGenerationTest {
 	@Test public void paretoSmoothingNormalizesAndReportsTailShape() {
 		ParetoSmoothedImportanceSampling.Result result = ParetoSmoothedImportanceSampling.smooth(new double[] {-2, -1, -0.5, 0, 0.2, 0.3, 1, 2, 3, 5});
 		double sum = 0.0; for (double value : result.logWeights()) sum += Math.exp(value);
-		assertEquals(1.0, sum, 1e-12); assertTrue(Double.isFinite(result.paretoK()));
+		assertEquals(1.0, sum, 1e-12);
+		// Ten draws give only two tail observations: no defensible Pareto fit.
+		assertEquals(Double.POSITIVE_INFINITY, result.paretoK(), 0);
 	}
 
 	@Test public void nestedRHatDetectsPersistentSuperchainBias() {

@@ -32,6 +32,13 @@ public class PositiveNormal extends GenericDistribution {
 		}
 		if (invalid(mean, sd)) return Double.NaN;
 		if (x <= 0.0) return DistributionUtil.boundary(false, lowerTail, logP);
+		double dx = x / sd, slope = (mean / sd) * dx;
+		if (dx < 1e-5 && Math.abs(slope) < 1e-5) {
+			double logLower = density(0.0, mean, sd, true) + Math.log(x)
+					+ Math.log1p(slope / 2.0 + (slope * slope - dx * dx) / 6.0);
+			double value = lowerTail ? logLower : DistributionUtil.logOneMinusExp(logLower);
+			return logP ? value : Math.exp(value);
+		}
 		double logUpper = Normal.cumulative(x, mean, sd, false, true)
 				- Normal.cumulative(0.0, mean, sd, false, true);
 		double result = lowerTail ? DistributionUtil.logOneMinusExp(logUpper)
@@ -41,10 +48,19 @@ public class PositiveNormal extends GenericDistribution {
 
 	public static double quantile(double p, double mean, double sd,
 			boolean lowerTail, boolean logP) {
-		if (invalid(mean, sd)) return Double.NaN;
-		return DistributionUtil.continuousQuantile(p, lowerTail, logP, 0.0,
-				Math.max(sd, mean + 2.0 * sd),
-				(x, lt, lp) -> cumulative(x, mean, sd, lt, lp));
+		if (invalid(mean, sd) || Double.isNaN(p) || DistributionUtil.invalidProbability(p, logP)) return Double.NaN;
+		double logSurvival = lowerTail ? (logP ? DistributionUtil.logOneMinusExp(p) : Math.log1p(-p))
+				: (logP ? p : Math.log(p));
+		if (logSurvival == 0.0) return 0.0;
+		double logLower = lowerTail ? (logP ? p : Math.log(p))
+				: (logP ? DistributionUtil.logOneMinusExp(p) : Math.log1p(-p));
+		double local = Math.exp(logLower - density(0.0, mean, sd, true));
+		double dx = local / sd, slope = (mean / sd) * dx;
+		if (dx < 1e-5 && Math.abs(slope) < 1e-5) {
+			return local * (1.0 - slope / 2.0 + (2.0 * slope * slope + dx * dx) / 6.0);
+		}
+		return Math.max(0.0, Normal.quantile(logSurvival
+				+ Normal.cumulative(0.0, mean, sd, false, true), mean, sd, false, true));
 	}
 
 	public static double random(double mean, double sd, RandomEngine random) {

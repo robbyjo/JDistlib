@@ -57,6 +57,7 @@ public final class FrankCopula implements Copula {
 		if (theta < 0.0) {
 			return u[0] - positiveCumulative(-theta, u[0], 1.0 - u[1]);
 		}
+		if (dimension == 2 && theta >= 1.0) return positiveCumulative(theta,u[0],u[1]);
 		double logP = logOneMinusExponential(theta);
 		double logZ = logP;
 		for (double value : u) {
@@ -69,6 +70,7 @@ public final class FrankCopula implements Copula {
 		if (!CopulaUtil.interiorPoint(u, dimension)) return Double.NaN;
 		if (theta == 0.0) return 0.0;
 		if (theta < 0.0) return positiveLogDensity(-theta, u[0], 1.0 - u[1]);
+		if (dimension == 2 && theta >= 1.0) return positiveLogDensity(theta,u[0],u[1]);
 		double logP = logOneMinusExponential(theta);
 		double logZ = logP;
 		double inverseDerivativeLog = 0.0;
@@ -87,6 +89,10 @@ public final class FrankCopula implements Copula {
 	@Override public double[] random(RandomEngine random) {
 		if (random == null) throw new IllegalArgumentException("random engine must not be null");
 		if (theta == 0.0) return new IndependenceCopula(dimension).random(random);
+		if (dimension == 2 && Math.abs(theta) > 30.0) {
+			double first = CopulaUtil.uniformOpen(random);
+			return new double[]{first,new PairCopula(this).inverseSecondGivenFirst(first,CopulaUtil.uniformOpen(random))};
+		}
 		if (theta < 0.0) {
 			double[] positive = positiveRandom(2, -theta, random);
 			positive[1] = CopulaUtil.clampOpen(1.0 - positive[1]);
@@ -117,6 +123,8 @@ public final class FrankCopula implements Copula {
 
 	private static double positiveCumulative(double parameter, double first,
 			double second) {
+		if (parameter >= 1.0) return Math.min(first,second)
+				- (logScaledDenominator(parameter,first,second)-logOneMinusExponential(parameter))/parameter;
 		double logP = logOneMinusExponential(parameter);
 		double logZ = logOneMinusExponential(parameter * first)
 				+ logOneMinusExponential(parameter * second) - logP;
@@ -125,11 +133,19 @@ public final class FrankCopula implements Copula {
 
 	private static double positiveLogDensity(double parameter, double first,
 			double second) {
+		if (parameter >= 1.0) return Math.log(parameter)+logOneMinusExponential(parameter)
+				- parameter*Math.abs(first-second)-2.0*logScaledDenominator(parameter,first,second);
 		double logP = logOneMinusExponential(parameter);
 		double logZ = logOneMinusExponential(parameter * first)
 				+ logOneMinusExponential(parameter * second) - logP;
 		return Math.log(parameter) - logP - parameter * (first + second)
 				- 2.0 * DistributionUtil.logOneMinusExp(logZ);
+	}
+
+	private static double logScaledDenominator(double parameter,double first,double second) {
+		double maximum=Math.max(first,second),difference=Math.abs(first-second);
+		return CopulaUtil.logAdd(logOneMinusExponential(parameter*maximum),
+				-parameter*difference+logOneMinusExponential(parameter*(1.0-maximum)));
 	}
 
 	private double logEulerianPolynomial(double z) {

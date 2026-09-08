@@ -34,6 +34,9 @@ and are not removed during upstream synchronization.
 The [September 2026 numerical audit](docs/NUMERICAL_AUDIT_2026-09-08.md)
 documents accuracy fixes, independent checks of R discrepancies, and
 reproducible R/Java performance comparisons.
+The [follow-up audit](docs/REMAINING_COMPONENTS_AUDIT_2026-09-08.md) covers
+additional distributions, copulas, numerical utilities, inference, solvers,
+linear algebra and random engines, with explicit coverage limits.
 
 Version 0.10.1 is the current stable release. It adds provider-resident FP64/
 FP32 prepared sparse-Cholesky factorization and solves for CUDA, OpenCL, and

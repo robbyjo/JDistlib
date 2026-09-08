@@ -27,36 +27,29 @@ import jdistlib.rng.RandomEngine;
  *
  */
 public class SkewedT extends GenericDistribution {
-	public static final double density(double x, double df, double gamma, boolean give_log) {
-		if (Double.isNaN(df) || Double.isInfinite(gamma)) return df + gamma;
-		double
-			v = gamma + 1./gamma,
-			dt = T.density(x < 0 ? (gamma * x) : (x / gamma), df, give_log);
-		return give_log ? M_LN2 - log(v) + dt : (2 / v) * dt;
-	}
-
-	public static final double cumulative(double x, double df, double gamma, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(df) || Double.isInfinite(gamma)) return df + gamma;
-		double v = gamma * gamma, pt;
-		if (x < 0) {
-			pt = 2 / (v + 1) * T.cumulative(gamma * x, df, true, false);
-		} else {
-			pt = 1/(v+1) + 2 / (1 + (1/v)) * (T.cumulative(x / gamma, df, true, false) - 0.5);
-		}
-		if (!lower_tail) pt = 1 - pt;
-		if (log_p) pt = log(pt);
-	    return pt;
-	}
-
-	public static final double quantile(double p, double df, double gamma, boolean lower_tail, boolean log_p) {
-		if (log_p) p = exp(p);
-		if (!lower_tail) p = 1 - p;
-		double v = gamma * gamma;
-		double p0 = cumulative(0, df, gamma, true, false);
-	    return p < p0 ? (1/gamma) * T.quantile((v+1) * p/2, df, true, false)
-	    	: gamma * T.quantile((1 + 1/v) / 2 * (p - p0) + 0.5, df, true, false);
-	}
-
+    private static boolean invalid(double df,double gamma) { return !(df>0.0) || !(gamma>0.0) || !Double.isFinite(gamma); }
+    public static final double density(double x,double df,double gamma,boolean logP) {
+        if(invalid(df,gamma) || Double.isNaN(x)) return Double.NaN;
+        double normalizer=DistributionUtil.logAdd(log(gamma),-log(gamma));
+        double value=M_LN2-normalizer+T.density(x<0?gamma*x:x/gamma,df,true);
+        return logP?value:exp(value);
+    }
+    public static final double cumulative(double x,double df,double gamma,boolean lower,boolean logP) {
+        if(invalid(df,gamma) || Double.isNaN(x)) return Double.NaN;
+        double lv=2*log(gamma),den=jdistlib.math.MathFunctions.log1pexp(lv);
+        double logTail=x<0 ? M_LN2-den+T.cumulative(gamma*x,df,true,true)
+                : M_LN2+lv-den+T.cumulative(x/gamma,df,false,true);
+        double value=(lower==(x<0))?logTail:DistributionUtil.logOneMinusExp(logTail);
+        return logP?value:exp(value);
+    }
+    public static final double quantile(double p,double df,double gamma,boolean lower,boolean logP) {
+        if(invalid(df,gamma) || Double.isNaN(p) || DistributionUtil.invalidProbability(p,logP)) return Double.NaN;
+        double lp=logP?p:log(p),lq=logP?DistributionUtil.logOneMinusExp(p):Math.log1p(-p);
+        if(!lower){double t=lp;lp=lq;lq=t;}
+        double lv=2*log(gamma),den=jdistlib.math.MathFunctions.log1pexp(lv);
+        return lp < -den ? T.quantile(lp+den-M_LN2,df,true,true)/gamma
+                : gamma*T.quantile(lq+den-lv-M_LN2,df,false,true);
+    }
 	public static final double random(double df, double gamma, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();

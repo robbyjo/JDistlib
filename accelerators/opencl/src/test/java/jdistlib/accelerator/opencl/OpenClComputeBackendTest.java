@@ -132,4 +132,37 @@ public class OpenClComputeBackendTest {
 		try(jdistlib.accelerator.PreparedFloatSparseCholesky factor=backend.prepareScsrpotrf(floats,MatrixTriangle.LOWER)){assertArrayEquals(new float[]{1,2},factor.solve(new float[]{6,7}),3e-5f);}
 		assertTrue(backend.capabilities().nativeSparseFactorizations());
 	}finally{backend.close();}}
+	@Test public void decompositionsPreserveExtremeGlobalScale() {
+		OpenClComputeBackend backend=new OpenClComputeBackend();Assume.assumeTrue(backend.available());
+		try {
+			for(double scale:new double[]{1e-200,1e200}) {
+				double[] values=backend.dsyev(new double[]{2*scale,scale,scale,2*scale},2).eigenvalues();
+				assertEquals(1,values[0]/scale,2e-11);assertEquals(3,values[1]/scale,2e-11);
+				double[] singular=backend.dgesvd(new double[]{scale,2*scale,3*scale,4*scale,5*scale,6*scale},3,2).singularValues();
+				assertEquals(9.525518091565107,singular[0]/scale,2e-11);assertEquals(.5143005806586443,singular[1]/scale,2e-11);
+			}
+			for(float scale:new float[]{1e-25f,1e25f}) {
+				float[] values=backend.ssyev(new float[]{2*scale,scale,scale,2*scale},2).eigenvalues();
+				assertEquals(1,values[0]/scale,2e-5);assertEquals(3,values[1]/scale,2e-5);
+				float[] singular=backend.sgesvd(new float[]{scale,2*scale,3*scale,4*scale,5*scale,6*scale},3,2).singularValues();
+				assertEquals(9.525518091565107,singular[0]/scale,2e-5);assertEquals(.5143005806586443,singular[1]/scale,2e-5);
+			}
+		} finally {backend.close();}
+	}
+	@Test public void zeroMatrixProductCoefficientsIgnoreNaNOperands() {
+		OpenClComputeBackend backend=new OpenClComputeBackend();Assume.assumeTrue(backend.available());
+		try {
+			double[] out={Double.NaN,Double.POSITIVE_INFINITY};
+			backend.dgemv(MatrixTranspose.NONE,2,2,1,new double[]{1,2,3,4},new double[]{1,2},0,out);
+			assertArrayEquals(new double[]{5,11},out,1e-12);
+			backend.dgemv(MatrixTranspose.NONE,2,2,0,new double[]{Double.NaN,2,3,4},new double[]{1,2},2,out);
+			assertArrayEquals(new double[]{10,22},out,1e-12);
+			double[] product={Double.NaN};
+			backend.dgemm(MatrixTranspose.NONE,MatrixTranspose.NONE,1,1,1,1,new double[]{2},new double[]{3},0,product);
+			assertEquals(6,product[0],1e-12);
+			float[] single={Float.NaN};
+			backend.sgemm(MatrixTranspose.NONE,MatrixTranspose.NONE,1,1,1,1,new float[]{2},new float[]{3},0,single);
+			assertEquals(6,single[0],1e-5);
+		} finally {backend.close();}
+	}
 }

@@ -38,50 +38,44 @@ public class Density {
 
 	public static final Density density(double[] x, Bandwidth bandwidth, double adjust, Kernel kernel,
 		double[] weights, double width, int n, double from, double to, double cut) {
+		if (x == null || x.length == 0 || kernel == null || n < 2 || n > (1 << 26))
+			throw new IllegalArgumentException("Nonempty data, a kernel and 2 <= n <= 2^26 are required");
 		int N = x.length, nx = 0;
 		if (weights != null && weights.length != N)
-			throw new RuntimeException();
+			throw new IllegalArgumentException("Data and weights must have equal lengths");
 		double[] newx = new double[N], new_wt = new double[N];
-		double totMass = 0, wsum = 0;
 		for (int i = 0; i < N; i++) {
-			if (weights != null && weights[i] < 0) throw new RuntimeException();
-			double wt =  weights == null ? 1: weights[i];
-			wsum += wt;
+			if (weights != null && (!Double.isFinite(weights[i]) || weights[i] < 0))
+				throw new IllegalArgumentException("Weights must be finite and nonnegative");
+			double wt = weights == null ? 1. / N : weights[i];
 			if (MathFunctions.isFinite(x[i])) {
 				newx[nx] = x[i];
 				new_wt[nx] = wt;
-				totMass += wt;
 				nx++;
 			}
 		}
-		totMass /= wsum;
-		if (nx != N) {
-			x = new double[nx];
-			System.arraycopy(newx, 0, x, 0, nx);
-			weights = new double[nx];
-			System.arraycopy(new_wt, 0, weights, 0, nx);
-			new_wt = newx = null;
-		} else {
-			if (weights == null) {
-				weights = new double[N];
-				Arrays.fill(weights, 1.0/N);
-			}
-		}
+		if (nx == 0 || (bandwidth != null && nx < 2))
+			throw new IllegalArgumentException("Insufficient finite observations for the requested bandwidth");
+		// Nonfinite observations contribute no kernel; retain each finite
+		// observation's original mass exactly once, including explicit weights.
+		x = Arrays.copyOf(newx, nx);
+		weights = Arrays.copyOf(new_wt, nx);
 
 		int n_user = n;
 		n = max(n, 512);
 		if (n > 512) n = 1 << ((int) ceil(log(n) / M_LN2));
 		double bw = bandwidth != null ? bandwidth.calculate(x) : width / kernel.getFactor();
-		if (Double.isInfinite(bw)) throw new RuntimeException("non-finite bandwidth");
 		bw *= adjust;
-		if (bw <= 0) throw new RuntimeException("Bandwidth is not positive");
+		if (!Double.isFinite(bw) || bw <= 0) throw new IllegalArgumentException("Bandwidth must be positive and finite");
 		if (Double.isNaN(from)) from = VectorMath.min(x) - cut * bw;
 		if (Double.isNaN(to)) to = VectorMath.max(x) + cut * bw;
-		if (Double.isInfinite(from)) throw new RuntimeException("non-finite 'from'");
-		if (Double.isInfinite(to)) throw new RuntimeException("non-finite 'to'");
+		if (!Double.isFinite(from) || !Double.isFinite(to) || from >= to)
+			throw new IllegalArgumentException("Density bounds must be finite and increasing");
 		double lo = from - 4 * bw, up = to + 4 * bw;
-		double[] y = bindist(x, weights, lo, up, n, totMass);
-		double[] kords = Utilities.seq_int(0, 2*(up-lo), 2 * n);
+		if (!Double.isFinite(up - lo)) throw new IllegalArgumentException("Density grid span overflows");
+		double[] y = bindist(x, weights, lo, up, n, 1);
+		// Match the data bin width, as in R >= 4.4 with old.coords=FALSE.
+		double[] kords = Utilities.seq_int(0, ((2. * n - 1) / (n - 1)) * (up-lo), 2 * n);
 		int two_n = 2*n;
 		for (int i = n+1; i < two_n; i++)
 			kords[i] = -kords[two_n-i];
@@ -97,7 +91,6 @@ public class Density {
 		new_kords = null;
 		double[] new_y = new double[y.length * 2];
 		System.arraycopy(y, 0, new_y, 0, y.length);
-		fft = new DoubleFFT_1D(y.length);
 		fft.realForwardFull(new_y);
 		y = new_y;
 		for (int i = 0; i < kords.length; i += 2) {
@@ -109,7 +102,6 @@ public class Density {
 			kords[i] = a*c - b*d;
 			kords[i+1] = a*d + b*c;
 		}
-		fft = new DoubleFFT_1D(kords.length / 2);
 		fft.complexInverse(kords, false);
 		new_kords = new double[n];
 		for (int i = 0; i < n; i++)

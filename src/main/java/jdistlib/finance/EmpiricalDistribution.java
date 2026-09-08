@@ -29,9 +29,9 @@ public final class EmpiricalDistribution extends GenericDistribution
 	}
 
 	@Override public double cumulative(double x, boolean lowerTail, boolean logP) {
+		if (Double.isNaN(x)) return Double.NaN;
 		int index = upperBound(x);
-		double value = index / (double) sorted.length;
-		if (!lowerTail) value = 1.0 - value;
+		double value = (lowerTail ? index : sorted.length-index) / (double) sorted.length;
 		return logP ? Math.log(value) : value;
 	}
 
@@ -49,6 +49,7 @@ public final class EmpiricalDistribution extends GenericDistribution
 	}
 
 	@Override public double atomProbability(double x) {
+		if (Double.isNaN(x)) return Double.NaN;
 		return (upperBound(x) - lowerBound(x)) / (double) sorted.length;
 	}
 

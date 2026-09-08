@@ -13,7 +13,8 @@ public final class StiffOdeSolver {
 		public Options(double relativeTolerance, double absoluteTolerance, double initialStep,
 				int maximumSteps, AlgebraicSolver.Options nonlinearOptions) {
 			if (!(relativeTolerance > 0) || !(absoluteTolerance > 0) || !(initialStep > 0)
-					|| maximumSteps < 1 || nonlinearOptions == null)
+					|| !Double.isFinite(relativeTolerance) || !Double.isFinite(absoluteTolerance)
+					|| !Double.isFinite(initialStep) || maximumSteps < 1 || nonlinearOptions == null)
 				throw new IllegalArgumentException("positive stiff ODE controls required");
 			this.relativeTolerance = relativeTolerance; this.absoluteTolerance = absoluteTolerance;
 			this.initialStep = initialStep; this.maximumSteps = maximumSteps;
@@ -30,16 +31,19 @@ public final class StiffOdeSolver {
 			double[] times, double[] parameters, double[] data, Options options) {
 		if (system == null || initial == null || times == null || options == null)
 			throw new NullPointerException("system, state, times, and options are required");
+		if (initial.length == 0 || !Double.isFinite(initialTime)) throw new IllegalArgumentException("nonempty state and finite initial time required");
+		for (double value : initial) if (!Double.isFinite(value)) throw new IllegalArgumentException("finite initial state required");
 		double[] state = initial.clone(); double time = initialTime, step = options.initialStep;
 		double[] p = parameters == null ? new double[0] : parameters.clone();
 		double[] d = data == null ? new double[0] : data.clone();
 		double[][] result = new double[times.length][state.length]; int steps = 0;
 		for (int output = 0; output < times.length; output++) {
 			double target = times[output];
-			if (!(target > time)) throw new IllegalArgumentException("stiff ODE times must be strictly increasing");
+			if (!(target > time) || !Double.isFinite(target)) throw new IllegalArgumentException("stiff ODE times must be finite and strictly increasing");
 			while (time < target) {
 				if (++steps > options.maximumSteps) throw new ArithmeticException("stiff ODE maximum steps exceeded");
 				step = Math.min(step, target-time);
+				if (!(time + step > time)) throw new ArithmeticException("stiff ODE step size underflow");
 				double[] full = implicitStep(system, state, time, step, p, d, options.nonlinearOptions);
 				double[] half = implicitStep(system, state, time, step/2, p, d, options.nonlinearOptions);
 				half = implicitStep(system, half, time+step/2, step/2, p, d, options.nonlinearOptions);
@@ -52,7 +56,7 @@ public final class StiffOdeSolver {
 				if (error <= 1.0) { state = half; time += step; }
 				double factor = error == 0 ? 3.0 : Math.max(.2, Math.min(3.0, .9*Math.pow(error, -.5)));
 				step *= factor;
-				if (!(step > Math.ulp(Math.max(1.0, Math.abs(time)))))
+				if (time < target && !(time + step > time))
 					throw new ArithmeticException("stiff ODE step size underflow");
 			}
 			result[output] = state.clone();

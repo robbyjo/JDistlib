@@ -55,8 +55,7 @@ public final class BetaPrime extends GenericDistribution
 			boolean lowerTail, boolean logP) {
 		if (Double.isNaN(p) || invalid(a, b)
 				|| DistributionUtil.invalidProbability(p, logP)) return Double.NaN;
-		double value = Beta.quantile(p, a, b, lowerTail, logP);
-		return value / (1.0 - value);
+		return Math.exp(DistributionUtil.betaLogOddsQuantile(p, a, b, lowerTail, logP));
 	}
 
 	public static double random(double a, double b, RandomEngine random) {

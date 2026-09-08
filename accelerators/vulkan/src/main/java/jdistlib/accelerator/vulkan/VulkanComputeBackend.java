@@ -155,7 +155,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(push_constant) uniform P{double alpha;double beta;int tr;int rows;int cols;}p;\n"
 			+ "void main(){uint i=gl_GlobalInvocationID.x;int outCount=p.tr!=0?p.cols:p.rows,inCount=p.tr!=0?p.rows:p.cols;"
 			+ "if(i>=outCount)return;double s=0.0;for(int j=0;j<inCount;j++)s+=(p.tr!=0?a[j*p.cols+i]:a[i*p.cols+j])*x[j];"
-			+ "y[i]=p.alpha*s+p.beta*y[i];}\n";
+			+ "y[i]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*y[i]);}\n";
 	private static final String BLAS_GEMM_SHADER = HEADER
 			+ "layout(local_size_x=16,local_size_y=16) in;\n"
 			+ "layout(std430,binding=0) readonly buffer A{double a[];};\n"
@@ -164,7 +164,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(push_constant) uniform P{double alpha;double beta;int ta;int tb;int m;int n;int k;}p;\n"
 			+ "void main(){uint row=gl_GlobalInvocationID.y,col=gl_GlobalInvocationID.x;if(row>=p.m||col>=p.n)return;double s=0.0;"
 			+ "for(int q=0;q<p.k;q++)s+=(p.ta!=0?a[q*p.m+row]:a[row*p.k+q])*(p.tb!=0?b[col*p.k+q]:b[q*p.n+col]);"
-			+ "int z=int(row)*p.n+int(col);c[z]=p.alpha*s+p.beta*c[z];}\n";
+			+ "int z=int(row)*p.n+int(col);c[z]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*c[z]);}\n";
 	private static final String CSR_MV_SHADER = HEADER
 			+ "layout(local_size_x=256) in;\n"
 			+ "layout(std430,binding=0) readonly buffer V{double v[];};\n"
@@ -174,7 +174,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(std430,binding=4) buffer Y{double y[];};\n"
 			+ "layout(push_constant) uniform P{double alpha;double beta;int rows;}p;\n"
 			+ "void main(){uint row=gl_GlobalInvocationID.x;if(row>=p.rows)return;double s=0.0;"
-			+ "for(int z=int(rs[row])-1;z<int(rs[row+1])-1;z++)s+=v[z]*x[int(ci[z])-1];y[row]=p.alpha*s+p.beta*y[row];}\n";
+			+ "for(int z=int(rs[row])-1;z<int(rs[row+1])-1;z++)s+=v[z]*x[int(ci[z])-1];y[row]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*y[row]);}\n";
 	private static final String CSR_MM_SHADER = HEADER
 			+ "layout(local_size_x=256) in;\n"
 			+ "layout(std430,binding=0) readonly buffer V{double v[];};\n"
@@ -184,7 +184,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(std430,binding=4) buffer C{double c[];};\n"
 			+ "layout(push_constant) uniform P{double alpha;double beta;int rows;int cols;}p;\n"
 			+ "void main(){uint z=gl_GlobalInvocationID.x;if(z>=p.rows*p.cols)return;int row=int(z)/p.cols,col=int(z)-row*p.cols;double s=0.0;"
-			+ "for(int q=int(rs[row])-1;q<int(rs[row+1])-1;q++)s+=v[q]*b[(int(ci[q])-1)*p.cols+col];c[z]=p.alpha*s+p.beta*c[z];}\n";
+			+ "for(int q=int(rs[row])-1;q<int(rs[row+1])-1;q++)s+=v[q]*b[(int(ci[q])-1)*p.cols+col];c[z]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*c[z]);}\n";
 	private static final String FLOAT_AXPY_SHADER = FLOAT_HEADER
 			+ "layout(local_size_x=256) in;\n"
 			+ "layout(std430,binding=0) readonly buffer X{float x[];};\n"
@@ -214,7 +214,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(push_constant) uniform P{float alpha;float beta;int tr;int rows;int cols;}p;\n"
 			+ "void main(){uint i=gl_GlobalInvocationID.x;int outCount=p.tr!=0?p.cols:p.rows,inCount=p.tr!=0?p.rows:p.cols;"
 			+ "if(i>=outCount)return;float s=0.0;for(int j=0;j<inCount;j++)s+=(p.tr!=0?a[j*p.cols+i]:a[i*p.cols+j])*x[j];"
-			+ "y[i]=p.alpha*s+p.beta*y[i];}\n";
+			+ "y[i]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*y[i]);}\n";
 	private static final String FLOAT_GEMM_SHADER = FLOAT_HEADER
 			+ "layout(local_size_x=16,local_size_y=16) in;\n"
 			+ "layout(std430,binding=0) readonly buffer A{float a[];};\n"
@@ -223,7 +223,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(push_constant) uniform P{float alpha;float beta;int ta;int tb;int m;int n;int k;}p;\n"
 			+ "void main(){uint row=gl_GlobalInvocationID.y,col=gl_GlobalInvocationID.x;if(row>=p.m||col>=p.n)return;float s=0.0;"
 			+ "for(int q=0;q<p.k;q++)s+=(p.ta!=0?a[q*p.m+row]:a[row*p.k+q])*(p.tb!=0?b[col*p.k+q]:b[q*p.n+col]);"
-			+ "int z=int(row)*p.n+int(col);c[z]=p.alpha*s+p.beta*c[z];}\n";
+			+ "int z=int(row)*p.n+int(col);c[z]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*c[z]);}\n";
 	private static final String FLOAT_CSR_MV_SHADER = FLOAT_HEADER
 			+ "layout(local_size_x=256) in;\n"
 			+ "layout(std430,binding=0) readonly buffer V{float v[];};\n"
@@ -233,7 +233,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(std430,binding=4) buffer Y{float y[];};\n"
 			+ "layout(push_constant) uniform P{float alpha;float beta;int rows;}p;\n"
 			+ "void main(){uint row=gl_GlobalInvocationID.x;if(row>=p.rows)return;float s=0.0;"
-			+ "for(int z=rs[row]-1;z<rs[row+1]-1;z++)s+=v[z]*x[ci[z]-1];y[row]=p.alpha*s+p.beta*y[row];}\n";
+			+ "for(int z=rs[row]-1;z<rs[row+1]-1;z++)s+=v[z]*x[ci[z]-1];y[row]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*y[row]);}\n";
 	private static final String FLOAT_CSR_MM_SHADER = FLOAT_HEADER
 			+ "layout(local_size_x=256) in;\n"
 			+ "layout(std430,binding=0) readonly buffer V{float v[];};\n"
@@ -243,7 +243,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(std430,binding=4) buffer C{float c[];};\n"
 			+ "layout(push_constant) uniform P{float alpha;float beta;int rows;int cols;}p;\n"
 			+ "void main(){uint z=gl_GlobalInvocationID.x;if(z>=p.rows*p.cols)return;int row=int(z)/p.cols,col=int(z)-row*p.cols;float s=0.0;"
-			+ "for(int q=rs[row]-1;q<rs[row+1]-1;q++)s+=v[q]*b[(ci[q]-1)*p.cols+col];c[z]=p.alpha*s+p.beta*c[z];}\n";
+			+ "for(int q=rs[row]-1;q<rs[row+1]-1;q++)s+=v[q]*b[(ci[q]-1)*p.cols+col];c[z]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*c[z]);}\n";
 	private static final String BLAS_SYRK_SHADER = syrkShader(HEADER, "double");
 	private static final String BLAS_TRSV_SHADER = trsvShader(HEADER, "double");
 	private static final String BLAS_TRSM_SHADER = trsmShader(HEADER, "double");
@@ -284,7 +284,7 @@ public final class VulkanComputeBackend implements ComputeBackend {
 			+ "layout(push_constant) uniform P{" + type + " alpha;" + type + " beta;int tr;int n;int k;}p;\n"
 			+ "void main(){uint row=gl_GlobalInvocationID.y,col=gl_GlobalInvocationID.x;if(row>=p.n||col>=p.n)return;"
 			+ type + " s=0;for(int q=0;q<p.k;q++)s+=(p.tr!=0?a[q*p.n+row]:a[row*p.k+q])*(p.tr!=0?a[q*p.n+col]:a[col*p.k+q]);"
-			+ "c[row*p.n+col]=p.alpha*s+p.beta*c[row*p.n+col];}\n"; }
+			+ "c[row*p.n+col]=(p.alpha==0?0:p.alpha*s)+(p.beta==0?0:p.beta*c[row*p.n+col]);}\n"; }
 	private static String trsvShader(String header, String type) { return header
 			+ "layout(local_size_x=1) in;\nlayout(std430,binding=0) readonly buffer A{" + type + " a[];};\n"
 			+ "layout(std430,binding=1) buffer X{" + type + " x[];};\n"
@@ -696,12 +696,12 @@ public final class VulkanComputeBackend implements ComputeBackend {
 
 	@Override public synchronized CholeskyFactor dpotrf(double[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);ensureAvailable();BufferResource a=create(matrix),lower=createDoubles(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(4).putInt(0,dimension);if(dpotrfKernel==null)dpotrfKernel=new Kernel(DPOTRF_SHADER,3,4);execute(dpotrfKernel,resources(a,lower,info),push,1,1,1);int status=info.readInts(1)[0];if(status!=0)throw new IllegalArgumentException("matrix is not positive definite at minor "+status);return new CholeskyFactor(dimension,lower.readDoubles(matrix.length));}finally{info.close();lower.close();a.close();}}
 	@Override public synchronized PivotedQrFactor dgeqp3(double[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource qr=create(matrix),tau=createDoubles(count),pivot=createInts(columns);try{ByteBuffer push=nativeBuffer(8).putInt(0,rows).putInt(4,columns);if(dgeqp3Kernel==null)dgeqp3Kernel=new Kernel(DGEQP3_SHADER,3,8);execute(dgeqp3Kernel,resources(qr,tau,pivot),push,1,1,1);return new PivotedQrFactor(rows,columns,qr.readDoubles(matrix.length),tau.readDoubles(count),pivot.readInts(columns));}finally{pivot.close();tau.close();qr.close();}}
-	@Override public synchronized SymmetricEigenDecomposition dsyev(double[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);checkSymmetric(matrix,dimension);ensureAvailable();BufferResource work=create(matrix),values=createDoubles(dimension),vectors=createDoubles(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(16).putDouble(0,16*Math.ulp(1.0)).putInt(8,dimension);if(dsyevKernel==null)dsyevKernel=new Kernel(DSYEV_SHADER,4,16);execute(dsyevKernel,resources(work,values,vectors,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan symmetric eigendecomposition did not converge");return new SymmetricEigenDecomposition(dimension,values.readDoubles(dimension),vectors.readDoubles(matrix.length));}finally{info.close();vectors.close();values.close();work.close();}}
-	@Override public synchronized SingularValueDecomposition dgesvd(double[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource a=create(matrix),work=createDoubles(matrix.length),u=createDoubles(rows*count),singular=createDoubles(count),vt=createDoubles(count*columns),info=createInts(1);try{ByteBuffer push=nativeBuffer(16).putDouble(0,16*Math.ulp(1.0)).putInt(8,rows).putInt(12,columns);if(dgesvdKernel==null)dgesvdKernel=new Kernel(DGESVD_SHADER,6,16);execute(dgesvdKernel,resources(a,work,u,singular,vt,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan SVD did not converge");return new SingularValueDecomposition(rows,columns,singular.readDoubles(count),u.readDoubles(rows*count),vt.readDoubles(count*columns));}finally{info.close();vt.close();singular.close();u.close();work.close();a.close();}}
+	@Override public synchronized SymmetricEigenDecomposition dsyev(double[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);matrix=matrix.clone();double matrixScale=normalizeDecomposition(matrix);checkSymmetric(matrix,dimension);ensureAvailable();BufferResource work=create(matrix),values=createDoubles(dimension),vectors=createDoubles(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(16).putDouble(0,16*Math.ulp(1.0)).putInt(8,dimension);if(dsyevKernel==null)dsyevKernel=new Kernel(DSYEV_SHADER,4,16);execute(dsyevKernel,resources(work,values,vectors,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan symmetric eigendecomposition did not converge");return new SymmetricEigenDecomposition(dimension,rescaleDecomposition(values.readDoubles(dimension),matrixScale),vectors.readDoubles(matrix.length));}finally{info.close();vectors.close();values.close();work.close();}}
+	@Override public synchronized SingularValueDecomposition dgesvd(double[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);matrix=matrix.clone();double matrixScale=normalizeDecomposition(matrix);ensureAvailable();int count=Math.min(rows,columns);BufferResource a=create(matrix),work=createDoubles(matrix.length),u=createDoubles(rows*count),singular=createDoubles(count),vt=createDoubles(count*columns),info=createInts(1);try{ByteBuffer push=nativeBuffer(16).putDouble(0,16*Math.ulp(1.0)).putInt(8,rows).putInt(12,columns);if(dgesvdKernel==null)dgesvdKernel=new Kernel(DGESVD_SHADER,6,16);execute(dgesvdKernel,resources(a,work,u,singular,vt,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan SVD did not converge");return new SingularValueDecomposition(rows,columns,rescaleDecomposition(singular.readDoubles(count),matrixScale),u.readDoubles(rows*count),vt.readDoubles(count*columns));}finally{info.close();vt.close();singular.close();u.close();work.close();a.close();}}
 	@Override public synchronized FloatCholeskyFactor spotrf(float[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);ensureAvailable();BufferResource a=create(matrix),lower=createFloats(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(4).putInt(0,dimension);if(spotrfKernel==null)spotrfKernel=new Kernel(SPOTRF_SHADER,3,4);execute(spotrfKernel,resources(a,lower,info),push,1,1,1);int status=info.readInts(1)[0];if(status!=0)throw new IllegalArgumentException("matrix is not positive definite at minor "+status);return new FloatCholeskyFactor(dimension,lower.readFloats(matrix.length));}finally{info.close();lower.close();a.close();}}
 	@Override public synchronized FloatPivotedQrFactor sgeqp3(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource qr=create(matrix),tau=createFloats(count),pivot=createInts(columns);try{ByteBuffer push=nativeBuffer(8).putInt(0,rows).putInt(4,columns);if(sgeqp3Kernel==null)sgeqp3Kernel=new Kernel(SGEQP3_SHADER,3,8);execute(sgeqp3Kernel,resources(qr,tau,pivot),push,1,1,1);return new FloatPivotedQrFactor(rows,columns,qr.readFloats(matrix.length),tau.readFloats(count),pivot.readInts(columns));}finally{pivot.close();tau.close();qr.close();}}
-	@Override public synchronized FloatSymmetricEigenDecomposition ssyev(float[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);checkSymmetric(matrix,dimension);ensureAvailable();BufferResource work=create(matrix),values=createFloats(dimension),vectors=createFloats(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(8).putFloat(0,16*Math.ulp(1.0f)).putInt(4,dimension);if(ssyevKernel==null)ssyevKernel=new Kernel(SSYEV_SHADER,4,8);execute(ssyevKernel,resources(work,values,vectors,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan FP32 symmetric eigendecomposition did not converge");return new FloatSymmetricEigenDecomposition(dimension,values.readFloats(dimension),vectors.readFloats(matrix.length));}finally{info.close();vectors.close();values.close();work.close();}}
-	@Override public synchronized FloatSingularValueDecomposition sgesvd(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();int count=Math.min(rows,columns);BufferResource a=create(matrix),work=createFloats(matrix.length),u=createFloats(rows*count),singular=createFloats(count),vt=createFloats(count*columns),info=createInts(1);try{ByteBuffer push=nativeBuffer(12).putFloat(0,16*Math.ulp(1.0f)).putInt(4,rows).putInt(8,columns);if(sgesvdKernel==null)sgesvdKernel=new Kernel(SGESVD_SHADER,6,12);execute(sgesvdKernel,resources(a,work,u,singular,vt,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan FP32 SVD did not converge");return new FloatSingularValueDecomposition(rows,columns,singular.readFloats(count),u.readFloats(rows*count),vt.readFloats(count*columns));}finally{info.close();vt.close();singular.close();u.close();work.close();a.close();}}
+	@Override public synchronized FloatSymmetricEigenDecomposition ssyev(float[]matrix,int dimension){checkDecompositionMatrix(matrix,dimension,dimension);matrix=matrix.clone();float matrixScale=normalizeDecomposition(matrix);checkSymmetric(matrix,dimension);ensureAvailable();BufferResource work=create(matrix),values=createFloats(dimension),vectors=createFloats(matrix.length),info=createInts(1);try{ByteBuffer push=nativeBuffer(8).putFloat(0,16*Math.ulp(1.0f)).putInt(4,dimension);if(ssyevKernel==null)ssyevKernel=new Kernel(SSYEV_SHADER,4,8);execute(ssyevKernel,resources(work,values,vectors,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan FP32 symmetric eigendecomposition did not converge");return new FloatSymmetricEigenDecomposition(dimension,rescaleDecomposition(values.readFloats(dimension),matrixScale),vectors.readFloats(matrix.length));}finally{info.close();vectors.close();values.close();work.close();}}
+	@Override public synchronized FloatSingularValueDecomposition sgesvd(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);matrix=matrix.clone();float matrixScale=normalizeDecomposition(matrix);ensureAvailable();int count=Math.min(rows,columns);BufferResource a=create(matrix),work=createFloats(matrix.length),u=createFloats(rows*count),singular=createFloats(count),vt=createFloats(count*columns),info=createInts(1);try{ByteBuffer push=nativeBuffer(12).putFloat(0,16*Math.ulp(1.0f)).putInt(4,rows).putInt(8,columns);if(sgesvdKernel==null)sgesvdKernel=new Kernel(SGESVD_SHADER,6,12);execute(sgesvdKernel,resources(a,work,u,singular,vt,info),push,1,1,1);if(info.readInts(1)[0]!=0)throw new IllegalStateException("Vulkan FP32 SVD did not converge");return new FloatSingularValueDecomposition(rows,columns,rescaleDecomposition(singular.readFloats(count),matrixScale),u.readFloats(rows*count),vt.readFloats(count*columns));}finally{info.close();vt.close();singular.close();u.close();work.close();a.close();}}
 	@Override public synchronized PreparedDenseMatrix prepareDge(double[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();return new PreparedDoubleDense(matrix,rows,columns);}
 	@Override public synchronized PreparedFloatDenseMatrix prepareSge(float[]matrix,int rows,int columns){checkDecompositionMatrix(matrix,rows,columns);ensureAvailable();return new PreparedFloatDense(matrix,rows,columns);}
 	private final class PreparedDoubleDense implements PreparedDenseMatrix{
@@ -1308,4 +1308,10 @@ public final class VulkanComputeBackend implements ComputeBackend {
 	private static long saturatingAdd(long left, long right) {
 		return Long.MAX_VALUE - left < right ? Long.MAX_VALUE : left + right;
 	}
+	// Host normalization protects the device Jacobi products from overflow and
+	// absolute stopping tolerances from erasing small-scale matrix structure.
+	private static double normalizeDecomposition(double[] x){double scale=0;for(double v:x)scale=Math.max(scale,Math.abs(v));if(scale==0)return 1;for(int i=0;i<x.length;i++)x[i]/=scale;return scale;}
+	private static float normalizeDecomposition(float[] x){float scale=0;for(float v:x)scale=Math.max(scale,Math.abs(v));if(scale==0)return 1;for(int i=0;i<x.length;i++)x[i]/=scale;return scale;}
+	private static double[] rescaleDecomposition(double[] x,double scale){for(int i=0;i<x.length;i++)x[i]*=scale;return x;}
+	private static float[] rescaleDecomposition(float[] x,float scale){for(int i=0;i<x.length;i++)x[i]*=scale;return x;}
 }

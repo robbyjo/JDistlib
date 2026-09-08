@@ -29,6 +29,7 @@ public class LogLogistic extends GenericDistribution {
 	public static final double density(double x, double shape, double scale, boolean give_log) {
 		if (Double.isNaN(x) || Double.isNaN(shape) || Double.isNaN(scale)) return x + shape + scale;
 		if (Double.isInfinite(shape) || Double.isInfinite(scale) || shape <= 0.0 || scale <= 0.0) return Double.NaN;
+		if (x < 0.0 || x == Double.POSITIVE_INFINITY) return give_log ? Double.NEGATIVE_INFINITY : 0.0;
 		if (x == 0.0) {
 			if (shape < 1) return Double.POSITIVE_INFINITY;
 			if (shape > 1) return give_log ? Double.NEGATIVE_INFINITY : 0.;
@@ -50,9 +51,9 @@ public class LogLogistic extends GenericDistribution {
 		if (Double.isNaN(q) || Double.isNaN(shape) || Double.isNaN(scale)) return q + shape + scale;
 		if (Double.isInfinite(shape) || Double.isInfinite(scale) || shape <= 0.0 || scale <= 0.0) return Double.NaN;
 		if (q <= 0) return lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.) : (log_p ? 0. : 1.);
-		double u = exp(-log1pexp(shape * (log(scale) - log(q))));
-		//return ACT_DT_val(u);
-		return (lower_tail ? (log_p  ? log(u) : (u))  : (log_p  ? log1p(-(u)) : (0.5 - (u) + 0.5)));
+        double logOdds = shape * (log(q) - log(scale));
+        double value = -log1pexp(lower_tail ? -logOdds : logOdds);
+        return log_p ? value : exp(value);
 	}
 
 	public static final double quantile(double p, double shape, double scale, boolean lower_tail, boolean log_p) {
@@ -75,13 +76,9 @@ public class LogLogistic extends GenericDistribution {
 	        if(p == 1)
 	            return lower_tail ? Double.POSITIVE_INFINITY : 0;
 	    }
-	    // p = ACT_D_qIv(p);
-	    p = (log_p  ? exp(p) : (p));
-	    //return scale * R_pow(1.0 / ACT_D_Cval(p) - 1.0, 1.0/shape);
-
-	    // p = ACT_D_Cval(p);
-	    p = (lower_tail ? (log_p  ? log1p(-(p)) : (0.5 - (p) + 0.5)) : (log_p  ? log(p) : (p)));
-	    return scale * pow(1.0 / p - 1.0, 1.0/shape);
+        double lp = log_p ? p : log(p);
+        double lq = log_p ? DistributionUtil.logOneMinusExp(p) : log1p(-p);
+        return exp(log(scale) + (lower_tail ? lp - lq : lq - lp) / shape);
 	}
 
 	public static final double random(double shape, double scale, RandomEngine random) {
@@ -104,12 +101,12 @@ public class LogLogistic extends GenericDistribution {
 
 	@Override
 	public double density(double x, boolean log) {
-		return density((int) x, shape, scale, log);
+		return density(x, shape, scale, log);
 	}
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		return cumulative((int) p, shape, scale, lower_tail, log_p);
+		return cumulative(p, shape, scale, lower_tail, log_p);
 	}
 
 	@Override

@@ -1,0 +1,3 @@
+InvNormal.random 100 ns/value (vectorized R)
+PositiveNormal.quantile 39 ns/value (vectorized R)
+BetaBinomial.cumulative 45 ns/value (vectorized R)

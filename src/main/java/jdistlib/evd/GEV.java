@@ -25,42 +25,49 @@ import jdistlib.rng.RandomEngine;
  * Taken from EVD package of R
  */
 public class GEV extends GenericDistribution {
-	public static final double density(double x, double loc, double scale, double shape, boolean log) {
-		if (scale <= 0)
-			return Double.NaN;
-		x = (x - loc) / scale;
-		if (shape == 0)
-			x = - log(scale) - x - exp(-x);
-		else {
-			x = 1 + shape * x;
-			x = x <= 0 ? Double.NEGATIVE_INFINITY : -log(scale) - pow(x, -1.0/shape) - (1.0/shape + 1) * log(x);
-		}
-		return !log ? exp(x) : x;
-	}
-
-	public static final double cumulative(double q, double loc, double scale, double shape, boolean lower_tail) {
-		if (scale <= 0)
-			return Double.NaN;
-		q = (q - loc) / scale;
-		q = shape == 0 ? exp(-exp(-q)) : exp(-pow(max(1 + shape * q, 0), -1.0/shape));
-		return !lower_tail ? 1 - q : q;
-	}
-
-	public static final double quantile(double p, double loc, double scale, double shape, boolean lower_tail) {
-		if (p <= 0 || p >= 1 || scale < 0)
-			return Double.NaN;
-		if (!lower_tail)
-			p = 1 - p;
-		return shape == 0 ? loc - scale * log(-log(p)) : loc + scale * ((pow(-log(p), -shape) - 1) / shape);
-	}
-
-	public static final double random(double loc, double scale, double shape, RandomEngine random) {
-		if (scale < 0)
-			return Double.NaN;
-		return shape == 0 ?
-			(loc - scale * log(Exponential.random_standard(random))) :
-			(loc + scale * ((pow(Exponential.random_standard(random), -shape) - 1) / shape) );
-	}
+    public static final double density(double x, double loc, double scale, double shape, boolean log) {
+        if (TailMath.invalid(loc, scale, shape) || Double.isNaN(x)) return Double.NaN;
+        double z = (x - loc) / scale;
+        if (Double.isInfinite(z)) return log ? Double.NEGATIVE_INFINITY : 0.0;
+        double v;
+        if (shape == 0.0) v = -log(scale) - z - exp(-z);
+        else {
+            double t = shape * z;
+            if (t < -1.0) return log ? Double.NEGATIVE_INFINITY : 0.0;
+            if (t == -1.0) {
+                if (shape == -1.0) return log ? -log(scale) : 1.0 / scale;
+                return shape < -1.0 ? Double.POSITIVE_INFINITY : (log ? Double.NEGATIVE_INFINITY : 0.0);
+            }
+            double w = log1p(t) / shape;
+            v = -log(scale) - exp(-w) - (1.0 + shape) * w;
+        }
+        return log ? v : exp(v);
+    }
+    public static final double cumulative(double x, double loc, double scale, double shape, boolean lower) {
+        return cumulative(x, loc, scale, shape, lower, false);
+    }
+    public static final double cumulative(double x, double loc, double scale, double shape, boolean lower, boolean logP) {
+        if (TailMath.invalid(loc, scale, shape) || Double.isNaN(x)) return Double.NaN;
+        double z = (x - loc) / scale;
+        double logF;
+        if (shape != 0.0 && shape * z <= -1.0) logF = shape > 0.0 ? Double.NEGATIVE_INFINITY : 0.0;
+        else logF = -exp(shape == 0.0 ? -z : -log1p(shape * z) / shape);
+        return TailMath.probability(logF, lower, logP);
+    }
+    public static final double quantile(double p, double loc, double scale, double shape, boolean lower) {
+        return quantile(p, loc, scale, shape, lower, false);
+    }
+    public static final double quantile(double p, double loc, double scale, double shape, boolean lower, boolean logP) {
+        if (TailMath.invalid(loc, scale, shape)) return Double.NaN;
+        double logF = TailMath.logLower(p, lower, logP);
+        double z = -log(-logF);
+        return loc + scale * (shape == 0.0 ? z : expm1(shape * z) / shape);
+    }
+    public static final double random(double loc, double scale, double shape, RandomEngine random) {
+        if (TailMath.invalid(loc, scale, shape)) return Double.NaN;
+        double z = -log(Exponential.random_standard(random));
+        return loc + scale * (shape == 0.0 ? z : expm1(shape * z) / shape);
+    }
 
 	public static final double[] random(int n, double loc, double scale, double shape, RandomEngine random) {
 		double[] rand = new double[n];
@@ -82,14 +89,12 @@ public class GEV extends GenericDistribution {
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		p = cumulative(p, loc, scale, shape, lower_tail);
-		return log_p ? log(p) : p;
+		return cumulative(p, loc, scale, shape, lower_tail, log_p);
 	}
 
 	@Override
 	public double quantile(double q, boolean lower_tail, boolean log_p) {
-		if (log_p) q = exp(q);
-		return quantile(q, loc, scale, shape, lower_tail);
+		return quantile(q, loc, scale, shape, lower_tail, log_p);
 	}
 
 	@Override

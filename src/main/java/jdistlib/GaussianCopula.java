@@ -51,6 +51,7 @@ public final class GaussianCopula implements Copula {
 	@Override public double cumulative(double[] u) {
 		if (!CopulaUtil.validPoint(u, dimension())) return Double.NaN;
 		if (CopulaUtil.hasZero(u)) return 0.0;
+		if (dimension() == 2) return CopulaUtil.ellipticalCumulative(u, correlation[0][1], Double.POSITIVE_INFINITY);
 		double[] upper = new double[dimension()];
 		for (int i = 0; i < upper.length; i++) {
 			upper[i] = u[i] == 1.0 ? Double.POSITIVE_INFINITY

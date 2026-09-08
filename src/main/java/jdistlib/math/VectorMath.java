@@ -303,6 +303,8 @@ public class VectorMath {
 	 * @return quantile value
 	 */
 	public static final double quantile(double[] sortedData, double quantile) {
+		if (Double.isNaN(quantile) || sortedData.length == 0) return Double.NaN;
+		if (quantile < 0 || quantile > 1) throw new IllegalArgumentException("Probability outside [0,1]");
 		double index = (sortedData.length - 1) * quantile;
 		int
 			lo = (int) Math.floor(index),
@@ -361,11 +363,57 @@ public class VectorMath {
 	}
 
 	public static final double mean(double[] e) {
-		double sum = 0;
-		int n = e.length;
-		for (int i = 0; i < n; i++)
-			sum += (e[i] / n); // guard against overflow
-		return sum;
+		if (e.length == 0) return Double.NaN;
+		double scale = 0, infinities = 0;
+		for (double value : e) {
+			if (Double.isNaN(value)) return Double.NaN;
+			if (Double.isInfinite(value)) infinities += value;
+			scale = Math.max(scale, Math.abs(value));
+		}
+		if (Double.isInfinite(scale)) return infinities;
+		if (scale == 0) return 0;
+		// Sum without scaling first so a small residual between large opposing
+		// values is not erased by division. Fall back only on actual overflow.
+		double raw = 0, residual = 0;
+		boolean overflow = false;
+		for (double value : e) {
+			double next = raw + value;
+			if (!Double.isFinite(next)) { overflow = true; break; }
+			residual += Math.abs(raw) >= Math.abs(value) ? (raw - next) + value : (value - next) + raw;
+			raw = next;
+			if (!Double.isFinite(residual)) { overflow = true; break; }
+		}
+		double center = overflow ? scale * (normalizedSum(e, scale) / e.length)
+			: (Double.isFinite(raw + residual) ? (raw + residual) / e.length : raw / e.length + residual / e.length);
+		if (overflow && Math.abs(center) < 0.5 * scale) {
+			// Scaling can underflow a tiny residual after cancellation of values
+			// whose partial sum overflowed. This rare path sums exact binary64
+			// values before division; ordinary and same-sign data stay in doubles.
+			java.math.BigDecimal exact = java.math.BigDecimal.ZERO;
+			for (double value : e) exact = exact.add(new java.math.BigDecimal(value));
+			return exact.divide(java.math.BigDecimal.valueOf(e.length), java.math.MathContext.DECIMAL128).doubleValue();
+		}
+		if (Math.abs(center) < 0.5 * scale) return center;
+		// Correct rounding in a large common offset without summing squares.
+		double adjustment = 0, correction = 0;
+		for (double value : e) {
+			double delta = value - center;
+			if (!Double.isFinite(delta)) return center;
+			double term = delta / e.length, next = adjustment + term;
+			correction += Math.abs(adjustment) >= Math.abs(term) ? (adjustment - next) + term : (term - next) + adjustment;
+			adjustment = next;
+		}
+		return center + (adjustment + correction);
+	}
+
+	private static double normalizedSum(double[] values, double scale) {
+		double sum = 0, correction = 0;
+		for (double value : values) {
+			double term = value / scale, next = sum + term;
+			correction += Math.abs(sum) >= Math.abs(term) ? (sum - next) + term : (term - next) + sum;
+			sum = next;
+		}
+		return sum + correction;
 	}
 
 	/**
@@ -374,11 +422,13 @@ public class VectorMath {
 	 * @return sqrt(mean(e * e))
 	 */
 	public static final double distance(double[] e) {
+		if (e.length == 0) return Double.NaN;
+		double scale = 0;
+		for (double value : e) scale = Math.max(scale, Math.abs(value));
+		if (scale == 0 || !Double.isFinite(scale)) return scale;
 		double sum = 0;
-		int n = e.length;
-		for (int i = 0; i < n; i++)
-			sum += (e[i] * e[i] / n); // guard against overflow
-		return sqrt(sum);
+		for (double value : e) { double term = value / scale; sum += term * term; }
+		return scale * sqrt(sum / e.length);
 	}
 
 	/**
@@ -409,25 +459,36 @@ public class VectorMath {
 	}
 
 	public static final double sd(double[] e) {
-		double sum = 0, sumsq = 0;
-		int n = e.length, nm1 = n-1;
-		for (int i = 0; i < n; i++) {
-			double v = e[i]; // guard against overflow
-			sum += v / n;
-			sumsq += v * v / nm1;
-		}
-		return sqrt(sumsq - (sum / nm1) * sum * n);
+		return centeredMoment(e, true);
 	}
 
 	public static final double var(double[] e) {
-		double sum = 0, sumsq = 0;
-		int n = e.length, nm1 = n-1;
-		for (int i = 0; i < n; i++) {
-			double v = e[i]; // guard against overflow
-			sum += v / n;
-			sumsq += v * v / nm1;
+		return centeredMoment(e, false);
+	}
+
+	private static double centeredMoment(double[] e, boolean standardDeviation) {
+		if (e.length < 2) return Double.NaN;
+		double center = mean(e), scale = 0;
+		if (!Double.isFinite(center)) return Double.NaN;
+		for (double value : e) {
+			if (!Double.isFinite(value)) return Double.NaN;
+			scale = Math.max(scale, Math.abs(value - center));
 		}
-		return sumsq - (sum / nm1) * sum * n;
+		if (scale == 0) return 0;
+		boolean overflow = Double.isInfinite(scale);
+		if (overflow) {
+			scale = 0;
+			for (double value : e) scale = Math.max(scale, Math.abs(value));
+		}
+		double sum = 0, correction = 0, normalizedCenter = center / scale;
+		for (double value : e) {
+			double delta = overflow ? value / scale - normalizedCenter : (value - center) / scale;
+			double term = delta * delta - correction, next = sum + term;
+			correction = (next - sum) - term;
+			sum = next;
+		}
+		double variance = sum / (e.length - 1);
+		return standardDeviation ? scale * sqrt(variance) : scale * (scale * variance);
 	}
 
 	public static final double sum(double[] e) {

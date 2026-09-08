@@ -1,7 +1,7 @@
 /* Copyright (C) 2026 Roby Joehanes; GPL-2.0-or-later */
 package jdistlib;
 
-import static jdistlib.math.MathFunctions.lgammafn;
+import static jdistlib.math.MathFunctions.lchoose;
 
 import jdistlib.rng.RandomEngine;
 
@@ -10,7 +10,7 @@ public final class MultivariateHypergeometric {
 	private MultivariateHypergeometric() {}
 
 	private static double logChoose(int n, int k) {
-		return lgammafn(n + 1.0) - lgammafn(k + 1.0) - lgammafn(n - k + 1.0);
+		return lchoose(n, k);
 	}
 
 	public static double density(int[] x, int[] population, int draws,
@@ -30,8 +30,7 @@ public final class MultivariateHypergeometric {
 		}
 		if (draws > populationSum || countSum != draws)
 			return giveLog ? Double.NEGATIVE_INFINITY : 0.0;
-		logMass -= lgammafn(populationSum + 1.0) - lgammafn(draws + 1.0) -
-				lgammafn(populationSum - draws + 1.0);
+		logMass -= lchoose(populationSum, draws);
 		return giveLog ? logMass : Math.exp(logMass);
 	}
 

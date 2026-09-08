@@ -18,7 +18,7 @@ public final class DiscreteWeibull extends GenericDistribution
 	}
 
 	private static double logSurvival(double x, double q, double beta) {
-		return Math.log(q) * Math.exp(beta * Math.log(x + 1.0));
+		return Math.log(q) * Math.pow(x + 1.0, beta);
 	}
 
 	public static double density(double x, double q, double beta, boolean log) {
@@ -67,12 +67,17 @@ public final class DiscreteWeibull extends GenericDistribution
 		if (logS == Double.NEGATIVE_INFINITY) return Double.POSITIVE_INFINITY;
 		double value = Math.ceil(Math.pow(logS / Math.log(q), 1.0 / beta) - 1.0);
 		value = Math.max(0.0, value);
-		double requested = logP ? Math.exp(p) : p;
-		double target = lowerTail ? requested : 1.0 - requested;
+		if (!Double.isFinite(value) || value + 1.0 == value) return value;
 		while (value > 0.0
-				&& cumulative(value - 1.0, q, beta, true, false) >= target) value--;
-		while (cumulative(value, q, beta, true, false) < target) value++;
+				&& quantileCondition(value - 1.0, p, q, beta, lowerTail, logP, logS)) value--;
+		while (!quantileCondition(value, p, q, beta, lowerTail, logP, logS)) value++;
 		return value;
+	}
+
+	private static boolean quantileCondition(double x, double p, double q, double beta,
+			boolean lowerTail, boolean logP, double logS) {
+		if (!logP && !lowerTail) return Math.pow(q, Math.pow(x + 1.0, beta)) <= p;
+		return logSurvival(x, q, beta) <= logS;
 	}
 
 	public static double random(double q, double beta, RandomEngine random) {

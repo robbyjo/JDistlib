@@ -18,17 +18,26 @@ package jdistlib;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.rng.RandomEngine;
 
+/** Reciprocal-gamma law: if Y has Gamma(shape, scale), X = 1/Y.
+ * The conventional inverse-gamma scale is therefore 1/scale. */
 public class InvGamma extends GenericDistribution {
 	public static final double density(double x, double shape, double scale, boolean give_log) {
-	    return Gamma.density(1/x, shape, scale, give_log);
+		if (!(shape > 0.0) || !(scale > 0.0) || !Double.isFinite(shape)
+				|| !Double.isFinite(scale) || Double.isNaN(x)) return Double.NaN;
+		if (x <= 0.0 || x == Double.POSITIVE_INFINITY) return give_log ? Double.NEGATIVE_INFINITY : 0.0;
+		double value = Gamma.density(1.0 / x, shape, scale, true) - 2.0 * Math.log(x);
+		return give_log ? value : Math.exp(value);
 	}
 
 	public static final double cumulative(double x, double alph, double scale, boolean lower_tail, boolean log_p) {
-	    return Gamma.cumulative(1/x, alph, scale, lower_tail, log_p);
+		if (!(alph > 0.0) || !(scale > 0.0) || !Double.isFinite(alph)
+				|| !Double.isFinite(scale) || Double.isNaN(x)) return Double.NaN;
+		if (x <= 0.0) return DistributionUtil.boundary(false, lower_tail, log_p);
+	    return Gamma.cumulative(1/x, alph, scale, !lower_tail, log_p);
 	}
 
 	public static final double quantile(double x, double alph, double scale, boolean lower_tail, boolean log_p) {
-	    return 1./Gamma.quantile(x, alph, scale, lower_tail, log_p);
+	    return 1./Gamma.quantile(x, alph, scale, !lower_tail, log_p);
 	}
 
 	public static final double random(double alph, double scale, RandomEngine random) {

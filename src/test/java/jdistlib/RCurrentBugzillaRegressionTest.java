@@ -71,13 +71,14 @@ public class RCurrentBugzillaRegressionTest {
 		double[] second = DistributionTest.fligner_test(rescaled, group);
 		assertEquals(first[0], second[0], 0.0);
 		assertEquals(first[1], second[1], 0.0);
-		assertEquals(4.279354289480157, first[0], 2e-15);
+		// Compensated mean/variance can move the rounded statistic by a few ULPs.
+		assertEquals(4.279354289480157, first[0], 5e-15);
 		assertEquals(0.038578001144839606, first[1], 2e-15);
 
 		// Raw binary64 ranking remains available for compatibility.
 		double[] raw = DistributionTest.fligner_test(rescaled, group,
 				Double.POSITIVE_INFINITY);
-		assertEquals(4.814848002245868, raw[0], 2e-15);
+		assertEquals(4.814848002245868, raw[0], 1e-14);
 	}
 
 	@Test

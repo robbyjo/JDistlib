@@ -31,6 +31,12 @@ public final class CensoredDistribution extends GenericDistribution
 	@Override public double getUpperBound() { return upper; }
 
 	@Override public double density(double x, boolean log) {
+		if (log) {
+			if (Double.isNaN(x)) return Double.NaN;
+			if (x == lower) return base.cumulative(lower, true, true);
+			if (x == upper) return base.cumulative(Math.nextDown(upper), false, true);
+			return x > lower && x < upper ? base.density(x, true) : Double.NEGATIVE_INFINITY;
+		}
 		double value;
 		if (Double.isNaN(x)) return Double.NaN;
 		if (x == lower) value = lowerMass;
@@ -49,10 +55,9 @@ public final class CensoredDistribution extends GenericDistribution
 
 	@Override public double cumulative(double x, boolean lowerTail, boolean logP) {
 		if (Double.isNaN(x)) return Double.NaN;
-		double probability = x < lower ? 0.0
-				: (x >= upper ? 1.0 : base.cumulative(x, true, false));
-		double requested = lowerTail ? probability : 1.0 - probability;
-		return logP ? Math.log(requested) : requested;
+		if (x < lower) return DistributionUtil.boundary(false, lowerTail, logP);
+		if (x >= upper) return DistributionUtil.boundary(true, lowerTail, logP);
+		return base.cumulative(x, lowerTail, logP);
 	}
 
 	@Override public double quantile(double p, boolean lowerTail, boolean logP) {

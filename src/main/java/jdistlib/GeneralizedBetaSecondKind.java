@@ -39,9 +39,11 @@ public class GeneralizedBetaSecondKind extends GenericDistribution {
 			double result = log(a) - log(scale) - lbeta(p, q);
 			return giveLog ? result : exp(result);
 		}
-		double logRatio = log(x / scale);
-		double result = log(a) - log(scale) + (a * p - 1.0) * logRatio
-				- lbeta(p, q) - (p + q) * log1p(exp(a * logRatio));
+		double logRatio = log(x) - log(scale);
+		double power = a * logRatio;
+		double result = log(a) - log(x) - lbeta(p, q)
+				+ (power >= 0.0 ? -q * power - (p + q) * log1p(exp(-power))
+						: p * power - (p + q) * log1p(exp(power)));
 		return giveLog ? result : exp(result);
 	}
 
@@ -54,15 +56,15 @@ public class GeneralizedBetaSecondKind extends GenericDistribution {
 		if (x == Double.POSITIVE_INFINITY) {
 			return DistributionUtil.boundary(true, lowerTail, logP);
 		}
-		return Beta.cumulative(betaArgument(x, scale, a), p, q, lowerTail, logP);
+		return DistributionUtil.betaLogOddsCumulative(a * (log(x) - log(scale)),
+				p, q, lowerTail, logP);
 	}
 
 	public static double quantile(double probability, double scale, double a,
 			double p, double q, boolean lowerTail, boolean logP) {
 		if (invalid(scale, a, p, q)) return Double.NaN;
-		double beta = Beta.quantile(probability, p, q, lowerTail, logP);
-		if (beta == 1.0) return Double.POSITIVE_INFINITY;
-		return scale * exp((log(beta) - log1p(-beta)) / a);
+		return exp(log(scale) + DistributionUtil.betaLogOddsQuantile(probability,
+				p, q, lowerTail, logP) / a);
 	}
 
 	public static double random(double scale, double a, double p, double q,

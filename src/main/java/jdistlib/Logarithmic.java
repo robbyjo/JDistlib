@@ -24,51 +24,47 @@ import jdistlib.rng.RandomEngine;
  * @author Roby Joehanes
  */
 public class Logarithmic extends GenericDistribution {
-	public static final double density(double x, double mu, boolean give_log) {
-		if (Double.isNaN(x) || Double.isNaN(mu))
-			return x + mu;
-		if (mu <= 0 || mu >= 1)
-			return Double.NaN;
-		double logfy = x * log(mu) - log(x) -log(-log(1-mu));
-		return give_log ? logfy : exp(logfy);
-	}
-
-	public static final double cumulative(double q, double mu, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(q) || Double.isNaN(mu))
-			return q + mu;
-		if (mu <= 0 || mu >= 1 || q <= 0)
-			return Double.NaN;
-		double sum = 0;
-		for (int i = 1; i <= q; i++)
-			sum += exp(i * log(mu) - log(i) -log(-log(1-mu)));
-		sum = lower_tail ? sum : 1 - sum;
-		return log_p ? log(sum) : sum;
-	}
-
-	public static final double quantile(double p, double mu, boolean lower_tail, boolean log_p) {
-		return quantile(p, mu, lower_tail, log_p, 10000);
-	}
-
-	public static final double quantile(double p, double mu, boolean lower_tail, boolean log_p, int max_value) {
-		if (Double.isNaN(p) || Double.isNaN(mu))
-			return p + mu;
-		if (mu <= 0 || mu >= 1)
-			return Double.NaN;
-		if (p < 0)
-			return Double.NEGATIVE_INFINITY;
-		if (p > 1)
-			return Double.POSITIVE_INFINITY;
-		p = log_p ? exp(p) : p;
-		p = lower_tail ? p : 1 - p;
-		double sum = 0;
-		for (int i = 0; i < max_value; i++) {
-			sum += exp(i * log(mu) - log(i) -log(-log(1-mu)));
-			if (p <= sum)
-				return i;
-		}
-		return Double.NaN;
-	}
-
+    public static final double density(double x, double mu, boolean logP) {
+        if (!(mu>0.0 && mu<1.0) || Double.isNaN(x)) return Double.NaN;
+        if (x<1.0 || !Double.isFinite(x) || x!=Math.rint(x)) return logP ? Double.NEGATIVE_INFINITY : 0.0;
+        double v=x*log(mu)-log(x)-log(-log1p(-mu));
+        return logP ? v : exp(v);
+    }
+    public static final double cumulative(double x, double mu, boolean lower, boolean logP) {
+        if (!(mu>0.0 && mu<1.0) || Double.isNaN(x)) return Double.NaN;
+        if(x<1.0) return DistributionUtil.boundary(false,lower,logP);
+        if(x==Double.POSITIVE_INFINITY) return DistributionUtil.boundary(true,lower,logP);
+        double k=floor(x), lm=log(mu), total=Double.NEGATIVE_INFINITY;
+        if(lower || mu>.99 && k<100000) {
+            for(double i=1;i<=k;i++) total=DistributionUtil.logAdd(total,i*lm-log(i));
+            total-=log(-log1p(-mu));
+            total=Math.min(0,total);
+            if(!lower) total=DistributionUtil.logOneMinusExp(total);
+        } else {
+            double term=(k+1)*lm-log(k+1); total=term;
+            for(double i=k+1;;i++) {
+                term+=lm+log(i/(i+1));
+                total=DistributionUtil.logAdd(total,term);
+                // Bound all remaining terms by a geometric series.
+                if(term+lm-log1p(-mu)<total-37) break;
+            }
+            total-=log(-log1p(-mu));
+        }
+        return logP ? total : exp(total);
+    }
+    public static final double quantile(double p,double mu,boolean lower,boolean logP) {
+        return quantile(p,mu,lower,logP,10000);
+    }
+    /** The explicit maximum bounds the finite search; returns NaN if exceeded. */
+    public static final double quantile(double p,double mu,boolean lower,boolean logP,int maximum) {
+        if (!(mu>0.0 && mu<1.0) || maximum<1 || Double.isNaN(p) || DistributionUtil.invalidProbability(p,logP)) return Double.NaN;
+        double lp=logP?p:log(p);
+        if(lp==Double.NEGATIVE_INFINITY) return lower?1:Double.POSITIVE_INFINITY;
+        if(lp==0) return lower?Double.POSITIVE_INFINITY:1;
+        double value=DistributionUtil.discreteQuantile(lp,lower,true,1,maximum,(x,lt,l)->cumulative(x,mu,lt,l));
+        double actual=cumulative(value,mu,lower,true);
+        return (lower ? actual>=lp : actual<=lp) ? value : Double.NaN;
+    }
 	public static final double random(double mu, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();

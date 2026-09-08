@@ -24,10 +24,11 @@ public final class DirichletMultinomial {
 			alphaSum += alpha[i];
 			countSum += x[i];
 			logMass -= lgammafn(x[i] + 1.0);
-			logMass += lgammafn(x[i] + alpha[i]) - lgammafn(alpha[i]);
+			if (x[i] > size) return giveLog ? Double.NEGATIVE_INFINITY : 0.0;
+			logMass += DiscreteMultivariateProbability.logGammaIncrement(alpha[i], (int)x[i]);
 		}
 		if (countSum != size) return giveLog ? Double.NEGATIVE_INFINITY : 0.0;
-		logMass += lgammafn(alphaSum) - lgammafn(size + alphaSum);
+		logMass -= DiscreteMultivariateProbability.logGammaIncrement(alphaSum,size);
 		return giveLog ? logMass : Math.exp(logMass);
 	}
 

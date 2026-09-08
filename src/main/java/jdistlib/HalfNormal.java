@@ -47,6 +47,7 @@ public class HalfNormal extends GenericDistribution {
 		if (!(sigma > 0.0) || Double.isInfinite(sigma)) return Double.NaN;
 		if (x <= 0.0) return boundary(false, lowerTail, logP);
 		if (x == Double.POSITIVE_INFINITY) return boundary(true, lowerTail, logP);
+		if (x / sigma < 1e-5) return PositiveNormal.cumulative(x, 0.0, sigma, lowerTail, logP);
 
 		double logSurvival = LOG_2
 				+ Normal.cumulative(x, 0.0, sigma, false, true);
@@ -66,7 +67,7 @@ public class HalfNormal extends GenericDistribution {
 		} else {
 			logSurvival = logP ? p : log(p);
 		}
-		return Normal.quantile(logSurvival - LOG_2, 0.0, sigma, false, true);
+		return PositiveNormal.quantile(p, 0.0, sigma, lowerTail, logP);
 	}
 
 	public static double random(double sigma, RandomEngine random) {

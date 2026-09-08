@@ -35,21 +35,22 @@ import jdistlib.util.Debug;
  */
 public class Zipf extends GenericDistribution {
 	public static final double density(int x, int N, double s, boolean give_log) {
-		if (isInfinite(s)) return s;
+		if (!Double.isFinite(s)) return NaN;
 		if (N <= 0 || s <= 0) return NaN;
 		if (x <= 0 || x > N) return give_log ? Double.NEGATIVE_INFINITY : 0;
 	    return give_log ? -s * log(x) - lgharmonic(N, s) : pow(x, -s) / gharmonic(N, s);
 	}
 
 	public static final double cumulative(int x, int N, double s, boolean lower_tail, boolean log_p) {
-		if (isInfinite(s)) return s;
+		if (!Double.isFinite(s)) return NaN;
 		if (N <= 0 || s <= 0) return NaN;
-		if (x <= 0) return log_p ? Double.NEGATIVE_INFINITY : 0;
-		if (x >= N) return log_p ? 0 : 1;
+		if (x <= 0) return DistributionUtil.boundary(false, lower_tail, log_p);
+		if (x >= N) return DistributionUtil.boundary(true, lower_tail, log_p);
 		if (lower_tail)
 			return log_p ? lgharmonic(x, s) - lgharmonic(N, s) : gharmonic(x, s) / gharmonic(N, s);
 		double sum = 0;
 		if (log_p) {
+			sum = Double.NEGATIVE_INFINITY;
 			for (int i = x+1; i <= N; i++)
 				sum = logspace_add(sum, -s * log(i));
 			return sum - lgharmonic(N, s);
@@ -59,60 +60,10 @@ public class Zipf extends GenericDistribution {
 		return sum / gharmonic(N, s);
 	}
 
-	public static final double quantile(double p, int N, double s, boolean lower_tail, boolean log_p) {
-		if (isInfinite(s)) return s;
-		if (N <= 0 || s <= 0) return Double.NaN;
-		if (log_p) {
-			if (p > 0) return NaN;
-			if (p == 0) return lower_tail ? N : 0;
-			if (p == Double.NEGATIVE_INFINITY) return lower_tail ? 0 : N;
-		} else {
-			if (p < 0 || p > 1) return NaN;
-			if (p == 0) return lower_tail ? 0 : N;
-			if (p == 1) return lower_tail ? N : 0;
-		}
-		int lo = 0, hi = N, mid;
-		double f_lo = cumulative(lo, N, s, lower_tail, log_p), f_hi = cumulative(hi, N, s, lower_tail, log_p), f_mid;
-		boolean pathological = false;
-		do {
-			mid = (lo + hi);
-			f_mid = cumulative(mid, N, s, lower_tail, log_p);
-			// When the case is pathological, prefer to shrink the
-			// upper bound when lower_tail == true (shrink the lower bound otherwise)
-			if (f_mid == p && (f_hi == p || f_lo == p) && (hi - lo > 2))
-				pathological = true;
-			if (lower_tail) {
-				if (f_lo >= p) return lo;
-				if (f_mid > p) {
-					hi = mid;
-					f_hi = f_mid;
-				} else {
-					lo = mid;
-					f_lo = f_mid;
-				}
-			} else {
-				if (f_hi <= p) return hi;
-				if (f_mid < p) {
-					lo = mid;
-					f_lo = f_mid;
-				} else {
-					hi = mid;
-					f_hi = f_mid;
-				}
-			}
-		} while (hi - lo > 1);
-		if (pathological) {
-			System.err.println("Pathological case of Zipf.quantile! Quantile estimate may not be accurate!");
-			if (Debug.warningAsError) {
-				double ans = (lower_tail) ? (f_hi <= p ? hi : f_mid <= p ? mid : lo) : (f_lo >= p ? lo : f_mid >= p ? mid : hi);
-				throw new PrecisionException("Pathological case of Zipf.quantile! Quantile estimate may not be accurate!", ans);
-			}
-		}
-		if (lower_tail)
-			return f_hi <= p ? hi : f_mid <= p ? mid : lo;
-		return f_lo >= p ? lo : f_mid >= p ? mid : hi;
-	}
-
+    public static final double quantile(double p, int N, double s, boolean lower, boolean logP) {
+        if (N<=0 || !(s>0.0) || !Double.isFinite(s)) return NaN;
+        return DistributionUtil.discreteQuantile(p,lower,logP,1,N,(x,lt,lp)->cumulative((int)x,N,s,lt,lp));
+    }
 	public static final double random(int N, double s, RandomEngine random) {
 		if (N <= 0 || s <= 0) return Double.NaN;
 		double u1 = random.nextDouble();
@@ -137,12 +88,15 @@ public class Zipf extends GenericDistribution {
 
 	@Override
 	public double density(double x, boolean log) {
+		if (Double.isNaN(x)) return NaN;
+		if (x != Math.rint(x) || x < 1 || x > N) return log ? Double.NEGATIVE_INFINITY : 0.0;
 		return density((int) x, N, s, log);
 	}
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		return cumulative((int) p, N, s, lower_tail, log_p);
+		if (Double.isNaN(p)) return NaN;
+		return cumulative((int) Math.floor(p), N, s, lower_tail, log_p);
 	}
 
 	@Override

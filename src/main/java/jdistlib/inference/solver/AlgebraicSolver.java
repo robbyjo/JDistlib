@@ -124,7 +124,9 @@ public final class AlgebraicSolver {
 			int best = pivot;
 			for (int row = pivot + 1; row < size; row++)
 				if (Math.abs(a[row][pivot]) > Math.abs(a[best][pivot])) best = row;
-			if (!(Math.abs(a[best][pivot]) > 1e-15)) throw new ArithmeticException("singular Jacobian");
+			// A fixed absolute threshold rejects nonsingular equations solely
+			// because the caller expressed their residuals in smaller units.
+			if (a[best][pivot] == 0 || !Double.isFinite(a[best][pivot])) throw new ArithmeticException("singular Jacobian");
 			double[] swap = a[pivot]; a[pivot] = a[best]; a[best] = swap;
 			double bSwap = b[pivot]; b[pivot] = b[best]; b[best] = bSwap;
 			for (int row = pivot + 1; row < size; row++) {

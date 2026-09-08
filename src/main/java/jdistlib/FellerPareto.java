@@ -77,9 +77,7 @@ public final class FellerPareto extends GenericDistribution
 			return DistributionUtil.boundary(true, lowerTail, logP);
 		}
 		double logV = shape2 * (Math.log(x - minimum) - Math.log(scale));
-		double u = logV >= 0.0 ? 1.0 / (1.0 + Math.exp(-logV))
-				: Math.exp(logV) / (1.0 + Math.exp(logV));
-		return Beta.cumulative(u, shape3, shape1, lowerTail, logP);
+		return DistributionUtil.betaLogOddsCumulative(logV, shape3, shape1, lowerTail, logP);
 	}
 
 	public static double quantile(double p, double minimum, double shape1,
@@ -87,10 +85,8 @@ public final class FellerPareto extends GenericDistribution
 			boolean logP) {
 		if (invalid(minimum, shape1, shape2, shape3, scale)
 				|| DistributionUtil.invalidProbability(p, logP)) return Double.NaN;
-		double u = Beta.quantile(p, shape3, shape1, lowerTail, logP);
-		if (u == 0.0) return minimum;
-		if (u == 1.0) return Double.POSITIVE_INFINITY;
-		return minimum + scale * Math.exp((Math.log(u) - Math.log1p(-u)) / shape2);
+		return minimum + Math.exp(Math.log(scale) + DistributionUtil.betaLogOddsQuantile(
+				p, shape3, shape1, lowerTail, logP) / shape2);
 	}
 
 	public static double random(double minimum, double shape1, double shape2,

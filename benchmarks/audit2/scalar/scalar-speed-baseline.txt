@@ -1,0 +1,3 @@
+InvNormal.random	1679.995 ns/call
+PositiveNormal.quantile	9086.69 ns/call
+BetaBinomial.cumulative	6638.73 ns/call

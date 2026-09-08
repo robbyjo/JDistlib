@@ -39,42 +39,46 @@ public final class StableDistribution extends GenericDistribution
 	public double getBeta() { return beta; }
 	public double getScale() { return scale; }
 	public double getLocation() { return location; }
-	public boolean momentExists(double order) { return order >= 0.0 && order < alpha; }
+	public boolean momentExists(double order) { return Double.isFinite(order) && order >= 0.0 && (alpha == 2.0 || order < alpha); }
 	/** Leading right-tail probability for large positive distance from location. */
 	public double upperTailAsymptotic(double x) { return tailAsymptotic(x, beta); }
 	/** Leading left-tail probability for large positive distance from location. */
 	public double lowerTailAsymptotic(double x) { return tailAsymptotic(x, -beta); }
 
 	@Override public double density(double x, boolean log) {
-		double value;
-		if (alpha == 2.0) value = Normal.density(x, location, Math.sqrt(2.0) * scale, false);
-		else if (alpha == 1.0 && beta == 0.0) value = Cauchy.density(x, location, scale, false);
-		else if (alpha == 0.5 && beta == 1.0) value = x <= location ? 0.0 : Levy.density(x, location, scale, false);
-		else if (alpha == 0.5 && beta == -1.0) value = x >= location ? 0.0 : Levy.density(2.0 * location - x, location, scale, false);
-		else value = fourierDensity(x, 120.0, 16384);
+		if (Double.isNaN(x)) return Double.NaN;
+		if (alpha == 2.0) return Normal.density(x, location, Math.sqrt(2.0) * scale, log);
+		if (alpha == 1.0 && beta == 0.0) return Cauchy.density(x, location, scale, log);
+		if (alpha == 0.5 && beta == 1.0) return Levy.density(x, location, scale, log);
+		if (alpha == 0.5 && beta == -1.0) return Levy.density(2.0 * location - x, location, scale, log);
+		if (!Double.isFinite(x) || x <= getLowerBound() || x >= getUpperBound()) return log ? Double.NEGATIVE_INFINITY : 0.0;
+		double value = fourierDensity(x, 120.0, 16384);
 		return log ? Math.log(value) : value;
 	}
 
 	@Override public double cumulative(double x, boolean lowerTail, boolean logP) {
-		double value;
-		if (alpha == 2.0) value = Normal.cumulative(x, location, Math.sqrt(2.0) * scale, true, false);
-		else if (alpha == 1.0 && beta == 0.0) value = Cauchy.cumulative(x, location, scale, true, false);
-		else if (alpha == 0.5 && beta == 1.0) value = x <= location ? 0.0 : Levy.cumulative(x, location, scale, true, false);
-		else if (alpha == 0.5 && beta == -1.0) value = x >= location ? 1.0 : Levy.cumulative(2.0 * location - x, location, scale, false, false);
-		else value = DistributionTransforms.cumulative(this, x).getValue();
+		if (Double.isNaN(x)) return Double.NaN;
+		if (alpha == 2.0) return Normal.cumulative(x, location, Math.sqrt(2.0) * scale, lowerTail, logP);
+		if (alpha == 1.0 && beta == 0.0) return Cauchy.cumulative(x, location, scale, lowerTail, logP);
+		if (alpha == 0.5 && beta == 1.0) return Levy.cumulative(x, location, scale, lowerTail, logP);
+		if (alpha == 0.5 && beta == -1.0) return Levy.cumulative(2.0 * location - x, location, scale, !lowerTail, logP);
+		if (x <= getLowerBound()) return CountMixtureUtil.endpoint(false, lowerTail, logP);
+		if (x >= getUpperBound()) return CountMixtureUtil.endpoint(true, lowerTail, logP);
+		double value = DistributionTransforms.cumulative(this, x).getValue();
 		if (!lowerTail) value = 1.0 - value;
 		return logP ? Math.log(value) : value;
 	}
 
 	@Override public double quantile(double probability, boolean lowerTail, boolean logP) {
+		if (alpha == 2.0) return Normal.quantile(probability, location, Math.sqrt(2.0) * scale, lowerTail, logP);
+		if (alpha == 1.0 && beta == 0.0) return Cauchy.quantile(probability, location, scale, lowerTail, logP);
+		if (alpha == 0.5 && beta == 1.0) return Levy.quantile(probability, location, scale, lowerTail, logP);
+		if (alpha == 0.5 && beta == -1.0) return 2.0 * location - Levy.quantile(probability, location, scale, !lowerTail, logP);
 		if (logP) probability = Math.exp(probability);
 		if (!lowerTail) probability = 1.0 - probability;
-		if (alpha == 2.0) return Normal.quantile(probability, location, Math.sqrt(2.0) * scale, true, false);
-		if (alpha == 1.0 && beta == 0.0) return Cauchy.quantile(probability, location, scale, true, false);
-		if (alpha == 0.5 && beta == 1.0) return Levy.quantile(probability, location, scale, true, false);
-		if (alpha == 0.5 && beta == -1.0) return 2.0 * location - Levy.quantile(probability, location, scale, false, false);
-		if (probability <= 0.0) return probability == 0.0 ? Double.NEGATIVE_INFINITY : Double.NaN;
-		if (probability >= 1.0) return probability == 1.0 ? Double.POSITIVE_INFINITY : Double.NaN;
+		if (Double.isNaN(probability)) return Double.NaN;
+		if (probability <= 0.0) return probability == 0.0 ? getLowerBound() : Double.NaN;
+		if (probability >= 1.0) return probability == 1.0 ? getUpperBound() : Double.NaN;
 		double span = scale;
 		double low = location - span;
 		double high = location + span;
@@ -133,8 +137,8 @@ public final class StableDistribution extends GenericDistribution
 		return alpha == 2.0 ? TransformDomain.allReal() : new TransformDomain(0.0, true, 0.0, true);
 	}
 
-	@Override public double getLowerBound() { return Double.NEGATIVE_INFINITY; }
-	@Override public double getUpperBound() { return Double.POSITIVE_INFINITY; }
+	@Override public double getLowerBound() { return alpha < 1.0 && beta == 1.0 ? location : Double.NEGATIVE_INFINITY; }
+	@Override public double getUpperBound() { return alpha < 1.0 && beta == -1.0 ? location : Double.POSITIVE_INFINITY; }
 
 	private double fourierDensity(double x, double maximum, int panels) {
 		double width = maximum / panels;

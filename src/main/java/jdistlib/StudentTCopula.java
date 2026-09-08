@@ -1,8 +1,6 @@
 /* Copyright (C) 2026 Roby Joehanes; GPL-2.0-or-later */
 package jdistlib;
 
-import static jdistlib.math.MathFunctions.lgammafn;
-
 import jdistlib.rng.RandomEngine;
 
 /** Student-t copula parameterized by correlation and degrees of freedom. */
@@ -37,6 +35,7 @@ public final class StudentTCopula implements Copula {
 	@Override public double cumulative(double[] u) {
 		if (!CopulaUtil.validPoint(u, dimension())) return Double.NaN;
 		if (CopulaUtil.hasZero(u)) return 0.0;
+		if (dimension() == 2) return CopulaUtil.ellipticalCumulative(u, correlation[0][1], degreesOfFreedom);
 		double[] upper = new double[dimension()];
 		for (int i = 0; i < upper.length; i++) {
 			upper[i] = u[i] == 1.0 ? Double.POSITIVE_INFINITY
@@ -56,9 +55,8 @@ public final class StudentTCopula implements Copula {
 		}
 		double quadratic = MultivariateDistributionUtil.quadratic(x, zero, factor);
 		int d = dimension();
-		double jointLogDensity = lgammafn((degreesOfFreedom + d) / 2.0)
-				- lgammafn(degreesOfFreedom / 2.0)
-				- 0.5 * (d * Math.log(degreesOfFreedom * Math.PI)
+		double jointLogDensity = MultivariateStudentT.logGammaRatio(degreesOfFreedom, d)
+				- 0.5 * (d * (Math.log(degreesOfFreedom) + Math.log(Math.PI))
 				+ factor.logDeterminant)
 				- 0.5 * (degreesOfFreedom + d)
 				* Math.log1p(quadratic / degreesOfFreedom);

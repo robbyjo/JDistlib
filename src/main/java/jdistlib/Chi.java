@@ -27,11 +27,21 @@ import jdistlib.rng.RandomEngine;
 
 public class Chi extends GenericDistribution {
 	public static final double density(double x, double df, boolean give_log) {
-	    return Gamma.density(sqrt(x), df / 2., 2., give_log);
+		if (!(df > 0.0) || !Double.isFinite(df) || Double.isNaN(x)) return Double.NaN;
+		if (x < 0.0 || x == Double.POSITIVE_INFINITY) return give_log ? Double.NEGATIVE_INFINITY : 0.0;
+		if (x == 0.0) {
+			if (df < 1.0) return Double.POSITIVE_INFINITY;
+			if (df > 1.0) return give_log ? Double.NEGATIVE_INFINITY : 0.0;
+			return give_log ? 0.5 * Math.log(2.0 / Math.PI) : sqrt(2.0 / Math.PI);
+		}
+		double value = Gamma.density(x * x, df / 2.0, 2.0, true) + Math.log(2.0) + Math.log(x);
+		return give_log ? value : Math.exp(value);
 	}
 
 	public static final double cumulative(double x, double df, boolean lower_tail, boolean log_p) {
-	    return Gamma.cumulative(sqrt(x), df/2., 2., lower_tail, log_p);
+		if (!(df > 0.0) || !Double.isFinite(df) || Double.isNaN(x)) return Double.NaN;
+		if (x <= 0.0) return DistributionUtil.boundary(false, lower_tail, log_p);
+	    return Gamma.cumulative(x * x, df/2., 2., lower_tail, log_p);
 	}
 
 	public static final double quantile(double p, double df, boolean lower_tail, boolean log_p) {

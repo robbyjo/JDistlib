@@ -3709,7 +3709,7 @@ public class MathFunctions {
 	public static final double lgharmonic(int n, double s, double logexponent) {
 		if (n <= 0)
 			throw new IllegalArgumentException();
-		double sum = 0;
+		double sum = Double.NEGATIVE_INFINITY;
 		if (logexponent != 0)
 			for (int i = 2; i <= n; i++)
 				sum = logspace_add(sum, logexponent * log(log(i)) - s * log(i));

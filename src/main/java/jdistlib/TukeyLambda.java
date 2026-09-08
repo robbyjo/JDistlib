@@ -17,23 +17,23 @@ public final class TukeyLambda extends GenericDistribution
 		if (!Double.isFinite(lambda) || DistributionUtil.invalidProbability(p, logP)) {
 			return Double.NaN;
 		}
-		double probability = logP ? Math.exp(p) : p;
-		if (!lowerTail) probability = 1.0 - probability;
-		if (lambda == 0.0) return Math.log(probability) - Math.log1p(-probability);
-		return (Math.pow(probability, lambda)
-				- Math.pow(1.0 - probability, lambda)) / lambda;
+        double lp=logP?p:Math.log(p),lq=logP?DistributionUtil.logOneMinusExp(p):Math.log1p(-p);
+        if(!lowerTail){double t=lp;lp=lq;lq=t;}
+        if(lambda==0.0)return lp-lq;
+        if(lp==lq)return 0.0;
+        // Factor the larger exponential; expm1 retains the lambda -> 0 limit.
+        if(lambda*(lp-lq)>0) return -Math.exp(lambda*lp)*Math.expm1(lambda*(lq-lp))/lambda;
+        return Math.exp(lambda*lq)*Math.expm1(lambda*(lp-lq))/lambda;
 	}
 
-	private static double probability(double x, double lambda) {
-		double lower = 0.0;
-		double upper = 1.0;
-		for (int i = 0; i < 120; i++) {
-			double middle = (lower + upper) * 0.5;
-			if (quantile(middle, lambda, true, false) >= x) upper = middle;
-			else lower = middle;
-		}
-		return (lower + upper) * 0.5;
-	}
+    private static double logSmallProbability(double x,double lambda) {
+        double target=-Math.abs(x),lo=-Double.MAX_VALUE,hi=-Math.log(2.0);
+        // Work in log probability, so finite extreme quantiles remain reachable.
+        lo=-1.0;
+        while(quantile(lo,lambda,true,true)>target && lo>-1e307)lo*=2;
+        for(int i=0;i<100;i++){double mid=lo+(hi-lo)/2;if(mid==lo||mid==hi)break;if(quantile(mid,lambda,true,true)>=target)hi=mid;else lo=mid;}
+        return lo+(hi-lo)/2;
+    }
 
 	public static double cumulative(double x, double lambda, boolean lowerTail,
 			boolean logP) {
@@ -42,9 +42,9 @@ public final class TukeyLambda extends GenericDistribution
 		double bound = lambda > 0.0 ? 1.0 / lambda : Double.POSITIVE_INFINITY;
 		if (x <= -bound) return DistributionUtil.boundary(false, lowerTail, logP);
 		if (x >= bound) return DistributionUtil.boundary(true, lowerTail, logP);
-		double p = probability(x, lambda);
-		double requested = lowerTail ? p : 1.0 - p;
-		return logP ? Math.log(requested) : requested;
+		double small = logSmallProbability(x, lambda);
+		double value = lowerTail == (x < 0) ? small : DistributionUtil.logOneMinusExp(small);
+		return logP ? value : Math.exp(value);
 	}
 
 	public static double density(double x, double lambda, boolean log) {
@@ -55,9 +55,12 @@ public final class TukeyLambda extends GenericDistribution
 			return log ? Double.NEGATIVE_INFINITY : 0.0;
 		}
 		if (lambda == 1.0) return log ? -Math.log(2.0) : 0.5;
-		double p = probability(x, lambda);
-		double logDerivative = logSum((lambda - 1.0) * Math.log(p),
-				(lambda - 1.0) * Math.log1p(-p));
+		if (lambda > 0.0 && Math.abs(x) == bound) {
+			return lambda < 1.0 ? (log ? Double.NEGATIVE_INFINITY : 0.0) : (log ? 0.0 : 1.0);
+		}
+		double lp = logSmallProbability(x, lambda);
+		double logDerivative = DistributionUtil.logAdd((lambda - 1.0) * lp,
+				(lambda - 1.0) * DistributionUtil.logOneMinusExp(lp));
 		return log ? -logDerivative : Math.exp(-logDerivative);
 	}
 

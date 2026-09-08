@@ -20,8 +20,6 @@ import static jdistlib.math.MathFunctions.*;
 import jdistlib.Beta;
 import jdistlib.generic.GenericDistribution;
 import jdistlib.math.MathFunctions;
-import jdistlib.math.UnivariateFunction;
-import jdistlib.math.opt.Optimization;
 import jdistlib.rng.RandomEngine;
 
 /**
@@ -30,108 +28,34 @@ import jdistlib.rng.RandomEngine;
  *
  */
 public class Order extends GenericDistribution {
-	public static final double density(double x, GenericDistribution dist, int mlen, int j, boolean largest, boolean log) {
-		if (mlen <= 0 || j <= 0 || j > mlen)
-			return Double.NaN;
-		if (!largest)
-			j = mlen + 1 - j;
-		double dens = dist.density(x, true);
-		if (MathFunctions.isInfinite(dens))
-			return Double.NEGATIVE_INFINITY;
-		double cum = dist.cumulative(x, true, log);
-		cum = (mlen - j) * log(cum) + (j - 1) * log (1 - cum);
-		x = lgammafn(mlen + 1) - lgammafn(j) - lgammafn(mlen - j + 1) + dens + cum;
-		return !log ? exp(x) : x;
-	}
-
-	public static final double cumulative(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail) {
-		return cumulative(q, dist, mlen, j, largest, lower_tail, false);
-	}
-
-	public static final double cumulative(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail, boolean log_p) {
-		if (mlen <= 0 || j <= 0 || j > mlen)
-			return Double.NaN;
-		int from = largest ? mlen + 1 - j : 0;
-		double
-			distn = dist.cumulative(q, lower_tail, false),
-			sum = 0;
-		for (int k = 1; k <= j; k++) {
-			int sveck = from + k - 1;
-			sum += exp(lgammafn(mlen+1) - lgammafn(sveck+1) - lgammafn(mlen - sveck + 1)
-				+ sveck * log(distn) + (mlen - sveck) * log(1 - distn));
-		}
-		double p = largest != lower_tail ? 1 - sum : sum;
-		return log_p ? log(p) : p;
-	}
-
-	/**
-	 * Find the quantile of order statistics. WARNING: UNTESTED!!!
-	 * @param q
-	 * @param dist
-	 * @param mlen
-	 * @param j
-	 * @param largest
-	 * @param lower_tail
-	 * @param log_p
-	 * @return Quantile
-	 */
-	public static final double quantile(double q, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower_tail, boolean log_p) {
-		if (log_p) q = exp(q);
-		UnivariateFunction fun = new UnivariateFunction() {
-			double q; int mlen, j; boolean largest, lower_tail, log_p;
-			GenericDistribution dist;
-			public void setParameters(double... params) {
-				q = params[0]; mlen = (int) params[1]; j = (int) params[2];
-				largest = params[3] == 0 ? false : true;
-				lower_tail = params[4] == 0 ? false : true;
-				log_p = params[5] == 0 ? false : true;
-			}
-			public void setObjects(Object... obj) {
-				dist = (GenericDistribution) obj[0];
-			}
-			public double eval(double x) {
-				double val = cumulative(x, dist, mlen, j, largest, lower_tail, log_p);
-				val = val - q;
-				return val * val;
-			}
-		};
-		fun.setParameters(q, mlen, j, largest ? 1.0 : 0.0, lower_tail ? 1.0 : 0.0, log_p ? 1.0 : 0.0);
-		fun.setObjects(dist);
-		double min = -20, max = 20, x; // Guess within (-20, 20)
-		/*
-		 * The following loop assumes that the cdf of the order statistic is
-		 * pretty well behaved
-		 */
-		while (true) {
-			x = floor(Optimization.zeroin(fun, min, max, 1e-20, 10000));
-			// Does the optimization returns border value?
-			if (x == min) { // To the minimum side? Expand towards the negative
-				max = min; min *= 2;
-			} else if (x == max) { // To the maximum side? Expand towards the positive
-				min = max; max *= 2;
-			} else
-				break;
-		}
-		// Numerical search is over, manual scan 
-		double last_x, inc = lower_tail ? -1 : 1;
-		double val = cumulative(x, dist, mlen, j, largest, lower_tail, log_p);
-		while (true) {
-			x += inc;
-			val = cumulative(x, dist, mlen, j, largest, lower_tail, log_p);
-			if (val < q) {
-				last_x = x;
-				x -= inc;
-				break;
-			}
-		}
-		if (last_x > x) {
-			double temp = last_x; last_x = x; x = temp;
-		}
-		// Run another optimization round in the last interval. Hopefully fast.
-		x = floor(Optimization.optimize(fun, last_x, x, 1e-20, 10000));
-		return x;
-	}
-
+    public static final double density(double x, GenericDistribution dist, int mlen, int j, boolean largest, boolean log) {
+        if (mlen <= 0 || j <= 0 || j > mlen) return Double.NaN;
+        int k = largest ? mlen + 1 - j : j;
+        if (mlen == 1) return dist.density(x, log);
+        double value = lgammafn(mlen + 1.0) - lgammafn(k) - lgammafn(mlen - k + 1.0) + dist.density(x, true);
+        if (k > 1) value += (k - 1.0) * dist.cumulative(x, true, true);
+        if (k < mlen) value += (mlen - k) * dist.cumulative(x, false, true);
+        return log ? value : exp(value);
+    }
+    public static final double cumulative(double x, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower) {
+        return cumulative(x, dist, mlen, j, largest, lower, false);
+    }
+    public static final double cumulative(double x, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower, boolean logP) {
+        if (mlen <= 0 || j <= 0 || j > mlen) return Double.NaN;
+        int k = largest ? mlen + 1 - j : j;
+        double lf = dist.cumulative(x, true, true), ls = dist.cumulative(x, false, true);
+        if (lf <= ls) return Beta.cumulative(exp(lf), k, mlen - k + 1.0, lower, logP);
+        return Beta.cumulative(exp(ls), mlen - k + 1.0, k, !lower, logP);
+    }
+    /** Quantile from the beta distribution of the transformed order statistic. */
+    public static final double quantile(double p, GenericDistribution dist, int mlen, int j, boolean largest, boolean lower, boolean logP) {
+        if (mlen <= 0 || j <= 0 || j > mlen) return Double.NaN;
+        int k = largest ? mlen + 1 - j : j;
+        double v = Beta.quantile(p, k, mlen - k + 1.0, lower, logP);
+        if (v <= 0.5) return dist.quantile(v, true, false);
+        v = Beta.quantile(p, mlen - k + 1.0, k, !lower, logP);
+        return dist.quantile(v, false, false);
+    }
 	public static final double random(GenericDistribution dist, int mlen, int j, boolean largest, RandomEngine random) {
 		if (!largest) j = mlen + 1 - j;
 		double value = Beta.random(mlen+1-j, j, random);

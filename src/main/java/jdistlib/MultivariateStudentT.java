@@ -24,12 +24,21 @@ public final class MultivariateStudentT {
 		double quadratic = MultivariateDistributionUtil.quadratic(x, location, factor);
 		if (Double.isNaN(quadratic)) return Double.NaN;
 		int dimension = location.length;
-		double logDensity = lgammafn((degreesOfFreedom + dimension) / 2.0) -
-				lgammafn(degreesOfFreedom / 2.0) -
-				0.5 * (dimension * Math.log(degreesOfFreedom * Math.PI) +
+		double logDensity = logGammaRatio(degreesOfFreedom, dimension) -
+				0.5 * (dimension * (Math.log(degreesOfFreedom) + Math.log(Math.PI)) +
 				factor.logDeterminant) - 0.5 * (degreesOfFreedom + dimension) *
 				Math.log1p(quadratic / degreesOfFreedom);
 		return giveLog ? logDensity : Math.exp(logDensity);
+	}
+
+	static double logGammaRatio(double degreesOfFreedom, int dimension) {
+		double halfDf = degreesOfFreedom / 2.0;
+		// Integer dimension permits recurrence; the odd half step uses stable lbeta.
+		double result = dimension % 2 == 0 ? 0.0 :
+				lgammafn(0.5) - jdistlib.math.MathFunctions.lbeta(halfDf, 0.5);
+		for (int k = 0; k < dimension / 2; k++)
+			result += Math.log(halfDf + (dimension % 2) * 0.5 + k);
+		return result;
 	}
 
 	public static double[] random(double[] location, double[][] scale,

@@ -48,7 +48,7 @@ final class CpuLinearAlgebra {
 				sum += (transpose == MatrixTranspose.NONE
 						? matrix[row * columns + column]
 						: matrix[column * columns + row]) * x[column];
-			y[row] = alpha * sum + beta * y[row];
+			y[row] = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * y[row]);
 		}
 	}
 
@@ -73,10 +73,10 @@ final class CpuLinearAlgebra {
 				sum += a * b;
 			}
 			int index = row * columns + column;
-			result[index] = alpha * sum + beta * result[index];
+			result[index] = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * result[index]);
 		}
 	}
-	static void dsyrk(MatrixTranspose transpose,int dimension,int shared,double alpha,double[]matrix,double beta,double[]result){requireTranspose(transpose);checkMatrix(transpose==MatrixTranspose.NONE?dimension:shared,transpose==MatrixTranspose.NONE?shared:dimension,matrix);checkMatrix(dimension,dimension,result);for(int row=0;row<dimension;row++)for(int column=0;column<=row;column++){double sum=0;for(int k=0;k<shared;k++){double left=transpose==MatrixTranspose.NONE?matrix[row*shared+k]:matrix[k*dimension+row],right=transpose==MatrixTranspose.NONE?matrix[column*shared+k]:matrix[k*dimension+column];sum+=left*right;}double value=alpha*sum+beta*result[row*dimension+column];result[row*dimension+column]=result[column*dimension+row]=value;}}
+	static void dsyrk(MatrixTranspose transpose,int dimension,int shared,double alpha,double[]matrix,double beta,double[]result){requireTranspose(transpose);checkMatrix(transpose==MatrixTranspose.NONE?dimension:shared,transpose==MatrixTranspose.NONE?shared:dimension,matrix);checkMatrix(dimension,dimension,result);for(int row=0;row<dimension;row++)for(int column=0;column<=row;column++){double sum=0;for(int k=0;k<shared;k++){double left=transpose==MatrixTranspose.NONE?matrix[row*shared+k]:matrix[k*dimension+row],right=transpose==MatrixTranspose.NONE?matrix[column*shared+k]:matrix[k*dimension+column];sum+=left*right;}double value=(alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * result[row*dimension+column]);result[row*dimension+column]=result[column*dimension+row]=value;}}
 	static void dtrsv(MatrixTriangle triangle,MatrixTranspose transpose,MatrixDiagonal diagonal,int dimension,double[]matrix,double[]vector){checkTriangular(triangle,transpose,diagonal,dimension,matrix,vector);solveTriangular(triangle,transpose,diagonal,dimension,matrix,vector);}
 	static void dtrsm(MatrixSide side,MatrixTriangle triangle,MatrixTranspose transpose,MatrixDiagonal diagonal,int rows,int columns,double alpha,double[]matrix,double[]right){if(side==null||rows<1||columns<1||right==null||right.length!=rows*columns)throw new IllegalArgumentException("invalid TRSM dimensions");int dimension=side==MatrixSide.LEFT?rows:columns;checkTriangular(triangle,transpose,diagonal,dimension,matrix,new double[dimension]);if(side==MatrixSide.LEFT){double[]vector=new double[rows];for(int c=0;c<columns;c++){for(int r=0;r<rows;r++)vector[r]=alpha*right[r*columns+c];solveTriangular(triangle,transpose,diagonal,rows,matrix,vector);for(int r=0;r<rows;r++)right[r*columns+c]=vector[r];}}else{double[]vector=new double[columns];MatrixTranspose reversed=transpose==MatrixTranspose.NONE?MatrixTranspose.TRANSPOSE:MatrixTranspose.NONE;for(int r=0;r<rows;r++){for(int c=0;c<columns;c++)vector[c]=alpha*right[r*columns+c];solveTriangular(triangle,reversed,diagonal,columns,matrix,vector);System.arraycopy(vector,0,right,r*columns,columns);}}}
 	private static void solveTriangular(MatrixTriangle triangle,MatrixTranspose transpose,MatrixDiagonal diagonal,int n,double[]a,double[]x){boolean lower=(triangle==MatrixTriangle.LOWER)==(transpose==MatrixTranspose.NONE);if(lower){for(int i=0;i<n;i++){double value=x[i];for(int j=0;j<i;j++)value-=(transpose==MatrixTranspose.NONE?a[i*n+j]:a[j*n+i])*x[j];x[i]=diagonal==MatrixDiagonal.UNIT?value:value/a[i*n+i];}}else{for(int i=n-1;i>=0;i--){double value=x[i];for(int j=i+1;j<n;j++)value-=(transpose==MatrixTranspose.NONE?a[i*n+j]:a[j*n+i])*x[j];x[i]=diagonal==MatrixDiagonal.UNIT?value:value/a[i*n+i];}}}
@@ -91,7 +91,7 @@ final class CpuLinearAlgebra {
 			double sum = 0.0;
 			for (int offset = starts[row] - 1; offset < starts[row + 1] - 1; offset++)
 				sum += values[offset] * x[columns[offset] - 1];
-			y[row] = alpha * sum + beta * y[row];
+			y[row] = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * y[row]);
 		}
 	}
 
@@ -107,7 +107,7 @@ final class CpuLinearAlgebra {
 			for (int offset = starts[row] - 1; offset < starts[row + 1] - 1; offset++)
 				sum += values[offset] * right[(columns[offset] - 1) * rightColumns + column];
 			int index = row * rightColumns + column;
-			result[index] = alpha * sum + beta * result[index];
+			result[index] = (alpha == 0 ? 0 : alpha * sum) + (beta == 0 ? 0 : beta * result[index]);
 		}
 	}
 
@@ -165,7 +165,9 @@ final class CpuLinearAlgebra {
 
 	static SymmetricEigenDecomposition dsyev(double[] matrix, int dimension) {
 		checkMatrix(dimension, dimension, matrix); checkFinite(matrix);
-		checkSymmetric(matrix, dimension); double[] values = matrix.clone();
+		double[] values = matrix.clone();
+		double matrixScale = scaleToUnitMaximum(values);
+		checkSymmetric(values, dimension);
 		double[] vectors = identity(dimension); double epsilon = 16.0 * Math.ulp(1.0);
 		int maximumSweeps = Math.max(32, 8 * dimension);
 		for (int sweep = 0; sweep < maximumSweeps; sweep++) {
@@ -199,7 +201,7 @@ final class CpuLinearAlgebra {
 				throw new IllegalStateException("symmetric eigendecomposition did not converge");
 		}
 		double[] eigenvalues = new double[dimension];
-		for (int i = 0; i < dimension; i++) eigenvalues[i] = values[i * dimension + i];
+		for (int i = 0; i < dimension; i++) eigenvalues[i] = values[i * dimension + i] * matrixScale;
 		sortEigenpairs(eigenvalues, vectors, dimension); canonicalizeColumns(vectors, dimension, dimension);
 		return new SymmetricEigenDecomposition(dimension, eigenvalues, vectors);
 	}
@@ -223,6 +225,7 @@ final class CpuLinearAlgebra {
 
 	private static SingularValueDecomposition tallSvd(double[] matrix, int rows, int columns) {
 		double[] work = matrix.clone(), vectors = identity(columns);
+		double matrixScale = scaleToUnitMaximum(work);
 		double epsilon = 16.0 * Math.ulp(1.0); int maximumSweeps = Math.max(48, 12 * columns);
 		for (int sweep = 0; sweep < maximumSweeps; sweep++) {
 			boolean changed = false;
@@ -266,7 +269,18 @@ final class CpuLinearAlgebra {
 		double[] rightTransposed = new double[columns * columns];
 		for (int row = 0; row < columns; row++) for (int column = 0; column < columns; column++)
 			rightTransposed[row * columns + column] = vectors[column * columns + row];
+		for (int column = 0; column < columns; column++) singular[column] *= matrixScale;
 		return new SingularValueDecomposition(rows, columns, singular, left, rightTransposed);
+	}
+
+	// Jacobi rotations compare squared products. Normalizing first preserves
+	// their scale invariance across normal and subnormal input magnitudes.
+	private static double scaleToUnitMaximum(double[] values) {
+		double scale = 0;
+		for (double value : values) scale = Math.max(scale, Math.abs(value));
+		if (scale == 0) return 1;
+		for (int i = 0; i < values.length; i++) values[i] /= scale;
+		return scale;
 	}
 
 	private static double[] identity(int dimension) {

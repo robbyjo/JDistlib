@@ -38,36 +38,49 @@ public final class ClaytonCopula implements Copula {
 			for (double value : u) product *= value;
 			return product;
 		}
-		double excess = 0.0;
-		for (double value : u) excess += Math.expm1(-theta * Math.log(value));
-		return Math.exp(-Math.log1p(excess) / theta);
+		return Math.exp(-logGeneratorSum(u) / theta);
 	}
 
 	@Override public double logDensity(double[] u) {
 		if (!CopulaUtil.interiorPoint(u, dimension)) return Double.NaN;
 		if (theta == 0.0) return 0.0;
 		double sumLogU = 0.0;
-		double excess = 0.0;
 		for (int i = 0; i < dimension; i++) {
 			sumLogU += Math.log(u[i]);
-			excess += Math.expm1(-theta * Math.log(u[i]));
 		}
-		double logGeneratorSum = Math.log1p(excess);
+		double logGeneratorSum = logGeneratorSum(u);
 		double logCoefficient = 0.0;
 		for (int k = 1; k < dimension; k++) logCoefficient += Math.log1p(k * theta);
 		return logCoefficient - (1.0 + theta) * sumLogU
 				- (dimension + 1.0 / theta) * logGeneratorSum;
 	}
 
+	private double logGeneratorSum(double[] u) {
+		double maximum = 0.0;
+		for (double value : u) maximum = Math.max(maximum, -theta * Math.log(value));
+		double sum = 0.0;
+		if (maximum < 350.0) {
+			for (double value : u) sum += Math.expm1(-theta * Math.log(value));
+			return Math.log1p(sum);
+		}
+		for (double value : u) sum += Math.exp(-theta * Math.log(value) - maximum);
+		return maximum + Math.log(sum - (dimension - 1.0) * Math.exp(-maximum));
+	}
+
 	@Override public double[] random(RandomEngine random) {
 		if (random == null) throw new IllegalArgumentException("random engine must not be null");
 		if (theta == 0.0) return new IndependenceCopula(dimension).random(random);
-		double frailty = Gamma.random(1.0 / theta, 1.0, random);
+		double shape = 1.0 / theta;
+		// Gamma(shape) underflows for strong dependence. Shape augmentation
+		// generates its logarithm directly and preserves uniform margins.
+		double logFrailty = shape < 1.0 ? Math.log(Gamma.random(shape+1.0,1.0,random))
+				+ Math.log(CopulaUtil.uniformOpen(random))/shape
+				: Math.log(Gamma.random(shape,1.0,random));
 		double[] result = new double[dimension];
 		for (int i = 0; i < dimension; i++) {
 			double exponential = -Math.log(CopulaUtil.uniformOpen(random));
 			result[i] = CopulaUtil.clampOpen(
-					Math.exp(-Math.log1p(exponential / frailty) / theta));
+					Math.exp(-CopulaUtil.softplus(Math.log(exponential) - logFrailty) / theta));
 		}
 		return result;
 	}

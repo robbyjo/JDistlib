@@ -31,18 +31,20 @@ import jdistlib.rng.RandomEngine;
  */
 public class Kumaraswamy extends GenericDistribution {
 	public static final double density(double x, double a, double b, boolean give_log) {
-		if (a <= 0 || b <= 0) return Double.NaN;
-		if (x < 0 || x > 1) return 0;
-		x = log(a) + log(b) + (a - 1) * log(x) + (b - 1) * log1p(-pow(x, a));
+		if (!(a > 0.0) || !(b > 0.0) || !Double.isFinite(a) || !Double.isFinite(b) || Double.isNaN(x)) return Double.NaN;
+		if (x < 0 || x > 1) return give_log ? Double.NEGATIVE_INFINITY : 0.0;
+		if (x == 0.0) return a < 1.0 ? Double.POSITIVE_INFINITY : a > 1.0 ? (give_log ? Double.NEGATIVE_INFINITY : 0.0) : (give_log ? log(b) : b);
+		if (x == 1.0) return b < 1.0 ? Double.POSITIVE_INFINITY : b > 1.0 ? (give_log ? Double.NEGATIVE_INFINITY : 0.0) : (give_log ? log(a) : a);
+		x = log(a) + log(b) + (a - 1) * log(x) + (b - 1) * DistributionUtil.logOneMinusExp(a * log(x));
 	    return give_log ? x : exp(x);
 	}
 
 	public static final double cumulative(double x, double a, double b, boolean lower_tail, boolean log_p) {
-		if (a <= 0 || b <= 0) return Double.NaN;
-		if (x < 0) return 0;
-		if (x > 1) return 1;
-		x = b * log1p(-pow(x, a));
-		return log_p ? (lower_tail ? logspace_sub(0, x) : x) : (lower_tail ? 1 - exp(x) : x);
+		if (!(a > 0.0) || !(b > 0.0) || !Double.isFinite(a) || !Double.isFinite(b) || Double.isNaN(x)) return Double.NaN;
+		if (x <= 0) return DistributionUtil.boundary(false, lower_tail, log_p);
+		if (x >= 1) return DistributionUtil.boundary(true, lower_tail, log_p);
+		x = b * DistributionUtil.logOneMinusExp(a * log(x));
+		return log_p ? (lower_tail ? DistributionUtil.logOneMinusExp(x) : x) : (lower_tail ? -Math.expm1(x) : exp(x));
 	}
 
 	public static final double quantile(double p, double a, double b, boolean lower_tail, boolean log_p) {
@@ -56,8 +58,8 @@ public class Kumaraswamy extends GenericDistribution {
 			if (p == 0) return lower_tail ? 0 : 1;
 			if (p == 1) return lower_tail ? 1 : 0;
 		}
-		if (log_p) p = exp(p);
-		return !lower_tail ? pow(1-pow(1-p, 1.0/b), 1.0/a) : pow(1-pow(p, 1.0/b), 1.0/a);
+		double logSurvival = lower_tail ? (log_p ? DistributionUtil.logOneMinusExp(p) : log1p(-p)) : (log_p ? p : log(p));
+		return exp(DistributionUtil.logOneMinusExp(logSurvival / b) / a);
 	}
 
 	public static final double random(double a, double b, RandomEngine random) {
@@ -83,12 +85,12 @@ public class Kumaraswamy extends GenericDistribution {
 
 	@Override
 	public double density(double x, boolean log) {
-		return density((int) x, a, b, log);
+		return density(x, a, b, log);
 	}
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		return cumulative((int) p, a, b, lower_tail, log_p);
+		return cumulative(p, a, b, lower_tail, log_p);
 	}
 
 	@Override

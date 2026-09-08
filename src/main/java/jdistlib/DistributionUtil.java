@@ -36,10 +36,37 @@ final class DistributionUtil {
 	}
 
 	static double logAdd(double x, double y) {
+		if (x == Double.POSITIVE_INFINITY || y == Double.POSITIVE_INFINITY) return Double.POSITIVE_INFINITY;
 		if (x == Double.NEGATIVE_INFINITY) return y;
 		if (y == Double.NEGATIVE_INFINITY) return x;
 		double high = Math.max(x, y);
 		return high + log1p(exp(Math.min(x, y) - high));
+	}
+
+	/** Log odds of a beta quantile, retaining the accurately computed smaller side. */
+	static double betaLogOddsQuantile(double probability, double a, double b,
+			boolean lowerTail, boolean logP) {
+		double value = Beta.quantile(probability, a, b, lowerTail, logP);
+		if (value <= 0.5) return log(value) - log1p(-value);
+		double complement = Beta.quantile(probability, b, a, !lowerTail, logP);
+		return log1p(-complement) - log(complement);
+	}
+
+	static double betaLogOddsCumulative(double odds, double a, double b,
+			boolean lowerTail, boolean logP) {
+		boolean flipped = odds > 0.0;
+		double smallLog = flipped ? -odds - log1p(exp(-odds))
+				: odds - log1p(exp(odds));
+		double small = exp(smallLog);
+		if (small > 0.0) return flipped
+				? Beta.cumulative(small, b, a, !lowerTail, logP)
+				: Beta.cumulative(small, a, b, lowerTail, logP);
+		// At an underflowed beta argument, all higher series terms vanish.
+		double shape = flipped ? b : a;
+		double logTail = shape * smallLog - log(shape) - jdistlib.math.MathFunctions.lbeta(a, b);
+		boolean sameTail = lowerTail != flipped;
+		return logP ? (sameTail ? logTail : logOneMinusExp(logTail))
+				: (sameTail ? exp(logTail) : -Math.expm1(logTail));
 	}
 
 	static double discreteQuantile(double p, boolean lowerTail, boolean logP,
@@ -93,14 +120,15 @@ final class DistributionUtil {
 			high = high <= 0.0 ? 1.0 : high * 2.0;
 			if (Double.isInfinite(high)) return high;
 		}
-		for (int i = 0; i < 120; i++) {
-			double middle = low + (high - low) / 2.0;
+		for (int i = 0; i < 1075; i++) {
+			double middle = low * 0.5 + high * 0.5;
+			if (middle == low || middle == high) break;
 			if (quantileCondition(middle, p, lowerTail, logP, cumulative)) {
 				high = middle;
 			} else {
 				low = middle;
 			}
 		}
-		return (low + high) / 2.0;
+		return low * 0.5 + high * 0.5;
 	}
 }

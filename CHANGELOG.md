@@ -1,6 +1,14 @@
 What's new:
 
 Unreleased:
+* Extended the numerical audit to contributed/EVD distributions, copulas,
+  compound counts, density estimation, normality tests, inference diagnostics,
+  solvers, linear algebra and random engines. Added reproducible R-package
+  references and independently checked disagreements with R. See
+  docs/REMAINING_COMPONENTS_AUDIT_2026-09-08.md for fixes, timings and limits.
+* Corrected WELL44497b and CMWC4096 recurrences and state handling. Their seeded
+  streams change; incompatible old serialized states are explicitly rejected.
+  Existing Mersenne Twister core streams are unchanged.
 * Audited scalar distribution accuracy against R 4.6.1 and independent
   high-precision/analytic references. Fixed support, scale, log-tail, mixture,
   and negative-binomial approximation errors, including inherited R defects.

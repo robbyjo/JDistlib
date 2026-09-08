@@ -74,33 +74,20 @@ public class Bandwidth {
 		if (Double.isNaN(lower)) lower = 0.1 * hmax;
 		if (Double.isNaN(upper)) upper = hmax;
 		if (Double.isNaN(tol)) tol = 0.1 * lower;
-		int[] cnt = new int[nb];
-		double xmin, xmax, dd;
-		xmin = xmax = x[0];
-		for (int i = 1; i < n; i++) {
-			if (xmin > x[i]) xmin = x[i];
-			if (xmax < x[i]) xmax = x[i];
-		}
-		dd = ((xmax - xmin) * 1.01) / nb;
-		for (int i = 1; i < n; i++) {
-			int ii = (int)(x[i] / dd);
-			for (int j = 0; j < i; j++) {
-				int jj = (int)(x[j] / dd);
-				cnt[abs(ii - jj)]++;
-			}
-		}
+		double dd = binWidth(x, nb);
+		double[] cnt = pairCounts(x, nb, dd);
 		UnivariateFunction fun = null;
 		if (isUnbiased) {
 			fun = new UnivariateFunction() {
 				double d; int n;
-				int[] cnt;
+				double[] cnt;
 				public void setParameters(double... params) {
 					n = (int) params[0];
 					d = params[1];
 				}
 
 				public void setObjects(Object... obj) {
-					cnt = (int[]) obj[0];
+					cnt = (double[]) obj[0];
 				}
 
 				public double eval(double h) {
@@ -122,14 +109,14 @@ public class Bandwidth {
 		} else {
 			fun = new UnivariateFunction() {
 				double d; int n;
-				int[] cnt;
+				double[] cnt;
 				public void setParameters(double... params) {
 					n = (int) params[0];
 					d = params[1];
 				}
 				
 				public void setObjects(Object... obj) {
-					cnt = (int[]) obj[0];
+					cnt = (double[]) obj[0];
 				}
 				
 				public double eval(double h) {
@@ -162,21 +149,8 @@ public class Bandwidth {
 	public static final double SJ(double[] x, int nb, double lower, double upper, double tol, boolean isDPI) {
 		if (nb <= 0) throw new RuntimeException();
 		int n = x.length;
-		int[] cnt = new int[nb];
-		double xmin, xmax, dd;
-		xmin = xmax = x[0];
-		for (int i = 1; i < n; i++) {
-			if (xmin > x[i]) xmin = x[i];
-			if (xmax < x[i]) xmax = x[i];
-		}
-		dd = ((xmax - xmin) * 1.01) / nb;
-		for (int i = 1; i < n; i++) {
-			int ii = (int)(x[i] / dd);
-			for (int j = 0; j < i; j++) {
-				int jj = (int)(x[j] / dd);
-				cnt[abs(ii - jj)]++;
-			}
-		}
+		double dd = binWidth(x, nb);
+		double[] cnt = pairCounts(x, nb, dd);
 		double
 			scale = min(sd(x), iqr(x)/1.349),
 			a = 1.24 * scale * pow(n, (-1.0/7)),
@@ -199,7 +173,7 @@ public class Bandwidth {
 		UnivariateFunction fSD = new UnivariateFunction() {
 			int n;
 			double d, c1, alph2;
-			int[] cnt;
+			double[] cnt;
 			public double eval(double h) {
 				double v = pow(c1 / bw_phi4(n, d, cnt, alph2 * pow(h, 5.0/7)), 0.2) - h;
 				return v;
@@ -211,7 +185,7 @@ public class Bandwidth {
 			}
 
 			public void setObjects(Object... obj) {
-				cnt = (int[]) obj[0];
+				cnt = (double[]) obj[0];
 			}
 		};
 		fSD.setParameters(n, dd, c1, alph2);
@@ -220,14 +194,14 @@ public class Bandwidth {
 		while (fSD.eval(lower) * fSD.eval(upper) > 0) {
 			if (itry > 99 || !isLimitUnspecified)
 				throw new RuntimeException("no solution in the specified range of bandwidths");
-			if((itry & 1) == 0) upper *= 1.2; else lower /= 1.2;
+			if((itry & 1) != 0) upper *= 1.2; else lower /= 1.2;
 			itry++;
 		}
 		double res = Optimization.zeroin(fSD, lower, upper, tol, 1000);
 		return res;
 	}
 
-	private static final double bw_phi4(int n, double d, int[] cnt, double h) {
+	private static final double bw_phi4(int n, double d, double[] cnt, double h) {
 		int nbin = cnt.length;
 		final int DELMAX = 1000;
 		double sum = 0.0, term, u;
@@ -243,7 +217,7 @@ public class Bandwidth {
 		return u;
 	}
 
-	private static final double bw_phi6(int n, double d, int[] cnt, double h) {
+	private static final double bw_phi6(int n, double d, double[] cnt, double h) {
 		int nbin = cnt.length;
 		final int DELMAX = 1000;
 		double sum = 0.0, term, u;
@@ -260,19 +234,48 @@ public class Bandwidth {
 		return u;
 	}
 
-	// FIXME: 
-	// This is an attempt to port the following fix at R-3.4.0 (synced to R-3.4.1-alpha-r72648 (May 2, 2017):
-	// Bandwidth selectors bw.ucv() and bw.SJ() gave incorrect answers or incorrectly reported an error (because of integer overflow) for inputs longer than 46341. Similarly for bw.bcv() at length 5793.
-	// Another possible integer overflow is checked and may result in an error report (rather than an incorrect result) for much longer inputs (millions for a smooth distribution).
-	//
-	// Comment: I have incorporated the rearranged terms for u, which should solve the overflow part. However,
-	// I cannot see the point on why binning under R vs. under C would have any relevance for JDistlib,
-	// i.e. refactoring bw_pair_cnts to binned vs. unbinned is irrelevant for JDistlib.
-	// Test cases are appreciated. (None found in R)
+	private static double binWidth(double[] x, int nb) {
+		if (x == null || x.length < 2 || nb <= 0)
+			throw new IllegalArgumentException("At least two observations and positive bin count are required");
+		double low = x[0], high = x[0];
+		for (double value : x) {
+			if (!Double.isFinite(value)) throw new IllegalArgumentException("Bandwidth data must be finite");
+			low = min(low, value); high = max(high, value);
+		}
+		double width = (high - low) / nb * 1.01;
+		if (!(width > 0) || !Double.isFinite(width))
+			throw new IllegalArgumentException("Bandwidth data must have a positive finite range");
+		return width;
+	}
 
-	//private static final double[][] bw_pair_cnts(double[] x, int nb, boolean binned) {
-	//	return null;
-	//}
+	private static double[] pairCounts(double[] x, int nb, double width) {
+		double low = min(x), origin = 0;
+		// Preserve R's truncation bins in the ordinary range. Anchor very
+		// large translations before dividing, where integer bins cease to fit
+		// exactly in binary64 (the old int cast saturated much earlier).
+		if (abs(low / width) >= 0x1p52) origin = low;
+		double first = (low - origin) / width;
+		first = first >= 0 ? floor(first) : ceil(first);
+		double[] histogram = new double[nb], counts = new double[nb];
+		for (double value : x) {
+			double bucket = (value - origin) / width;
+			bucket = bucket >= 0 ? floor(bucket) : ceil(bucket);
+			int index = (int) (bucket - first);
+			if (index < 0 || index >= nb) throw new IllegalArgumentException("Bandwidth bin is outside the grid");
+			histogram[index]++;
+		}
+		// Count unordered pairs in O(n + nb^2), without 32-bit count overflow.
+		for (int i = 0; i < nb; i++) {
+			double frequency = histogram[i];
+			if (frequency == 0) continue;
+			counts[0] += frequency * (frequency - 1) / 2;
+			for (int j = 0; j < i; j++) counts[i - j] += frequency * histogram[j];
+		}
+		return counts;
+	}
+
+	// Pair frequencies are accumulated as doubles before multiplication;
+	// repeated observations can otherwise overflow an int even at 65,537 rows.
 
 	public int getNumBins() {
 		return nb;

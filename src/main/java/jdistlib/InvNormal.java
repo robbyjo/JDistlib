@@ -33,60 +33,66 @@ import jdistlib.rng.RandomEngine;
  *
  */
 public class InvNormal extends GenericDistribution {
-	public static final double density(double x, double mu, double sigma, boolean give_log) {
-		if (Double.isNaN(mu) || Double.isNaN(sigma)) return mu + sigma;
-		if (mu <= 0 || sigma <= 0) return Double.NaN;
-		double v = (x/mu - 1) / sigma;
-		x = -0.5*log(2*PI)-log(sigma)-(3/2)*log(x)-(v*v)/(2*x);
-	    return give_log ? x : exp(x);
-	}
-
-	public static final double cumulative(double q, double mu, double sigma, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(mu) || Double.isNaN(sigma)) return mu + sigma;
-		if (mu <= 0 || sigma <= 0) return Double.NaN;
-		double cdf1 = Normal.cumulative(((q/mu)-1)/(sigma*sqrt(q)), 0, 1, true, false);
-		double lcdf2 = (2/(mu*sigma*sigma)) + Normal.cumulative((-((q/mu)+1))/(sigma*sqrt(q)), 0, 1, true, true);
-		q = cdf1 + exp(lcdf2);
-		if (!lower_tail) q = 1 - q; 
-	    return log_p ? log(q) : q;
-	}
-
-	public static final double quantile(double p, double mu, double sigma, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(mu) || Double.isNaN(sigma)) return mu + sigma;
-		if (mu <= 0 || sigma <= 0 || p < 0 || p > 1) return Double.NaN;
-		if (log_p) p = exp(p);
-		if (!lower_tail) p = 1-p;
-		double ax = DBL_MIN, bx = mu;
-		if (cumulative(mu, mu, sigma, true, false) < p) {
-			ax = mu;
-			int j = 1;
-			do {
-				bx = mu + j * sigma;
-				if (cumulative(bx, mu, sigma, true, false) >= p) break;
-				j++;
-			} while (true);
-		}
-		UnivariateFunction f = new UnivariateFunction() {
-			double mu, sigma, p;
-			public double eval(double x) {
-				return cumulative(x, mu, sigma, true, false) - p;
-			}
-			public void setObjects(Object... obj) {}
-			public void setParameters(double... params) {
-				mu = params[0];
-				sigma = params[1];
-				p = params[2];
-			}
-		};
-		f.setParameters(mu, sigma, p);
-		return Optimization.zeroin(f, ax, bx, 0, 10000);
-	}
-
-	public static final double random(double mu, double sigma, RandomEngine random) {
-		if (Double.isNaN(mu) || Double.isNaN(sigma)) return mu + sigma;
-		if (mu <= 0 || sigma <= 0) return Double.NaN;
-		return quantile(random.nextDouble(), mu, sigma, true, false);
-	}
+    private static boolean invalid(double mu, double sigma) {
+        return !(mu > 0.0) || !(sigma > 0.0) || !Double.isFinite(mu) || !Double.isFinite(sigma);
+    }
+    public static final double density(double x, double mu, double sigma, boolean giveLog) {
+        if (invalid(mu, sigma) || Double.isNaN(x)) return Double.NaN;
+        if (x <= 0.0 || x == Double.POSITIVE_INFINITY) return giveLog ? Double.NEGATIVE_INFINITY : 0.0;
+        double a = (x / mu - 1.0) / (sigma * sqrt(x));
+        double v = -0.5 * log(2.0 * PI) - log(sigma) - 1.5 * log(x) - 0.5 * a * a;
+        return giveLog ? v : exp(v);
+    }
+    public static final double cumulative(double x, double mu, double sigma, boolean lowerTail, boolean logP) {
+        if (invalid(mu, sigma) || Double.isNaN(x)) return Double.NaN;
+        if (x <= 0.0) return DistributionUtil.boundary(false, lowerTail, logP);
+        if (x == Double.POSITIVE_INFINITY) return DistributionUtil.boundary(true, lowerTail, logP);
+        double denominator = sigma * sqrt(x);
+        double a = (x / mu - 1.0) / denominator;
+        double b = (x / mu + 1.0) / denominator;
+        double second;
+        if (b >= 8.0) {
+            // Laplace's continued fraction for the normal Mills ratio avoids
+            // subtracting the two very large exponents 2/(mu*sigma^2) and b^2/2.
+            double fraction = 0.0;
+            for (int i = 64; i >= 1; i--) fraction = i / (b + fraction);
+            second = -0.5 * a * a - 0.5 * log(2.0 * PI) - log(b + fraction);
+        } else second = 2.0 / (mu * sigma * sigma) + Normal.cumulative(-b, 0.0, 1.0, true, true);
+        double answer;
+        if (lowerTail) {
+            answer = DistributionUtil.logAdd(Normal.cumulative(a, 0.0, 1.0, true, true), second);
+            answer = min(answer, 0.0);
+        } else {
+            double first = Normal.cumulative(a, 0.0, 1.0, false, true);
+            answer = first + DistributionUtil.logOneMinusExp(min(second - first, 0.0));
+        }
+        return logP ? answer : exp(answer);
+    }
+    public static final double quantile(double p, double mu, double sigma, boolean lowerTail, boolean logP) {
+        if (invalid(mu, sigma) || Double.isNaN(p) || DistributionUtil.invalidProbability(p, logP)) return Double.NaN;
+        double target = logP ? p : log(p);
+        if (target == Double.NEGATIVE_INFINITY) return lowerTail ? 0.0 : Double.POSITIVE_INFINITY;
+        if (target == 0.0) return lowerTail ? Double.POSITIVE_INFINITY : 0.0;
+        // Solve the smaller probability, retaining log inputs all the way.
+        if (target > -log(2.0)) { target = DistributionUtil.logOneMinusExp(target); lowerTail = !lowerTail; }
+        double low = log(Double.MIN_VALUE), high = log(Double.MAX_VALUE);
+        for (int i = 0; i < 100; i++) {
+            double middle = low + (high - low) / 2.0;
+            if (middle == low || middle == high) break;
+            double value = cumulative(exp(middle), mu, sigma, lowerTail, true);
+            if (lowerTail ? value >= target : value <= target) high = middle;
+            else low = middle;
+        }
+        return exp(low + (high - low) / 2.0);
+    }
+    public static final double random(double mu, double sigma, RandomEngine random) {
+        if (invalid(mu, sigma)) return Double.NaN;
+        // Michael-Schucany-Haas transformation; rationalized to avoid cancellation.
+        double z = Normal.random_standard(random);
+        double w = 0.5 * mu * sigma * sigma * z * z;
+        double ratio = 1.0 / (1.0 + w + sqrt(w) * sqrt(w + 2.0));
+        return random.nextDouble() <= 1.0 / (1.0 + ratio) ? mu * ratio : mu / ratio;
+    }
 
 	public static final double[] random(int n, double mu, double sigma, RandomEngine random) {
 		double[] rand = new double[n];

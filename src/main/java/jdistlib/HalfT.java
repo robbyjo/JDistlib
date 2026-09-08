@@ -42,6 +42,13 @@ public final class HalfT extends GenericDistribution implements SupportedDistrib
 		if (x == Double.POSITIVE_INFINITY) {
 			return DistributionUtil.boundary(true, lowerTail, logP);
 		}
+		double z = x / sigma;
+		if (z < 1e-5 * Math.sqrt(df / (df + 1.0))) {
+			double lower = density(0.0, df, sigma, true) + Math.log(x)
+					+ Math.log1p(-(df + 1.0) * z * z / (6.0 * df));
+			double value = lowerTail ? lower : DistributionUtil.logOneMinusExp(lower);
+			return logP ? value : Math.exp(value);
+		}
 		double logSurvival = LOG_TWO
 				+ T.cumulative(x / sigma, df, false, true);
 		double value = lowerTail
@@ -60,6 +67,11 @@ public final class HalfT extends GenericDistribution implements SupportedDistrib
 		double logSurvival = lowerTail
 				? (logP ? DistributionUtil.logOneMinusExp(p) : Math.log1p(-p))
 				: (logP ? p : Math.log(p));
+		double logLower = lowerTail ? (logP ? p : Math.log(p))
+				: (logP ? DistributionUtil.logOneMinusExp(p) : Math.log1p(-p));
+		double local = Math.exp(logLower - density(0.0, df, sigma, true));
+		double z = local / sigma;
+		if (z < 1e-5 * Math.sqrt(df / (df + 1.0))) return local * (1.0 + (df + 1.0) * z * z / (6.0 * df));
 		return sigma * T.quantile(logSurvival - LOG_TWO, df, false, true);
 	}
 

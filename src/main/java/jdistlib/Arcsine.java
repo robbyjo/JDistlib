@@ -29,77 +29,37 @@ import jdistlib.util.Debug;
  *
  */
 public class Arcsine extends GenericDistribution {
-	public static final double density(double x, double a, double b, boolean give_log) {
-		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
-		if (b < a) throw new IllegalArgumentException();
-		b = - M_LOG_PI - 0.5 * (log(x - a)  + log(b - x));
-		return give_log ? b : exp(b);
-	}
-
-	public static final double cumulative(double x, double a, double b, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(x) || Double.isNaN(a) || Double.isNaN(b)) return x + a + b;
-		if (b < a) throw new IllegalArgumentException();
-		b = cumulative_raw(x, a, b);
-		return log_p ? (lower_tail ? b : log1p(-exp(b))) : (lower_tail ? exp(b): 1-exp(b));
-	}
-
-	static final double cumulative_raw(double x, double a, double b) {
-		return -log(M_PI_2) - log(asin(sqrt((x - a) / (b - a))));
-	}
-
-	/**
-	 * Quantile method by bisection
-	 * @param q
-	 * @param a
-	 * @param b
-	 * @param lower_tail
-	 * @param log_p
-	 */
-	public static final double quantile(double q, double a, double b, boolean lower_tail, boolean log_p) {
-		if (Double.isNaN(q) || Double.isNaN(a) || Double.isNaN(b)) return q + a + b;
-		if (b < a) throw new IllegalArgumentException();
-		if (log_p) q = exp(q);
-		if (q < 0 || q > 1) throw new IllegalArgumentException();
-		if (lower_tail) q = 1-q;
-		q = log(q); // Log form comparison
-		double lo = a, hi = b, f_lo = cumulative_raw(lo, a, b), f_hi = cumulative_raw(hi, a, b), mid, f_mid;
-		boolean pathological = false;
-		do {
-			mid = (lo + hi) / 2.;
-			f_mid = cumulative_raw(mid, a, b);
-			// When the case is pathological, prefer to shrink the
-			// upper bound when lower_tail == true (shrink the lower bound otherwise)
-			if (f_mid == q && (f_hi == q || f_lo == q) && (hi - lo > 2))
-				pathological = true;
-			if (lower_tail) {
-				if (f_lo >= q) return lo;
-				if (f_mid > q) {
-					hi = mid;
-					f_hi = f_mid;
-				} else {
-					lo = mid;
-					f_lo = f_mid;
-				}
-			} else {
-				if (f_hi <= q) return hi;
-				if (f_mid < q) {
-					lo = mid;
-					f_lo = f_mid;
-				} else {
-					hi = mid;
-					f_hi = f_mid;
-				}
-			}
-		} while (hi - lo > 1);
-		if (pathological) {
-			System.err.println("Pathological case of Arcsine.quantile! Quantile estimate may not be accurate!");
-			if (Debug.warningAsError) throw new RuntimeException("Pathological case of Arcsine.quantile! Quantile estimate may not be accurate!");
-		}
-		if (lower_tail)
-			return f_hi <= q ? hi : f_mid <= q ? mid : lo;
-		return f_lo >= q ? lo : f_mid >= q ? mid : hi;
-	}
-
+    private static boolean invalid(double a, double b) {
+        return !Double.isFinite(a) || !Double.isFinite(b) || !(a < b);
+    }
+    public static final double density(double x, double a, double b, boolean giveLog) {
+        if (invalid(a, b) || Double.isNaN(x)) return Double.NaN;
+        if (x < a || x > b) return giveLog ? Double.NEGATIVE_INFINITY : 0.0;
+        double value = -log(PI) - 0.5 * (log(x - a) + log(b - x));
+        return giveLog ? value : exp(value);
+    }
+    public static final double cumulative(double x, double a, double b, boolean lower, boolean logP) {
+        if (invalid(a, b) || Double.isNaN(x)) return Double.NaN;
+        if (x <= a) return DistributionUtil.boundary(false, lower, logP);
+        if (x >= b) return DistributionUtil.boundary(true, lower, logP);
+        // The two arcsine integrals evaluate opposite tails directly.
+        double ratio = lower ? (x - a) / (b - a) : (b - x) / (b - a);
+        double value = (2.0 / PI) * asin(sqrt(ratio));
+        return logP ? log(value) : value;
+    }
+    static final double cumulative_raw(double x, double a, double b) {
+        return cumulative(x, a, b, true, true);
+    }
+    /** Exact inverse of the arcsine CDF. */
+    public static final double quantile(double p, double a, double b, boolean lower, boolean logP) {
+        if (invalid(a, b) || Double.isNaN(p) || DistributionUtil.invalidProbability(p, logP)) return Double.NaN;
+        double lp = logP ? p : log(p);
+        boolean direct = lower;
+        if (lp > -log(2.0)) { lp = DistributionUtil.logOneMinusExp(lp); direct = !direct; }
+        double sine = sin(PI * 0.5 * exp(lp));
+        double fraction = sine * sine;
+        return direct ? a + (b - a) * fraction : b - (b - a) * fraction;
+    }
 	public static final double random(double a, double b, RandomEngine random) {
 		double u1 = random.nextDouble();
 		u1 = (int) (134217728 * u1) + random.nextDouble();

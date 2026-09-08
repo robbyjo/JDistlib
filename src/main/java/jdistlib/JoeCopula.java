@@ -15,13 +15,20 @@ public final class JoeCopula implements Copula {
 	@Override public int dimension() { return 2; }
 	@Override public double cumulative(double[] u) {
 		if (!CopulaUtil.validPoint(u, 2)) return Double.NaN;
-		double a = Math.pow(1.0 - u[0], theta);
-		double b = Math.pow(1.0 - u[1], theta);
-		return 1.0 - Math.pow(a + b - a * b, 1.0 / theta);
+		if (theta == 1.0) return u[0] * u[1];
+		if (CopulaUtil.hasZero(u)) return 0.0;
+		return -Math.expm1(logGeneratorSum(u[0], u[1]) / theta);
 	}
 	@Override public double logDensity(double[] u) {
 		if (!CopulaUtil.interiorPoint(u, 2)) return Double.NaN;
-		return Math.log(numericalDensity(u[0], u[1]));
+		if (theta == 1.0) return 0.0;
+		double a = Math.log1p(-u[0]), b = Math.log1p(-u[1]);
+		double sum = logGeneratorSum(u[0], u[1]);
+		double correction = Math.log1p(-1.0 / theta)
+				+ DistributionUtil.logOneMinusExp(theta * a)
+				+ DistributionUtil.logOneMinusExp(theta * b);
+		return Math.log(theta) + (theta - 1.0) * (a + b)
+				+ (1.0 / theta - 2.0) * sum + CopulaUtil.logAdd(sum, correction);
 	}
 	@Override public double[] random(RandomEngine random) {
 		if (random == null) throw new IllegalArgumentException("random engine required");
@@ -33,23 +40,33 @@ public final class JoeCopula implements Copula {
 		CopulaUtil.requirePair(first, second, 2);
 		return first == second ? 1.0 : archimedeanTau();
 	}
-	private double numericalDensity(double u, double v) {
-		double h = 2e-5;
-		double loU = Math.max(0.0, u - h), hiU = Math.min(1.0, u + h);
-		double loV = Math.max(0.0, v - h), hiV = Math.min(1.0, v + h);
-		double mixed = cumulative(new double[] {hiU, hiV}) - cumulative(new double[] {hiU, loV})
-				- cumulative(new double[] {loU, hiV}) + cumulative(new double[] {loU, loV});
-		return Math.max(Double.MIN_NORMAL, mixed / ((hiU - loU) * (hiV - loV)));
+	double conditionalSecond(double first, double second) {
+		if (theta == 1.0) return second;
+		if (first == 1.0) return 0.0;
+		return Math.exp((theta - 1.0) * Math.log1p(-first)
+				+ DistributionUtil.logOneMinusExp(theta * Math.log1p(-second))
+				+ (1.0 / theta - 1.0) * logGeneratorSum(first, second));
+	}
+
+	private double logGeneratorSum(double first, double second) {
+		double a = theta * Math.log1p(-first), b = theta * Math.log1p(-second);
+		return CopulaUtil.logAdd(a, b + DistributionUtil.logOneMinusExp(a));
 	}
 	private double archimedeanTau() {
-		int panels = 8192; double sum = 0.0;
-		for (int i = 0; i < panels; i++) {
-			double t = (i + 0.5) / panels;
-			double power = Math.pow(1.0 - t, theta);
-			double generator = -Math.log1p(-power);
-			double derivative = -theta * Math.pow(1.0 - t, theta - 1.0) / (1.0 - power);
-			sum += generator / derivative;
+		if (theta == 1.0) return 0.0;
+		double h = 2.0 / theta - 1.0;
+		// The digamma quotient has a removable singularity at theta = 2.
+		if (Math.abs(h) < 1e-3) {
+			double quotient = 0.0, power = 1.0, factorial = 1.0;
+			for (int order = 1; order <= 5; order++) {
+				factorial *= order;
+				quotient += jdistlib.math.PolyGamma.psigamma(2.0, order) * power / factorial;
+				power *= h;
+			}
+			return 1.0 - 2.0 / theta * quotient;
 		}
-		return 1.0 + 4.0 * sum / panels;
+		return 1.0 + 2.0 / (2.0 - theta)
+				* (jdistlib.math.PolyGamma.digamma(2.0)
+				- jdistlib.math.PolyGamma.digamma(1.0 + 2.0 / theta));
 	}
 }

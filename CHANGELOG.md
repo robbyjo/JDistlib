@@ -1,6 +1,24 @@
 What's new:
 
 Unreleased:
+* Prepared the 0.10.2 release with the remaining numerical audit fixes and
+  R 4.6.1 comparison reports. The release documentation records 30,710 scalar
+  comparisons, 10,905 joint-law values, matched Java/R benchmarks,
+  high-precision adjudication, and explicit coverage limits.
+
+Version 0.10.2 (September 8, 2026):
+* Completed the remaining numerical audit across contributed and extreme-value
+  distributions, copulas, multivariate laws, compound counts, density and
+  bandwidth utilities, splines, normality tests, inference diagnostics,
+  solvers, linear algebra, accelerators, and random engines.
+* Corrected support, tail, Jacobian, quantile, log-probability, cancellation,
+  overflow, state-transition and parameter-ordering errors found by R
+  comparisons and independent references.
+* Added reproducible R fixtures, high-precision adjudication scripts, benchmark
+  harnesses, release documentation, and the distributable posterior attribution
+  notice. WELL/CMWC corrected streams intentionally differ from old releases;
+  incompatible serialized states are rejected.
+
 * Extended the numerical audit to contributed/EVD distributions, copulas,
   compound counts, density estimation, normality tests, inference diagnostics,
   solvers, linear algebra and random engines. Added reproducible R-package

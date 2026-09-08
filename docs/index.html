@@ -20,6 +20,7 @@
       <a href="copula-tutorial.html">Copulas <span aria-label="version 0.7.0 and later">0.7.0+</span></a>
       <a href="inference-tutorial.html">Inference <span aria-label="version 0.8.0 and later">0.8.0+</span></a>
       <a href="linear-algebra.html">Linear algebra <span aria-label="version 0.10.0 and later">0.10.0+</span></a>
+      <a href="numerical-audit.html">Accuracy audit</a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
       <a href="https://github.com/robbyjo/JDistlib">Source</a>
@@ -33,16 +34,16 @@
       <div class="release-banner" aria-label="Latest stable release">
         <div>
           <span class="release-label">Latest stable release</span>
-          <strong>JDistlib <span data-latest-release-version>0.10.1</span></strong>
+          <strong>JDistlib <span data-latest-release-version>0.10.2</span></strong>
           <span class="release-meta">Java 8+ compatible bytecode</span>
         </div>
-        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download JDistlib <span data-latest-release-version>0.10.1</span> — all in one ↓</a>
+        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download JDistlib <span data-latest-release-version>0.10.2</span> — all in one ↓</a>
       </div>
       <p class="eyebrow">Probability distributions for Java</p>
       <h1>R-grade numerical methods,<br>designed for concurrent Java.</h1>
       <p class="lede">JDistlib is a Java translation of R's <code>src/nmath</code>,
         adapted to avoid process-global mutable caches and extended with distributions
-        beyond the R library. Version 0.10.1 completes provider-resident FP64/
+        beyond the R library. Version 0.10.2 combines provider-resident FP64/
         FP32 prepared sparse factors across oneMKL, optional OpenBLAS/CHOLMOD,
         CUDA, OpenCL, and Vulkan.</p>
       <div class="actions">
@@ -52,7 +53,7 @@
         <a class="button secondary" href="examples.html">Browse examples</a>
       </div>
       <ul class="facts" aria-label="Project facts">
-        <li><strong data-latest-release-version>0.10.1</strong><span>stable release</span></li>
+        <li><strong data-latest-release-version>0.10.2</strong><span>stable release</span></li>
         <li><strong>R 4.6.1</strong><span>sync target</span></li>
         <li><strong>Java 8+</strong><span>compatible bytecode</span></li>
         <li><strong>GPL-2.0+</strong><span>open source</span></li>
@@ -166,13 +167,14 @@ double x = Normal.quantile(
 
     <section class="section status" aria-labelledby="status-heading">
       <div>
-        <p class="eyebrow">Release status · 0.10.1</p>
-        <h2 id="status-heading">Sparse factors now stay with the selected provider</h2>
+        <p class="eyebrow">Release status · 0.10.2</p>
+        <h2 id="status-heading">Numerical accuracy is measured against R</h2>
       </div>
-      <p>Version 0.10.1 completes native prepared sparse numeric factors and
-        solves across the optional CPU and GPU providers while preserving the
-        portable Java implementation and explicit execution reporting.</p>
-      <a class="text-link" href="linear-algebra.html">Review the linear-algebra release →</a>
+      <p>Version 0.10.2 adds the remaining numerical audit fixes across
+        distributions, copulas, compound counts, inference, solvers, linear
+        algebra, accelerators, and random engines. The checked audit compares
+        30,710 scalar values and 10,905 joint-law values with R 4.6.1.</p>
+      <a class="text-link" href="numerical-audit.html">Review accuracy and benchmark results →</a>
     </section>
   </main>
 

@@ -2,7 +2,7 @@
 
 **Release status:** the unified API was released in JDistlib 0.10.0; native
 prepared sparse numeric factors across the optional providers were completed
-in 0.10.1. The shorter [website guide](linear-algebra.html) provides an
+in 0.10.2. The shorter [website guide](linear-algebra.html) provides an
 overview for downstream library authors.
 
 JDistlib exposes FP64 and FP32 linear-algebra contracts across its deterministic

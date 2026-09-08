@@ -38,7 +38,14 @@ The [follow-up audit](docs/REMAINING_COMPONENTS_AUDIT_2026-09-08.md) covers
 additional distributions, copulas, numerical utilities, inference, solvers,
 linear algebra and random engines, with explicit coverage limits.
 
-Version 0.10.1 is the current stable release. It adds provider-resident FP64/
+The 0.10.2 audit compares 30,710 scalar values and 10,905 joint-law values
+against R 4.6.1 and reference packages, with independent high-precision checks
+for disagreements. It records matched workloads including up to 479x faster
+bandwidth selection, 33–79x faster compound-count CDFs, and a 2.26x
+improvement for long-chain diagnostics. The reports include slower cases and
+their reproduction commands.
+
+Version 0.10.2 is the current stable release. It adds provider-resident FP64/
 FP32 prepared sparse-Cholesky factorization and solves for CUDA, OpenCL, and
 Vulkan, hardens oneMKL PARDISO reuse, and optionally pairs OpenBLAS with
 SuiteSparse CHOLMOD 5+. Version 0.10.0 established the backend-neutral dense

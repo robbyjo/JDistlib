@@ -1,4 +1,34 @@
-# JDistlib 0.10.1
+# JDistlib 0.10.2
+
+JDistlib 0.10.2 completes the remaining numerical audit of the probability,
+statistics, inference, solver, accelerator, and random-engine layers. The
+release fixes confirmed issues found through R 4.6.1 comparisons, R package
+references, independent identities, and 80-digit high-precision adjudication.
+
+The audit covers 30,710 scalar density/CDF/quantile values across 36 families,
+10,905 copula, multivariate, finance and compound-count values, 2,076 math and
+normality references, and 51 inference references. The checked fixtures and
+reproduction commands are in `docs/REMAINING_COMPONENTS_AUDIT_2026-09-08.md`
+and `benchmarks/audit2/`.
+
+Measured improvements are workload-specific: bandwidth selection improved by
+about 150–479x over the previous Java implementation, compound-count CDFs by
+about 33–79x, scalar inverse routines by 46–106x, and long-chain diagnostics
+by 2.26x. Corrected Gaussian density is about 5% slower in the measured case,
+Student-t copula CDF remains slower than R, and beta-binomial CDF and
+positive-normal quantiles remain slower than vectorized R. The reports preserve
+those limitations instead of presenting a universal speed claim.
+
+The release also corrects WELL44497b and CMWC4096 initialization, recurrence,
+bounded draws, Gaussian generation, cloning and serialization. Their corrected
+seeded streams change; old incompatible serialized states are rejected. The
+Mersenne Twister core streams are unchanged.
+
+The full Gradle check and Javadoc build passed 514 tests; 8 CUDA tests were
+skipped because CUDA was unavailable, while native CPU, OpenCL and Vulkan
+provider tests passed. The all-in-one JAR smoke check detected four backends.
+
+## Previous release: JDistlib 0.10.1
 
 JDistlib 0.10.1 completes native reusable sparse-Cholesky support across the
 optional compute providers. CUDA, OpenCL, and Vulkan now perform FP64 and FP32

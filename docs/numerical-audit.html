@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="JDistlib 0.10.2 accuracy and performance audit against R 4.6.1.">
+  <title>JDistlib 0.10.2 — Accuracy audit</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/latest-release.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">JDistlib</a>
+    <nav aria-label="Primary navigation">
+      <a href="learn.html">Learn</a>
+      <a href="distributions.html">Distributions</a>
+      <a href="inference-tutorial.html">Inference</a>
+      <a href="linear-algebra.html">Linear algebra</a>
+      <a href="numerical-audit.html" aria-current="page">Accuracy audit</a>
+      <a href="api/">JavaDoc</a>
+      <a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">JDistlib <span data-latest-release-version>0.10.2</span> · R 4.6.1 comparison</p>
+      <h1>Measure the answer before measuring the speed.</h1>
+      <p class="lede">The 0.10.2 release extends the numerical audit from the core R
+        families to contributed distributions, copulas, compound counts, inference,
+        solvers, linear algebra, accelerators, and random engines.</p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/robbyjo/JDistlib/blob/master/docs/REMAINING_COMPONENTS_AUDIT_2026-09-08.md">Read the full audit</a>
+        <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/latest">Download and verify the release</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="evidence-heading">
+      <p class="eyebrow">Frozen evidence</p>
+      <h2 id="evidence-heading">Accuracy compared with R and independent references</h2>
+      <div class="grid">
+        <article><h3>30,710 scalar values</h3><p>Thirty-six distribution families were checked for density, CDF, quantile, tails, log probabilities and boundaries. Disagreements were adjudicated with 80-digit arithmetic and independent inversion identities.</p><a class="card-link" href="https://github.com/robbyjo/JDistlib/blob/master/benchmarks/audit2/scalar/AUDIT.md">Scalar results →</a></article>
+        <article><h3>10,905 joint-law values</h3><p>Copula, multivariate, finance and compound-count references use R packages, base-R constructions and analytic checks. Unreliable R regions are identified rather than copied.</p><a class="card-link" href="https://github.com/robbyjo/JDistlib/blob/master/benchmarks/audit2/joint/AUDIT.md">Joint and finance results →</a></article>
+        <article><h3>2,076 utility references</h3><p>Density estimation, bandwidths, moments, normality tests, multiple testing, splines and optimization are checked against R and independent mathematical identities.</p><a class="card-link" href="https://github.com/robbyjo/JDistlib/blob/master/benchmarks/audit2/math/AUDIT.md">Math results →</a></article>
+        <article><h3>Inference and engines</h3><p>Posterior diagnostics, PSIS, solvers, scaled decompositions, provider paths, WELL44497b and CMWC4096 have frozen fixtures and state-transition tests.</p><a class="card-link" href="https://github.com/robbyjo/JDistlib/blob/master/benchmarks/audit2/inference/AUDIT.md">Inference and RNG results →</a></article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="speed-heading">
+      <p class="eyebrow">Matched workloads</p>
+      <h2 id="speed-heading">Faster where the algorithm changed</h2>
+      <table>
+        <thead><tr><th>Workload</th><th>Change</th><th>Comparison</th></tr></thead>
+        <tbody>
+          <tr><td>SJ bandwidth selection</td><td>150× faster than prior Java</td><td>1.13 ms Java · 0.88 ms R</td></tr>
+          <tr><td>UCV bandwidth selection</td><td>479× faster than prior Java</td><td>0.36 ms Java · 0.96 ms R</td></tr>
+          <tr><td>Compound-count CDFs</td><td>33–79× faster than prior Java</td><td>Java faster on measured batches</td></tr>
+          <tr><td>Long-chain diagnostics</td><td>2.26× faster than prior Java</td><td>38.9 ms Java · 50 ms R</td></tr>
+        </tbody>
+      </table>
+      <p class="lede">These are reproducible, workload-specific measurements. Corrected
+        Gaussian density was slightly slower, Student-t copula CDF remained slower
+        than R, and some scalar routines remain slower than vectorized R. The audit
+        reports retain those results and their limitations.</p>
+    </section>
+
+    <section class="section status" aria-labelledby="limits-heading">
+      <p class="eyebrow">Use the evidence in context</p>
+      <h2 id="limits-heading">What the audit does not claim</h2>
+      <p>Higher-dimensional quadrature, fixed-grid Fourier finance paths, every
+        specialized sampler, all accelerator operations, and every extreme
+        parameter regime were not exhaustively certified. CUDA tests were skipped
+        on the audit host. Read the detailed scope and reproduction commands before
+        generalizing a result.</p>
+    </section>
+  </main>
+  <footer><span>JDistlib by Roby Joehanes and contributors.</span><span>GPL-2.0+</span></footer>
+</body>
+</html>

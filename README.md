@@ -131,12 +131,26 @@ Java/JNI libraries for Windows, Linux, and macOS x86-64. It produces Java
 8-compatible bytecode. Download the
 [all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar).
 
-GPU vendor runtimes remain system components: CUDA requires a compatible
-NVIDIA driver and NVRTC, OpenCL requires an installed OpenCL implementation,
-and Vulkan requires a Vulkan driver. With none present, the same JAR uses the
-CPU backend. Gradle/Maven users who prefer small dependency-managed artifacts
-can use the core, `jdistlib-nativecpu`, `jdistlib-cuda`, `jdistlib-opencl`, or `jdistlib-vulkan`
-modules instead.
+The JAR includes JDistlib's accelerator providers, but GPU drivers and vendor
+runtimes must be downloaded and installed separately. Choose only the backend
+that matches your hardware:
+
+* **NVIDIA CUDA:** Install the
+  [NVIDIA CUDA Toolkit 12.6](https://developer.nvidia.com/cuda-12-6-0-download-archive),
+  including a compatible NVIDIA driver and NVRTC.
+* **OpenCL:** Install an FP64-capable OpenCL implementation supplied by your
+  hardware vendor. The
+  [Khronos OpenCL page](https://www.khronos.org/opencl/) links to the standard,
+  SDK, and vendor resources; there is no single universal OpenCL runtime.
+* **Vulkan:** Install an FP64-capable Vulkan driver for your device. The
+  [LunarG Vulkan download page](https://vulkan.lunarg.com/sdk/home) provides
+  the Vulkan runtime and SDK installers.
+
+No accelerator software is required for CPU-only use. If no supported GPU
+runtime is present, the same JAR uses the CPU backend. Gradle/Maven users who
+prefer small dependency-managed artifacts can use the core,
+`jdistlib-nativecpu`, `jdistlib-cuda`, `jdistlib-opencl`, or
+`jdistlib-vulkan` modules instead.
 
 ## Building
 

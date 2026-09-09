@@ -131,23 +131,22 @@ Java/JNI libraries for Windows, Linux, and macOS x86-64. It produces Java
 8-compatible bytecode. Download the
 [all-in-one JAR directly](https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar).
 
-The JAR includes JDistlib's accelerator providers, but GPU drivers and vendor
-runtimes must be downloaded and installed separately. Choose only the backend
-that matches your hardware:
+### GPU acceleration prerequisites (install separately)
 
-* **NVIDIA CUDA:** Install the
-  [NVIDIA CUDA Toolkit 12.6](https://developer.nvidia.com/cuda-12-6-0-download-archive),
-  including a compatible NVIDIA driver and NVRTC.
-* **OpenCL:** Install an FP64-capable OpenCL implementation supplied by your
-  hardware vendor. The
-  [Khronos OpenCL page](https://www.khronos.org/opencl/) links to the standard,
-  SDK, and vendor resources; there is no single universal OpenCL runtime.
-* **Vulkan:** Install an FP64-capable Vulkan driver for your device. The
-  [LunarG Vulkan download page](https://vulkan.lunarg.com/sdk/home) provides
-  the Vulkan runtime and SDK installers.
+The `jdistlib-all` JAR contains JDistlib's Java/JNI accelerator code, **but it
+does not install a GPU driver or system runtime**. Before requesting a GPU
+backend, install one of the following outside JDistlib:
 
-No accelerator software is required for CPU-only use. If no supported GPU
-runtime is present, the same JAR uses the CPU backend. Gradle/Maven users who
+| Backend | What to download and install |
+| --- | --- |
+| **NVIDIA CUDA** | Install the [NVIDIA CUDA Toolkit 12.6](https://developer.nvidia.com/cuda-12-6-0-download-archive) for your operating system and architecture. Include NVRTC and use a compatible NVIDIA driver. JDistlib's CUDA module is built against JCuda 12.6. |
+| **OpenCL** | Install your CPU/GPU vendor's OpenCL driver/runtime; an SDK by itself is not sufficient. Use the vendor links in the [Khronos OpenCL implementations and resources guide](https://www.khronos.org/opencl/resources). The selected device must support FP64. |
+| **Vulkan** | Install a Vulkan loader and your GPU vendor's Vulkan driver from the links on the [Khronos Vulkan tools and drivers page](https://www.vulkan.org/tools). The device must support `shaderFloat64`. The Vulkan SDK is optional and is not required just to run JDistlib. |
+
+You need only one GPU backend. No accelerator software is required for
+CPU-only use. With `Compute.AUTO`, JDistlib uses the CPU backend when no
+supported GPU runtime is available; an explicit CUDA, OpenCL, or Vulkan request
+fails if that backend is unavailable. Gradle/Maven users who
 prefer small dependency-managed artifacts can use the core,
 `jdistlib-nativecpu`, `jdistlib-cuda`, `jdistlib-opencl`, or
 `jdistlib-vulkan` modules instead.

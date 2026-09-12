@@ -1,5 +1,9 @@
 # Running Stan/JDM scripts
 
+For RJMCMC, see [the worked Java-example-to-CLI guide](rjmcmc/README.md).
+Use `--run --sampler rjmcmc --model-space selection.rj.json`; sampling controls
+and data bindings remain on the command line.
+
 Build from the JDistlib repository root with `./gradlew :jar :jdistlib-all:jar`
 (Windows: `.\gradlew.bat :jar :jdistlib-all:jar`). The core executable JAR is in
 `build/libs/`; the self-contained JAR, including runtime dependencies, is in

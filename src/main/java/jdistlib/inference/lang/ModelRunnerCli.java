@@ -43,6 +43,10 @@ public final class ModelRunnerCli {
     /** Returns 0 on completion/help, 2 on input errors, and 1 on execution/I/O failure. */
     public static int run(String[] arguments, PrintStream out, PrintStream err) {
         try {
+            for (int i = 0; i < arguments.length; i++)
+                if ("--sampler=rjmcmc".equals(arguments[i]) || "--sampler".equals(arguments[i])
+                        && i + 1 < arguments.length && "rjmcmc".equals(arguments[i + 1]))
+                    return RjRunnerCli.run(arguments, out, err);
             for (String argument : arguments) if ("--help".equals(argument) || "-h".equals(argument)) {
                 help(out); return 0;
             }
@@ -76,6 +80,9 @@ public final class ModelRunnerCli {
                 if (!Arrays.asList("--data", "--data-column", "--set").contains(option) && !seen.add(option))
                     throw new IllegalArgumentException("duplicate option: " + option);
                 switch (option) {
+                case "--sampler":
+                    if (!"nuts".equals(value)) throw new IllegalArgumentException("--sampler must be nuts or rjmcmc");
+                    break;
                 case "--input": input = Paths.get(value); inputs.add(input); break;
                 case "--output": output = Paths.get(value); break;
                 case "--data":
@@ -213,6 +220,8 @@ public final class ModelRunnerCli {
     private static void help(PrintStream out) {
         out.println("Usage: java -jar jdistlib-all.jar --run --input script.stan --output output.txt [options]\n"
                 + "Runs the supported Stan/JDM core with JDistlib NUTS (not CmdStan).\n"
+                + "For RJMCMC: --run --sampler rjmcmc --model-space selection.rj.json --output output.txt\n"
+                + "Use --run --sampler rjmcmc --help for RJ options.\n"
                 + "  --data file.json             Merge named numeric JSON values (repeatable)\n"
                 + "  --data variable=file         Bind numeric JSON or headerless CSV/TSV (repeatable)\n"
                 + "  --data-column y=file.csv:y    Bind a named CSV/TSV column (repeatable)\n"

@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /** Bit-mask model family for Java-only covariate, locus, or feature selection. */
-public final class SubsetSelectionTarget implements ReversibleJumpTarget {
+public final class SubsetSelectionTarget implements ReversibleJumpInclusionTarget {
 	private final String[] commonNames, candidateNames; private final SubsetLogJoint logJoint; private final long validMask;
 	public SubsetSelectionTarget(String[] commonParameterNames, String[] candidateNames, SubsetLogJoint logJoint) {
 		if (commonParameterNames == null || candidateNames == null || candidateNames.length == 0 || candidateNames.length > 62 || logJoint == null)

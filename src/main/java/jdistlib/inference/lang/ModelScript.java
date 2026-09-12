@@ -114,6 +114,25 @@ public final class ModelScript {
 		return Collections.unmodifiableSet(names);
 	}
 
+	/** Conservative source restrictions for the first declarative RJ adapter. */
+	static void validateRjSource(String source) {
+		Parser parser = new Parser(source);
+		Program program = parser.parse();
+		if (!parser.diagnostics.isEmpty()) throw new ModelScriptException(parser.diagnostics);
+		if (program.parameters.isEmpty()) throw new IllegalArgumentException("RJ script models require at least one scalar real parameter");
+		for (Declaration declaration : program.parameters)
+			if (!"real".equals(declaration.type) || !declaration.shape.isEmpty()
+					|| declaration.lower != null || declaration.upper != null
+					|| declaration.offset != null || declaration.multiplier != null)
+				throw new ModelScriptException(Collections.singletonList(declaration.error(
+						"RJ schema 1 requires unbounded scalar real parameters without offset/multiplier")));
+		Lexer lexer = new Lexer(source);
+		for (Token token = lexer.next(); token.kind != TokenKind.EOF; token = lexer.next())
+			if (token.text.equals("~") || token.text.endsWith("_lupdf") || token.text.endsWith("_lupmf"))
+				throw new ModelScriptException(Collections.singletonList(new ScriptDiagnostic(token.line, token.column,
+						"RJ models require explicit normalized _lpdf/_lpmf terms; no ~ or _lupdf/_lupmf")));
+	}
+
 	private enum TokenKind { IDENTIFIER, NUMBER, SYMBOL, EOF }
 	private static final class Token {
 		final TokenKind kind; final String text; final int line; final int column;

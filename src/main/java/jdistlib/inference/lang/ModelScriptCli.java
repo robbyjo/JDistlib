@@ -16,6 +16,7 @@ public final class ModelScriptCli {
 		if (arguments.length == 1 && ("--help".equals(arguments[0]) || "-h".equals(arguments[0]))) {
 			System.out.println("Source generation (existing mode): ModelScriptCli <model.jdm-or-stan> <fully.qualified.Class> <output.java>");
 			System.out.println("Inference: java -jar jdistlib-all.jar --run --input script.stan --output output.txt [options]");
+			System.out.println("RJMCMC: --run --sampler rjmcmc --model-space selection.rj.json --output output.txt");
 			System.out.println("Use --run --help for data bindings and sampler options.");
 			return;
 		}

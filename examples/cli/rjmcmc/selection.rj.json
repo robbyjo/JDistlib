@@ -1,0 +1,243 @@
+{
+  "schema": "jdistlib.rj/1",
+  "models": {
+    "intercept": {
+      "script": "intercept.stan",
+      "prior_probability": 0.3429999999999999
+    },
+    "dose": {
+      "script": "dose.stan",
+      "prior_probability": 0.14699999999999996
+    },
+    "genotype": {
+      "script": "genotype.stan",
+      "prior_probability": 0.14699999999999996
+    },
+    "dose_genotype": {
+      "script": "dose_genotype.stan",
+      "prior_probability": 0.063
+    },
+    "proxy_marker": {
+      "script": "proxy_marker.stan",
+      "prior_probability": 0.14699999999999996
+    },
+    "dose_proxy_marker": {
+      "script": "dose_proxy_marker.stan",
+      "prior_probability": 0.063
+    },
+    "genotype_proxy_marker": {
+      "script": "genotype_proxy_marker.stan",
+      "prior_probability": 0.063
+    },
+    "dose_genotype_proxy_marker": {
+      "script": "dose_genotype_proxy_marker.stan",
+      "prior_probability": 0.026999999999999996
+    }
+  },
+  "transitions": [
+    {
+      "type": "add_drop",
+      "from": "intercept",
+      "to": "dose",
+      "copy": {
+        "alpha": "alpha"
+      },
+      "add": {
+        "dose": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "intercept",
+      "to": "genotype",
+      "copy": {
+        "alpha": "alpha"
+      },
+      "add": {
+        "genotype": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "intercept",
+      "to": "proxy_marker",
+      "copy": {
+        "alpha": "alpha"
+      },
+      "add": {
+        "proxy_marker": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "dose",
+      "to": "dose_genotype",
+      "copy": {
+        "alpha": "alpha",
+        "dose": "dose"
+      },
+      "add": {
+        "genotype": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "dose",
+      "to": "dose_proxy_marker",
+      "copy": {
+        "alpha": "alpha",
+        "dose": "dose"
+      },
+      "add": {
+        "proxy_marker": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "genotype",
+      "to": "dose_genotype",
+      "copy": {
+        "alpha": "alpha",
+        "genotype": "genotype"
+      },
+      "add": {
+        "dose": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "genotype",
+      "to": "genotype_proxy_marker",
+      "copy": {
+        "alpha": "alpha",
+        "genotype": "genotype"
+      },
+      "add": {
+        "proxy_marker": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "dose_genotype",
+      "to": "dose_genotype_proxy_marker",
+      "copy": {
+        "alpha": "alpha",
+        "dose": "dose",
+        "genotype": "genotype"
+      },
+      "add": {
+        "proxy_marker": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "proxy_marker",
+      "to": "dose_proxy_marker",
+      "copy": {
+        "alpha": "alpha",
+        "proxy_marker": "proxy_marker"
+      },
+      "add": {
+        "dose": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "proxy_marker",
+      "to": "genotype_proxy_marker",
+      "copy": {
+        "alpha": "alpha",
+        "proxy_marker": "proxy_marker"
+      },
+      "add": {
+        "genotype": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "dose_proxy_marker",
+      "to": "dose_genotype_proxy_marker",
+      "copy": {
+        "alpha": "alpha",
+        "dose": "dose",
+        "proxy_marker": "proxy_marker"
+      },
+      "add": {
+        "genotype": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    },
+    {
+      "type": "add_drop",
+      "from": "genotype_proxy_marker",
+      "to": "dose_genotype_proxy_marker",
+      "copy": {
+        "alpha": "alpha",
+        "genotype": "genotype",
+        "proxy_marker": "proxy_marker"
+      },
+      "add": {
+        "dose": {
+          "proposal": "normal",
+          "mean": 0,
+          "sd": 2
+        }
+      },
+      "space": "unconstrained"
+    }
+  ]
+}

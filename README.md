@@ -83,6 +83,18 @@ Existing source-generation calls remain valid:
 java -jar jdistlib-all.jar script.stan generated.Model Model.java
 ```
 
+For reversible-jump inference, keep sampling controls on the command line and
+declare model scripts, model priors and add/drop transitions in a model-space JSON:
+
+```text
+java -jar jdistlib-all.jar --run --sampler rjmcmc --model-space selection.rj.json --data observations.json --output results.txt
+```
+
+Follow the [Java RJMCMC example as a CLI workflow](examples/cli/rjmcmc/README.md)
+for data loading, four-chain sampling, diagnostics and checkpoint continuation.
+The first adapter supports finite model spaces with unbounded scalar parameters
+and Normal birth proposals; it requires explicit normalized log-density terms.
+
 ## Vignettes
 
 - [Using distributions](https://robbyjo.github.io/JDistlib/getting-started.html)
@@ -96,6 +108,7 @@ java -jar jdistlib-all.jar script.stan generated.Model Model.java
 - [Bayesian modeling and MCMC](https://robbyjo.github.io/JDistlib/inference-tutorial.html)
 - [Treatment-response posterior analysis](https://robbyjo.github.io/JDistlib/inference-vignette.html)
 - [MCMC diagnostics](https://robbyjo.github.io/JDistlib/inference-diagnostics-vignette.html)
+- [RJMCMC subset selection and CLI workflow](https://robbyjo.github.io/JDistlib/rjmcmc-example.html)
 - [Data ingestion and model scripts](https://robbyjo.github.io/JDistlib/modeling-language-tutorial.html)
 - [JDistlib for Stan users](https://robbyjo.github.io/JDistlib/stan-users.html)
 - [Stan containers and matrices](https://robbyjo.github.io/JDistlib/stan-containers-tutorial.html)

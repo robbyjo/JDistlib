@@ -55,11 +55,11 @@ public final class ReversibleJumpDiagnostics {
 		if (modelChanges == 0L) warnings.add("no retained model changes were observed");
 		int roundTrips = modelIds.length < 2 ? 0 : roundTrips(modelIds[0], modelIds[1], chains);
 		String[] candidateNames = new String[0]; double[] inclusion = new double[0], ess = new double[0], rhat = new double[0], mcse = new double[0];
-		if (target instanceof SubsetSelectionTarget) {
-			SubsetSelectionTarget subset = (SubsetSelectionTarget) target; candidateNames = subset.candidateNames(); int candidates = candidateNames.length;
+		if (target instanceof ReversibleJumpInclusionTarget) {
+			ReversibleJumpInclusionTarget subset = (ReversibleJumpInclusionTarget) target; candidateNames = subset.candidateNames(); int candidates = candidateNames.length;
 			inclusion = new double[candidates]; ess = new double[candidates]; rhat = new double[candidates]; mcse = new double[candidates];
 			for (int candidate = 0; candidate < candidates; candidate++) {
-				double[][] indicators = indicators(chains, candidate); double sum = 0.0; for (double[] chain : indicators) for (double value : chain) sum += value;
+				double[][] indicators = indicators(chains, subset, candidate); double sum = 0.0; for (double[] chain : indicators) for (double value : chain) sum += value;
 				inclusion[candidate] = sum / total; ess[candidate] = indicatorEss(indicators, inclusion[candidate]);
 				rhat[candidate] = indicatorRHat(indicators); mcse[candidate] = Math.sqrt(inclusion[candidate] * (1.0 - inclusion[candidate]) / ess[candidate]);
 				if (ess[candidate] < 100.0) warnings.add("candidate " + candidateNames[candidate] + " has inclusion ESS below 100");
@@ -77,9 +77,9 @@ public final class ReversibleJumpDiagnostics {
 				transitions, candidateNames, inclusion,
 				ess, rhat, mcse, moveNames, attempts, accepts, invalid, summaries, modelChanges, roundTrips, warnings);
 	}
-	private static double[][] indicators(ReversibleJumpResult[] chains, int candidate) {
-		double[][] result = new double[chains.length][]; long mask = 1L << candidate;
-		for (int chain = 0; chain < chains.length; chain++) { result[chain] = new double[chains[chain].size()]; for (int draw = 0; draw < result[chain].length; draw++) result[chain][draw] = (chains[chain].draw(draw).modelId() & mask) == 0L ? 0.0 : 1.0; }
+	private static double[][] indicators(ReversibleJumpResult[] chains, ReversibleJumpInclusionTarget target, int candidate) {
+		double[][] result = new double[chains.length][];
+		for (int chain = 0; chain < chains.length; chain++) { result[chain] = new double[chains[chain].size()]; for (int draw = 0; draw < result[chain].length; draw++) result[chain][draw] = target.active(chains[chain].draw(draw).modelId(), candidate) ? 1.0 : 0.0; }
 		return result;
 	}
 	private static double[][] modelIndicators(ReversibleJumpResult[] chains, long modelId) {

@@ -251,6 +251,19 @@ def scriptSourceSmoke = tasks.register('scriptSourceSmoke', Exec) {
 }
 tasks.named('check') { dependsOn scriptSourceSmoke }
 
+def rjScriptRunnerSmoke = tasks.register('rjScriptRunnerSmoke', Exec) {
+    group = 'verification'
+    dependsOn ':jdistlib-all:jar'
+    doFirst {
+        commandLine new File(System.getProperty('java.home'), 'bin/java').absolutePath,
+            '-jar', rootProject.tasks.getByPath(':jdistlib-all:jar').archiveFile.get().asFile.absolutePath,
+            '--run', '--sampler', 'rjmcmc', '--model-space', 'examples/cli/rjmcmc/selection.rj.json',
+            '--data', 'examples/cli/rjmcmc/observations.json', '--output', 'build/cli-smoke/rjmcmc.csv',
+            '--warmup', '150', '--samples', '100', '--chains', '2', '--seed', '42'
+    }
+}
+tasks.named('check') { dependsOn rjScriptRunnerSmoke }
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

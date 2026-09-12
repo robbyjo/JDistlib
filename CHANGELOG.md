@@ -1,6 +1,11 @@
 What's new:
 
 Unreleased:
+* Added --run --sampler rjmcmc --model-space for finite Stan/JDM model families,
+  paired Normal add/drop proposals, CLI sampling/data controls, inclusion and
+  model diagnostics, and fingerprinted per-chain checkpoint/resume. The worked
+  vignette reproduces the Java subset-selection example's eight-model target;
+  independent normalized-density and Gaussian-evidence tests validate it.
 * Added executable-JAR inference with explicit --run, preserving the existing
   three-argument Stan/JDM-to-Java source generator. The runner loads multiple
   named JSON files, numeric CSV/TSV bindings, selected columns and literal data;

@@ -1,11 +1,60 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Worked Java-only reversible-jump MCMC covariate-selection example with normalized model probabilities, add/drop/swap moves, diagnostics, and checkpoints.">
+<meta name="description" content="Run reversible-jump MCMC through Java or the executable-JAR CLI: model-space JSON, Stan scripts, data loading, diagnostics, and checkpoint continuation.">
 <title>Worked RJMCMC subset selection in JDistlib</title><link rel="stylesheet" href="assets/style.css"></head>
 <body><header class="site-header"><a class="brand" href="./">JDistlib</a><nav aria-label="Primary navigation"><a href="learn.html">Learn</a><a href="inference-tutorial.html">Inference tutorial</a><a href="inference-guide.html">Inference guide</a><a aria-current="page" href="rjmcmc-example.html">RJMCMC example</a><a href="examples.html">Examples</a><a href="api/">JavaDoc</a></nav></header>
 <main class="guide">
 <section class="guide-hero"><p class="eyebrow">Worked analysis · Java-only · 0.8.5</p><h1>Select covariates with reversible-jump MCMC</h1><p class="lede">A complete linear-regression analysis that moves between models of different dimensions, checks inclusion mixing, exports ragged draws, and resumes from an exact portable checkpoint.</p><div class="actions"><a class="button primary" href="https://github.com/robbyjo/JDistlib/blob/master/examples/WorkedReversibleJumpSelectionExample.java">Open the complete Java file</a><a class="button secondary" href="#run">Compile and run</a></div></section>
-<nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#question">Question</a><a href="#target">Normalized target</a><a href="#moves">Moves</a><a href="#run">Run</a><a href="#diagnostics">Review</a><a href="#checkpoint">Resume</a></nav>
+<nav class="guide-toc" aria-label="On this page"><strong>Jump to</strong><a href="#cli">Run through the CLI</a><a href="#question">Question</a><a href="#target">Normalized target</a><a href="#moves">Moves</a><a href="#run">Run Java</a><a href="#diagnostics">Review</a><a href="#checkpoint">Resume Java</a></nav>
+<section class="guide-section" id="cli"><p class="eyebrow">Java example to command line</p><h2>Run the same eight-model statistical target without writing Java</h2>
+<p>The checked-in <a href="https://github.com/robbyjo/JDistlib/tree/master/examples/cli/rjmcmc">CLI example files</a> reproduce the Java example's sixteen observations, three candidates, observation SD 0.75, intercept prior N(0,5), coefficient priors N(0,2), and independent inclusion probability 0.30. Eight ordinary Stan files describe the subset models. A model-space JSON describes their probabilities and transitions. Sampling controls and data paths remain on the command line.</p>
+<h3>1. Build and select the executable JAR</h3>
+<p>From the JDistlib repository root in PowerShell:</p>
+<pre><code>.\gradlew.bat :jar :jdistlib-all:jar
+$jar = (Get-ChildItem distribution/all/build/libs/jdistlib-all-*-SNAPSHOT.jar | Select-Object -First 1).FullName</code></pre>
+<p>The all-in-one JAR needs no companion libraries. The core JAR in <code>build/libs/</code> needs its generated <code>lib/</code> directory alongside it. Build from the current source checkout; older published JARs do not contain this new mode. On Linux/macOS, use <code>./gradlew</code> and pass the generated JAR path to <code>java -jar</code>.</p>
+<h3>2. Define models and paired transitions</h3>
+<p><code>selection.rj.json</code> contains all eight subsets. The intercept-only subset has prior probability <code>0.7^3 = 0.343</code>; dose-only has <code>0.3 * 0.7^2 = 0.147</code>. These are probabilities of individual models, not model sizes. A complete smaller two-model document illustrates the syntax:</p>
+<pre><code>{
+  "schema": "jdistlib.rj/1",
+  "models": {
+    "intercept": {"script": "intercept.stan", "prior_probability": 0.7},
+    "dose": {"script": "dose.stan", "prior_probability": 0.3}
+  },
+  "transitions": [{
+    "type": "add_drop",
+    "from": "intercept",
+    "to": "dose",
+    "copy": {"alpha": "alpha"},
+    "add": {"dose": {"proposal": "normal", "mean": 0, "sd": 2}},
+    "space": "unconstrained"
+  }]
+}</code></pre>
+<p>Script paths resolve relative to this JSON file. The add move copies <code>alpha</code> and proposes <code>dose</code>; its paired drop move removes <code>dose</code> and evaluates the reverse proposal density. The adapter supplies the unit insertion/removal Jacobian, and the sampler includes forward/reverse move-selection probabilities. The Normal proposal above is distinct from the parameter prior defined inside <code>dose.stan</code>.</p>
+<aside class="callout caution"><strong>Normalized target contract:</strong> every script must include proper parameter priors and all model-dependent normalization constants. Use explicit calls such as <code>target += normal_lpdf(dose | 0, 2);</code>. The adapter rejects <code>~</code> and <code>_lupdf</code>/<code>_lupmf</code>. It cannot prove normalization or prior propriety for arbitrary target expressions or user functions. The manifest adds the model prior, so do not include that prior a second time in the script.</aside>
+<h3>3. Load data and validate the complete model space</h3>
+<pre><code>java -jar $jar --run --sampler rjmcmc --model-space examples/cli/rjmcmc/selection.rj.json --data examples/cli/rjmcmc/observations.json --validate</code></pre>
+<p>Expected: <code>Validated RJ model space: 8 models, 24 directed moves</code>. <code>observations.json</code> contains <code>N</code>, the row-major matrix <code>X</code>, and vector <code>y</code>. To load separate files, replace its <code>--data</code> argument with:</p>
+<pre><code>--set N=16 --data X=examples/cli/rjmcmc/design.csv --data-column y=examples/cli/rjmcmc/response.csv:response</code></pre>
+<p>Repeat <code>--data file.json</code> to merge different variables from several files. CLI data paths resolve from the working directory. Each model receives its declared inputs; variables unused by every model, duplicate names, missing values, invalid dimensions, unknown JSON fields, incomplete mappings and disconnected transition graphs are rejected.</p>
+<h3>4. Sample and save checkpoints</h3>
+<pre><code>java -jar $jar --run --sampler rjmcmc --model-space examples/cli/rjmcmc/selection.rj.json --data examples/cli/rjmcmc/observations.json --chains 4 --threads 4 --warmup 1500 --samples 4000 --seed 20260829 --within-scale 0.20 --within-target-accept 0.30 --target-jump-accept 0.25 --output build/rj-cli/results.txt --checkpoint build/rj-cli/state</code></pre>
+<p><code>--samples</code> counts retained draws per chain. <code>--thin 2</code> doubles post-warmup iterations. Each chain owns its adaptive within-model random walk, and adaptation freezes after warmup. Birth proposals remain fixed. Directed edges start with equal weights; <code>--adapt-move-weights false</code> disables weight adaptation. Chains start at default parameter values in successive declared models. Fresh-run seeded results are independent of worker count.</p>
+<p>The full CLI example has twelve paired add/drop edges. The Java example additionally proposes direct swaps; the schedules share a statistical target but may mix differently and do not produce identical seeded draws. Independent tests compare each CLI model's normalized log joint with the Java formula and compare sampled probabilities with exact Gaussian marginal likelihoods.</p>
+<h3>5. Inspect model probabilities and inclusion diagnostics</h3>
+<p><code>results.txt</code> is tidy CSV with columns <code>chain,draw,model_id,model_name,kind,parameter,value,log_joint</code>. An absent coefficient has no row; it is not an observed zero. The <code># diagnostics=</code> comment contains JSON with model occupancy, model/inclusion ESS, R-hat and MCSE, move acceptance and invalid proposals, model changes, and parameter summaries conditional on presence. Extract it in PowerShell:</p>
+<pre><code>$line = Get-Content build/rj-cli/results.txt | Where-Object { $_.StartsWith('# diagnostics=') }
+$report = $line.Substring('# diagnostics='.Length) | ConvertFrom-Json
+$report | ConvertTo-Json -Depth 20</code></pre>
+<p>Parameters sharing a name must have the same meaning and scale across models. A parameter present in only some models receives an inclusion indicator. The catalog lists all declared models; the diagnostic report lists visited models, with separate warnings for unvisited models. Inspect mixing warnings: zero observed occupancy is not proof of zero posterior probability, and a single chain cannot estimate R-hat.</p>
+<h3>6. Continue the saved chains</h3>
+<p>The command above writes <code>state.chain-1.rjckpt</code> through <code>state.chain-4.rjckpt</code>. Restore with the same model/data, chain count, thinning and kernel controls:</p>
+<pre><code>java -jar $jar --run --sampler rjmcmc --model-space examples/cli/rjmcmc/selection.rj.json --data examples/cli/rjmcmc/observations.json --chains 4 --samples 1000 --within-scale 0.20 --within-target-accept 0.30 --target-jump-accept 0.25 --resume build/rj-cli/state --output build/rj-cli/continued.txt --checkpoint build/rj-cli/continued-state</code></pre>
+<p>Omit <code>--seed</code>: saved random streams are restored, with zero new warmup. Resume currently executes chains sequentially and writes only new draws. Fingerprints reject changed model/data or kernel settings and swapped chain files. Tests verify exact continuation of sampled states on the same runtime. Generated quantities use a cloned post-run stream, so their random values can differ between split and uninterrupted exports. Use a new checkpoint prefix to preserve the previous run; output files are staged then replaced individually, not as a single multi-file transaction.</p>
+<h3>Current CLI scope</h3>
+<p>Schema 1 supports finite enumerated model families, at least one unbounded scalar <code>real</code> parameter per model, name-preserving copy maps, and independent Normal proposals for added coordinates. Bounds, vectors, offsets/multipliers, renaming, custom Jacobians, split/merge and direct swaps require other adapters. Large sparse candidate spaces still use the Java <code>SparseSubsetRjSampler</code> API. CLI within-model updates are CPU adaptive random walks; NUTS-specific flags fail in RJ mode. Existing <code>--run --input</code> NUTS and three-argument source generation remain available.</p>
+<p>Run <code>--run --sampler rjmcmc --help</code> for controls, or read the <a href="https://github.com/robbyjo/JDistlib/blob/master/examples/cli/rjmcmc/README.md">complete CLI guide</a>.</p>
+</section>
 <section class="guide-section" id="question"><p class="eyebrow">Scientific question</p><h2>Which predictors belong in the regression?</h2><p>The checked-in example has sixteen observations and three candidate predictors: <code>dose</code>, <code>genotype</code>, and a correlated <code>proxy_marker</code>. The response was generated from the first two, while the proxy creates a realistic competing-locus model that exercises swap moves. A model identifier is a bit mask, so model <code>3</code> contains dose and genotype while model <code>0</code> contains only the common intercept.</p><p>For subset <em>M</em>, the model is:</p><pre><code>y[i] ~ Normal(alpha + sum(beta[j] * x[i,j], j in M), 0.75)
 alpha ~ Normal(0, 5)
 beta[j] ~ Normal(0, 2)

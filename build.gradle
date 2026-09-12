@@ -204,14 +204,52 @@ test {
     useJUnit()
 }
 
+def copyCliRuntimeLibraries = tasks.register('copyCliRuntimeLibraries', Sync) {
+    from configurations.runtimeClasspath
+    into layout.buildDirectory.dir('libs/lib')
+}
+
 jar {
+    dependsOn copyCliRuntimeLibraries
     manifest {
         attributes(
             'Implementation-Title': 'JDistlib',
+            'Main-Class': 'jdistlib.inference.lang.ModelScriptCli',
+            'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.sort().join(' '),
             'Implementation-Version': project.version
         )
     }
 }
+
+// Exercise the manifest entry points, including the unchanged source-generation mode.
+['core': ':jar', 'all': ':jdistlib-all:jar'].each { label, jarPath ->
+    def smoke = tasks.register("${label}ScriptRunnerSmoke", Exec) {
+        group = 'verification'
+        dependsOn jarPath
+        doFirst {
+            def jarTask = rootProject.tasks.getByPath(jarPath)
+            commandLine new File(System.getProperty('java.home'), 'bin/java').absolutePath,
+                '-jar', jarTask.archiveFile.get().asFile.absolutePath,
+                '--run', '--input', 'examples/cli/regression.stan',
+                '--data', 'examples/cli/dimensions.json',
+                '--data', 'examples/cli/predictors.json', '--data', 'examples/cli/response.json',
+                '--output', "build/cli-smoke/${label}.csv",
+                '--warmup', '50', '--samples', '10', '--chains', '2', '--seed', '42'
+        }
+    }
+    tasks.named('check') { dependsOn smoke }
+}
+
+def scriptSourceSmoke = tasks.register('scriptSourceSmoke', Exec) {
+    group = 'verification'
+    dependsOn tasks.named('jar')
+    doFirst {
+        commandLine new File(System.getProperty('java.home'), 'bin/java').absolutePath,
+            '-jar', tasks.named('jar').get().archiveFile.get().asFile.absolutePath,
+            'examples/cli/regression.stan', 'generated.Regression', 'build/cli-smoke/Regression.java'
+    }
+}
+tasks.named('check') { dependsOn scriptSourceSmoke }
 
 publishing {
     publications {

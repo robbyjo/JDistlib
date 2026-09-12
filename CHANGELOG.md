@@ -1,6 +1,11 @@
 What's new:
 
 Unreleased:
+* Added executable-JAR inference with explicit --run, preserving the existing
+  three-argument Stan/JDM-to-Java source generator. The runner loads multiple
+  named JSON files, numeric CSV/TSV bindings, selected columns and literal data;
+  emits constrained NUTS draws, generated quantities and diagnostics; and checks
+  duplicate/unknown inputs before sampling. See examples/cli/README.md.
 * Prepared the 0.10.2 release with the remaining numerical audit fixes and
   R 4.6.1 comparison reports. The release documentation records 30,710 scalar
   comparisons, 10,905 joint-law values, matched Java/R benchmarks,

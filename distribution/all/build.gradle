@@ -55,6 +55,7 @@ jar {
     manifest {
         attributes(
             'Implementation-Title': 'JDistlib all-in-one distribution',
+            'Main-Class': 'jdistlib.inference.lang.ModelScriptCli',
             'Implementation-Version': project.version
         )
     }

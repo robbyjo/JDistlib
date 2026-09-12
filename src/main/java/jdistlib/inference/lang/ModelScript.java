@@ -103,6 +103,17 @@ public final class ModelScript {
 	/** Validates Stan-compatible source without binding data or constructing a model. */
 	public static void validateStanSyntax(String source) { validateSyntax(source); }
 
+	/** Returns declared input names, in source order, without requiring data values. */
+	public static Set<String> dataNames(String source) {
+		if (source == null) throw new IllegalArgumentException("source is required");
+		Parser parser = new Parser(source);
+		Program program = parser.parse();
+		if (!parser.diagnostics.isEmpty()) throw new ModelScriptException(parser.diagnostics);
+		Set<String> names = new LinkedHashSet<String>();
+		for (Declaration declaration : program.data) names.add(declaration.name);
+		return Collections.unmodifiableSet(names);
+	}
+
 	private enum TokenKind { IDENTIFIER, NUMBER, SYMBOL, EOF }
 	private static final class Token {
 		final TokenKind kind; final String text; final int line; final int column;

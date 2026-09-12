@@ -56,6 +56,33 @@ The core JAR is written to `build/libs/`; the all-in-one JAR is written to
 Use `./gradlew site` (or `.\gradlew.bat site` on Windows) to generate the website
 and JavaDoc in `build/site/`.
 
+## Run a Stan/JDM script
+
+The executable JAR keeps Java source generation as its default mode. Add `--run`
+to compile a supported script, load data, and sample with NUTS:
+
+```text
+java -jar jdistlib-all.jar --run --input script.stan --data dimensions.json --data observations.json --output output.txt
+```
+
+Repeat `--data` for multiple JSON files containing different named variables, or
+bind files explicitly with `--data x=predictors.csv`,
+`--data-column y=responses.csv:response`, and `--set N=100`.
+`--run --validate` checks the script/data without sampling; `--run --help` lists
+options. Output includes constrained draws, generated quantities and diagnostics.
+The runner uses the supported Java-native Stan core on CPU.
+
+See the [runnable examples and data rules](examples/cli/README.md). Build the JAR
+from this checkout to use the new mode; earlier releases do not include it. The
+core JAR also has an entry point and needs its generated `build/libs/lib/`
+directory alongside it; the all-in-one JAR includes runtime dependencies.
+
+Existing source-generation calls remain valid:
+
+```text
+java -jar jdistlib-all.jar script.stan generated.Model Model.java
+```
+
 ## Vignettes
 
 - [Using distributions](https://robbyjo.github.io/JDistlib/getting-started.html)

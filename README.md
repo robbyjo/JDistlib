@@ -6,6 +6,8 @@ with additional distributions, Bayesian inference, and linear algebra.
 
 See the [project website](https://robbyjo.github.io/JDistlib/) for documentation,
 API references, examples, and downloads.
+The searchable [scientific citation catalog](https://robbyjo.github.io/JDistlib/citations.html)
+maps documented method families to primary papers and audited implementation provenance.
 
 ## Features
 

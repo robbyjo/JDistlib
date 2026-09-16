@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Search the primary scientific and numerical-method citations behind JDistlib features.">
+  <title>Scientific citations — JDistlib</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/citations.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">JDistlib</a>
+    <nav aria-label="Primary navigation">
+      <a href="learn.html">Learn</a>
+      <a href="distributions.html">Distributions</a>
+      <a href="inference-tutorial.html">Inference</a>
+      <a aria-current="page" href="citations.html">Citations</a>
+      <a href="api/">JavaDoc</a>
+      <a href="https://github.com/robbyjo/JDistlib">Source</a>
+    </nav>
+  </header>
+
+  <main class="guide">
+    <section class="guide-hero">
+      <p class="eyebrow">Scientific provenance</p>
+      <h1>Find the method behind the feature</h1>
+      <p class="lede">Search by method, class, author, topic, or DOI. Entries point to
+        the primary paper or canonical numerical reference; implementation lineage is
+        recorded separately when JDistlib follows R or another audited codebase.</p>
+      <div class="citation-controls">
+        <label class="search-box">Search citations
+          <input id="citation-search" type="search" placeholder="NUTS, copula, FDR, Genz, 10.1214…" autocomplete="off">
+        </label>
+        <p id="citation-count" class="citation-count" aria-live="polite">53 citations shown</p>
+      </div>
+      <div class="citation-categories" aria-label="Citation categories">
+        <a href="#probability">Probability &amp; numerics</a>
+        <a href="#testing">Testing &amp; FDR</a>
+        <a href="#copulas">Copulas</a>
+        <a href="#inference">Bayesian inference</a>
+        <a href="#finance">Finance</a>
+        <a href="#computing">Solvers &amp; linear algebra</a>
+      </div>
+      <aside class="citation-note"><strong>How to cite JDistlib itself:</strong>
+        cite the software release used in your analysis and the method papers relevant
+        to the features you used. The repository's <a href="https://github.com/robbyjo/JDistlib/blob/master/DISTRIBUTIONS.md">distribution provenance ledger</a>
+        and <a href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">R synchronization ledger</a>
+        document code lineage; the entries below document scientific lineage.</aside>
+    </section>
+
+    <p id="citation-empty" hidden>No citations match every search term. Try a class name, method, author, or a shorter phrase.</p>
+
+    <section class="citation-group" id="probability" aria-labelledby="probability-heading">
+      <p class="eyebrow">Probability &amp; numerical distributions</p>
+      <h2 id="probability-heading">Distributions, simulation, and numerical construction</h2>
+      <div class="citation-list">
+        <article class="citation-entry" id="cite-r-mathlib" data-keywords="R Mathlib nmath dpqr normal beta gamma poisson binomial">
+          <h3>R Core Team — R statistical computing</h3>
+          <p>R Core Team (2026). <cite>R: A Language and Environment for Statistical Computing</cite>. R Foundation for Statistical Computing, Vienna.</p>
+          <p class="citation-features"><strong>Supports:</strong> core scalar D/P/Q/R conventions and the audited <code>src/nmath</code> lineage.</p>
+          <p class="citation-links"><a href="https://www.R-project.org/">Project and citation</a> · <a href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">JDistlib sync ledger</a></p>
+        </article>
+        <article class="citation-entry" id="cite-contributed-provenance" data-keywords="Triangular HalfNormal BirnbaumSaunders Gompertz Categorical Multinomial PoissonBinomial Empirical ZeroInflatedPoisson ZeroTruncatedPoisson HurdlePoisson ZeroInflatedNegativeBinomial ZeroTruncatedNegativeBinomial HurdleNegativeBinomial SinhArcsinh GeneralizedGamma GeneralizedBetaSecondKind Makeham Lindley FoldedNormal PositiveNormal Rice Maxwell MaxwellBoltzmann PoissonInverseGaussian GeneralizedF BetaNegativeBinomial NegativeHypergeometric DiscreteWeibull Skellam HalfCauchy HalfT Slash TukeyLambda FellerPareto PhaseType DiscreteLaplace LogitNormal AsymmetricLaplace ExponentiallyModifiedGaussian Huber Dirichlet DirichletMultinomial MultivariateHypergeometric BivariatePoisson BivariateLogistic MultivariateNormal MultivariateStudentT MultivariateCauchy MultivariateLogNormal MultivariateLaplace MultivariatePowerExponential Wishart BetaBinomial InvNormal LogLogistic Tweedie">
+          <h3>JDistlib contributed-distribution provenance ledger</h3>
+          <p>JDistlib maintainers. <cite>Contributed Distribution Provenance</cite>. Versioned reference implementations, licenses, parameterizations, and independent verification for non-R distribution families.</p>
+          <p class="citation-features"><strong>Supports:</strong> every contributed scalar, multivariate, matrix, and compound-count class in the distribution catalog. Where a distinct scientific or numerical method governs an implementation, its primary paper appears as a separate entry on this page.</p>
+          <p class="citation-links"><a href="https://github.com/robbyjo/JDistlib/blob/master/DISTRIBUTIONS.md">Audited provenance ledger</a></p>
+        </article>
+        <article class="citation-entry" id="cite-mersenne-twister" data-keywords="MersenneTwister random RNG simulation MT19937">
+          <h3>Matsumoto &amp; Nishimura (1998) — Mersenne Twister</h3>
+          <p>Matsumoto, M., &amp; Nishimura, T. (1998). “Mersenne Twister: A 623-Dimensionally Equidistributed Uniform Pseudo-Random Number Generator.” <cite>ACM TOMACS</cite> 8(1), 3–30.</p>
+          <p class="citation-features"><strong>Supports:</strong> <code>MersenneTwister</code> and explicit seeded simulation examples.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1145/272991.272995">doi:10.1145/272991.272995</a></p>
+        </article>
+        <article class="citation-entry" id="cite-genz-mvn" data-keywords="multivariate normal Student t rectangle probability Gaussian Genz randomized integration">
+          <h3>Genz (1992) — multivariate normal probabilities</h3>
+          <p>Genz, A. (1992). “Numerical Computation of Multivariate Normal Probabilities.” <cite>Journal of Computational and Graphical Statistics</cite> 1(2), 141–149.</p>
+          <p class="citation-features"><strong>Supports:</strong> randomized conditional integration for multivariate normal, Student-t, Cauchy, and log-normal rectangle probabilities.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1080/10618600.1992.10477010">doi:10.1080/10618600.1992.10477010</a></p>
+        </article>
+        <article class="citation-entry" id="cite-noncentral-mixtures" data-keywords="noncentral beta chi square t F Poisson mixture Benton Krishnamoorthy">
+          <h3>Benton &amp; Krishnamoorthy (2003) — noncentral mixtures</h3>
+          <p>Benton, D., &amp; Krishnamoorthy, K. (2003). “Computing Discrete Mixtures of Continuous Distributions: Noncentral Chi-square, Noncentral t and the Distribution of the Square of the Sample Multiple Correlation Coefficient.” <cite>Computational Statistics &amp; Data Analysis</cite> 43, 249–267.</p>
+          <p class="citation-features"><strong>Supports:</strong> centered Poisson-mixture evaluation used by noncentral probability laws and their accuracy audit.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1016/S0167-9473(02)00283-9">doi:10.1016/S0167-9473(02)00283-9</a></p>
+        </article>
+        <article class="citation-entry" id="cite-birnbaum-saunders" data-keywords="Birnbaum Saunders fatigue life distribution">
+          <h3>Birnbaum &amp; Saunders (1969) — fatigue-life distribution</h3>
+          <p>Birnbaum, Z. W., &amp; Saunders, S. C. (1969). “A New Family of Life Distributions.” <cite>Journal of Applied Probability</cite> 6(2), 319–327.</p>
+          <p class="citation-features"><strong>Supports:</strong> <code>BirnbaumSaunders</code> / fatigue-life distribution.</p>
+          <p class="citation-links"><a href="https://doi.org/10.2307/3212003">doi:10.2307/3212003</a></p>
+        </article>
+        <article class="citation-entry" id="cite-tweedie" data-keywords="Tweedie exponential dispersion compound Poisson gamma">
+          <h3>Jørgensen (1987) — exponential dispersion models</h3>
+          <p>Jørgensen, B. (1987). “Exponential Dispersion Models.” <cite>Journal of the Royal Statistical Society B</cite> 49(2), 127–162.</p>
+          <p class="citation-features"><strong>Supports:</strong> Tweedie exponential-dispersion parameterization and compound Poisson–gamma interpretation.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1111/j.2517-6161.1987.tb01685.x">doi:10.1111/j.2517-6161.1987.tb01685.x</a></p>
+        </article>
+        <article class="citation-entry" id="cite-quadpack" data-keywords="QUADPACK adaptive quadrature integration numerical continuous distribution infinite interval">
+          <h3>Piessens et al. (1983) — QUADPACK</h3>
+          <p>Piessens, R., de Doncker-Kapenga, E., Überhuber, C. W., &amp; Kahaner, D. K. (1983). <cite>QUADPACK: A Subroutine Package for Automatic Integration</cite>. Springer.</p>
+          <p class="citation-features"><strong>Supports:</strong> adaptive finite, semi-infinite, and whole-line quadrature used by numerical distributions and integration APIs.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1007/978-3-642-61786-7">doi:10.1007/978-3-642-61786-7</a></p>
+        </article>
+        <article class="citation-entry" id="cite-brent" data-keywords="Brent root finding minimization quantile inversion optimization">
+          <h3>Brent (1973) — derivative-free root finding</h3>
+          <p>Brent, R. P. (1973). <cite>Algorithms for Minimization without Derivatives</cite>. Prentice-Hall.</p>
+          <p class="citation-features"><strong>Supports:</strong> bracketed scalar root finding, numerical quantile inversion, and one-dimensional optimization.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1007/978-1-4612-7548-2">doi:10.1007/978-1-4612-7548-2</a></p>
+        </article>
+        <article class="citation-entry" id="cite-adaptive-rejection" data-keywords="adaptive rejection sampling ARS log concave numerical distribution Gibbs">
+          <h3>Gilks &amp; Wild (1992) — adaptive rejection sampling</h3>
+          <p>Gilks, W. R., &amp; Wild, P. (1992). “Adaptive Rejection Sampling for Gibbs Sampling.” <cite>Applied Statistics</cite> 41(2), 337–348.</p>
+          <p class="citation-features"><strong>Supports:</strong> log-concave adaptive-rejection sampling and related custom-law sampling strategy.</p>
+          <p class="citation-links"><a href="https://doi.org/10.2307/2347565">doi:10.2307/2347565</a></p>
+        </article>
+        <article class="citation-entry" id="cite-anderson-darling" data-keywords="Anderson Darling goodness fit empirical distribution CDF">
+          <h3>Anderson &amp; Darling (1952) — weighted EDF tests</h3>
+          <p>Anderson, T. W., &amp; Darling, D. A. (1952). “Asymptotic Theory of Certain Goodness of Fit Criteria Based on Stochastic Processes.” <cite>Annals of Mathematical Statistics</cite> 23(2), 193–212.</p>
+          <p class="citation-features"><strong>Supports:</strong> Anderson–Darling and the weighted empirical-distribution-function test family.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/aoms/1177729437">doi:10.1214/aoms/1177729437</a></p>
+        </article>
+        <article class="citation-entry" id="cite-bootstrap" data-keywords="bootstrap parametric resampling p value goodness fit Efron">
+          <h3>Efron (1979) — bootstrap</h3>
+          <p>Efron, B. (1979). “Bootstrap Methods: Another Look at the Jackknife.” <cite>Annals of Statistics</cite> 7(1), 1–26.</p>
+          <p class="citation-features"><strong>Supports:</strong> resampling-based p-values, uncertainty intervals, and fitted-model refitting guidance.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/aos/1176344552">doi:10.1214/aos/1176344552</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="citation-group" id="testing" aria-labelledby="testing-heading">
+      <p class="eyebrow">Hypothesis testing &amp; multiplicity</p>
+      <h2 id="testing-heading">Family-wise error, FDR, online testing, and q-values</h2>
+      <div class="citation-list">
+        <article class="citation-entry" id="cite-holm" data-keywords="Holm Bonferroni family wise FWER step down">
+          <h3>Holm (1979) — sequentially rejective Bonferroni</h3>
+          <p>Holm, S. (1979). “A Simple Sequentially Rejective Multiple Test Procedure.” <cite>Scandinavian Journal of Statistics</cite> 6(2), 65–70.</p>
+          <p class="citation-features"><strong>Supports:</strong> Holm step-down FWER adjustment and weighted Holm lineage.</p>
+          <p class="citation-links"><a href="https://www.jstor.org/stable/4615733">JSTOR 4615733</a></p>
+        </article>
+        <article class="citation-entry" id="cite-hochberg-hommel" data-keywords="Hochberg Hommel Simes step up FWER multiple testing">
+          <h3>Hochberg (1988) and Hommel (1988) — step-up FWER procedures</h3>
+          <p>Hochberg, Y. (1988). “A Sharper Bonferroni Procedure for Multiple Tests of Significance.” <cite>Biometrika</cite> 75(4), 800–802. Hommel, G. (1988). “A Stagewise Rejective Multiple Test Procedure Based on a Modified Bonferroni Test.” <cite>Biometrika</cite> 75(2), 383–386.</p>
+          <p class="citation-features"><strong>Supports:</strong> Hochberg and Hommel adjustments.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1093/biomet/75.4.800">Hochberg DOI</a> · <a href="https://doi.org/10.1093/biomet/75.2.383">Hommel DOI</a></p>
+        </article>
+        <article class="citation-entry" id="cite-bh" data-keywords="Benjamini Hochberg BH false discovery rate FDR">
+          <h3>Benjamini &amp; Hochberg (1995) — false discovery rate</h3>
+          <p>Benjamini, Y., &amp; Hochberg, Y. (1995). “Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing.” <cite>JRSS B</cite> 57(1), 289–300.</p>
+          <p class="citation-features"><strong>Supports:</strong> BH adjusted p-values, thresholds, rejections, and weighted extensions.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1111/j.2517-6161.1995.tb02031.x">doi:10.1111/j.2517-6161.1995.tb02031.x</a></p>
+        </article>
+        <article class="citation-entry" id="cite-by" data-keywords="Benjamini Yekutieli BY arbitrary dependence FDR">
+          <h3>Benjamini &amp; Yekutieli (2001) — FDR under dependence</h3>
+          <p>Benjamini, Y., &amp; Yekutieli, D. (2001). “The Control of the False Discovery Rate in Multiple Testing under Dependency.” <cite>Annals of Statistics</cite> 29(4), 1165–1188.</p>
+          <p class="citation-features"><strong>Supports:</strong> BY adjustment under arbitrary dependence.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/aos/1013699998">doi:10.1214/aos/1013699998</a></p>
+        </article>
+        <article class="citation-entry" id="cite-bky" data-keywords="Benjamini Krieger Yekutieli BKY adaptive two stage FDR">
+          <h3>Benjamini, Krieger &amp; Yekutieli (2006) — adaptive two-stage FDR</h3>
+          <p>Benjamini, Y., Krieger, A. M., &amp; Yekutieli, D. (2006). “Adaptive Linear Step-up Procedures that Control the False Discovery Rate.” <cite>Biometrika</cite> 93(3), 491–507.</p>
+          <p class="citation-features"><strong>Supports:</strong> two-stage BKY decisions and estimated-null count.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1093/biomet/93.3.491">doi:10.1093/biomet/93.3.491</a></p>
+        </article>
+        <article class="citation-entry" id="cite-storey" data-keywords="Storey q value qvalue pi0 true null proportion spline">
+          <h3>Storey (2002) — q-values and null proportion</h3>
+          <p>Storey, J. D. (2002). “A Direct Approach to False Discovery Rates.” <cite>JRSS B</cite> 64(3), 479–498.</p>
+          <p class="citation-features"><strong>Supports:</strong> q-values and estimation of the true-null proportion π₀.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1111/1467-9868.00346">doi:10.1111/1467-9868.00346</a></p>
+        </article>
+        <article class="citation-entry" id="cite-weighted-testing" data-keywords="weighted Bonferroni BH weights multiple testing prior information">
+          <h3>Benjamini &amp; Hochberg (1997) — weighted multiple testing</h3>
+          <p>Benjamini, Y., &amp; Hochberg, Y. (1997). “Multiple Hypotheses Testing with Weights.” <cite>Scandinavian Journal of Statistics</cite> 24(3), 407–418.</p>
+          <p class="citation-features"><strong>Supports:</strong> prespecified weighted BH/Bonferroni procedures.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1111/1467-9469.00072">doi:10.1111/1467-9469.00072</a></p>
+        </article>
+        <article class="citation-entry" id="cite-gbs" data-keywords="Gavrilov Benjamini Sarkar GBS adaptive step down FDR">
+          <h3>Gavrilov, Benjamini &amp; Sarkar (2009) — adaptive step-down FDR</h3>
+          <p>Gavrilov, Y., Benjamini, Y., &amp; Sarkar, S. K. (2009). “An Adaptive Step-down Procedure with Proven FDR Control under Independence.” <cite>Annals of Statistics</cite> 37(2), 619–629.</p>
+          <p class="citation-features"><strong>Supports:</strong> GBS adaptive step-down decisions.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/07-AOS586">doi:10.1214/07-AOS586</a></p>
+        </article>
+        <article class="citation-entry" id="cite-grouped-fdr" data-keywords="Benjamini Bogomolov grouped selective families FDR Simes">
+          <h3>Benjamini &amp; Bogomolov (2014) — selective grouped testing</h3>
+          <p>Benjamini, Y., &amp; Bogomolov, M. (2014). “Selective Inference on Multiple Families of Hypotheses.” <cite>JRSS B</cite> 76(1), 297–318.</p>
+          <p class="citation-features"><strong>Supports:</strong> two-level grouped BH with selective average-FDR control.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1111/rssb.12028">doi:10.1111/rssb.12028</a></p>
+        </article>
+        <article class="citation-entry" id="cite-online-fdr" data-keywords="LORD++ SAFFRON online FDR Ramdas hypothesis stream">
+          <h3>Ramdas et al. (2017, 2018) — LORD++ and SAFFRON</h3>
+          <p>Ramdas, A. et al. (2017). “Online Control of the False Discovery Rate with Decaying Memory.” <cite>NeurIPS</cite>. Ramdas, A. et al. (2018). “SAFFRON: An Adaptive Algorithm for Online Control of the False Discovery Rate.” <cite>AISTATS/PMLR</cite> 80.</p>
+          <p class="citation-features"><strong>Supports:</strong> stateful LORD++ and SAFFRON controllers for ordered hypothesis streams.</p>
+          <p class="citation-links"><a href="https://papers.nips.cc/paper_files/paper/2017/hash/7f018eb7b301a66658931cb8a93fd6e8-Abstract.html">LORD++ paper</a> · <a href="https://proceedings.mlr.press/v80/ramdas18a.html">SAFFRON paper</a></p>
+        </article>
+        <article class="citation-entry" id="cite-discrete-fdr" data-keywords="discrete DBH step up step down heterogeneous p value null CDF Heyse">
+          <h3>Döhler, Durand &amp; Roquain (2018) — discrete FDR</h3>
+          <p>Döhler, S., Durand, G., &amp; Roquain, E. (2018). “New FDR Bounds for Discrete and Heterogeneous Tests.” <cite>Electronic Journal of Statistics</cite> 12, 1867–1900.</p>
+          <p class="citation-features"><strong>Supports:</strong> DBH step-up/down procedures using attainable p-values and null CDFs.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/18-EJS1441">doi:10.1214/18-EJS1441</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="citation-group" id="copulas" aria-labelledby="copulas-heading">
+      <p class="eyebrow">Dependence modeling</p>
+      <h2 id="copulas-heading">Copulas, mixed margins, selection, and vines</h2>
+      <div class="citation-list">
+        <article class="citation-entry" id="cite-sklar" data-keywords="Sklar theorem copula margins dependence composition mixed">
+          <h3>Sklar (1959) — copula decomposition</h3>
+          <p>Sklar, A. (1959). “Fonctions de répartition à n dimensions et leurs marges.” <cite>Publications de l’Institut de Statistique de l’Université de Paris</cite> 8, 229–231.</p>
+          <p class="citation-features"><strong>Supports:</strong> separation of marginal laws from copula dependence in continuous and mixed joint models.</p>
+          <p class="citation-links"><a href="https://ssrn.com/abstract=4198458">Original and English translation</a></p>
+        </article>
+        <article class="citation-entry" id="cite-clayton" data-keywords="Clayton Archimedean copula lower tail dependence life table">
+          <h3>Clayton (1978) — Clayton copula</h3>
+          <p>Clayton, D. G. (1978). “A Model for Association in Bivariate Life Tables and Its Application in Epidemiological Studies of Familial Tendency in Chronic Disease Incidence.” <cite>Biometrika</cite> 65(1), 141–151.</p>
+          <p class="citation-features"><strong>Supports:</strong> <code>ClaytonCopula</code> and its lower-tail dependence interpretation.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1093/biomet/65.1.141">doi:10.1093/biomet/65.1.141</a></p>
+        </article>
+        <article class="citation-entry" id="cite-gumbel-copula" data-keywords="Gumbel Hougaard extreme value copula upper tail dependence">
+          <h3>Gumbel (1960) — Gumbel dependence family</h3>
+          <p>Gumbel, E. J. (1960). “Bivariate Exponential Distributions.” <cite>Journal of the American Statistical Association</cite> 55(292), 698–707.</p>
+          <p class="citation-features"><strong>Supports:</strong> <code>GumbelCopula</code> / Gumbel–Hougaard upper-tail dependence.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1080/01621459.1960.10483368">doi:10.1080/01621459.1960.10483368</a></p>
+        </article>
+        <article class="citation-entry" id="cite-vines" data-keywords="pair copula C vine D vine Aas Czado Frigessi Bakken fitting">
+          <h3>Aas et al. (2009) — pair-copula constructions</h3>
+          <p>Aas, K., Czado, C., Frigessi, A., &amp; Bakken, H. (2009). “Pair-copula Constructions of Multiple Dependence.” <cite>Insurance: Mathematics and Economics</cite> 44(2), 182–198.</p>
+          <p class="citation-features"><strong>Supports:</strong> C-vines, D-vines, sequential pair-copula fitting, and conditional simulation.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1016/j.insmatheco.2007.02.001">doi:10.1016/j.insmatheco.2007.02.001</a></p>
+        </article>
+        <article class="citation-entry" id="cite-bic" data-keywords="Schwarz BIC Bayesian information criterion copula family selection">
+          <h3>Schwarz (1978) — Bayesian information criterion</h3>
+          <p>Schwarz, G. (1978). “Estimating the Dimension of a Model.” <cite>Annals of Statistics</cite> 6(2), 461–464.</p>
+          <p class="citation-features"><strong>Supports:</strong> BIC-based copula and parametric model selection.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/aos/1176344136">doi:10.1214/aos/1176344136</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="citation-group" id="inference" aria-labelledby="inference-heading">
+      <p class="eyebrow">Bayesian computation</p>
+      <h2 id="inference-heading">Samplers, diagnostics, predictive assessment, and model spaces</h2>
+      <div class="citation-list">
+        <article class="citation-entry" id="cite-metropolis-hastings" data-keywords="Metropolis Hastings random walk MCMC acceptance sampler">
+          <h3>Metropolis et al. (1953) and Hastings (1970) — MCMC acceptance</h3>
+          <p>Metropolis, N. et al. (1953). “Equation of State Calculations by Fast Computing Machines.” <cite>Journal of Chemical Physics</cite> 21, 1087–1092. Hastings, W. K. (1970). “Monte Carlo Sampling Methods Using Markov Chains and Their Applications.” <cite>Biometrika</cite> 57(1), 97–109.</p>
+          <p class="citation-features"><strong>Supports:</strong> random-walk Metropolis, asymmetric proposal correction, and Metropolis-within-Gibbs kernels.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1063/1.1699114">Metropolis DOI</a> · <a href="https://doi.org/10.1093/biomet/57.1.97">Hastings DOI</a></p>
+        </article>
+        <article class="citation-entry" id="cite-hmc-nuts" data-keywords="Hamiltonian Monte Carlo HMC NUTS No U Turn dual averaging Hoffman Gelman">
+          <h3>Duane et al. (1987) and Hoffman &amp; Gelman (2014) — HMC and NUTS</h3>
+          <p>Duane, S. et al. (1987). “Hybrid Monte Carlo.” <cite>Physics Letters B</cite> 195(2), 216–222. Hoffman, M. D., &amp; Gelman, A. (2014). “The No-U-Turn Sampler: Adaptively Setting Path Lengths in Hamiltonian Monte Carlo.” <cite>JMLR</cite> 15, 1593–1623.</p>
+          <p class="citation-features"><strong>Supports:</strong> HMC, <code>NoUTurnSampler</code>, leapfrog integration, U-turn termination, and dual-averaging step-size adaptation.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1016/0370-2693(87)91197-X">HMC DOI</a> · <a href="https://www.jmlr.org/papers/v15/hoffman14a.html">NUTS paper</a></p>
+        </article>
+        <article class="citation-entry" id="cite-slice" data-keywords="Neal slice sampling stepping out shrinkage MCMC">
+          <h3>Neal (2003) — slice sampling</h3>
+          <p>Neal, R. M. (2003). “Slice Sampling.” <cite>Annals of Statistics</cite> 31(3), 705–767.</p>
+          <p class="citation-features"><strong>Supports:</strong> scalar slice sampling and stepping-out/shrinkage updates.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/aos/1056562461">doi:10.1214/aos/1056562461</a></p>
+        </article>
+        <article class="citation-entry" id="cite-rhat-ess" data-keywords="Rhat rank normalized folded ESS effective sample size MCSE diagnostics Vehtari">
+          <h3>Vehtari et al. (2021) — rank-normalized R-hat and ESS</h3>
+          <p>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., &amp; Bürkner, P.-C. (2021). “Rank-normalization, Folding, and Localization: An Improved R-hat for Assessing Convergence of MCMC.” <cite>Bayesian Analysis</cite> 16(2), 667–718.</p>
+          <p class="citation-features"><strong>Supports:</strong> split/folded rank R-hat, bulk and tail ESS, MCSE, and rank plots.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/20-BA1221">doi:10.1214/20-BA1221</a></p>
+        </article>
+        <article class="citation-entry" id="cite-hmc-diagnostics" data-keywords="divergence energy BFMI E-BFMI funnel HMC diagnostics Betancourt">
+          <h3>Betancourt (2017) — HMC geometry and diagnostics</h3>
+          <p>Betancourt, M. (2017). “A Conceptual Introduction to Hamiltonian Monte Carlo.” <cite>arXiv:1701.02434</cite>.</p>
+          <p class="citation-features"><strong>Supports:</strong> geometric interpretation of divergences, tree depth, energy behavior, E-BFMI, and funnel diagnostics.</p>
+          <p class="citation-links"><a href="https://arxiv.org/abs/1701.02434">arXiv:1701.02434</a></p>
+        </article>
+        <article class="citation-entry" id="cite-noncentered" data-keywords="non centered parameterization hierarchical model funnel Papaspiliopoulos Roberts Skold">
+          <h3>Papaspiliopoulos, Roberts &amp; Sköld (2007) — centered/non-centered parameterizations</h3>
+          <p>Papaspiliopoulos, O., Roberts, G. O., &amp; Sköld, M. (2007). “A General Framework for the Parametrization of Hierarchical Models.” <cite>Statistical Science</cite> 22(1), 59–73.</p>
+          <p class="citation-features"><strong>Supports:</strong> non-centered hierarchical parameterization and funnel remediation.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/088342307000000014">doi:10.1214/088342307000000014</a></p>
+        </article>
+        <article class="citation-entry" id="cite-rjmcmc" data-keywords="Green reversible jump RJMCMC variable dimension model selection add drop swap">
+          <h3>Green (1995) — reversible-jump MCMC</h3>
+          <p>Green, P. J. (1995). “Reversible Jump Markov Chain Monte Carlo Computation and Bayesian Model Determination.” <cite>Biometrika</cite> 82(4), 711–732.</p>
+          <p class="citation-features"><strong>Supports:</strong> variable-dimensional states, dimension matching, Jacobians, model-selection probabilities, and add/drop/swap moves.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1093/biomet/82.4.711">doi:10.1093/biomet/82.4.711</a></p>
+        </article>
+        <article class="citation-entry" id="cite-pathfinder" data-keywords="Pathfinder quasi Newton variational inference initialization multiple paths">
+          <h3>Zhang et al. (2022) — Pathfinder</h3>
+          <p>Zhang, L. et al. (2022). “Pathfinder: Parallel Quasi-Newton Variational Inference.” <cite>JMLR</cite> 23(306), 1–49.</p>
+          <p class="citation-features"><strong>Supports:</strong> multi-path quasi-Newton posterior approximation and MCMC initialization.</p>
+          <p class="citation-links"><a href="https://www.jmlr.org/papers/v23/21-0889.html">JMLR paper</a></p>
+        </article>
+        <article class="citation-entry" id="cite-loo-psis" data-keywords="PSIS Pareto smoothed importance sampling LOO cross validation k hat model comparison">
+          <h3>Vehtari, Gelman &amp; Gabry (2017) — PSIS-LOO</h3>
+          <p>Vehtari, A., Gelman, A., &amp; Gabry, J. (2017). “Practical Bayesian Model Evaluation Using Leave-one-out Cross-validation and WAIC.” <cite>Statistics and Computing</cite> 27, 1413–1432.</p>
+          <p class="citation-features"><strong>Supports:</strong> Pareto-smoothed importance-sampling LOO, Pareto-k diagnostics, and model comparison.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1007/s11222-016-9696-4">doi:10.1007/s11222-016-9696-4</a></p>
+        </article>
+        <article class="citation-entry" id="cite-waic" data-keywords="WAIC widely applicable information criterion Watanabe predictive">
+          <h3>Watanabe (2010) — WAIC</h3>
+          <p>Watanabe, S. (2010). “Asymptotic Equivalence of Bayes Cross Validation and Widely Applicable Information Criterion in Singular Learning Theory.” <cite>Journal of Machine Learning Research</cite> 11, 3571–3594.</p>
+          <p class="citation-features"><strong>Supports:</strong> WAIC from pointwise log-likelihood draws.</p>
+          <p class="citation-links"><a href="https://www.jmlr.org/papers/v11/watanabe10a.html">JMLR paper</a></p>
+        </article>
+        <article class="citation-entry" id="cite-stacking" data-keywords="Bayesian predictive stacking model weights Yao Vehtari Simpson Gelman">
+          <h3>Yao et al. (2018) — Bayesian predictive stacking</h3>
+          <p>Yao, Y., Vehtari, A., Simpson, D., &amp; Gelman, A. (2018). “Using Stacking to Average Bayesian Predictive Distributions.” <cite>Bayesian Analysis</cite> 13(3), 917–1007.</p>
+          <p class="citation-features"><strong>Supports:</strong> predictive stacking weights and model averaging.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/17-BA1091">doi:10.1214/17-BA1091</a></p>
+        </article>
+        <article class="citation-entry" id="cite-modern-hmc" data-keywords="ChEES SNAPER adaptive trajectory length nested Rhat MCLMC microcanonical">
+          <h3>Modern HMC adaptation — ChEES, SNAPER, nested R-hat, and adjusted MCLMC</h3>
+          <p>Hoffman et al. (2021), “An Adaptive-MCMC Scheme for Setting Trajectory Lengths in Hamiltonian Monte Carlo”; Sountsov &amp; Hoffman (2021), “Focusing on Difficult Directions for Learning HMC Trajectory Lengths”; Margossian et al. (2024), nested R-hat; Robnik et al. (2025), adjusted microcanonical HMC.</p>
+          <p class="citation-features"><strong>Supports:</strong> ChEES/SNAPER static HMC, many-short-chain diagnostics, and adjusted MCLMC workflows.</p>
+          <p class="citation-links"><a href="https://proceedings.mlr.press/v130/hoffman21a.html">ChEES</a> · <a href="https://arxiv.org/abs/2110.11576">SNAPER</a> · <a href="https://arxiv.org/abs/2110.13017">nested R-hat</a> · <a href="https://arxiv.org/abs/2503.01707">adjusted MCLMC</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="citation-group" id="finance" aria-labelledby="finance-heading">
+      <p class="eyebrow">Financial probability</p>
+      <h2 id="finance-heading">Risk, option-implied laws, transforms, and extremes</h2>
+      <div class="citation-list">
+        <article class="citation-entry" id="cite-black-scholes" data-keywords="Black Scholes Merton option price implied volatility European">
+          <h3>Black &amp; Scholes (1973) — European option pricing</h3>
+          <p>Black, F., &amp; Scholes, M. (1973). “The Pricing of Options and Corporate Liabilities.” <cite>Journal of Political Economy</cite> 81(3), 637–654.</p>
+          <p class="citation-features"><strong>Supports:</strong> checked Black–Scholes prices and implied-volatility inversion.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1086/260062">doi:10.1086/260062</a></p>
+        </article>
+        <article class="citation-entry" id="cite-breeden-litzenberger" data-keywords="Breeden Litzenberger option implied density state price second derivative curve">
+          <h3>Breeden &amp; Litzenberger (1978) — option-implied distributions</h3>
+          <p>Breeden, D. T., &amp; Litzenberger, R. H. (1978). “Prices of State-Contingent Claims Implicit in Option Prices.” <cite>Journal of Business</cite> 51(4), 621–651.</p>
+          <p class="citation-features"><strong>Supports:</strong> extraction of smooth risk-neutral densities and CDFs from arbitrage-consistent option curves.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1086/296025">doi:10.1086/296025</a></p>
+        </article>
+        <article class="citation-entry" id="cite-carr-madan" data-keywords="Carr Madan FFT Fourier inversion option valuation characteristic function">
+          <h3>Carr &amp; Madan (1999) — FFT option valuation</h3>
+          <p>Carr, P., &amp; Madan, D. B. (1999). “Option Valuation Using the Fast Fourier Transform.” <cite>Journal of Computational Finance</cite> 2(4), 61–73.</p>
+          <p class="citation-features"><strong>Supports:</strong> characteristic-function Fourier inversion and option-transform calculations.</p>
+          <p class="citation-links"><a href="https://doi.org/10.21314/JCF.1999.043">doi:10.21314/JCF.1999.043</a></p>
+        </article>
+        <article class="citation-entry" id="cite-cvar" data-keywords="Rockafellar Uryasev CVaR expected shortfall VaR risk stop loss">
+          <h3>Rockafellar &amp; Uryasev (2000) — conditional value-at-risk</h3>
+          <p>Rockafellar, R. T., &amp; Uryasev, S. (2000). “Optimization of Conditional Value-at-Risk.” <cite>Journal of Risk</cite> 2(3), 21–41.</p>
+          <p class="citation-features"><strong>Supports:</strong> expected shortfall / CVaR functionals and loss-tail optimization interpretation.</p>
+          <p class="citation-links"><a href="https://doi.org/10.21314/JOR.2000.038">doi:10.21314/JOR.2000.038</a></p>
+        </article>
+        <article class="citation-entry" id="cite-expectiles" data-keywords="Newey Powell expectile asymmetric least squares risk">
+          <h3>Newey &amp; Powell (1987) — expectiles</h3>
+          <p>Newey, W. K., &amp; Powell, J. L. (1987). “Asymmetric Least Squares Estimation and Testing.” <cite>Econometrica</cite> 55(4), 819–847.</p>
+          <p class="citation-features"><strong>Supports:</strong> expectile risk measures and asymmetric squared-loss interpretation.</p>
+          <p class="citation-links"><a href="https://doi.org/10.2307/1911031">doi:10.2307/1911031</a></p>
+        </article>
+        <article class="citation-entry" id="cite-evt" data-keywords="extreme value GEV GPD peaks over threshold Pickands Balkema de Haan return level tail index">
+          <h3>Balkema &amp; de Haan (1974) and Pickands (1975) — peaks over threshold</h3>
+          <p>Balkema, A. A., &amp; de Haan, L. (1974). “Residual Life Time at Great Age.” <cite>Annals of Probability</cite> 2(5), 792–804. Pickands, J. (1975). “Statistical Inference Using Extreme Order Statistics.” <cite>Annals of Statistics</cite> 3(1), 119–131.</p>
+          <p class="citation-features"><strong>Supports:</strong> GPD threshold excesses, tail-index/return-level estimation, and EVT diagnostics.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1214/aop/1176996548">Balkema–de Haan DOI</a> · <a href="https://doi.org/10.1214/aos/1176343003">Pickands DOI</a></p>
+        </article>
+        <article class="citation-entry" id="cite-levy-finance" data-keywords="VarianceGammaDistribution CgmyDistribution GeneralizedHyperbolicDistribution NormalInverseGaussianDistribution MeixnerDistribution NormalTemperedStableDistribution PositiveTemperedStableDistribution StableDistribution variance gamma CGMY generalized hyperbolic NIG tempered stable Levy finance distribution">
+          <h3>Madan &amp; Seneta (1990) and Carr et al. (2002) — Lévy return models</h3>
+          <p>Madan, D. B., &amp; Seneta, E. (1990). “The Variance Gamma Model for Share Market Returns.” <cite>Journal of Business</cite> 63(4), 511–524. Carr, P., Geman, H., Madan, D. B., &amp; Yor, M. (2002). “The Fine Structure of Asset Returns.” <cite>Journal of Business</cite> 75(2), 305–332.</p>
+          <p class="citation-features"><strong>Supports:</strong> variance-gamma and CGMY/tempered-stable characteristic functions and increment laws.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1086/296519">variance-gamma DOI</a> · <a href="https://doi.org/10.1086/338705">CGMY DOI</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="citation-group" id="computing" aria-labelledby="computing-heading">
+      <p class="eyebrow">Scientific computing</p>
+      <h2 id="computing-heading">Differential equations, autodiff, and linear algebra</h2>
+      <div class="citation-list">
+        <article class="citation-entry" id="cite-dormand-prince" data-keywords="Dormand Prince RK45 Runge Kutta ODE adaptive solver">
+          <h3>Dormand &amp; Prince (1980) — embedded RK5(4)</h3>
+          <p>Dormand, J. R., &amp; Prince, P. J. (1980). “A Family of Embedded Runge-Kutta Formulae.” <cite>Journal of Computational and Applied Mathematics</cite> 6(1), 19–26.</p>
+          <p class="citation-features"><strong>Supports:</strong> adaptive explicit RK45 integration for non-stiff ODEs and sensitivities.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1016/0771-050X(80)90013-3">doi:10.1016/0771-050X(80)90013-3</a></p>
+        </article>
+        <article class="citation-entry" id="cite-sundials" data-keywords="SUNDIALS BDF stiff ODE DAE algebraic solver Newton Krylov sensitivity">
+          <h3>Hindmarsh et al. (2005) — SUNDIALS solver architecture</h3>
+          <p>Hindmarsh, A. C. et al. (2005). “SUNDIALS: Suite of Nonlinear and Differential/Algebraic Equation Solvers.” <cite>ACM TOMS</cite> 31(3), 363–396.</p>
+          <p class="citation-features"><strong>Supports:</strong> stiff BDF, nonlinear algebraic, DAE, sensitivity, and Newton-style solver design.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1145/1089014.1089020">doi:10.1145/1089014.1089020</a></p>
+        </article>
+        <article class="citation-entry" id="cite-autodiff" data-keywords="automatic differentiation reverse mode autodiff computational graph tape gradients">
+          <h3>Baydin et al. (2018) — automatic differentiation</h3>
+          <p>Baydin, A. G., Pearlmutter, B. A., Radul, A. A., &amp; Siskind, J. M. (2018). “Automatic Differentiation in Machine Learning: A Survey.” <cite>JMLR</cite> 18(153), 1–43.</p>
+          <p class="citation-features"><strong>Supports:</strong> reverse-mode differentiation, reusable tapes, and atomic differentiable kernels.</p>
+          <p class="citation-links"><a href="https://www.jmlr.org/papers/v18/17-468.html">JMLR paper</a></p>
+        </article>
+        <article class="citation-entry" id="cite-stan" data-keywords="Stan modeling language probabilistic programming HMC NUTS source compatibility">
+          <h3>Carpenter et al. (2017) — Stan probabilistic programming</h3>
+          <p>Carpenter, B. et al. (2017). “Stan: A Probabilistic Programming Language.” <cite>Journal of Statistical Software</cite> 76(1), 1–32.</p>
+          <p class="citation-features"><strong>Supports:</strong> Stan language semantics used as the compatibility target for supported ordinary <code>.stan</code> source.</p>
+          <p class="citation-links"><a href="https://doi.org/10.18637/jss.v076.i01">doi:10.18637/jss.v076.i01</a></p>
+        </article>
+        <article class="citation-entry" id="cite-lapack" data-keywords="LAPACK BLAS dense linear algebra LU Cholesky QR eigen SVD">
+          <h3>Anderson et al. (1999) — LAPACK</h3>
+          <p>Anderson, E. et al. (1999). <cite>LAPACK Users’ Guide</cite>, 3rd ed. SIAM.</p>
+          <p class="citation-features"><strong>Supports:</strong> dense BLAS/LAPACK semantics for LU, Cholesky, QR, eigen, and SVD operations across providers.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1137/1.9780898719604">doi:10.1137/1.9780898719604</a></p>
+        </article>
+        <article class="citation-entry" id="cite-cholmod" data-keywords="CHOLMOD sparse Cholesky supernodal update downdate CSR factorization SuiteSparse">
+          <h3>Chen et al. (2008) — CHOLMOD sparse Cholesky</h3>
+          <p>Chen, Y., Davis, T. A., Hager, W. W., &amp; Rajamanickam, S. (2008). “Algorithm 887: CHOLMOD, Supernodal Sparse Cholesky Factorization and Update/Downdate.” <cite>ACM TOMS</cite> 35(3), Article 22.</p>
+          <p class="citation-features"><strong>Supports:</strong> supernodal sparse Cholesky factorization and optional native CHOLMOD acceleration.</p>
+          <p class="citation-links"><a href="https://doi.org/10.1145/1391989.1391995">doi:10.1145/1391989.1391995</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="guide-section guide-next">
+      <p class="eyebrow">Coverage and corrections</p>
+      <h2>Keep provenance auditable</h2>
+      <p>This catalog groups closely related API variants under the paper that introduced
+        or established the method. Distribution implementation sources and versioned
+        verification live in the <a href="https://github.com/robbyjo/JDistlib/blob/master/DISTRIBUTIONS.md">provenance ledger</a>.
+        If a citation or method mapping is incomplete, please open a
+        <a href="https://github.com/robbyjo/JDistlib/issues">GitHub issue</a> with the class,
+        method, and proposed primary source.</p>
+    </section>
+  </main>
+
+  <footer><span>JDistlib scientific citation catalog.</span><span>Primary methods and audited implementation lineage.</span></footer>
+</body>
+</html>

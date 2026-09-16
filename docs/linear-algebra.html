@@ -85,11 +85,21 @@
       <p><code>ComputeCapabilities</code> reports the backend, device, memory, precision, dense/sparse acceleration, native factorization, prepared storage, reusable sparse factorization, and batching support. Execution plans separately identify portable fallback. Numerical results are tolerance-checked, but parallel reduction order means cross-hardware bit identity is not promised.</p>
     </section>
 
+    <section class="guide-section" id="sources">
+      <p class="eyebrow">Scientific sources</p>
+      <h2>Numerical contracts behind the providers</h2>
+      <aside class="citation-note"><ul>
+        <li>Dense Cholesky, LU, QR, eigen, SVD, and BLAS/LAPACK semantics follow the <a href="citations.html#cite-lapack">LAPACK Users’ Guide</a>.</li>
+        <li>Supernodal sparse Cholesky and SuiteSparse interoperability follow <a href="citations.html#cite-cholmod">CHOLMOD Algorithm 887</a>.</li>
+        <li>Provider changes affect execution, not the mathematical operation; capability reports identify when an implementation falls back.</li>
+      </ul></aside>
+    </section>
+
     <section class="guide-section guide-next" id="downstream">
       <p class="eyebrow">Library foundation</p>
       <h2>Ready for regression, REML, pedigree, and graphical-model packages</h2>
       <p>JDistlib now owns the low-level numerical and provider layer. A downstream package can focus on design matrices, formula handling, statistical algorithms, variance-component optimization, pedigree construction, diagnostics, and result objects. Additional primitives can be added when those real workloads expose a measured gap.</p>
-      <div class="actions"><a class="button secondary" href="api/">Browse JavaDoc</a><a class="button secondary" href="gpu-acceleration.html">Review acceleration guidance</a></div>
+      <div class="actions"><a class="button secondary" href="api/">Browse JavaDoc</a><a class="button secondary" href="gpu-acceleration.html">Review acceleration guidance</a><a class="button secondary" href="citations.html#computing">Search numerical citations</a></div>
     </section>
   </main>
   <footer><span>JDistlib unified linear algebra.</span><span>Native prepared sparse factors and numerical safeguards completed in version 0.10.2.</span></footer>

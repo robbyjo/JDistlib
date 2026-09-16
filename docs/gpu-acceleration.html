@@ -145,6 +145,11 @@ device=NVIDIA GeForce RTX 2080 (sm_75), thresholded CPU fallback enabled</code><
       <p>The largest CPU/CUDA likelihood or gradient difference was below <code>3.1e-11</code>. These measurements establish a batching boundary on one machine, not a portable speed guarantee. Re-run <code>gradlew :jdistlib-cuda:cudaSmokeBenchmark</code> on the deployment hardware and review the checked-in <a href="https://github.com/robbyjo/JDistlib/blob/master/benchmarks/cuda/RESULTS-2026-08-27.md">benchmark record</a>.</p>
     </section>
 
+    <section class="guide-section" id="sources">
+      <p class="eyebrow">Scientific sources</p><h2>Acceleration preserves established numerical methods</h2>
+      <aside class="citation-note"><ul><li>Dense factorization and matrix-operation semantics follow <a href="citations.html#cite-lapack">BLAS/LAPACK</a>.</li><li>Optional SuiteSparse factors follow <a href="citations.html#cite-cholmod">CHOLMOD</a>.</li><li>Offloaded inference still implements <a href="citations.html#cite-hmc-nuts">HMC/NUTS</a>; only target evaluation and regular linear algebra move to providers.</li></ul></aside>
+    </section>
+
     <section class="guide-section" id="requirements">
       <p class="eyebrow">Providers and reproducibility</p><h2>Optional artifacts keep core JDistlib portable</h2>
       <div class="guide-columns">
@@ -154,7 +159,7 @@ device=NVIDIA GeForce RTX 2080 (sm_75), thresholded CPU fallback enabled</code><
         <article><h3>Native CPU</h3><p><code>jdistlib-nativecpu</code> dynamically loads a system oneMKL or OpenBLAS runtime through JNA. The all-in-one JAR includes the adapter, not Intel or OpenBLAS binaries. Use <code>Compute.ONEMKL</code> or <code>Compute.OPENBLAS</code> for a strict choice.</p></article>
       </div>
       <p>The unified JAR carries the x86-64 JNI bindings, but it cannot carry vendor drivers. CUDA still needs an NVIDIA driver plus NVRTC, OpenCL needs a vendor OpenCL implementation, and Vulkan needs a Vulkan loader/driver (MoltenVK is bundled through LWJGL on x86-64 macOS). On other architectures, use the modular artifacts so the dependency manager can select matching natives.</p>
-      <p>Caller-provided random streams remain deterministic. Parallel reductions can differ in their final floating-point bits across hardware and providers, so JDistlib does not promise bit-identical chains across CPU, CUDA, OpenCL, or Vulkan devices. Use CPU for the cross-machine reference path; for accelerated reproduction, retain the backend/device manifest and use the same software and hardware configuration.</p>
+      <p>Caller-provided random streams remain deterministic. Parallel reductions can differ in their final floating-point bits across hardware and providers, so JDistlib does not promise bit-identical chains across CPU, CUDA, OpenCL, or Vulkan devices. Use CPU for the cross-machine reference path; for accelerated reproduction, retain the backend/device manifest and use the same software and hardware configuration. See the <a href="citations.html#computing">scientific-computing citation index</a> for method provenance.</p>
     </section>
   </main>
   <footer><span>JDistlib acceleration guide.</span><span>Numerical safeguards and audit results completed in JDistlib 0.10.2.</span></footer>

@@ -482,6 +482,57 @@ footer {
 .troubleshooting-table th:nth-child(2) { width: 31%; }
 .guide-next { border-bottom: 0; }
 
+/* Searchable scientific-citation catalog and per-page source maps. */
+.citation-note {
+  margin-top: 28px;
+  padding: 18px 22px;
+  color: var(--muted);
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+}
+.citation-note strong { color: var(--ink); }
+.citation-note a { color: var(--blue); font-weight: 700; }
+.citation-note ul { margin: 10px 0 0; padding-left: 20px; }
+.citation-note li + li { margin-top: 6px; }
+
+.citation-controls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  margin-top: 36px;
+}
+.citation-count { margin: 0 0 10px; color: var(--muted); font-size: .9rem; }
+.citation-categories { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 0; }
+.citation-categories a {
+  padding: 5px 10px;
+  color: var(--blue-dark);
+  background: var(--pill);
+  border: 1px solid var(--pill-line);
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+.citation-group { padding: 68px 0 0; }
+.citation-group > h2 { margin-bottom: 24px; }
+.citation-list { display: grid; gap: 14px; }
+.citation-entry {
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  scroll-margin-top: 18px;
+}
+.citation-entry:target { outline: 4px solid var(--focus-ring); border-color: var(--blue); }
+.citation-entry h3 { margin-bottom: 8px; font-family: Georgia, "Times New Roman", serif; font-size: 1.2rem; }
+.citation-entry p { margin: 8px 0 0; color: var(--muted); }
+.citation-entry .citation-features { color: var(--ink); font-size: .9rem; }
+.citation-entry .citation-links { font-size: .9rem; }
+.citation-entry .citation-links a { color: var(--blue); font-weight: 750; }
+.citation-entry[hidden], .citation-group[hidden], #citation-empty[hidden] { display: none; }
+#citation-empty { margin: 34px 0; padding: 24px; background: var(--caution); border: 1px solid var(--caution-line); }
+
 /* Learning hub and tutorial/vignette pages. */
 .learning-intro { max-width: 780px; }
 .learning-grid {
@@ -566,6 +617,7 @@ footer {
   .reference-key, .reference-notes { grid-template-columns: 1fr; gap: 28px; }
   .guide-example, .guide-columns, .policy-grid, .learning-grid,
   .lesson-steps, .result-strip { grid-template-columns: 1fr; }
+  .citation-controls { grid-template-columns: 1fr; }
   .catalog-heading { align-items: stretch; flex-direction: column; }
   .distribution-table { min-width: 850px; }
   footer { flex-direction: column; }

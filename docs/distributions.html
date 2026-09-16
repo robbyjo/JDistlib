@@ -23,6 +23,7 @@
       <a href="custom-distributions.html">Custom distributions</a>
       <a href="copula-tutorial.html">Copulas 0.7.0+</a>
       <a href="inference-tutorial.html">Inference 0.8.0+</a>
+      <a href="citations.html">Citations</a>
       <a href="api/">JavaDoc</a>
       <a href="https://github.com/robbyjo/JDistlib/releases/latest">Download</a>
       <a href="https://github.com/robbyjo/JDistlib">Source</a>
@@ -67,6 +68,16 @@
           \(q(\mathbf x)=(\mathbf x-\boldsymbol\mu)^{\mathsf T}
           \Sigma^{-1}(\mathbf x-\boldsymbol\mu)\). Parameter constraints and
           boundary behavior are detailed in the linked JavaDoc.</p>
+      </div>
+    </section>
+
+    <section class="reference-notes" aria-labelledby="sources-heading">
+      <div><p class="eyebrow">Scientific sources</p><h2 id="sources-heading">Method provenance, not just formulas</h2></div>
+      <div class="notes-grid">
+        <article><h3>Core scalar laws</h3><p>D/P/Q/R conventions and numerical kernels follow the audited <a href="citations.html#cite-r-mathlib">R Mathlib lineage</a>; exact upstream file/version status is in <a href="https://github.com/robbyjo/JDistlib/blob/master/UPSTREAM.md">UPSTREAM.md</a>.</p></article>
+        <article><h3>Contributed scalar laws</h3><p>Each non-R class maps to a versioned reference implementation in the <a href="https://github.com/robbyjo/JDistlib/blob/master/DISTRIBUTIONS.md">distribution provenance ledger</a>; original family papers such as <a href="citations.html#cite-birnbaum-saunders">Birnbaum–Saunders</a> and <a href="citations.html#cite-tweedie">Tweedie dispersion models</a> are indexed centrally.</p></article>
+        <article><h3>Multivariate and noncentral probabilities</h3><p>Rectangle probabilities use <a href="citations.html#cite-genz-mvn">Genz’s conditional transform</a>; noncentral families use the <a href="citations.html#cite-noncentral-mixtures">centered discrete-mixture literature</a>.</p></article>
+        <article><h3>Random generation and composition</h3><p>Seeded examples use the <a href="citations.html#cite-mersenne-twister">Mersenne Twister</a>. General kernel normalization, inversion, and rejection strategies link to <a href="citations.html#probability">their numerical sources</a>.</p></article>
       </div>
     </section>
 

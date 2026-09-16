@@ -153,6 +153,56 @@ def validateDistributionCatalog = tasks.register('validateDistributionCatalog') 
     }
 }
 
+def validateCitationCatalog = tasks.register('validateCitationCatalog') {
+    group = 'verification'
+    description = 'Checks scientific-citation IDs, links, search wiring, and feature-page coverage.'
+    inputs.files(fileTree('docs') { include '**/*.html', 'assets/citations.js' })
+    doLast {
+        def catalog = file('docs/citations.html').getText('UTF-8')
+        def entryMatcher = catalog =~ /<article class="citation-entry" id="([^"]+)"/
+        def ids = []
+        entryMatcher.each { ids << it[1] }
+        if (ids.size() < 50)
+            throw new GradleException("citation catalog is unexpectedly small: ${ids.size()} entries")
+        if (ids.toSet().size() != ids.size())
+            throw new GradleException('citation catalog contains duplicate entry IDs')
+        if (!catalog.contains('id="citation-search"') ||
+                !catalog.contains('src="assets/citations.js"'))
+            throw new GradleException('citation catalog search is not wired')
+
+        def linkedIds = []
+        fileTree('docs') { include '**/*.html' }.files.each { documentation ->
+            def text = documentation.getText('UTF-8')
+            def links = text =~ /href="citations\.html#(cite-[^"]+)"/
+            links.each { link -> linkedIds << [file: project.relativePath(documentation), id: link[1]] }
+        }
+        def unresolved = linkedIds.findAll { !ids.contains(it.id) }
+        if (!unresolved.isEmpty())
+            throw new GradleException("unresolved citation links: ${unresolved}")
+
+        def requiredPages = [
+            'distribution-vignette.html', 'custom-distribution-vignette.html',
+            'copula-vignette.html', 'inference-vignette.html',
+            'inference-diagnostics-vignette.html', 'distributions.html',
+            'custom-distributions.html', 'multiple-testing.html',
+            'copula-tutorial.html', 'inference-guide.html',
+            'finance-tutorial.html', 'linear-algebra.html',
+            'stan-solvers-tutorial.html', 'rjmcmc-example.html',
+            'getting-started.html', 'composition-tutorial.html',
+            'modeling-language-tutorial.html', 'inference-tutorial.html',
+            'gpu-acceleration.html', 'numerical-audit.html',
+            'stan-users.html', 'stan-containers-tutorial.html',
+            'stan-functions-tutorial.html',
+            'options-trading-worked-example.html',
+            'sparse-transcriptome-rjmcmc-example.html'
+        ]
+        requiredPages.each { name ->
+            if (!file("docs/${name}").getText('UTF-8').contains('citations.html#cite-'))
+                throw new GradleException("${name} must link documented features to scientific citations")
+        }
+    }
+}
+
 def compileDocumentationExamples = tasks.register('compileDocumentationExamples', JavaCompile) {
     dependsOn tasks.named('jar')
     source fileTree('examples') { include '**/*.java' }
@@ -170,7 +220,7 @@ def validateModelScripts = tasks.register('validateModelScripts', JavaExec) {
 
 tasks.named('check') {
     dependsOn compileDocumentationExamples, validateModelScripts, validateReleaseDocumentation,
-        validateDistributionCatalog,
+        validateDistributionCatalog, validateCitationCatalog,
         ':jdistlib-nativecpu:check',
         ':jdistlib-cuda:check', ':jdistlib-opencl:check', ':jdistlib-vulkan:check',
         ':jdistlib-all:check', 'validateModularPoms'

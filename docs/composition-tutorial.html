@@ -273,13 +273,20 @@ double[] scenarios = responseTime.random(1_000);</code></pre>
         amount of numerical integration required.</p>
     </section>
 
+    <section class="guide-section" id="sources">
+      <p class="eyebrow">Scientific sources</p>
+      <h2>Numerical methods used by composed laws</h2>
+      <aside class="citation-note"><ul><li>Component D/P/Q/R operations retain the audited <a href="citations.html#cite-r-mathlib">R Mathlib conventions</a> or their <a href="citations.html#cite-contributed-provenance">recorded contributed source</a>.</li><li>Numerical inversion uses <a href="citations.html#cite-brent">Brent’s bracketed root finder</a>.</li><li>Fallback normalization/moment calculations use <a href="citations.html#cite-quadpack">adaptive quadrature</a>; seeded mixture/component selection uses the <a href="citations.html#cite-mersenne-twister">Mersenne Twister</a>.</li></ul></aside>
+    </section>
+
     <section class="guide-section guide-next">
       <p class="eyebrow">Next</p>
       <h2>Build a component only when the catalog is not enough</h2>
       <p>Use the <a href="custom-distributions.html">custom-distribution tutorial</a>
         to create a component from a kernel or discrete weights. Use the
         <a href="copula-tutorial.html">copula tutorial (0.7.0+)</a> when the goal is
-        a multivariate model rather than a one-dimensional composition.</p>
+        a multivariate model rather than a one-dimensional composition. Search the
+        <a href="citations.html#probability">method bibliography</a> for the algorithms used here.</p>
     </section>
   </main>
   <footer><span>JDistlib composition tutorial.</span><span>Mixtures, truncation, transformations, and censoring from 0.6.0.</span></footer>

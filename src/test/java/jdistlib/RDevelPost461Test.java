@@ -11,10 +11,23 @@ import org.junit.Test;
 import jdistlib.Binomial.BinomialKind;
 import jdistlib.disttest.DistributionTest;
 import jdistlib.disttest.TestKind;
+import jdistlib.math.Bessel;
 import jdistlib.rng.RandomEngine;
 
-/** Regression cases from R-devel revisions 89909, 90068, 90223, and 90299. */
+/** Regression cases from post-4.6.1 R-devel revisions. */
 public class RDevelPost461Test {
+	@Test
+	public void hugeBesselOrdersFailBeforeWorkArrayAllocation() {
+		double huge = 1e11;
+		assertTrue(Double.isNaN(Bessel.i(1.0, huge, false)));
+		assertTrue(Double.isNaN(Bessel.i(1.0, -huge, true)));
+		assertTrue(Double.isNaN(Bessel.i(
+				1.0, Double.POSITIVE_INFINITY, false)));
+		assertTrue(Double.isNaN(Bessel.k(1.0, huge, false)));
+		assertTrue(Double.isNaN(Bessel.k(1.0, -huge, true)));
+		assertTrue(Double.isNaN(Bessel.k(
+				1.0, Double.NEGATIVE_INFINITY, false)));
+	}
 
 	@Test
 	public void correctedBtpeIsDefaultAndLegacyStreamsRemainAvailable() {

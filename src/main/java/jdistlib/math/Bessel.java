@@ -153,6 +153,14 @@ public class Bessel {
 		xmax_BESS_K = 705.342, // maximal x for UNscaled answer
 		sqxmin_BESS_K = 1.49e-154, // sqrt(DBL_MIN) =	1.491668e-154
 		/*
+		 * R r90571 uses 1e9 for I, J, and K and 1e7 for Y.  Retain the
+		 * historical, more conservative J/Y bound because these Java routines
+		 * allocate one double per integer order and larger arrays are not useful
+		 * or safe in practice.
+		 */
+		max_alpha_BESS_IK = 1e9,
+		max_alpha_BESS_JY = 1e7,
+		/*
 		 * x < eps_sinc	 <==>  sin(x)/x == 1 (particularly "==>");
 		 * Linux (around 2001-02) gives 2.14946906753213e-08
 		 * Solaris 2.5.1		 gives 2.14911933289084e-08
@@ -189,7 +197,7 @@ public class Bessel {
 		// R's PR#15554 guard: converting an enormous order to an array length
 		// can overflow (or attempt an impossible allocation).  The underlying
 		// recurrence is not useful at these orders, so report loss of precision.
-		if (alpha > 1e7) return Double.NaN;
+		if (alpha > max_alpha_BESS_JY) return Double.NaN;
 		int na = (int) floor(alpha);
 
 		if (na < 0) {
@@ -243,7 +251,7 @@ public class Bessel {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
 		// See j(): this also prevents the historical PR#15554 crash path.
-		if (alpha > 1e7) return Double.NaN;
+		if (alpha > max_alpha_BESS_JY) return Double.NaN;
 		int na = (int) floor(alpha);
 
 		if (na < 0) {
@@ -301,6 +309,8 @@ public class Bessel {
 	public static final double i(double x, double alpha, boolean expo) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
+		// R r90571 / PR#19175: reject unusable orders before sizing a work array.
+		if (abs(alpha) > max_alpha_BESS_IK) return Double.NaN;
 		int na = (int) floor(alpha);
 
 		if (alpha < 0) {
@@ -354,6 +364,8 @@ public class Bessel {
 	public static final double k(double x, double alpha, boolean expo) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
+		// R r90571 / PR#19175: reject unusable orders before sizing a work array.
+		if (abs(alpha) > max_alpha_BESS_IK) return Double.NaN;
 
 		if (alpha < 0) alpha = -alpha;
 		int nb = 1 + (int) floor(alpha);

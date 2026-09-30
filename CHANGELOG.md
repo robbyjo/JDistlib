@@ -1,6 +1,11 @@
 What's new:
 
 Unreleased:
+* Ported the R r90571 / PR#19175 Bessel safety guard: modified Bessel I and K
+  now return NaN for absolute orders above 1e9 before converting the order or
+  allocating recurrence work arrays. Huge positive, negative, and infinite
+  orders therefore cannot trigger negative array sizes or attempted enormous
+  allocations. Bessel J retains JDistlib's safer historical 1e7 limit.
 * Added --run --sampler rjmcmc --model-space for finite Stan/JDM model families,
   paired Normal add/drop proposals, CLI sampling/data controls, inclusion and
   model diagnostics, and fingerprinted per-chain checkpoint/resume. The worked

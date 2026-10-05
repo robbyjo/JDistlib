@@ -153,7 +153,8 @@ public class Bessel {
 		xmax_BESS_K = 705.342, // maximal x for UNscaled answer
 		sqxmin_BESS_K = 1.49e-154, // sqrt(DBL_MIN) =	1.491668e-154
 		/*
-		 * R r90571 uses 1e9 for I, J, and K and 1e7 for Y.  Retain the
+		 * R r90571 uses 1e9 for I, J, and K and 1e7 for Y; r90618 applies the K
+		 * bound after normalizing negative orders.  Retain the
 		 * historical, more conservative J/Y bound because these Java routines
 		 * allocate one double per integer order and larger arrays are not useful
 		 * or safe in practice.
@@ -364,7 +365,8 @@ public class Bessel {
 	public static final double k(double x, double alpha, boolean expo) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
-		// R r90571 / PR#19175: reject unusable orders before sizing a work array.
+		// R r90571 / PR#19175 and r90618 / PR#19196: reject unusable absolute
+		// orders before sizing a work array, including huge negative K orders.
 		if (abs(alpha) > max_alpha_BESS_IK) return Double.NaN;
 
 		if (alpha < 0) alpha = -alpha;

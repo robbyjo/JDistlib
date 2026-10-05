@@ -72,8 +72,12 @@ and are covered by upstream regression vectors in
   89645 (R PR#19013): tied samples use the corrected cumulative-tie variance
   and exchangeable mid-rank score moments. JDistlib also applies those moments
   consistently to its one-sided Ansari overloads.
-- [x] `bessel_i.c` and `bessel_k.c` revision 90571 (R PR#19175): reject
-  absolute orders above `1e9` before integer conversion and work-array
+- [x] `stats::predict.smooth.spline` revision 90606 (R PR#19190): reject
+  negative derivative orders explicitly instead of allowing invalid spline
+  indexing or returning an extrapolation-dependent result.
+- [x] `bessel_i.c` and `bessel_k.c` revision 90571 (R PR#19175), plus the
+  negative-order `bessel_k.c` correction in revision 90618 (R PR#19196):
+  reject absolute orders above `1e9` before integer conversion and work-array
   allocation. This makes huge positive, negative, and infinite orders fail
   safely with `NaN`. JDistlib intentionally retains its more conservative
   `1e7` limit for both J and Y because the Java implementations allocate one

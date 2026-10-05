@@ -2,6 +2,7 @@ package jdistlib;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -12,6 +13,8 @@ import jdistlib.Binomial.BinomialKind;
 import jdistlib.disttest.DistributionTest;
 import jdistlib.disttest.TestKind;
 import jdistlib.math.Bessel;
+import jdistlib.math.spline.SmoothSpline;
+import jdistlib.math.spline.SmoothSplineResult;
 import jdistlib.rng.RandomEngine;
 
 /** Regression cases from post-4.6.1 R-devel revisions. */
@@ -27,6 +30,18 @@ public class RDevelPost461Test {
 		assertTrue(Double.isNaN(Bessel.k(1.0, -huge, true)));
 		assertTrue(Double.isNaN(Bessel.k(
 				1.0, Double.NEGATIVE_INFINITY, false)));
+	}
+
+	@Test
+	public void smoothSplineRejectsNegativeDerivativeOrders() {
+		double[] x = {0, 1, 2, 3, 4, 5};
+		double[] y = {0, 1, 1.5, 1.75, 2, 3};
+		SmoothSplineResult fit = SmoothSpline.fit(x, y);
+
+		assertThrows(IllegalArgumentException.class,
+				() -> SmoothSpline.predict(fit, 2.0, -99));
+		assertThrows(IllegalArgumentException.class,
+				() -> SmoothSpline.predict(fit, -1.0, -99));
 	}
 
 	@Test

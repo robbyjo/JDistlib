@@ -1245,6 +1245,9 @@ public class SmoothSpline
 
 	public static final double predict(double[] knots, double[] coefs, double xmin, double xmax, double val, int deriv)
 	{
+		if (deriv < 0)
+			throw new IllegalArgumentException("deriv must be non-negative");
+
 		double
 			range = xmax - xmin,
 			normalizedValue = (val - xmin) / range;

@@ -1,4 +1,56 @@
-# JDistlib 0.10.2
+# JDistlib 0.10.3
+
+JDistlib 0.10.3 makes the existing Stan/JDM modeling frontend directly runnable
+from the executable JAR and adds a file-driven finite-model RJMCMC workflow.
+It also incorporates the latest relevant R-devel safety fixes, adds a searchable
+scientific citation catalog, and makes the optional GPU runtime requirements
+explicit.
+
+## Executable inference and model-space sampling
+
+The command line now uses an explicit `--run` mode for inference while
+preserving the historical three-argument Stan/JDM-to-Java source generator.
+Runnable models can bind multiple named JSON files, numeric CSV or TSV columns,
+and literal values; execute constrained NUTS; and write draws, generated
+quantities, and diagnostics. Input validation rejects duplicate bindings,
+unknown names, malformed columns, and incompatible dimensions before sampling.
+
+The new `--sampler rjmcmc --model-space` path reads a finite model family from a
+JSON manifest. It supports paired Normal add/drop proposals, per-chain seeds and
+sampling controls, fingerprinted checkpoint/resume, model and inclusion
+diagnostics, and tabular output. The worked eight-model subset-selection example
+matches the existing Java example and is independently checked with normalized
+model densities and analytic Gaussian evidence.
+
+## Numerical compatibility and safety
+
+Post-R-4.6.1 compatibility now includes R r90571 and r90618: modified Bessel I
+and K reject absolute orders above `1e9` before integer conversion or work-array
+allocation, including huge negative and infinite orders. Bessel J deliberately
+retains JDistlib's safer historical `1e7` limit. R r90606 is also reflected:
+smoothing-spline prediction consistently rejects negative derivative orders for
+both interpolation and extrapolation instead of permitting invalid indexing or
+path-dependent results.
+
+## Documentation, compatibility, and artifacts
+
+The website now has a client-side searchable catalog of 53 primary references
+linked from the features they support. GPU documentation distinguishes bundled
+Java/JNI libraries from system prerequisites: CUDA requires Toolkit 12.6 with
+NVRTC and a compatible NVIDIA driver, OpenCL requires a vendor runtime with FP64,
+and Vulkan requires a loader, vendor driver, and `shaderFloat64` support.
+
+This release preserves Java 8-compatible bytecode and the existing public
+distribution APIs. The GitHub release provides the versioned all-in-one JAR, the
+stable `jdistlib-all.jar` alias, and `SHA256SUMS`; native-free and modular builds
+remain available from the source tag and dependency-managed publication flow.
+The release gate builds every module, runs the complete test and CLI smoke suite,
+validates all 92 model scripts and website catalogs, checks release manifests,
+and rejects SNAPSHOT artifacts. The clean local release build passed 537 tests
+with no failures, errors, or skips; the unified-JAR smoke detected all five
+configured compute backends.
+
+## Previous release: JDistlib 0.10.2
 
 JDistlib 0.10.2 completes the remaining numerical audit of the probability,
 statistics, inference, solver, accelerator, and random-engine layers. The

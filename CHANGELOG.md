@@ -1,6 +1,8 @@
 What's new:
 
 Unreleased:
+
+Version 0.10.3 (October 5, 2026):
 * Matched R r90606 / PR#19190 by rejecting negative smoothing-spline
   derivative orders consistently for interpolation and extrapolation.
 * Ported the R r90571 / PR#19175 Bessel safety guard and the r90618 / PR#19196
@@ -19,10 +21,12 @@ Unreleased:
   named JSON files, numeric CSV/TSV bindings, selected columns and literal data;
   emits constrained NUTS draws, generated quantities and diagnostics; and checks
   duplicate/unknown inputs before sampling. See examples/cli/README.md.
-* Prepared the 0.10.2 release with the remaining numerical audit fixes and
-  R 4.6.1 comparison reports. The release documentation records 30,710 scalar
-  comparisons, 10,905 joint-law values, matched Java/R benchmarks,
-  high-precision adjudication, and explicit coverage limits.
+* Added a searchable catalog of 53 primary scientific and numerical references,
+  with direct links from the relevant distribution, inference, solver, finance,
+  accelerator, and tutorial pages.
+* Clarified that the unified JAR bundles Java/JNI dependencies but still needs
+  vendor GPU runtimes: CUDA Toolkit 12.6 with NVRTC and a compatible NVIDIA
+  driver, a vendor OpenCL implementation, or a Vulkan loader and driver.
 
 Version 0.10.2 (September 8, 2026):
 * Completed the remaining numerical audit across contributed and extreme-value

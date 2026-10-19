@@ -30,6 +30,10 @@ public class RDevelPost461Test {
 		assertTrue(Double.isNaN(Bessel.k(1.0, -huge, true)));
 		assertTrue(Double.isNaN(Bessel.k(
 				1.0, Double.NEGATIVE_INFINITY, false)));
+		assertTrue(Double.isNaN(Bessel.y(1.0, -20_000_000.5)));
+		assertTrue(Double.isNaN(Bessel.y(1.0, -20_000_000.25)));
+		assertTrue(Double.isNaN(Bessel.y(
+				1.0, Double.NEGATIVE_INFINITY)));
 	}
 
 	@Test

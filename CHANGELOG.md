@@ -2,6 +2,13 @@ What's new:
 
 Unreleased:
 
+Version 0.10.4 (October 19, 2026):
+* Matched R r90697 for large negative non-integer Bessel Y orders. JDistlib's
+  existing `1e7` J/Y guard already returned NaN before recurrence-array
+  allocation; focused regressions now cover both upstream fractional-order
+  cases and negative infinity, and the source/audit ledger records the exact
+  R-devel provenance.
+
 Version 0.10.3 (October 5, 2026):
 * Matched R r90606 / PR#19190 by rejecting negative smoothing-spline
   derivative orders consistently for interpolation and extrapolation.

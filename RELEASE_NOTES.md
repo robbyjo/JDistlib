@@ -1,4 +1,31 @@
-# JDistlib 0.10.3
+# JDistlib 0.10.4
+
+JDistlib 0.10.4 is a focused R-devel compatibility and provenance release for
+extreme Bessel Y orders. It preserves the 0.10 public API and Java 8-compatible
+bytecode.
+
+## R-devel Bessel Y boundary
+
+R revision 90697 made large negative non-integer `besselY` orders return `NaN`
+with a warning rather than reaching an undersized work buffer. JDistlib's
+existing public J/Y recursion was already safe: its positive-order `1e7` guard
+is reached before allocating a recurrence array. The post-R-4.6.1 regression
+suite now covers both upstream fractional-order cases and negative infinity,
+and the implementation comment and upstream ledger record the exact revision.
+
+## Compatibility and artifacts
+
+The release keeps all distribution and inference APIs unchanged. The GitHub
+release provides the versioned all-in-one JAR, the stable `jdistlib-all.jar`
+alias, and `SHA256SUMS`; native-free and modular builds remain available from
+the source tag and dependency-managed publication flow. The release gate builds
+every module, runs the complete test and CLI smoke suite, validates all model
+scripts and website catalogs, checks release manifests, and rejects SNAPSHOT
+artifacts. The clean local 0.10.4 release gate passed all 66 tasks and 537 tests
+with no failures, errors, or skips; the unified-JAR smoke detected all five
+configured compute backends.
+
+## Previous release: JDistlib 0.10.3
 
 JDistlib 0.10.3 makes the existing Stan/JDM modeling frontend directly runnable
 from the executable JAR and adds a file-driven finite-model RJMCMC workflow.

@@ -75,13 +75,17 @@ and are covered by upstream regression vectors in
 - [x] `stats::predict.smooth.spline` revision 90606 (R PR#19190): reject
   negative derivative orders explicitly instead of allowing invalid spline
   indexing or returning an extrapolation-dependent result.
-- [x] `bessel_i.c` and `bessel_k.c` revision 90571 (R PR#19175), plus the
-  negative-order `bessel_k.c` correction in revision 90618 (R PR#19196):
-  reject absolute orders above `1e9` before integer conversion and work-array
-  allocation. This makes huge positive, negative, and infinite orders fail
-  safely with `NaN`. JDistlib intentionally retains its more conservative
-  `1e7` limit for both J and Y because the Java implementations allocate one
-  array entry per integer order; R-devel now permits J orders up to `1e9`.
+- [x] `bessel_i.c` and `bessel_k.c` revision 90571 (R PR#19175), the
+  negative-order `bessel_k.c` correction in revision 90618 (R PR#19196), and
+  the large-negative non-integer `bessel_y.c` correction in revision 90697:
+  I and K reject absolute orders above `1e9` before integer conversion and
+  work-array allocation, while Y returns `NaN` when a large negative
+  non-integer order exceeds its `1e7` limit. JDistlib intentionally retains
+  its more conservative `1e7` limit for both J and Y because the Java
+  implementations allocate one double per integer order; R-devel now permits
+  J orders up to `1e9`.
+  JDistlib's public J/Y recursion reaches that limit before allocating for
+  large negative orders; `RDevelPost461Test` covers the r90697 Y cases.
 
 ## R Bugzilla hardening in 0.8.1
 

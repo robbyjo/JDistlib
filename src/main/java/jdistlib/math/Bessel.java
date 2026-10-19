@@ -154,7 +154,8 @@ public class Bessel {
 		sqxmin_BESS_K = 1.49e-154, // sqrt(DBL_MIN) =	1.491668e-154
 		/*
 		 * R r90571 uses 1e9 for I, J, and K and 1e7 for Y; r90618 applies the K
-		 * bound after normalizing negative orders.  Retain the
+		 * bound after normalizing negative orders, and r90697 applies the Y bound
+		 * to large negative non-integer orders.  Retain the
 		 * historical, more conservative J/Y bound because these Java routines
 		 * allocate one double per integer order and larger arrays are not useful
 		 * or safe in practice.
@@ -251,7 +252,9 @@ public class Bessel {
 	public static final double y(double x, double alpha) {
 		if (Double.isNaN(x) || Double.isNaN(alpha)) return x + alpha;
 		if (x < 0) return Double.NaN;
-		// See j(): this also prevents the historical PR#15554 crash path.
+		// See j(): this also prevents the historical PR#15554 crash path.  For
+		// negative orders the recursive public calls reach this guard before any
+		// allocation, matching the r90697 large-negative-order behavior.
 		if (alpha > max_alpha_BESS_JY) return Double.NaN;
 		int na = (int) floor(alpha);
 

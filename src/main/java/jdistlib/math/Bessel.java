@@ -76,13 +76,18 @@ public class Bessel {
 		    EXP routine can handle and upper limit on the
 		    magnitude of X when IZE=1; approximately LOG(beta ^ maxexp)
 
-	  For I and J :
+	  For scaled I :
 
-	   xlrg_IJ = xlrg_BESS_IJ (was = XLARGE). Upper limit on the magnitude of X
+	   xlrg_I = xlrg_BESS_I (was = XLARGE). Upper limit on the magnitude of X
 		    (when IZE=2 for I()).  Bear in mind that if floor(abs(x)) =: N, then
 		    at least N iterations of the backward recursion will be executed.
 		    The value of 10 ^ 4 was used till Feb.2009, when it was increased
 		    to 10 ^ 5 (= 1e5).
+
+	  For J :
+
+	   xlarge_J = xlarge_BESS_J. R 4.6.2 evaluates the asymptotic branch through
+		    10 ^ 24, forcing that branch when X cannot be represented safely as int.
 
 	  For j :
 	   XMIN_J  = Smallest acceptable argument for RBESY; approximately
@@ -147,7 +152,8 @@ public class Bessel {
 		enmten_BESS = 8.9e-308,
 		enten_BESS = 1e308,
 		exparg_BESS = 709.,
-		xlrg_BESS_IJ = 1e5,
+		xlrg_BESS_I = 1e5,
+		xlarge_BESS_J = 1e24,
 		xlrg_BESS_Y = 1e8,
 		thresh_BESS_Y = 16.,
 		xmax_BESS_K = 705.342, // maximal x for UNscaled answer
@@ -306,7 +312,7 @@ public class Bessel {
 	 * Argonne, IL  60439
 	 * 
 	 * @param x Non-negative argument for which I's or exponentially scaled I's (I*EXP(-x)) are to be calculated.
-	 * If I's are to be calculated x must be less than exparg_BESS (=709, when expo == FALSE) or xlrg_BESS_IJ (=1e5, when expo == TRUE)
+	 * If I's are to be calculated x must be less than exparg_BESS (=709, when expo == FALSE) or xlrg_BESS_I (=1e5, when expo == TRUE)
 	 * @param alpha - Order for which I's or exponentially scaled I's (I*EXP(-x)) are to be calculated.
 	 * @param expo - set true if exponentially scaled I's are to be calculated. Else, if unscaled I's are to be calculated.
 	 */
@@ -414,7 +420,7 @@ public class Bessel {
 				6.2044840173323943936e23 };
 
 		/* Local variables */
-		long nend, intx, nbmx, k, l, m, nstart;
+		long nend, nbmx, k, l, m, nstart;
 		int nb = b.length, ncalc, j;
 
 		double nu, twonu, capp, capq, pold, vcos, test, vsin;
@@ -441,13 +447,13 @@ public class Bessel {
 		ncalc = nb;
 		/* Initialize result array to zero. */
 		Arrays.fill(b, 0);
-		if(x > xlrg_BESS_IJ) {
+		if(x > xlarge_BESS_J) {
 			//ML_ERROR(ME_RANGE, "J_bessel");
 			/* indeed, the limit is 0,
-			 * but the cutoff happens too early */
+			 * but a finite cutoff necessarily loses oscillations */
 			return ncalc;
 		}
-		intx = (long) (x);
+		double floorX = floor(x);
 
 		/*===================================================================
 		  Branch into  3 cases :
@@ -496,7 +502,7 @@ public class Bessel {
 					}
 				}
 			}
-		} else if (x > 25. && nb <= intx + 1) {
+		} else if (x > Integer.MAX_VALUE - 1.0 || (x > 25. && nb <= floorX + 1.)) {
 			/* ------------------------------------------------------------
 		       Asymptotic series for X > 25 (and not too large nb)
 		       ------------------------------------------------------------ */
@@ -548,11 +554,12 @@ public class Bessel {
 					b[j] = gnu * b[j - 1] / x - b[j - 2];
 		}
 		else {
-			/* rtnsig_BESS <= x && ( x <= 25 || intx+1 < *nb ) :
+			/* rtnsig_BESS <= x && ( x <= 25 || floorX+1 < nb ) :
 		       --------------------------------------------------------
 		       Use recurrence to generate results.
 		       First initialize the calculation of P*S.
 		       -------------------------------------------------------- */
+			long intx = (long) x; // x <= Integer.MAX_VALUE - 1 in this branch
 			final double verySmallNu = scalb(1., -800);
 			if (nu != 0. && abs(nu) < verySmallNu) {
 				nu = copySign(verySmallNu, nu);
@@ -1118,13 +1125,13 @@ public class Bessel {
 				Arrays.fill(bi, Double.POSITIVE_INFINITY);
 				return ncalc;
 			}
-			if(ize == 2 && x > xlrg_BESS_IJ) {
+			if(ize == 2 && x > xlrg_BESS_I) {
 				//for(k=1; k <= nb; k++)
 				//	bi[(int) k]= 0.; /* The limit exp(-x) * I_nu(x) --> 0 : */
 				Arrays.fill(bi, 0);
 				return ncalc;
 			}
-			intx = (long) (x);/* fine, since *x <= xlrg_BESS_IJ <<< LONG_MAX */
+			intx = (long) (x);/* fine, since *x <= xlrg_BESS_I <<< LONG_MAX */
 			if (x >= rtnsig_BESS) { /* "non-small" x ( >= 1e-4 ) */
 				/* -------------------------------------------------------------------
 					Initialize the forward sweep, the P-sequence of Olver

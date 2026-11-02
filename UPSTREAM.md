@@ -1,18 +1,19 @@
 # R `src/nmath` synchronization
 
-Target: **R 4.6.1**
+Target: **R 4.6.2**
 
 Historical baseline: **R 3.3.2**, with several later individual fixes
 
-Canonical source: <https://svn.r-project.org/R/tags/R-4-6-1/src/nmath/>
+Canonical source: <https://svn.r-project.org/R/tags/R-4-6-2/src/nmath/>
 
-**Ledger status: complete.** Audited on 2026-08-25 against all 120 paths that
+**Ledger status: complete.** The 2026-08-25 audit classified all 120 paths that
 changed between the tagged R 3.3.2 and R 4.6.1 `src/nmath` trees (117 modified,
-2 added, and 1 removed). The exact changed-file manifest is recorded in
-[`NMATH_AUDIT.md`](NMATH_AUDIT.md).
+2 added, and 1 removed). The 2026-11-02 audit then classified the complete
+five-file R 4.6.1-to-4.6.2 delta. The exact manifests and source-archive hashes
+are recorded in [`NMATH_AUDIT.md`](NMATH_AUDIT.md).
 
 This ledger prevents a partially updated library from being presented as a
-complete R 4.6.1 port. Each item should be checked only after the Java port has
+complete R 4.6.2 port. Each item should be checked only after the Java port has
 been compared with the tagged R source and covered by regression vectors.
 
 ## Completed in version 0.5.0
@@ -44,20 +45,44 @@ been compared with the tagged R source and covered by regression vectors.
 - [x] Remaining Poisson, binomial, and negative-binomial source details
 - [x] Remaining continuous distributions and RNG implementations
 - [x] Header/macro behavior (`nmath.h`, `dpq.h`, arithmetic helpers)
-- [x] Full generated regression corpus against an R 4.6.1 reference build
+- [x] Full generated regression corpus against an R 4.6.1 reference build,
+  preserved as the historical baseline
+- [x] Tagged-delta regression corpus against an R 4.6.2 reference build
 
 The file-by-file disposition and reproducible reference-vector details are in
 [`NMATH_AUDIT.md`](NMATH_AUDIT.md).
 
-## Post-4.6.1 R-devel compatibility
+## R 4.6.2 tagged delta
 
-The following changes were audited against the official R trunk on 2026-08-25
-and are covered by upstream regression vectors in
-`RDevelPost461Test`:
+The [official R 4.6.2 tag](https://svn.r-project.org/R/tags/R-4-6-2/) was created
+at revision 90785 from branch revision 90784. Comparing the official R 4.6.1
+and R 4.6.2 source archives changes exactly five `src/nmath` files:
 
 - [x] `rhyper.c` revision 90223: use the large-population quantile path when
   the combined population exceeds `Integer.MAX_VALUE`, even if each group is
-  individually smaller.
+  individually smaller. `RDevelPost461Test` covers the seeded R 4.6.2 stream;
+  the version-gated delta generator records its tagged-release provenance.
+- [x] `bessel_i.c`, `bessel_j.c`, `bessel_k.c`, and `bessel_y.c` revisions
+  90571, 90618, 90697, and 90756: reject unusable I/K orders before work-array
+  allocation; normalize negative K orders before applying the limit; reject
+  large negative non-integer Y orders; and evaluate J through its asymptotic
+  branch for arguments above `1e5` through `1e24`. `R462NmathDeltaTest` covers
+  J immediately above the old cutoff, above `Integer.MAX_VALUE`, and at the
+  new cutoff. JDistlib intentionally retains its more conservative `1e7` J/Y
+  order limit because the Java implementation allocates one double per order.
+- [x] Outside `src/nmath`, `stats::predict.smooth.spline` revision 90606
+  (R PR#19190) rejects negative derivative orders explicitly. Both interpolation
+  and extrapolation paths are covered by `RDevelPost461Test`.
+
+`src/test/R/generate-r462-nmath-delta.R` refuses to run under any release other
+than R 4.6.2 and emits the values asserted by `R462NmathDeltaTest` plus the
+seeded `rhyper` stream asserted by `RDevelPost461Test`.
+
+## Additional upstream compatibility
+
+The following independently tracked changes remain covered by
+`RDevelPost461Test`; they are not part of the five-file tagged Nmath delta:
+
 - [x] `rbinom.c` revisions 90299, 90307, and 90310: corrected BTPE Stirling
   signs and small-mean setup. Corrected BTPE is the default; an explicit
   `BinomialKind.BUGGY_BTPE` random state preserves the R 4.6-and-earlier
@@ -72,20 +97,6 @@ and are covered by upstream regression vectors in
   89645 (R PR#19013): tied samples use the corrected cumulative-tie variance
   and exchangeable mid-rank score moments. JDistlib also applies those moments
   consistently to its one-sided Ansari overloads.
-- [x] `stats::predict.smooth.spline` revision 90606 (R PR#19190): reject
-  negative derivative orders explicitly instead of allowing invalid spline
-  indexing or returning an extrapolation-dependent result.
-- [x] `bessel_i.c` and `bessel_k.c` revision 90571 (R PR#19175), the
-  negative-order `bessel_k.c` correction in revision 90618 (R PR#19196), and
-  the large-negative non-integer `bessel_y.c` correction in revision 90697:
-  I and K reject absolute orders above `1e9` before integer conversion and
-  work-array allocation, while Y returns `NaN` when a large negative
-  non-integer order exceeds its `1e7` limit. JDistlib intentionally retains
-  its more conservative `1e7` limit for both J and Y because the Java
-  implementations allocate one double per integer order; R-devel now permits
-  J orders up to `1e9`.
-  JDistlib's public J/Y recursion reaches that limit before allocating for
-  large negative orders; `RDevelPost461Test` covers the r90697 Y cases.
 
 ## R Bugzilla hardening in 0.8.1
 
@@ -99,8 +110,9 @@ tagged Nmath source change.
 
 ## Porting rules
 
-1. Compare the R 3.3.2 and R 4.6.1 tagged files for the baseline audit. Track
-   later R-development changes separately by exact revision, as above.
+1. Preserve the R 3.3.2-to-4.6.1 baseline audit and compare each later tagged
+   release as an explicit delta. Track post-tag R-development changes separately
+   by exact revision, as above.
 2. Preserve JDistlib-only distributions and public APIs unless a compatibility
    shim is supplied.
 3. Convert R process-global work caches to call-local data or explicit state

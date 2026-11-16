@@ -20,6 +20,31 @@ import jdistlib.rng.RandomEngine;
 /** Regression cases from post-4.6.1 R-devel revisions. */
 public class RDevelPost461Test {
 	@Test
+	public void kendallExactTailsUseSymmetryWithoutCancellation() {
+		int n = 13;
+		int maximum = n * (n - 1) / 2;
+		Kendall distribution = new Kendall(n);
+		assertEquals(1.0, Kendall.cumulative(maximum, n), 0.0);
+		assertEquals(0.0, distribution.cumulative(maximum, false, false), 0.0);
+		assertEquals(Double.NEGATIVE_INFINITY,
+				distribution.cumulative(maximum, false, true), 0.0);
+
+		assertOnePermutationKendallTail(18, 1.5619206968586225e-16);
+		assertOnePermutationKendallTail(20, 4.110317623312165e-19);
+	}
+
+	private static void assertOnePermutationKendallTail(int n, double expected) {
+		int maximum = n * (n - 1) / 2;
+		Kendall distribution = new Kendall(n);
+		double upper = distribution.cumulative(maximum - 1, false, false);
+		assertTrue(upper > 0.0);
+		assertEquals(expected, upper, expected * 2e-15);
+		assertEquals(Kendall.cumulative(0, n), upper, 0.0);
+		assertEquals(Math.log(expected),
+				distribution.cumulative(maximum - 1, false, true), 5e-15);
+	}
+
+	@Test
 	public void hugeBesselOrdersFailBeforeWorkArrayAllocation() {
 		double huge = 1e11;
 		assertTrue(Double.isNaN(Bessel.i(1.0, huge, false)));

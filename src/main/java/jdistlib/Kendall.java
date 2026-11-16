@@ -97,19 +97,50 @@ public class Kendall extends GenericDistribution {
 	 * @return cumulative
 	 */
 	public static final double cumulative(double x, int n) {
-		double p, q;
-		long w[][] = new long[n+1][];
+		return cumulative(x, n, true, false);
+	}
 
-		q = floor(x + 1e-7);
+	/**
+	 * Cumulative probability with an explicit tail and log-probability choice.
+	 * Upper tails are evaluated through the symmetry of the inversion-count
+	 * distribution instead of subtracting a lower tail from one.
+	 *
+	 * @param x count threshold
+	 * @param n permutation size
+	 * @param lower_tail whether to return {@code P[X <= x]} rather than
+	 *        {@code P[X > x]}
+	 * @param log_p whether to return the logarithm of the probability
+	 * @return the requested cumulative probability
+	 */
+	public static final double cumulative(double x, int n, boolean lower_tail,
+			boolean log_p) {
+		if (Double.isNaN(x)) return x;
+		double q = floor(x + 1e-7);
+		int maximum = n * (n - 1) / 2;
 		if (q < 0)
-			return 0;
-		if (q > (n * (n - 1) / 2))
-			return 1;
-		p = 0;
-		for (int j = 0; j <= q; j++) {
-			p += count(j, n, w);
+			return lower_tail ? (log_p ? Double.NEGATIVE_INFINITY : 0.0)
+					: (log_p ? 0.0 : 1.0);
+		if (q >= maximum)
+			return lower_tail ? (log_p ? 0.0 : 1.0)
+					: (log_p ? Double.NEGATIVE_INFINITY : 0.0);
+
+		/* The distribution is symmetric about maximum / 2. Sum the shorter
+		 * side, then map that probability to the caller's requested tail. */
+		boolean direct = lower_tail;
+		int last;
+		if (q <= maximum / 2.0) {
+			last = (int) q;
+		} else {
+			last = (int) (maximum - q - 1);
+			direct = !direct;
 		}
-		return exp(log(p) - lgammafn(n + 1));
+		long w[][] = new long[n+1][];
+		double total = 0.0;
+		for (int j = 0; j <= last; j++) total += count(j, n, w);
+		double p = exp(log(total) - lgammafn(n + 1));
+		p = max(0.0, min(1.0, p));
+		return direct ? (log_p ? log(p) : p)
+				: (log_p ? log1p(-p) : 0.5 - p + 0.5);
 	}
 
 	/**
@@ -188,8 +219,7 @@ public class Kendall extends GenericDistribution {
 
 	@Override
 	public double cumulative(double p, boolean lower_tail, boolean log_p) {
-		p = cumulative(p, n);
-		return log_p ? log(lower_tail ? p : 1-p) : (lower_tail ? p : 1-p);
+		return cumulative(p, n, lower_tail, log_p);
 	}
 
 	@Override

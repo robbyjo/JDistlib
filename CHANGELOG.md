@@ -2,12 +2,18 @@ What's new:
 
 Unreleased:
 
+Version 0.10.5 (November 16, 2026):
+
 * Synchronized the tagged R 4.6.2 `src/nmath` delta. Bessel J now uses the
   upstream asymptotic path for arguments above the historical `1e5` cutoff
   through `1e24`, including inputs above `Integer.MAX_VALUE`; exact R 4.6.2
   vectors cover the old cutoff, integer boundary, and new cutoff. The preserved
   R 4.6.1 corpus is supplemented by a version-gated R 4.6.2 delta generator and
   a five-file tagged-source audit.
+* Matched R r90891 / PR#19319 for exact Kendall probabilities. Cumulative
+  probabilities are clamped to their mathematical range, and upper and log
+  upper tails are evaluated through distribution symmetry instead of
+  subtracting from one, preserving one-permutation tails through `n = 20`.
 
 Version 0.10.4 (October 19, 2026):
 * Matched R r90697 for large negative non-integer Bessel Y orders. JDistlib's

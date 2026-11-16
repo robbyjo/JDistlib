@@ -97,6 +97,14 @@ The following independently tracked changes remain covered by
   89645 (R PR#19013): tied samples use the corrected cumulative-tie variance
   and exchangeable mid-rank score moments. JDistlib also applies those moments
   consistently to its one-sided Ansari overloads.
+- [x] `stats::cor.test` revision
+  [90891](https://svn.r-project.org/R/!svn/rvr/90891/trunk/src/library/stats/R/cor.test.R)
+  ([R PR#19319](https://bugs.r-project.org/show_bug.cgi?id=19319)): exact
+  Kendall upper tails use distribution symmetry instead of subtracting a
+  lower tail from one, and cumulative probabilities are clamped against
+  floating-point overshoot. `Kendall.cumulative` now sums the shorter
+  symmetric tail for ordinary and log probabilities; `RDevelPost461Test`
+  covers full support and one-permutation tails through `n = 20`.
 
 ## R Bugzilla hardening in 0.8.1
 

@@ -1,4 +1,40 @@
-# JDistlib 0.10.4
+# JDistlib 0.10.5
+
+JDistlib 0.10.5 completes the tagged R 4.6.2 `src/nmath` delta and fixes exact
+Kendall upper-tail probabilities at floating-point boundaries. It preserves the
+0.10 public API and Java 8-compatible bytecode.
+
+## Exact Kendall tails
+
+R revision 90891 / PR#19319 changed exact Kendall tests to clamp cumulative
+probabilities and obtain upper tails through distribution symmetry. JDistlib's
+former lower-tail calculation could exceed one by a few ulp, and subtracting it
+from one could therefore produce a negative probability or erase a very small
+positive tail. `Kendall.cumulative` now sums the shorter symmetric tail for
+ordinary and log probabilities. Regressions cover exact full support and the
+one-permutation upper tails for permutation sizes 18 and 20.
+
+## R 4.6.2 tagged delta
+
+The release also includes the audited five-file R 4.6.1-to-4.6.2 `src/nmath`
+delta. In particular, Bessel J uses R's asymptotic path above the historical
+`1e5` argument cutoff through `1e24`, including arguments above
+`Integer.MAX_VALUE`. The historical R 4.6.1 corpus remains unchanged; a
+version-gated R 4.6.2 generator and focused Java regression class preserve the
+tagged-release provenance.
+
+## Compatibility and artifacts
+
+The GitHub release provides the versioned all-in-one JAR, the stable
+`jdistlib-all.jar` alias, and `SHA256SUMS`. Native-free and modular builds remain
+available from the source tag and dependency-managed publication flow. The
+release gate builds every module, runs the complete test and CLI smoke suite,
+validates model scripts and website catalogs, checks release manifests, and
+rejects SNAPSHOT artifacts. The clean local 0.10.5 release gate passed all 66
+tasks and 539 tests with no failures, errors, or skips, validated all 92 model
+scripts, and detected all five configured compute backends in the unified JAR.
+
+## Previous release: JDistlib 0.10.4
 
 JDistlib 0.10.4 is a focused R-devel compatibility and provenance release for
 extreme Bessel Y orders. It preserves the 0.10 public API and Java 8-compatible

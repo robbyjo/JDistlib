@@ -1,4 +1,29 @@
-# JDistlib 0.10.5
+# JDistlib 0.10.6
+
+JDistlib 0.10.6 fixes bandwidth selection at small bin counts and complex
+tangent for large imaginary arguments, preserving the public API and Java 8
+bytecode compatibility.
+
+* R [r90955](https://svn.r-project.org/R/!svn/rvr/90955/trunk/src/library/stats/R/bandwidths.R)
+  / [PR#19351](https://bugs.r-project.org/show_bug.cgi?id=19351): retain the
+  terminal bin and fold its maximum pair distance into the last count.
+  UCV, BCV, SJ-ste, and SJ-dpi accept the valid small-bin endpoint cases.
+* R [r90957](https://svn.r-project.org/R/!svn/rvr/90957/trunk/src/main/complex.c)
+  / [PR#19327](https://bugs.r-project.org/show_bug.cgi?id=19327) highlights
+  platform failures for large finite imaginary arguments to complex tangent.
+  Java and Stan now share a scaled calculation that retains tiny real parts
+  and returns the analytic infinite limits; Stan derivatives are scaled too.
+
+Regressions assert exact unordered pair counts for both upstream sample sizes,
+finite bandwidths for all four selectors, direct Java and Stan complex values,
+and analytic large-argument gradients. The release includes the versioned
+all-in-one JAR, stable `jdistlib-all.jar` alias, and `SHA256SUMS`.
+
+The clean local release gate passed all 66 tasks and 541 tests with no failures,
+errors, or skips. It validated 92 model scripts and all five compute backend
+descriptors; the unified JAR reports version 0.10.6 and Java 8 class version 52.
+
+## Previous release: JDistlib 0.10.5
 
 JDistlib 0.10.5 completes the tagged R 4.6.2 `src/nmath` delta and fixes exact
 Kendall upper-tail probabilities at floating-point boundaries. It preserves the

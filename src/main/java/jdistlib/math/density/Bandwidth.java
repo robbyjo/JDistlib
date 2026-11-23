@@ -256,20 +256,21 @@ public class Bandwidth {
 		if (abs(low / width) >= 0x1p52) origin = low;
 		double first = (low - origin) / width;
 		first = first >= 0 ? floor(first) : ceil(first);
-		double[] histogram = new double[nb], counts = new double[nb];
+		// R r90955 / PR#19351: truncation can put endpoints nb bins apart.
+		double[] histogram = new double[nb + 1], counts = new double[nb];
 		for (double value : x) {
 			double bucket = (value - origin) / width;
 			bucket = bucket >= 0 ? floor(bucket) : ceil(bucket);
 			int index = (int) (bucket - first);
-			if (index < 0 || index >= nb) throw new IllegalArgumentException("Bandwidth bin is outside the grid");
+			if (index < 0 || index > nb) throw new IllegalArgumentException("Bandwidth bin is outside the grid");
 			histogram[index]++;
 		}
 		// Count unordered pairs in O(n + nb^2), without 32-bit count overflow.
-		for (int i = 0; i < nb; i++) {
+		for (int i = 0; i <= nb; i++) {
 			double frequency = histogram[i];
 			if (frequency == 0) continue;
 			counts[0] += frequency * (frequency - 1) / 2;
-			for (int j = 0; j < i; j++) counts[i - j] += frequency * histogram[j];
+			for (int j = 0; j < i; j++) counts[min(i - j, nb - 1)] += frequency * histogram[j];
 		}
 		return counts;
 	}

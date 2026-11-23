@@ -35,18 +35,18 @@
       <div class="release-banner" aria-label="Latest stable release">
         <div>
           <span class="release-label">Latest stable release</span>
-          <strong>JDistlib <span data-latest-release-version>0.10.5</span></strong>
+          <strong>JDistlib <span data-latest-release-version>0.10.6</span></strong>
           <span class="release-meta">Java 8+ compatible bytecode</span>
         </div>
-        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download JDistlib <span data-latest-release-version>0.10.5</span> — all in one ↓</a>
+        <a class="button primary release-download" href="https://github.com/robbyjo/JDistlib/releases/latest/download/jdistlib-all.jar">Download JDistlib <span data-latest-release-version>0.10.6</span> — all in one ↓</a>
       </div>
       <p class="eyebrow">Probability distributions for Java</p>
       <h1>R-grade numerical methods,<br>designed for concurrent Java.</h1>
       <p class="lede">JDistlib is a Java translation of R's <code>src/nmath</code>,
         adapted to avoid process-global mutable caches and extended with distributions
-        beyond the R library. Version 0.10.5 synchronizes the R 4.6.2
-        <code>src/nmath</code> delta and preserves exact Kendall upper tails at
-        floating-point boundaries.</p>
+        beyond the R library. Version 0.10.6 fixes small-bin bandwidth selection
+        and complex tangent at large imaginary arguments, building on the
+        audited R 4.6.2 <code>src/nmath</code> target.</p>
       <div class="actions">
         <a class="button secondary" href="https://github.com/robbyjo/JDistlib/releases/latest">Release notes &amp; checksum</a>
         <a class="button secondary" href="getting-started.html">Start the beginner tutorial</a>
@@ -54,7 +54,7 @@
         <a class="button secondary" href="examples.html">Browse examples</a>
       </div>
       <ul class="facts" aria-label="Project facts">
-        <li><strong data-latest-release-version>0.10.5</strong><span>stable release</span></li>
+        <li><strong data-latest-release-version>0.10.6</strong><span>stable release</span></li>
         <li><strong>R 4.6.2</strong><span>sync target</span></li>
         <li><strong>Java 8+</strong><span>compatible bytecode</span></li>
         <li><strong>GPL-2.0+</strong><span>open source</span></li>
@@ -168,12 +168,12 @@ double x = Normal.quantile(
 
     <section class="section status" aria-labelledby="status-heading">
       <div>
-        <p class="eyebrow">Release status · 0.10.5</p>
-        <h2 id="status-heading">Preserve exact probabilities in both tails</h2>
+        <p class="eyebrow">Release status · 0.10.6</p>
+        <h2 id="status-heading">Reliable bandwidths and complex tangent</h2>
       </div>
-      <p>Version 0.10.5 completes the tagged R 4.6.2 numerical delta and uses
-        symmetry for exact Kendall upper tails, avoiding cancellation while
-        preserving public APIs and Java 8-compatible bytecode.</p>
+      <p>Version 0.10.6 incorporates R's terminal-bin bandwidth correction and
+        stabilizes complex tangent values and Stan derivatives for large
+        imaginary arguments, preserving public APIs and Java 8-compatible bytecode.</p>
       <a class="text-link" href="numerical-audit.html">Review the numerical audit →</a>
     </section>
   </main>

@@ -33,6 +33,26 @@ public class StanComplexValueTest {
 		assertEquals(1.6,gradient[0],1e-12);assertEquals(4.8,gradient[1],1e-12);
 	}
 
+	@Test public void complexTangentRetainsLargeImaginaryLimits() {
+		// R r90957 / PR#19327: finite arguments plus analytic infinite limits.
+		for(double y:new double[]{30,350,400,Double.POSITIVE_INFINITY}) for(int sign:new int[]{-1,1}) {
+			Complex value=new Complex(.7,sign*y).tan();
+			double expected=2*Math.sin(1.4)*Math.exp(-2*y);
+			assertEquals(expected,value.real(),Math.abs(expected)*2e-14);
+			assertEquals(sign,value.imaginary(),0);
+			String source="data { complex z; } parameters { real x; } model { x ~ normal(0,1); } "
+					+"generated quantities { complex result = tan(z); }";
+			CompiledModelScript compiled=ModelScript.compileStan(source,Collections.singletonMap("z",new double[]{.7,sign*y}));
+			double[] result=compiled.generate(new double[]{0},new MersenneTwister(1)).get("result");
+			assertEquals(value.real(),result[0],0);assertEquals(value.imaginary(),result[1],0);
+		}
+		BayesianModel model=ModelScript.compileStan("parameters { complex z; } model { target += get_real(tan(z)); }").model();
+		double[] gradient=new double[2];
+		model.logDensityAndGradient(new double[]{.7,30},gradient);
+		assertEquals(4*Math.cos(1.4)*Math.exp(-60),gradient[0],1e-39);
+		assertEquals(-4*Math.sin(1.4)*Math.exp(-60),gradient[1],1e-39);
+	}
+
 	@Test public void complexVectorsUseConjugateTransposeAndGeneratedInterleaving() {
 		String source = "parameters { complex_vector[2] z; } transformed parameters { complex energy = z' * z; } "
 				+ "model { target += -get_real(energy); } generated quantities { complex copy = conj(z[1]); }";

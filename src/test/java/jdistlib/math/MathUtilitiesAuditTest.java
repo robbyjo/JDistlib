@@ -62,6 +62,24 @@ public class MathUtilitiesAuditTest {
         double[] repeated=new double[100000]; for(int i=0;i<repeated.length;i++) repeated[i]=i%2;
         assertEquals(r.get("bandwidth:counts:bcv:0"),Bandwidth.BCV.calculate(repeated),1e-10);
     }
+    @Test public void bandwidthTerminalBinPreservesAllPairs() throws Exception {
+        // R r90955 / PR#19351, testing both upstream sample sizes.
+        java.lang.reflect.Method pairs=Bandwidth.class.getDeclaredMethod("pairCounts",double[].class,int.class,double.class);
+        pairs.setAccessible(true);
+        for(int n:new int[]{20,60}) {
+            double[] x=new double[n];
+            for(int i=0;i<n;i++) x[i]=i%2==0?.024:1.024;
+            double[] counts=(double[])pairs.invoke(null,x,41,1.01/41);
+            double[] expected=new double[41];
+            expected[0]=(n/2.0)*(n/2.0-1); expected[40]=(n/2.0)*(n/2.0);
+            assertArrayEquals(expected,counts,0);
+            assertEquals(n*(n-1)/2.0,java.util.Arrays.stream(counts).sum(),0);
+            assertTrue(Double.isFinite(Bandwidth.SJ(x,41,Double.NaN,Double.NaN,Double.NaN,false)));
+            assertTrue(Double.isFinite(Bandwidth.SJ(x,41,Double.NaN,Double.NaN,Double.NaN,true)));
+            assertTrue(Double.isFinite(Bandwidth.CV(x,41,Double.NaN,Double.NaN,Double.NaN,false)));
+            assertTrue(Double.isFinite(Bandwidth.CV(x,41,Double.NaN,Double.NaN,Double.NaN,true)));
+        }
+    }
     @Test public void stableMomentsRetainOffsetsAndExtremeScales() throws Exception {
         Map<String,Double> r=reference(); double[] x={1e12,1e12+1,1e12+2,1e12+3,1e12+4};
         assertEquals(r.get("summary:offset:0"),VectorMath.mean(x),0);

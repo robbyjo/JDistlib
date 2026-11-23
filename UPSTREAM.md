@@ -80,6 +80,20 @@ seeded `rhyper` stream asserted by `RDevelPost461Test`.
 
 ## Additional upstream compatibility
 
+- [x] `stats` bandwidth pair counting revision
+  [90955](https://svn.r-project.org/R/!svn/rvr/90955/trunk/src/library/stats/R/bandwidths.R)
+  ([PR#19351](https://bugs.r-project.org/show_bug.cgi?id=19351)):
+  `Bandwidth` retains the terminal histogram bin and folds pair distance `nb`
+  into count `nb - 1`. `MathUtilitiesAuditTest` checks exact pair counts and
+  finite UCV/BCV/SJ results for the upstream 20- and 60-observation examples.
+- [x] Complex tangent revision
+  [90957](https://svn.r-project.org/R/!svn/rvr/90957/trunk/src/main/complex.c)
+  ([PR#19327](https://bugs.r-project.org/show_bug.cgi?id=19327)) repairs
+  platform `ctan` NaNs for large finite imaginary arguments. Java `Complex.tan`
+  and Stan use a shared scaled evaluation; `StanComplexValueTest` covers tiny
+  real components, both infinite limits, and large-argument derivatives.
+  These are outside `src/nmath`; the tagged R 4.6.2 audit remains unchanged.
+
 The following independently tracked changes remain covered by
 `RDevelPost461Test`; they are not part of the five-file tagged Nmath delta:
 

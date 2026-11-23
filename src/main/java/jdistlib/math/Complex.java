@@ -23,7 +23,18 @@ public final class Complex {
 	public Complex sqrt(){double magnitude=abs();return new Complex(Math.sqrt((magnitude+real)/2),Math.copySign(Math.sqrt(Math.max(0,(magnitude-real)/2)),imaginary));}
 	public Complex sin(){return new Complex(Math.sin(real)*Math.cosh(imaginary),Math.cos(real)*Math.sinh(imaginary));}
 	public Complex cos(){return new Complex(Math.cos(real)*Math.cosh(imaginary),-Math.sin(real)*Math.sinh(imaginary));}
-	public Complex tan(){return sin().divide(cos());}
+	public Complex tan(){
+		// R r90957 / PR#19327 repairs large finite imaginary arguments.
+		// Scale by exp(-2 |y|) to retain their tiny real parts and Inf limits.
+		if (Math.abs(imaginary) > 25) {
+			double q = Math.exp(-Math.abs(imaginary)); q *= q;
+			double s = Math.sin(real), c = Math.cos(real);
+			double denominator = 1 + 2*q*(c*c-s*s) + q*q;
+			return new Complex(4*q*s*c/denominator,
+					Math.copySign((1-q*q)/denominator, imaginary));
+		}
+		return sin().divide(cos());
+	}
 	public Complex sinh(){return new Complex(Math.sinh(real)*Math.cos(imaginary),Math.cosh(real)*Math.sin(imaginary));}
 	public Complex cosh(){return new Complex(Math.cosh(real)*Math.cos(imaginary),Math.sinh(real)*Math.sin(imaginary));}
 	public Complex tanh(){return sinh().divide(cosh());}

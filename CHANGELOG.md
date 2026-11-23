@@ -2,6 +2,16 @@ What's new:
 
 Unreleased:
 
+Version 0.10.6 (November 23, 2026):
+
+* Matched R r90955 / PR#19351: bandwidth pair counting now retains the
+  terminal histogram bin and folds distance nb into the final count. Small-bin
+  UCV, BCV, and both Sheather-Jones selectors no longer reject valid endpoints.
+* Incorporated the numerical boundary highlighted by R r90957 / PR#19327:
+  complex tangent uses a scaled path for large imaginary arguments, preserving
+  tiny real components and the infinite limits. Java and Stan use the same
+  values; the Stan derivative also avoids overflowing intermediate quotients.
+
 Version 0.10.5 (November 16, 2026):
 
 * Synchronized the tagged R 4.6.2 `src/nmath` delta. Bessel J now uses the

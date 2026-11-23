@@ -2074,10 +2074,25 @@ public final class ModelScript {
 				else if(name.equals("cos")){result[2*i]=real.cos().multiply(imaginary.cosh());result[2*i+1]=real.sin().multiply(imaginary.sinh()).negate();}
 				else if(name.equals("sinh")){result[2*i]=real.sinh().multiply(imaginary.cos());result[2*i+1]=real.cosh().multiply(imaginary.sin());}
 				else if(name.equals("cosh")){result[2*i]=real.cosh().multiply(imaginary.cos());result[2*i+1]=real.sinh().multiply(imaginary.sin());}
-				else if(name.equals("tan")||name.equals("tanh")){
+				else if(name.equals("tan")){
+					jdistlib.math.Complex value=new jdistlib.math.Complex(real.value,imaginary.value).tan();
+					double dr,di;
+					if(Math.abs(imaginary.value)>25){
+						double q=Math.exp(-Math.abs(imaginary.value));q*=q;
+						double s=Math.sin(real.value),c=Math.cos(real.value),cos2=c*c-s*s;
+						double denominator=1+2*q*cos2+q*q;
+						dr=4*q*((1+q*q)*cos2+2*q)/(denominator*denominator);
+						di=Math.copySign(1,imaginary.value)*8*q*(1-q*q)*s*c/(denominator*denominator);
+					}else{
+						dr=1+value.real()*value.real()-value.imaginary()*value.imaginary();
+						di=2*value.real()*value.imaginary();
+					}
+					result[2*i]=Diff.atomic(value.real(),new Diff[]{real,imaginary},new double[]{dr,-di});
+					result[2*i+1]=Diff.atomic(value.imaginary(),new Diff[]{real,imaginary},new double[]{di,dr});
+				}
+				else if(name.equals("tanh")){
 					Diff numeratorReal,numeratorImaginary,denominatorReal,denominatorImaginary;
-					if(name.equals("tan")){numeratorReal=real.sin().multiply(imaginary.cosh());numeratorImaginary=real.cos().multiply(imaginary.sinh());denominatorReal=real.cos().multiply(imaginary.cosh());denominatorImaginary=real.sin().multiply(imaginary.sinh()).negate();}
-					else{numeratorReal=real.sinh().multiply(imaginary.cos());numeratorImaginary=real.cosh().multiply(imaginary.sin());denominatorReal=real.cosh().multiply(imaginary.cos());denominatorImaginary=real.sinh().multiply(imaginary.sin());}
+					numeratorReal=real.sinh().multiply(imaginary.cos());numeratorImaginary=real.cosh().multiply(imaginary.sin());denominatorReal=real.cosh().multiply(imaginary.cos());denominatorImaginary=real.sinh().multiply(imaginary.sin());
 					Diff denominator=denominatorReal.multiply(denominatorReal).add(denominatorImaginary.multiply(denominatorImaginary));
 					result[2*i]=numeratorReal.multiply(denominatorReal).add(numeratorImaginary.multiply(denominatorImaginary)).divide(denominator);
 					result[2*i+1]=numeratorImaginary.multiply(denominatorReal).subtract(numeratorReal.multiply(denominatorImaginary)).divide(denominator);
